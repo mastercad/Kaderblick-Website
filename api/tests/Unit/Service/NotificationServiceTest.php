@@ -6,33 +6,26 @@ use App\Entity\Notification;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
 use App\Service\NotificationService;
-use App\Service\PushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 
 class NotificationServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;
     private NotificationRepository&MockObject $repo;
-    private PushNotificationService&MockObject $pushService;
-    private LoggerInterface&MockObject $logger;
     private NotificationService $service;
 
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->repo = $this->createMock(NotificationRepository::class);
-        $this->pushService = $this->createMock(PushNotificationService::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
 
+        // PushNotificationService is intentionally NOT injected — push is handled
+        // asynchronously by the cron job app:notifications:send-unsent.
         $this->service = new NotificationService(
             $this->em,
-            $this->repo,
-            $this->pushService,
-            $this->logger
+            $this->repo
         );
     }
 
@@ -40,18 +33,12 @@ class NotificationServiceTest extends TestCase
     //  createNotification — single user
     // ======================================================================
 
-    public function testCreateNotificationPersistsAndSendsPush(): void
+    public function testCreateNotificationPersistsEntity(): void
     {
         $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(1);
 
         $this->em->expects($this->once())->method('persist')->with($this->isInstanceOf(Notification::class));
-        // flush called twice: once for persist, once for isSent = true
-        $this->em->expects($this->exactly(2))->method('flush');
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Test Title', 'Test Body', '/test/url');
+        $this->em->expects($this->once())->method('flush');
 
         $notification = $this->service->createNotification(
             $user,
@@ -65,72 +52,71 @@ class NotificationServiceTest extends TestCase
         $this->assertSame('news', $notification->getType());
         $this->assertSame('Test Title', $notification->getTitle());
         $this->assertSame('Test Body', $notification->getMessage());
-        $this->assertTrue($notification->isSent(), 'Notification must be marked as sent after push succeeds');
     }
 
-    public function testCreateNotificationExtractsUrlFromData(): void
+    /**
+     * Regression: push must NOT be sent synchronously inside the HTTP request.
+     * isSent stays false — the cron job app:notifications:send-unsent handles delivery.
+     */
+    public function testCreateNotificationDoesNotSendPushSynchronously(): void
     {
         $user = $this->createMock(User::class);
 
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Title', '', '/news/42');
+        // Only ONE flush: after persist. The old code called flush twice (second time
+        // after setting isSent=true on push success). One flush proves no sync push happened.
+        $this->em->expects($this->once())->method('flush');
 
-        $this->service->createNotification($user, 'news', 'Title', null, ['newsId' => 42, 'url' => '/news/42']);
-    }
-
-    public function testCreateNotificationUsesSlashWhenNoUrlInData(): void
-    {
-        $user = $this->createMock(User::class);
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Title', 'Body', '/');
-
-        $this->service->createNotification($user, 'system', 'Title', 'Body');
-    }
-
-    public function testCreateNotificationHandlesPushFailureGracefully(): void
-    {
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(1);
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->willThrowException(new Exception('Connection timeout'));
-
-        // Must log the error
-        $this->logger->expects($this->once())
-            ->method('critical')
-            ->with($this->stringContains('Connection timeout'));
-
-        // Notification should still be created
         $notification = $this->service->createNotification($user, 'news', 'Title', 'Body');
 
-        $this->assertInstanceOf(Notification::class, $notification);
-        // isSent should be false since push failed
-        $this->assertFalse($notification->isSent(), 'Notification must NOT be marked sent when push fails');
+        $this->assertFalse(
+            $notification->isSent(),
+            'isSent must be false — push delivery is deferred to the cron job'
+        );
+    }
+
+    public function testCreateNotificationWithNullMessageAndData(): void
+    {
+        $user = $this->createMock(User::class);
+
+        $notification = $this->service->createNotification($user, 'system', 'Title only');
+
+        $this->assertNull($notification->getMessage());
+        $this->assertNull($notification->getData());
+        $this->assertFalse($notification->isSent());
+    }
+
+    public function testCreateNotificationStoresDataArray(): void
+    {
+        $user = $this->createMock(User::class);
+        $data = ['newsId' => 42, 'url' => '/news/42'];
+
+        $notification = $this->service->createNotification($user, 'news', 'Title', null, $data);
+
+        $this->assertSame($data, $notification->getData());
+    }
+
+    public function testCreateNotificationSetsUser(): void
+    {
+        $user = $this->createMock(User::class);
+
+        $notification = $this->service->createNotification($user, 'news', 'Title');
+
+        $this->assertSame($user, $notification->getUser());
     }
 
     // ======================================================================
     //  createNotificationForUsers — multiple users
     // ======================================================================
 
-    public function testCreateNotificationForUsersSendsToAllUsers(): void
+    public function testCreateNotificationForUsersCreatesOneEntityPerUser(): void
     {
         $user1 = $this->createMock(User::class);
-        $user1->method('getId')->willReturn(1);
         $user2 = $this->createMock(User::class);
-        $user2->method('getId')->willReturn(2);
         $user3 = $this->createMock(User::class);
-        $user3->method('getId')->willReturn(3);
 
-        // Persist called once per user
         $this->em->expects($this->exactly(3))->method('persist');
-
-        // Push sent to each user
-        $this->pushService->expects($this->exactly(3))
-            ->method('sendNotification');
+        // Single flush after all persists — not one per user
+        $this->em->expects($this->once())->method('flush');
 
         $notifications = $this->service->createNotificationForUsers(
             [$user1, $user2, $user3],
@@ -141,30 +127,18 @@ class NotificationServiceTest extends TestCase
         );
 
         $this->assertCount(3, $notifications);
-
-        // All should be marked as sent
-        foreach ($notifications as $notification) {
-            $this->assertTrue($notification->isSent(), 'All notifications must be marked sent on success');
-        }
     }
 
-    public function testCreateNotificationForUsersMarksFailedAsSentFalse(): void
+    /**
+     * Regression: no synchronous push for any user in the multi-user variant either.
+     */
+    public function testCreateNotificationForUsersDoesNotSendPushSynchronously(): void
     {
         $user1 = $this->createMock(User::class);
-        $user1->method('getId')->willReturn(1);
         $user2 = $this->createMock(User::class);
-        $user2->method('getId')->willReturn(2);
 
-        // First push succeeds, second fails
-        $this->pushService->expects($this->exactly(2))
-            ->method('sendNotification')
-            ->willReturnCallback(function (User $user) {
-                if (2 === $user->getId()) {
-                    throw new Exception('Push failed for user 2');
-                }
-            });
-
-        $this->logger->expects($this->once())->method('warning');
+        // Single flush — proves no per-user isSent=true + flush cycle
+        $this->em->expects($this->once())->method('flush');
 
         $notifications = $this->service->createNotificationForUsers(
             [$user1, $user2],
@@ -174,82 +148,84 @@ class NotificationServiceTest extends TestCase
             ['url' => '/news/1']
         );
 
-        $this->assertCount(2, $notifications);
-        $this->assertTrue($notifications[0]->isSent(), 'First notification should be sent');
-        $this->assertFalse($notifications[1]->isSent(), 'Second notification should NOT be sent (push failed)');
-    }
-
-    public function testCreateNotificationForUsersExtractsUrl(): void
-    {
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(1);
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'T', 'B', '/games/5');
-
-        $this->service->createNotificationForUsers(
-            [$user],
-            'participation',
-            'T',
-            'B',
-            ['url' => '/games/5']
-        );
+        foreach ($notifications as $notification) {
+            $this->assertFalse(
+                $notification->isSent(),
+                'isSent must be false — cron will deliver push asynchronously'
+            );
+        }
     }
 
     public function testCreateNotificationForUsersHandlesEmptyArray(): void
     {
-        $this->pushService->expects($this->never())->method('sendNotification');
         $this->em->expects($this->never())->method('persist');
+        $this->em->expects($this->once())->method('flush');
 
         $result = $this->service->createNotificationForUsers([], 'news', 'T');
         $this->assertSame([], $result);
+    }
+
+    public function testCreateNotificationForUsersSetsCorrectFieldsOnEachEntity(): void
+    {
+        $user1 = $this->createMock(User::class);
+        $user2 = $this->createMock(User::class);
+
+        $notifications = $this->service->createNotificationForUsers(
+            [$user1, $user2],
+            'participation',
+            'Teilnahme',
+            'Du hast zugesagt',
+            ['url' => '/games/5']
+        );
+
+        $this->assertSame($user1, $notifications[0]->getUser());
+        $this->assertSame($user2, $notifications[1]->getUser());
+
+        foreach ($notifications as $notification) {
+            $this->assertSame('participation', $notification->getType());
+            $this->assertSame('Teilnahme', $notification->getTitle());
+            $this->assertSame('Du hast zugesagt', $notification->getMessage());
+            $this->assertSame(['url' => '/games/5'], $notification->getData());
+            $this->assertFalse($notification->isSent());
+        }
     }
 
     // ======================================================================
     //  Convenience methods — createNewsNotification, createMessageNotification
     // ======================================================================
 
-    public function testCreateNewsNotificationSetsCorrectTypeAndUrl(): void
+    public function testCreateNewsNotificationSetsCorrectTypeAndTitle(): void
     {
         $user = $this->createMock(User::class);
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Neue Nachricht: Breaking News', 'Short text', '/news/42');
 
         $notification = $this->service->createNewsNotification($user, 'Breaking News', 'Short text', 42);
 
         $this->assertSame('news', $notification->getType());
         $this->assertSame('Neue Nachricht: Breaking News', $notification->getTitle());
+        $this->assertSame('Short text', $notification->getMessage());
         $this->assertSame(['newsId' => 42, 'url' => '/news/42'], $notification->getData());
+        $this->assertFalse($notification->isSent());
     }
 
-    public function testCreateMessageNotificationSetsCorrectTypeAndUrl(): void
+    public function testCreateMessageNotificationSetsCorrectTypeAndDeepLinkUrl(): void
     {
         $user = $this->createMock(User::class);
-
-        // URL muss als Deep-Link zur App gesetzt sein, damit Push-Klick das Modal öffnet
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Neue Nachricht von Max', 'RE: Training', '/?modal=messages&messageId=99');
 
         $notification = $this->service->createMessageNotification($user, 'Max', 'RE: Training', 99);
 
         $this->assertSame('message', $notification->getType());
+        $this->assertSame('Neue Nachricht von Max', $notification->getTitle());
+        $this->assertSame('RE: Training', $notification->getMessage());
         $this->assertSame(
             ['messageId' => 99, 'url' => '/?modal=messages&messageId=99'],
             $notification->getData()
         );
+        $this->assertFalse($notification->isSent());
     }
 
-    public function testCreateMessageNotificationUsesDeepLinkUrlWithCorrectMessageId(): void
+    public function testCreateMessageNotificationDeepLinkContainsCorrectMessageId(): void
     {
         $user = $this->createMock(User::class);
-
-        $this->pushService->expects($this->once())
-            ->method('sendNotification')
-            ->with($user, 'Neue Nachricht von Jana', 'Spielplan', '/?modal=messages&messageId=7');
 
         $notification = $this->service->createMessageNotification($user, 'Jana', 'Spielplan', 7);
 
@@ -257,7 +233,7 @@ class NotificationServiceTest extends TestCase
         $this->assertSame(7, $data['messageId']);
         $this->assertStringContainsString('modal=messages', $data['url']);
         $this->assertStringContainsString('messageId=7', $data['url']);
-        // Alte direktroute darf nicht mehr verwendet werden
+        // Regression: die alte Direktroute /messages/{id} darf nicht mehr verwendet werden
         $this->assertStringNotContainsString('/messages/7', $data['url']);
     }
 }
