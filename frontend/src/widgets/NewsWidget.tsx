@@ -87,7 +87,7 @@ export const NewsWidget: React.FC<{ config?: any; widgetId?: string }> = ({ conf
                 </Typography>
               </div>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {item.content}
+                {item.content.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim()}
               </Typography>
             </CardContent>
             {idx < news.length - 1 && <Divider />}
