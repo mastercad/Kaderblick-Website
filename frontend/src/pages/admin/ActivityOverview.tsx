@@ -19,11 +19,11 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { BarChart } from '@mui/x-charts';
+import { LineChart } from '@mui/x-charts';
 import {
   fetchActivityTrend,
   fetchUserActivity,
@@ -210,7 +210,7 @@ export default function ActivityOverview() {
 
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-        <BarChartIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+        <ShowChartIcon sx={{ fontSize: 32, color: 'primary.main' }} />
         <Typography variant="h5" fontWeight={700}>Nutzeraktivität</Typography>
       </Box>
 
@@ -228,7 +228,7 @@ export default function ActivityOverview() {
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 1 }}>
           <Typography variant="subtitle1" fontWeight={600}>
-            Aktivitätsverteilung (letzte Aktivität je Nutzer)
+            Aktivitätstrend
           </Typography>
           <ToggleButtonGroup
             size="small"
@@ -256,11 +256,24 @@ export default function ActivityOverview() {
         )}
 
         {!trendLoading && !trendError && chartLabels.length > 0 && (
-          <BarChart
-            xAxis={[{ scaleType: 'band', data: chartLabels, tickLabelStyle: { fontSize: 11 } }]}
-            series={[{ data: chartCounts, label: 'Aktive Nutzer', color: '#2e7d32' }]}
-            height={200}
-            margin={{ top: 24, bottom: 40, left: 40, right: 16 }}
+          <LineChart
+            xAxis={[{
+              scaleType: 'point',
+              data: chartLabels,
+              tickLabelStyle: { fontSize: 11 },
+            }]}
+            series={[{
+              data: chartCounts,
+              label: 'Aktive Nutzer',
+              color: '#1976d2',
+              area: true,
+              showMark: chartCounts.length <= 60,
+            }]}
+            height={240}
+            margin={{ top: 24, bottom: 40, left: 48, right: 16 }}
+            sx={{
+              '.MuiAreaElement-root': { fillOpacity: 0.15 },
+            }}
           />
         )}
       </Paper>
