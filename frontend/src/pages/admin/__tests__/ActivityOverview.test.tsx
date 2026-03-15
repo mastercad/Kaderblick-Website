@@ -11,12 +11,12 @@ jest.mock('../../../services/adminActivity', () => ({
   fetchActivityTrend: jest.fn(),
 }));
 
-// BarChart aus @mui/x-charts braucht Canvas/ResizeObserver → leichtgewichtig mocken
+// LineChart aus @mui/x-charts braucht Canvas/ResizeObserver → leichtgewichtig mocken
 jest.mock('@mui/x-charts', () => ({
-  BarChart: ({ series }: any) => (
-    <div data-testid="BarChart">
+  LineChart: ({ series }: any) => (
+    <div data-testid="LineChart">
       {series?.[0]?.data?.map((v: number, i: number) => (
-        <span key={i} data-testid="bar-value">{v}</span>
+        <span key={i} data-testid="line-value">{v}</span>
       ))}
     </div>
   ),
@@ -115,9 +115,9 @@ describe('ActivityOverview', () => {
     expect(screen.getAllByText('Nie aktiv').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('zeigt den BarChart an wenn Trenddaten vorhanden sind', async () => {
+  it('zeigt den LineChart an wenn Trenddaten vorhanden sind', async () => {
     await renderAndWait();
-    expect(screen.getByTestId('BarChart')).toBeInTheDocument();
+    expect(screen.getByTestId('LineChart')).toBeInTheDocument();
   });
 
   it('zeigt eine Meldung wenn keine Trenddaten vorhanden sind', async () => {
