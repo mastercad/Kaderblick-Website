@@ -11,7 +11,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 /**
  * Load-Test Fixtures: 601 Benutzer (1 Admin + 600 reguläre User verschiedener Rollen).
  * Referenz-Keys: lt_admin_user, lt_user_0 bis lt_user_599
- * Gruppe: load_test
+ * Gruppe: load_test.
  */
 class UserFixtures extends Fixture implements FixtureGroupInterface
 {

@@ -10,11 +10,10 @@ use App\Entity\Location;
 use App\Entity\Team;
 use App\Enum\CalendarEventPermissionType;
 use DateTime;
-use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
-use Doctrine\Persistence\ObjectManager;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Load-Test Fixtures: 3 Jahre Trainingskalender (Di + Do, je Team und Woche).
@@ -45,7 +44,7 @@ class TrainingCalendarFixtures extends Fixture implements FixtureGroupInterface,
         ];
     }
 
-    public function load(ObjectManager $manager): void
+    public function load(EntityManagerInterface $manager): void
     {
         /** @var CalendarEventType $trainingType */
         $trainingType = $this->getReference('calendar_event_type_training', CalendarEventType::class);
@@ -139,7 +138,7 @@ class TrainingCalendarFixtures extends Fixture implements FixtureGroupInterface,
                 ++$persistCount;
 
                 // Batch-flush mit entity-manager-clear für Speicheroptimierung
-                if ($persistCount % self::BATCH_SIZE === 0) {
+                if (0 === $persistCount % self::BATCH_SIZE) {
                     $manager->flush();
                     $manager->clear();
                     // Nach clear: CalendarEventType-Proxy neu holen

@@ -9,6 +9,7 @@ use App\Entity\CoachClubAssignment;
 use App\Entity\CoachTeamAssignment;
 use App\Entity\CoachTeamAssignmentType;
 use App\Entity\Team;
+use DateTime;
 use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
@@ -96,7 +97,7 @@ class CoachFixtures extends Fixture implements FixtureGroupInterface, DependentF
                 // Geburtsdatum (Trainer: 25-65 Jahre)
                 $birthYear = rand(1965, 1999);
                 $coach->setBirthdate(
-                    new \DateTime($birthYear . '-' . str_pad((string) rand(1, 12), 2, '0', STR_PAD_LEFT)
+                    new DateTime($birthYear . '-' . str_pad((string) rand(1, 12), 2, '0', STR_PAD_LEFT)
                         . '-' . str_pad((string) rand(1, 28), 2, '0', STR_PAD_LEFT))
                 );
 
@@ -106,12 +107,12 @@ class CoachFixtures extends Fixture implements FixtureGroupInterface, DependentF
                 $clubAssignment = new CoachClubAssignment();
                 $clubAssignment->setCoach($coach);
                 $clubAssignment->setClub($primaryClub);
-                $clubAssignment->setStartDate(new \DateTimeImmutable('2023-07-01'));
+                $clubAssignment->setStartDate(new DateTimeImmutable('2023-07-01'));
                 $clubAssignment->setActive(true);
                 $manager->persist($clubAssignment);
 
                 // Aktuelle Team-Zuordnung
-                $assignmentType = ($localIdx === 0) ? $typeCheftrainer : $typeCoTrainer;
+                $assignmentType = (0 === $localIdx) ? $typeCheftrainer : $typeCoTrainer;
                 $startDate = match ($teamIdx % 3) {
                     0 => '2023-07-01',
                     1 => '2024-07-01',
@@ -122,40 +123,40 @@ class CoachFixtures extends Fixture implements FixtureGroupInterface, DependentF
                 $teamAssignment->setCoach($coach);
                 $teamAssignment->setTeam($team);
                 $teamAssignment->setCoachTeamAssignmentType($assignmentType);
-                $teamAssignment->setStartDate(new \DateTimeImmutable($startDate));
+                $teamAssignment->setStartDate(new DateTimeImmutable($startDate));
                 // Kein Enddatum = aktuell aktiv
                 $manager->persist($teamAssignment);
 
                 // Frühere Team-Zuordnung für 30% der Trainer (zeigt Wechsel)
-                if ($teamIdx % 3 !== 0 && $localIdx === 0 && $globalCoachIdx % 3 === 0) {
+                if (0 !== $teamIdx % 3 && 0 === $localIdx && 0 === $globalCoachIdx % 3) {
                     $prevTeamIdx = ($teamIdx + 9) % self::TOTAL_TEAMS;
                     /** @var Team $prevTeam */
                     $prevTeam = $this->getReference('lt_team_' . $prevTeamIdx, Team::class);
 
-                    $prevEndDate = ($teamIdx % 3 === 1) ? '2024-06-30' : '2023-06-30';
-                    $prevStartDate = ($teamIdx % 3 === 1) ? '2021-07-01' : '2022-07-01';
+                    $prevEndDate = (1 === $teamIdx % 3) ? '2024-06-30' : '2023-06-30';
+                    $prevStartDate = (1 === $teamIdx % 3) ? '2021-07-01' : '2022-07-01';
 
                     $pastTeamAssignment = new CoachTeamAssignment();
                     $pastTeamAssignment->setCoach($coach);
                     $pastTeamAssignment->setTeam($prevTeam);
                     $pastTeamAssignment->setCoachTeamAssignmentType($typeInterim);
-                    $pastTeamAssignment->setStartDate(new \DateTimeImmutable($prevStartDate));
-                    $pastTeamAssignment->setEndDate(new \DateTimeImmutable($prevEndDate));
+                    $pastTeamAssignment->setStartDate(new DateTimeImmutable($prevStartDate));
+                    $pastTeamAssignment->setEndDate(new DateTimeImmutable($prevEndDate));
                     $manager->persist($pastTeamAssignment);
                 }
 
                 // Torwarttrainer für jeden 10. Cheftrainer (er übernimmt zusätzlich TW-Training)
-                if ($localIdx === 0 && $globalCoachIdx % 10 === 0) {
+                if (0 === $localIdx && 0 === $globalCoachIdx % 10) {
                     $twAssignment = new CoachTeamAssignment();
                     $twAssignment->setCoach($coach);
                     $twAssignment->setTeam($team);
                     $twAssignment->setCoachTeamAssignmentType($typeTW);
-                    $twAssignment->setStartDate(new \DateTimeImmutable($startDate));
+                    $twAssignment->setStartDate(new DateTimeImmutable($startDate));
                     $manager->persist($twAssignment);
                 }
 
                 // Gasttrainer (5% der Co-Trainer gleichzeitig in zweitem Team)
-                if ($localIdx === 1 && $globalCoachIdx % 20 === 0) {
+                if (1 === $localIdx && 0 === $globalCoachIdx % 20) {
                     $guestTeamIdx = ($teamIdx + 5) % self::TOTAL_TEAMS;
                     if ($guestTeamIdx !== $teamIdx) {
                         /** @var Team $guestTeam */
@@ -164,7 +165,7 @@ class CoachFixtures extends Fixture implements FixtureGroupInterface, DependentF
                         $guestTeamAssignment->setCoach($coach);
                         $guestTeamAssignment->setTeam($guestTeam);
                         $guestTeamAssignment->setCoachTeamAssignmentType($typeCoTrainer);
-                        $guestTeamAssignment->setStartDate(new \DateTimeImmutable('2025-01-01'));
+                        $guestTeamAssignment->setStartDate(new DateTimeImmutable('2025-01-01'));
                         $manager->persist($guestTeamAssignment);
                     }
                 }
@@ -173,7 +174,7 @@ class CoachFixtures extends Fixture implements FixtureGroupInterface, DependentF
                 ++$globalCoachIdx;
                 ++$persistCount;
 
-                if ($persistCount % self::BATCH_SIZE === 0) {
+                if (0 === $persistCount % self::BATCH_SIZE) {
                     $manager->flush();
                 }
             }

@@ -10,7 +10,6 @@ use App\Entity\GameType;
 use App\Entity\Location;
 use App\Entity\Team;
 use DateTime;
-use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
@@ -70,11 +69,11 @@ class GameFixtures extends Fixture implements FixtureGroupInterface, DependentFi
         $pokalType = null;
         $freundschaftType = null;
         foreach ($gameTypes as $gt) {
-            if ($gt->getName() === 'Ligaspiel') {
+            if ('Ligaspiel' === $gt->getName()) {
                 $ligaspielType = $gt;
-            } elseif ($gt->getName() === 'Pokalspiel') {
+            } elseif ('Pokalspiel' === $gt->getName()) {
                 $pokalType = $gt;
-            } elseif ($gt->getName() === 'Freundschaftsspiel') {
+            } elseif ('Freundschaftsspiel' === $gt->getName()) {
                 $freundschaftType = $gt;
             }
         }
@@ -126,14 +125,14 @@ class GameFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                     $manager->persist($game);
                     ++$persistCount;
 
-                    if ($persistCount % self::BATCH_SIZE === 0) {
+                    if (0 === $persistCount % self::BATCH_SIZE) {
                         $manager->flush();
                     }
                 }
 
                 // 1 Pokalspiel (Dienstag in Herbst, Runde 4 der Saison)
                 $cupDate = clone $seasonStart;
-                $cupDate->modify('+' . (30) . ' days'); // ~4 Wochen nach Saisonstart
+                $cupDate->modify('+' . 30 . ' days'); // ~4 Wochen nach Saisonstart
                 $cupDate->modify('next tuesday');
                 $cupDate->setTime(19, 30);
                 $cupAwayTeamIdx = ($teamIdx + 33) % self::TOTAL_TEAMS;
@@ -181,7 +180,7 @@ class GameFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                 $manager->persist($friendlyGame);
                 ++$persistCount;
 
-                if ($persistCount % self::BATCH_SIZE === 0) {
+                if (0 === $persistCount % self::BATCH_SIZE) {
                     $manager->flush();
                 }
             }

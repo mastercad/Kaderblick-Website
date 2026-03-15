@@ -128,7 +128,7 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
                 $player->setLastName($lastName);
                 $player->setEmail($email);
 
-                $posKey = $positionMap[$localIdx] ?? 'zm';
+                $posKey = $positionMap[$localIdx];
                 /** @var Position $position */
                 $position = $this->positions[$posKey];
                 $player->setMainPosition($position);
@@ -162,13 +162,13 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
                 $manager->persist($currentTeamAssignment);
 
                 // Frühere Team-Zuordnung für 25% der Spieler (zeigt 3-Jahres-History)
-                if ($teamIdx % 3 !== 0 && $localIdx % 4 === 0) {
+                if (0 !== $teamIdx % 3 && 0 === $localIdx % 4) {
                     $prevTeamIdx = ($teamIdx + 13) % self::TOTAL_TEAMS;
                     /** @var Team $prevTeam */
                     $prevTeam = $this->getReference('lt_team_' . $prevTeamIdx, Team::class);
 
-                    $prevEndDate = ($teamIdx % 3 === 1) ? '2024-06-30' : '2025-06-30';
-                    $prevStartDate = ($teamIdx % 3 === 1) ? '2022-07-01' : '2023-07-01';
+                    $prevEndDate = (1 === $teamIdx % 3) ? '2024-06-30' : '2025-06-30';
+                    $prevStartDate = (1 === $teamIdx % 3) ? '2022-07-01' : '2023-07-01';
 
                     $pastAssignment = new PlayerTeamAssignment();
                     $pastAssignment->setPlayer($player);
@@ -191,28 +191,28 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
                 }
 
                 // Leihgabe: 5% der Spieler (localIdx % 15 == 0)
-                if ($localIdx % 15 === 0 && $globalIdx > 20) {
+                if (0 === $localIdx % 15 && $globalIdx > 20) {
                     $loanTeamIdx = ($teamIdx + 7) % self::TOTAL_TEAMS;
                     /** @var Team $loanTeam */
                     $loanTeam = $this->getReference('lt_team_' . $loanTeamIdx, Team::class);
 
                     $loanStartDate = '2024-01-15';
                     // Einige Leihen sind noch aktiv, andere beendet
-                    $loanEndDate = ($teamIdx % 2 === 0) ? '2024-06-30' : null;
+                    $loanEndDate = (0 === $teamIdx % 2) ? '2024-06-30' : null;
 
                     $loanAssignment = new PlayerTeamAssignment();
                     $loanAssignment->setPlayer($player);
                     $loanAssignment->setTeam($loanTeam);
                     $loanAssignment->setPlayerTeamAssignmentType($this->assignmentTypes['leihgabe']);
                     $loanAssignment->setStartDate(new DateTimeImmutable($loanStartDate));
-                    if ($loanEndDate !== null) {
+                    if (null !== $loanEndDate) {
                         $loanAssignment->setEndDate(new DateTimeImmutable($loanEndDate));
                     }
                     $manager->persist($loanAssignment);
                 }
 
                 // Spieler mit Doppelter Spielberechtigung (Jugend-/Seniorenkombi)
-                if ($localIdx % 20 === 0 && $globalIdx > 50 && $ageGroup->getCode() === 'A_JUNIOREN') {
+                if (0 === $localIdx % 20 && $globalIdx > 50 && 'A_JUNIOREN' === $ageGroup->getCode()) {
                     $seniorTeamIdx = ($teamIdx + 1) % self::TOTAL_TEAMS;
                     /** @var Team $seniorTeam */
                     $seniorTeam = $this->getReference('lt_team_' . $seniorTeamIdx, Team::class);
@@ -232,7 +232,7 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
                 ++$globalIdx;
                 ++$persistCount;
 
-                if ($persistCount % self::BATCH_SIZE === 0) {
+                if (0 === $persistCount % self::BATCH_SIZE) {
                     $manager->flush();
                 }
             }
@@ -271,7 +271,7 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
             $localIdx < 14 => $this->assignmentTypes['gastspieler'],
             $localIdx < 16 => $this->assignmentTypes['testspieler'],
             $localIdx < 17 => $this->assignmentTypes['jugendspieler'],
-            default         => $this->assignmentTypes['kooperationsspieler'],
+            default => $this->assignmentTypes['kooperationsspieler'],
         };
     }
 
@@ -279,14 +279,14 @@ class PlayerFixtures extends Fixture implements FixtureGroupInterface, Dependent
     {
         // Geburtsjahre basierend auf Altersgruppe (Bezugsjahr 2026)
         $ranges = [
-            'SENIOREN'    => [1988, 2007],
-            'A_JUNIOREN'  => [2006, 2009],
-            'B_JUNIOREN'  => [2008, 2011],
-            'C_JUNIOREN'  => [2010, 2013],
-            'D_JUNIOREN'  => [2012, 2015],
-            'E_JUNIOREN'  => [2014, 2017],
-            'F_JUNIOREN'  => [2015, 2019],
-            'G_JUNIOREN'  => [2018, 2022],
+            'SENIOREN' => [1988, 2007],
+            'A_JUNIOREN' => [2006, 2009],
+            'B_JUNIOREN' => [2008, 2011],
+            'C_JUNIOREN' => [2010, 2013],
+            'D_JUNIOREN' => [2012, 2015],
+            'E_JUNIOREN' => [2014, 2017],
+            'F_JUNIOREN' => [2015, 2019],
+            'G_JUNIOREN' => [2018, 2022],
         ];
 
         [$minYear, $maxYear] = $ranges[$ageGroupCode] ?? [1990, 2005];

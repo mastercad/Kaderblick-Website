@@ -19,7 +19,7 @@ use Doctrine\Persistence\ObjectManager;
  * - Mittlere Klubs (8-15): je 4 Teams (Senioren I+II, A-Jug, B-Jug) → Teams 48-79
  * - Kleine Klubs (16-24): je 2 Teams (Senioren I, A-Jug) → Teams 80-97
  * - 3 Spielgemeinschaften → Teams 98-100
- * Gruppe: load_test
+ * Gruppe: load_test.
  */
 class TeamFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
 {

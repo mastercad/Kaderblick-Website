@@ -12,7 +12,7 @@ use Doctrine\Persistence\ObjectManager;
 /**
  * Load-Test Fixtures: 25 deutsche Fußballvereine verschiedener Größen und Ligen.
  * Einige kleine Klubs teilen sich später Mannschaften (Spielgemeinschaften).
- * Gruppe: load_test
+ * Gruppe: load_test.
  */
 class ClubFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
 {

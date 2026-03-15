@@ -79,7 +79,7 @@ class UserRelationFixtures extends Fixture implements FixtureGroupInterface, Dep
                 ++$persistCount;
             }
 
-            if ($persistCount % self::BATCH_SIZE === 0 && $persistCount > 0) {
+            if (0 === $persistCount % self::BATCH_SIZE && $persistCount > 0) {
                 $manager->flush();
             }
         }
@@ -106,7 +106,7 @@ class UserRelationFixtures extends Fixture implements FixtureGroupInterface, Dep
                 ++$persistCount;
             }
 
-            if ($persistCount % self::BATCH_SIZE === 0 && $persistCount > 0) {
+            if (0 === $persistCount % self::BATCH_SIZE && $persistCount > 0) {
                 $manager->flush();
             }
         }
@@ -133,7 +133,7 @@ class UserRelationFixtures extends Fixture implements FixtureGroupInterface, Dep
                 ++$persistCount;
             }
 
-            if ($persistCount % self::BATCH_SIZE === 0 && $persistCount > 0) {
+            if (0 === $persistCount % self::BATCH_SIZE && $persistCount > 0) {
                 $manager->flush();
             }
         }
@@ -160,7 +160,7 @@ class UserRelationFixtures extends Fixture implements FixtureGroupInterface, Dep
                 ++$persistCount;
             }
 
-            if ($persistCount % self::BATCH_SIZE === 0 && $persistCount > 0) {
+            if (0 === $persistCount % self::BATCH_SIZE && $persistCount > 0) {
                 $manager->flush();
             }
         }

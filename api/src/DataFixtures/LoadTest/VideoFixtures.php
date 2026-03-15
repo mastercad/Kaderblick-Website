@@ -7,10 +7,12 @@ use App\Entity\User;
 use App\Entity\Video;
 use App\Entity\VideoType;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
-use Doctrine\Persistence\ObjectManager;
+use Doctrine\ORM\EntityManagerInterface;
+use RuntimeException;
 
 class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
 {
@@ -27,7 +29,7 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
         ];
     }
 
-    public function load(ObjectManager $manager): void
+    public function load(EntityManagerInterface $manager): void
     {
         // ------------------------------------------------------------------
         // 1. Pre-load VideoType IDs by name
@@ -42,7 +44,7 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
         $needed = ['Vorbereitung', '1.Halbzeit', '2.Halbzeit', 'Nachbereitung'];
         foreach ($needed as $name) {
             if (!isset($videoTypeIds[$name])) {
-                throw new \RuntimeException("Missing VideoType '{$name}'. Run master fixtures first.");
+                throw new RuntimeException("Missing VideoType '{$name}'. Run master fixtures first.");
             }
         }
 
@@ -50,16 +52,16 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
         // 2. Pre-load admin user ID
         // ------------------------------------------------------------------
         /** @var User $adminUser */
-        $adminUser   = $this->getReference('lt_admin_user', User::class);
+        $adminUser = $this->getReference('lt_admin_user', User::class);
         $adminUserId = $adminUser->getId();
-        if ($adminUserId === null) {
-            throw new \RuntimeException('lt_admin_user has no ID. Run UserFixtures first.');
+        if (null === $adminUserId) {
+            throw new RuntimeException('lt_admin_user has no ID. Run UserFixtures first.');
         }
 
         // ------------------------------------------------------------------
         // 3. Load all finished game metadata as scalars
         // ------------------------------------------------------------------
-        /** @var array<array{id: int, homeTeamName: string, awayTeamName: string, startDate: \DateTimeInterface}> $gamesData */
+        /** @var array<array{id: int, homeTeamName: string, awayTeamName: string, startDate: DateTimeInterface}> $gamesData */
         $gamesData = $manager->createQuery(
             'SELECT g.id AS id,
                     ht.name AS homeTeamName,
@@ -76,31 +78,31 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
         // ------------------------------------------------------------------
         // 4. Create videos for ~40 % of finished games (every 5th game skipped twice = 40 %)
         // ------------------------------------------------------------------
-        $videoCount   = 0;
-        $batchSize    = 100;
-        $gameIndex    = 0;
+        $videoCount = 0;
+        $batchSize = 100;
+        $gameIndex = 0;
 
         foreach ($gamesData as $gameRow) {
-            $gameIndex++;
+            ++$gameIndex;
             // Keep 40 %: include when (gameIndex % 5) < 2
             if ($gameIndex % 5 >= 2) {
                 continue;
             }
 
-            $gameId        = (int) $gameRow['id'];
-            $homeTeamName  = $gameRow['homeTeamName'];
-            $awayTeamName  = $gameRow['awayTeamName'];
-            /** @var \DateTimeInterface $startDate */
-            $startDate     = $gameRow['startDate'];
-            $createdAt     = DateTimeImmutable::createFromInterface($startDate);
+            $gameId = (int) $gameRow['id'];
+            $homeTeamName = $gameRow['homeTeamName'];
+            $awayTeamName = $gameRow['awayTeamName'];
+            /** @var DateTimeInterface $startDate */
+            $startDate = $gameRow['startDate'];
+            $createdAt = DateTimeImmutable::createFromInterface($startDate);
 
-            $gameProxy      = $manager->getReference(Game::class, $gameId);
+            $gameProxy = $manager->getReference(Game::class, $gameId);
             $adminUserProxy = $manager->getReference(User::class, $adminUserId);
-            $title          = "{$homeTeamName} vs. {$awayTeamName}";
+            $title = "{$homeTeamName} vs. {$awayTeamName}";
 
             // ---- 1. Halbzeit ----
             $half1Type = $manager->getReference(VideoType::class, $videoTypeIds['1.Halbzeit']);
-            $video1    = new Video();
+            $video1 = new Video();
             $video1->setName("1. Halbzeit – {$title}");
             $video1->setFilePath("videos/lt/game_{$gameId}_half_1.mp4");
             $video1->setGame($gameProxy);
@@ -113,11 +115,11 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
             $video1->setSort(1);
             $video1->setGameStart(0);
             $manager->persist($video1);
-            $videoCount++;
+            ++$videoCount;
 
             // ---- 2. Halbzeit ----
             $half2Type = $manager->getReference(VideoType::class, $videoTypeIds['2.Halbzeit']);
-            $video2    = new Video();
+            $video2 = new Video();
             $video2->setName("2. Halbzeit – {$title}");
             $video2->setFilePath("videos/lt/game_{$gameId}_half_2.mp4");
             $video2->setGame($gameProxy);
@@ -130,11 +132,11 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
             $video2->setSort(2);
             $video2->setGameStart(2700); // roughly 45 minutes in
             $manager->persist($video2);
-            $videoCount++;
+            ++$videoCount;
 
             // Add Vorbereitung video for every 10th selected game
-            if ($gameIndex % 50 === 1) {
-                $prepType  = $manager->getReference(VideoType::class, $videoTypeIds['Vorbereitung']);
+            if (1 === $gameIndex % 50) {
+                $prepType = $manager->getReference(VideoType::class, $videoTypeIds['Vorbereitung']);
                 $videoPrep = new Video();
                 $videoPrep->setName("Vorbereitung – {$title}");
                 $videoPrep->setFilePath("videos/lt/game_{$gameId}_prep.mp4");
@@ -148,11 +150,11 @@ class VideoFixtures extends Fixture implements FixtureGroupInterface, DependentF
                 $videoPrep->setSort(3);
                 $videoPrep->setGameStart(null);
                 $manager->persist($videoPrep);
-                $videoCount++;
+                ++$videoCount;
             }
 
             // Flush & clear every batchSize videos
-            if ($videoCount % $batchSize === 0) {
+            if (0 === $videoCount % $batchSize) {
                 $manager->flush();
                 $manager->clear();
             }
