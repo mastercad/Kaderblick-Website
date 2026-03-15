@@ -131,7 +131,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             $awayPlayers = $teamPlayerMap[$awayTeamId] ?? [];
 
             // Helper: random player proxy from a team
-            $pickPlayer = static function (array $playerIds, ObjectManager $mgr): ?Player {
+            $pickPlayer = static function (array $playerIds, EntityManagerInterface $mgr): ?Player {
                 if (empty($playerIds)) {
                     return null;
                 }

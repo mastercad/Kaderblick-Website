@@ -13,6 +13,7 @@ use DateTime;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectManager;
 use RuntimeException;
 
@@ -85,6 +86,7 @@ class GameFixtures extends Fixture implements FixtureGroupInterface, DependentFi
         }
 
         // Early return if games already exist (idempotency guard)
+        assert($manager instanceof EntityManagerInterface);
         $existingGameCount = (int) $manager->getRepository(Game::class)->count([]);
         if ($existingGameCount > 0) {
             return;
