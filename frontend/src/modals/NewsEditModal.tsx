@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
+import {
+  Button, Dialog, DialogTitle, DialogContent, DialogActions,
+  Alert, TextField, Box, Typography,
+} from '@mui/material';
 import { apiJson } from '../utils/api';
+import RichTextEditor from '../components/RichTextEditor';
 
 interface Props {
   open: boolean;
@@ -12,16 +16,21 @@ interface Props {
 const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
   const [title, setTitle] = useState(news.title);
   const [content, setContent] = useState(news.content);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setTitle(news.title);
     setContent(news.content);
-  }, [news]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    setError(null);
+  }, [news, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!content || content === '<p></p>') {
+      setError('Bitte füge einen Inhalt hinzu.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -42,33 +51,41 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>News bearbeiten</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ pb: 1 }}>Neuigkeit bearbeiten</DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent>
-          {error && <Alert severity="error">{error}</Alert>}
+        <DialogContent sx={{ pt: 1 }}>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
           <TextField
             label="Titel"
             value={title}
             onChange={e => setTitle(e.target.value)}
             fullWidth
-            margin="normal"
             required
+            sx={{ mb: 2 }}
+            disabled={loading}
+            inputProps={{ maxLength: 200 }}
           />
-          <TextField
-            label="Inhalt"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            fullWidth
-            margin="normal"
-            multiline
-            minRows={4}
-            required
-          />
+
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 500 }}>
+              Inhalt
+            </Typography>
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Schreibe hier deine Neuigkeit…"
+              minHeight={320}
+              disabled={loading}
+            />
+          </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} color="secondary" disabled={loading}>Abbrechen</Button>
-          <Button type="submit" color="primary" variant="contained" disabled={loading}>Speichern</Button>
+          <Button type="submit" color="primary" variant="contained" disabled={loading} sx={{ minWidth: 120 }}>
+            {loading ? 'Wird gespeichert…' : 'Speichern'}
+          </Button>
         </DialogActions>
       </form>
     </Dialog>

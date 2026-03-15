@@ -1,6 +1,8 @@
 # Aufstellungen & Formationen
 
-Der Aufstellungsplaner ermöglicht es Trainern, die Startelf visuell auf einem Spielfeld zu planen — mit echten Spielern aus dem Kader, die per Drag & Drop frei positioniert werden können.
+Der **Aufstellungsplaner** ermöglicht es Trainern, die Startelf visuell auf einem Spielfeld zu planen — mit echten Spielern aus dem Kader, die per Drag & Drop frei positioniert werden können.
+
+> 📋 **Tipp:** Jede Aufstellung hat einen integrierten **Taktik-Editor**, mit dem ihr Pfeile, Laufwege und Spielzüge direkt aufs Feld zeichnen könnt. Mehr dazu in [08b - Taktik-Editor](08b-taktik-editor.md).
 
 ---
 
@@ -31,7 +33,9 @@ Der Editor besteht aus **zwei Spalten**:
 
 #### Linke Seite — Das Spielfeld
 
-Ein **Fußball-Halbfeld** als Hintergrundbild (standardmäßig ein grünes Rasenfeld mit weißen Linien). Hier platziert ihr die Spieler:
+Ein **Fußball-Halbfeld** als Hintergrundbild (standardmäßig ein grünes Rasenfeld mit weißen Linien). Hier platziert ihr die Spieler.
+
+> Nach dem Speichern könnt ihr die Aufstellung im **Taktik-Editor** öffnen, um Pfeile und Spielzüge einzuzeichnen. Siehe [08b - Taktik-Editor](08b-taktik-editor.md).
 
 - Jeder Spieler wird als **farbiger Kreis** dargestellt (ca. 32px)
   - **Echte Spieler** → in der Vereinsfarbe (primäre Farbe der App)
@@ -112,6 +116,7 @@ Jeder Formations-Typ kann ein eigenes **Hintergrundbild** und **Standardposition
 - **Aussagekräftige Namen vergeben**: z. B. „U13 Liga Heimspiel 4-3-3" statt „Aufstellung 1".
 - **Verschiedene Varianten anlegen**: z. B. eine offensive und eine defensive Aufstellung für dasselbe Spiel.
 - **Laptop oder Tablet bevorzugen**: Das Verschieben der Spieler funktioniert auf größeren Bildschirmen komfortabler als auf dem Smartphone.
+- **Taktik-Editor nutzen**: Nach dem Erstellen der Aufstellung direkt auf **„Taktik-Editor"** klicken und Spielzüge, Laufwege und Bereiche einzeichnen. Mehr dazu in [08b - Taktik-Editor](08b-taktik-editor.md).
 
 ---
 
@@ -141,3 +146,14 @@ Es muss zuerst ein **Team** ausgewählt werden. Danach werden nur die Spieler di
 
 ### Wie wird das Hintergrundbild des Spielfelds festgelegt?
 Jeder Formations-Typ hat ein eigenes Hintergrundbild. Administratoren können unter **Administration → Stammdaten** neue Formations-Typen anlegen.
+
+### Was ist der Unterschied zwischen dem Aufstellungsplaner und dem Taktik-Editor?
+Der **Aufstellungsplaner** legt fest, **welcher Spieler** auf welcher Position startet. Der **Taktik-Editor** zeigt, **wie gespielt werden soll** — mit Pfeilen, Laufwegen und Spielzügen auf dem Feld. Idealerweise nutzt ihr beide zusammen: erst die Aufstellung anlegen, dann die Taktik darauf aufbauen.
+
+---
+
+## Weiterführend
+
+- [08b - Taktik-Editor](08b-taktik-editor.md) — Spielzüge, Laufwege und Zonen direkt auf dem Spielfeld einzeichnen
+- [06 - Spielverwaltung](06-spielverwaltung.md) — Spiele planen und Live-Ereignisse verwalten
+- [10 - Video-Analyse](10-video-analyse.md) — Spielvideos analysieren

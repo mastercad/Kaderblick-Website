@@ -40,6 +40,7 @@ Diese Dokumentation richtet sich an **alle Nutzer** von Kaderblick:
 |---------|-------|-------------|
 | [06 - Spielverwaltung](06-spielverwaltung.md) | Spiele & Ergebnisse | Live-Spiele, Spielereignisse (Tore, Karten, Auswechslungen), Wetter |
 | [08 - Formationen](08-formationen.md) | Aufstellungen | Taktische Formationen auf dem Spielfeld planen |
+| [08b - Taktik-Editor](08b-taktik-editor.md) | Taktikboard | Spielzüge & Laufwege zeichnen, Gegner setzen, mehrere Taktik-Varianten verwalten |
 | [09 - Turniere](09-turniere.md) | Turnierverwaltung | Gruppen, Turnierbaum, Setzplätze, Spielplan |
 | [10 - Video-Analyse](10-video-analyse.md) | Spielvideos | YouTube-Player, Zeitleiste, Schnitt-Modus, Highlight-Clips |
 
