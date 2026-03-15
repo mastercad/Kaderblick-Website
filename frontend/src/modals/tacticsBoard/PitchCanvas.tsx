@@ -3,10 +3,10 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { getZoneColor, truncateName } from '../formation/helpers';
 import { PALETTE } from './constants';
-import { arrowPath } from './utils';
+import { arrowPath, clipLine } from './utils';
 import type {
   DrawElement, OpponentToken, DrawPreview,
-  ElDragState, OppDragState, Tool,
+  ElDragState, OppDragState, OwnPlayerDragState, Tool,
 } from './types';
 import type { PlayerData } from '../formation/types';
 
@@ -32,6 +32,7 @@ export interface PitchCanvasProps {
   color: string;
   elDrag: ElDragState | null;
   oppDrag: OppDragState | null;
+  ownPlayerDrag: OwnPlayerDragState | null;
 
   // Handlers
   onSvgDown: (e: React.MouseEvent | React.TouchEvent) => void;
@@ -39,21 +40,25 @@ export interface PitchCanvasProps {
   onSvgUp: () => void;
   onElDown: (e: React.MouseEvent | React.TouchEvent, id: string, mode?: 'move' | 'start' | 'end' | 'resize') => void;
   onOppDown: (e: React.MouseEvent | React.TouchEvent, id: string) => void;
+  onOwnPlayerDown: (e: React.MouseEvent | React.TouchEvent, id: number, sx: number, sy: number) => void;
 
   // Marker id helper (scoped to the current useId)
   markerId: (hex: string, kind: 'solid' | 'dashed') => string;
 }
 
 // ─── Zone labels per pitch mode ───────────────────────────────────────────────
+// Each label provides { label, left, top } – this way both landscape and
+// portrait layouts use the same rendering logic.
 
-const FULL_ZONE_LABELS  = [
-  { label: 'GEGNER',        left: '24%' },
-  { label: 'MITTELLINIE',   left: '50%' },
-  { label: 'EIGENE HÄLFTE', left: '76%' },
+const FULL_ZONE_LABELS = [
+  { label: 'GEGNER',        left: '24%', top: '50%' },
+  { label: 'MITTELLINIE',   left: '50%', top: '50%' },
+  { label: 'EIGENE HÄLFTE', left: '76%', top: '50%' },
 ];
+// Portrait half-pitch: attack at top, own goal at bottom
 const HALF_ZONE_LABELS = [
-  { label: 'ANGRIFF / MITTE', left: '18%' },
-  { label: 'EIGENES TOR',     left: '88%' },
+  { label: 'ANGRIFF / MITTE', left: '50%', top: '7%'  },
+  { label: 'EIGENES TOR',     left: '50%', top: '92%' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -63,9 +68,9 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
   fullPitch, pitchAspect, pitchAX, svgCursor,
   elements, opponents, ownPlayers,
   preview, drawing, tool, color,
-  elDrag, oppDrag,
+  elDrag, oppDrag, ownPlayerDrag,
   onSvgDown, onSvgMove, onSvgUp,
-  onElDown, onOppDown,
+  onElDown, onOppDown, onOwnPlayerDown,
   markerId,
 }) => {
   const zoneLabels = fullPitch ? FULL_ZONE_LABELS : HALF_ZONE_LABELS;
@@ -106,24 +111,13 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           bgcolor: '#1a5229',
         }} />
       ) : (
-        /*
-         * haelfte.jpg is 960×1357 portrait → rotate –90° (CCW) so own goal ends up
-         * on the right of the landscape view.
-         */
-        <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', bgcolor: '#1a5229' }}>
-          <Box
-            component="img"
-            src="/images/formation/fussballfeld_haelfte.jpg"
-            sx={{
-              position: 'absolute',
-              width:  `${(960  / 1357) * 100}%`,
-              height: `${(1357 / 960)  * 100}%`,
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%) rotate(-90deg)',
-              objectFit: 'cover',
-            }}
-          />
-        </Box>
+        // Half-pitch landscape (1357×960): display image at its natural ratio
+        <Box sx={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'url(/images/formation/fussballfeld_haelfte.jpg)',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          bgcolor: '#1a5229',
+        }} />
       )}
 
       {/* Dark vignette for depth */}
@@ -136,7 +130,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       {/* ── Zone labels ──────────────────────────────────────────────────── */}
       {zoneLabels.map(z => (
         <Typography key={z.label} variant="caption" sx={{
-          position: 'absolute', left: z.left, top: '50%',
+          position: 'absolute', left: z.left, top: z.top,
           transform: 'translate(-50%, -50%)',
           color: 'rgba(255,255,255,0.18)', fontWeight: 800,
           letterSpacing: 3, fontSize: '0.45rem',
@@ -146,40 +140,98 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         </Typography>
       ))}
 
-      {/* ── Own player tokens (non-interactive, z:3) ──────────────────────── */}
-      {ownPlayers.map(player => (
-        <Box
-          key={player.id}
-          sx={{
-            position: 'absolute',
-            left: `${player.sx}%`, top: `${player.sy}%`,
-            transform: 'translate(-50%, -50%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            zIndex: 3, pointerEvents: 'none', userSelect: 'none',
-          }}
-        >
-          <Box sx={{
-            width: { xs: 30, md: 38 }, height: { xs: 30, md: 38 },
-            bgcolor: getZoneColor(player.y),
-            color: 'white', borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: { xs: 11, md: 14 },
-            border: '2.5px solid rgba(255,255,255,0.9)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.7)',
-          }}>
-            {player.number}
+      {/* ── Own player tokens ─────────────────────────────────────────────── */}
+      {/* Pointer mode: sit above SVG (z:12), draggable.                       */}
+      {/* Drawing modes: stay below SVG (z:3), pass events through.            */}
+      {ownPlayers.map(player => {
+        const isPointer  = tool === 'pointer';
+        const isDragging = ownPlayerDrag?.id === player.id;
+        return (
+          <Box
+            key={player.id}
+            onMouseDown={isPointer ? e => onOwnPlayerDown(e, player.id, player.sx, player.sy) : undefined}
+            onTouchStart={isPointer ? e => onOwnPlayerDown(e, player.id, player.sx, player.sy) : undefined}
+            sx={{
+              position: 'absolute',
+              left: `${player.sx}%`, top: `${player.sy}%`,
+              transform: 'translate(-50%, -50%)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              zIndex: isPointer ? 12 : 3,
+              pointerEvents: isPointer ? 'auto' : 'none',
+              userSelect: 'none',
+              cursor: isDragging ? 'grabbing' : isPointer ? 'grab' : 'default',
+            }}
+          >
+            <Box sx={{
+              width: { xs: 30, md: 38 }, height: { xs: 30, md: 38 },
+              bgcolor: getZoneColor(player.y),
+              color: 'white', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 900, fontSize: { xs: 11, md: 14 },
+              border: '2.5px solid rgba(255,255,255,0.9)',
+              boxShadow: isDragging
+                ? '0 0 14px rgba(255,255,255,0.55), 0 2px 10px rgba(0,0,0,0.7)'
+                : '0 2px 10px rgba(0,0,0,0.7)',
+              transition: 'box-shadow 0.12s',
+            }}>
+              {player.number}
+            </Box>
+            <Box sx={{
+              mt: '2px', bgcolor: 'rgba(0,0,0,0.78)', color: 'white',
+              borderRadius: '4px', px: '4px', lineHeight: '1.45',
+              fontSize: { xs: '0.5rem', md: '0.58rem' }, fontWeight: 700,
+              maxWidth: 54, textAlign: 'center',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {truncateName(player.name, 8)}
+            </Box>
           </Box>
-          <Box sx={{
-            mt: '2px', bgcolor: 'rgba(0,0,0,0.78)', color: 'white',
-            borderRadius: '4px', px: '4px', lineHeight: '1.45',
-            fontSize: { xs: '0.5rem', md: '0.58rem' }, fontWeight: 700,
-            maxWidth: 54, textAlign: 'center',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {truncateName(player.name, 8)}
+        );
+      })}
+
+      {/* ── Ghost indicators for off-screen own players (half-pitch only) ── */}
+      {/* Players in the opponent half have sy < 0 and are clipped by         */}
+      {/* overflow:hidden. We pin a small semi-transparent token at top=0     */}
+      {/* so the user knows "someone is up there".                            */}
+      {!fullPitch && ownPlayers
+        .filter(p => p.sy < 0)
+        .map(player => (
+          <Box
+            key={`ghost-${player.id}`}
+            sx={{
+              position: 'absolute',
+              left: `${player.sx}%`,
+              top: 0,
+              transform: 'translate(-50%, 0)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              zIndex: 13,
+              pointerEvents: 'none',
+              userSelect: 'none',
+              opacity: 0.6,
+            }}
+          >
+            {/* Small arrow pointing upward */}
+            <Box sx={{
+              width: 0, height: 0,
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+              borderBottom: `7px solid ${getZoneColor(player.y)}`,
+              mb: '1px',
+            }} />
+            <Box sx={{
+              width: { xs: 22, md: 28 }, height: { xs: 22, md: 28 },
+              bgcolor: getZoneColor(player.y),
+              color: 'white', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 900, fontSize: { xs: 9, md: 11 },
+              border: '2px dashed rgba(255,255,255,0.8)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+            }}>
+              {player.number}
+            </Box>
           </Box>
-        </Box>
-      ))}
+        ))
+      }
 
       {/* ── Opponent tokens (HTML, z:11) ─────────────────────────────────── */}
       {fullPitch && opponents.map(opp => {
@@ -227,6 +279,10 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       })}
 
       {/* ── SVG drawing layer (z:10) ─────────────────────────────────────── */}
+      {/* overflow:visible is intentional: paths with negative coordinates    */}
+      {/* (opponent-half elements viewed in half-pitch) must NOT be clipped   */}
+      {/* by the SVG viewBox. The parent container (overflow:hidden) does the */}
+      {/* visual clipping at the pitch boundary instead.                       */}
       <svg
         ref={svgRef}
         viewBox="0 0 100 100"
@@ -234,6 +290,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
+          overflow: 'visible',
           zIndex: 10, cursor: svgCursor,
           touchAction: 'none', pointerEvents: 'all',
         }}
@@ -274,13 +331,24 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           const bodyMode  = elDrag?.id === el.id ? elDrag.mode : null;
 
           if (el.kind === 'arrow' || el.kind === 'run') {
+            // Clip the visual path to the field bounds [0,100]×[0,100] so that
+            // arrows crossing into the opponent half (in half-pitch mode) still
+            // show a proper arrowhead at the midfield boundary instead of an
+            // invisible stub with no head.
+            const vis = clipLine(el.x1, el.y1, el.x2, el.y2);
+            if (!vis) return null; // entirely outside the field – skip
+            // Liang-Barsky preserves direction (t0 ≤ t1): vis.x1/y1 is the
+            // entry point into the field, vis.x2/y2 is the exit point. The
+            // arrowhead (markerEnd) therefore always appears where the arrow
+            // is heading – at the clipped boundary if the endpoint is off-field.
+            const { x1: vx1, y1: vy1, x2: vx2, y2: vy2 } = vis;
             return (
               <g key={el.id}
                 className={`el-group${dragging ? ' el-active' : ''}`}
                 style={{ pointerEvents: 'all' }}>
-                {/* Visual path */}
+                {/* Visual path (clipped to field bounds) */}
                 <path
-                  d={arrowPath(el.x1, el.y1, el.x2, el.y2)}
+                  d={arrowPath(vx1, vy1, vx2, vy2)}
                   stroke={el.color}
                   strokeWidth={dragging && bodyMode === 'move' ? '1.4' : '0.9'}
                   strokeDasharray={el.kind === 'run' ? '2.5 1.8' : undefined}
@@ -293,7 +361,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
                     pointerEvents: 'none',
                   }}
                 />
-                {/* Wide invisible hit area for body-move */}
+                {/* Wide invisible hit area for body-move (full path, not clipped) */}
                 <path
                   d={arrowPath(el.x1, el.y1, el.x2, el.y2)}
                   stroke="transparent" strokeWidth="6"

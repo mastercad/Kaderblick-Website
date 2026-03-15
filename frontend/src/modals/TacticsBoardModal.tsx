@@ -86,6 +86,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           onAddOpponent={board.handleAddOpponent}
           onUndo={board.handleUndo}
           onClear={board.handleClear}
+          onResetPlayerPositions={board.handleResetPlayerPositions}
           onSave={board.handleSave}
           onToggleFullscreen={board.toggleFullscreen}
           onClose={handleCloseRequest}
@@ -125,11 +126,13 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             color={board.color}
             elDrag={board.elDrag}
             oppDrag={board.oppDrag}
+            ownPlayerDrag={board.ownPlayerDrag}
             onSvgDown={board.handleSvgDown}
             onSvgMove={board.handleSvgMove}
             onSvgUp={board.handleSvgUp}
             onElDown={board.handleElDown}
             onOppDown={board.handleOppDown}
+            onOwnPlayerDown={board.handleOwnPlayerDown}
             markerId={board.markerId}
           />
           {board.showNotes && board.notes && (

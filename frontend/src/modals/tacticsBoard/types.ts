@@ -29,12 +29,21 @@ export interface FieldZone {
 
 export type DrawElement = FieldArrow | FieldZone;
 
+/** Tactic-local screen-position override for an own player (does NOT touch formation data). */
+export interface PlayerPositionOverride {
+  id: number; // matches PlayerData.id
+  sx: number; // screen x % (0-100)
+  sy: number; // screen y % (0-100)
+}
+
 /** Named tactic board snapshot – multiple per formation */
 export interface TacticEntry {
   id: string;
   name: string;
   elements: DrawElement[];
   opponents: OpponentToken[];
+  /** Per-player position overrides stored in the tactic, never written back to formation */
+  playerPositions?: PlayerPositionOverride[];
   savedAt?: string;
 }
 
@@ -64,6 +73,14 @@ export interface ElDragState {
 export interface OppDragState {
   id: string;
   startX: number;
+  startY: number;
+  hasMoved: boolean;
+}
+
+/** Drag state for an own player token */
+export interface OwnPlayerDragState {
+  id: number; // matches PlayerData.id (number)
+  startX: number; // SVG-space coordinate, updated each move (same delta pattern as OppDragState)
   startY: number;
   hasMoved: boolean;
 }

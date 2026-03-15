@@ -8,6 +8,7 @@ import FullscreenIcon     from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import UndoIcon           from '@mui/icons-material/Undo';
 import DeleteSweepIcon    from '@mui/icons-material/DeleteSweep';
+import RestartAltIcon     from '@mui/icons-material/RestartAlt';
 import TouchAppIcon       from '@mui/icons-material/TouchApp';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import PersonAddIcon   from '@mui/icons-material/PersonAdd';
@@ -51,6 +52,7 @@ export interface TacticsToolbarProps {
   onAddOpponent: () => void;
   onUndo: () => void;
   onClear: () => void;
+  onResetPlayerPositions: () => void;
   onSave: () => void;
   onToggleFullscreen: () => void;
   onClose: () => void;
@@ -70,7 +72,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
   elements, opponents,
   saving, saveMsg, isBrowserFS, isDirty, showNotes, setShowNotes,
   formation,
-  onAddOpponent, onUndo, onClear, onSave, onToggleFullscreen, onClose,
+  onAddOpponent, onUndo, onClear, onResetPlayerPositions, onSave, onToggleFullscreen, onClose,
   onLoadPreset, activeTactic,
 }) => {
   const [presetAnchor, setPresetAnchor] = useState<Element | null>(null);
@@ -241,6 +243,10 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
       onClick={onClear}
       disabled={elements.length === 0 && opponents.length === 0}>
       <DeleteSweepIcon fontSize="small" />
+    </ToolBtn>
+    <ToolBtn title="Spielerpositionen zurücksetzen (auf Formations-Standard)"
+      onClick={onResetPlayerPositions}>
+      <RestartAltIcon fontSize="small" />
     </ToolBtn>
 
     {/* Notes toggle */}

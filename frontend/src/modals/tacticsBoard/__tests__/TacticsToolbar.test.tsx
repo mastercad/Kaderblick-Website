@@ -29,6 +29,7 @@ const baseProps: TacticsToolbarProps = {
   onAddOpponent: jest.fn(),
   onUndo: jest.fn(),
   onClear: jest.fn(),
+  onResetPlayerPositions: jest.fn(),
   onSave: jest.fn(),
   onToggleFullscreen: jest.fn(),
   onClose: jest.fn(),
@@ -113,5 +114,33 @@ describe('TacticsToolbar', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     // The asterisk text is still rendered
     expect(screen.getByText('Speichern *')).toBeInTheDocument();
+  });
+});
+
+describe('TacticsToolbar – reset player positions button', () => {
+  it('renders a button with the RestartAlt icon', () => {
+    render(<TacticsToolbar {...baseProps} />);
+    const btn = screen.getAllByRole('button').find(
+      b => b.querySelector('[data-testid="RestartAltIcon"]'),
+    );
+    expect(btn).toBeInTheDocument();
+  });
+
+  it('calls onResetPlayerPositions when the button is clicked', () => {
+    const onReset = jest.fn();
+    render(<TacticsToolbar {...baseProps} onResetPlayerPositions={onReset} />);
+    const btn = screen.getAllByRole('button').find(
+      b => b.querySelector('[data-testid="RestartAltIcon"]'),
+    )!;
+    btn.click();
+    expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('reset button is never disabled (always available)', () => {
+    render(<TacticsToolbar {...baseProps} />);
+    const btn = screen.getAllByRole('button').find(
+      b => b.querySelector('[data-testid="RestartAltIcon"]'),
+    )!;
+    expect(btn).not.toBeDisabled();
   });
 });

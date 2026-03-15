@@ -2,6 +2,35 @@
 import React from 'react';
 
 /**
+ * Liang-Barsky line clipping to a [xMin,xMax] × [yMin,yMax] rectangle.
+ * Returns clipped endpoints, or null if the segment lies entirely outside.
+ */
+export function clipLine(
+  x1: number, y1: number, x2: number, y2: number,
+  xMin = 0, yMin = 0, xMax = 100, yMax = 100,
+): { x1: number; y1: number; x2: number; y2: number } | null {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  let t0 = 0, t1 = 1;
+  const clip = (p: number, q: number): boolean => {
+    if (p === 0) return q >= 0;
+    const r = q / p;
+    if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; }
+    else       { if (r < t0) return false; if (r < t1) t1 = r; }
+    return true;
+  };
+  if (!clip(-dx, x1 - xMin)) return null;
+  if (!clip(dx,  xMax - x1)) return null;
+  if (!clip(-dy, y1 - yMin)) return null;
+  if (!clip(dy,  yMax - y1)) return null;
+  if (t0 > t1) return null;
+  return {
+    x1: x1 + t0 * dx, y1: y1 + t0 * dy,
+    x2: x1 + t1 * dx, y2: y1 + t1 * dy,
+  };
+}
+
+/**
  * Build a quadratic Bézier path for arrows / runs.
  * The control point is slightly perpendicular to the line, giving a gentle curve.
  */
