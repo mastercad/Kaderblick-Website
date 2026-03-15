@@ -94,7 +94,7 @@ class PlayersController extends AbstractController
                 'firstName' => $player->getFirstName(),
                 'lastName' => $player->getLastName(),
                 'fullName' => $player->getFullName(),
-                'birthdate' => $player->getBirthdate(),
+                'birthdate' => $player->getBirthdate()?->format('Y-m-d'),
                 'height' => $player->getHeight(),
                 'weight' => $player->getWeight(),
                 'strongFeet' => [
@@ -111,8 +111,8 @@ class PlayersController extends AbstractController
                 ], $player->getAlternativePositions()->toArray()),
                 'clubAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'club' => [
                         'id' => $assignment->getClub()->getId(),
                         'name' => $assignment->getClub()->getName()
@@ -120,8 +120,8 @@ class PlayersController extends AbstractController
                 ], $player->getPlayerClubAssignments()->toArray()),
                 'nationalityAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'nationality' => [
                         'id' => $assignment->getNationality()->getId(),
                         'name' => $assignment->getNationality()->getName()
@@ -129,8 +129,8 @@ class PlayersController extends AbstractController
                 ], $player->getPlayerNationalityAssignments()->toArray()),
                 'teamAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'shirtNumber' => $assignment->getShirtNumber(),
                     'team' => [
                         'id' => $assignment->getTeam()->getId(),
@@ -181,7 +181,7 @@ class PlayersController extends AbstractController
                 'firstName' => $player->getFirstName(),
                 'lastName' => $player->getLastName(),
                 'fullName' => $player->getFullName(),
-                'birthdate' => $player->getBirthdate(),
+                'birthdate' => $player->getBirthdate()?->format('Y-m-d'),
                 'height' => $player->getHeight(),
                 'weight' => $player->getWeight(),
                 'strongFeet' => [
@@ -198,8 +198,8 @@ class PlayersController extends AbstractController
                 ], $player->getAlternativePositions()->toArray()),
                 'clubAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'club' => [
                         'id' => $assignment->getClub()->getId(),
                         'name' => $assignment->getClub()->getName()
@@ -207,8 +207,8 @@ class PlayersController extends AbstractController
                 ], $player->getPlayerClubAssignments()->toArray()),
                 'nationalityAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'nationality' => [
                         'id' => $assignment->getNationality()->getId(),
                         'name' => $assignment->getNationality()->getName()
@@ -216,8 +216,8 @@ class PlayersController extends AbstractController
                 ], $player->getPlayerNationalityAssignments()->toArray()),
                 'teamAssignments' => array_map(fn ($assignment) => [
                     'id' => $assignment->getId(),
-                    'startDate' => $assignment->getStartDate(),
-                    'endDate' => $assignment->getEndDate(),
+                    'startDate' => $assignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $assignment->getEndDate()?->format('Y-m-d'),
                     'shirtNumber' => $assignment->getShirtNumber(),
                     'team' => [
                         'id' => $assignment->getTeam()->getId(),

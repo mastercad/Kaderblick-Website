@@ -6,16 +6,12 @@ use App\Entity\Notification;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
-use Psr\Log\LoggerInterface;
 
 class NotificationService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private NotificationRepository $notificationRepository,
-        private PushNotificationService $pushNotificationService,
-        private LoggerInterface $logger
+        private NotificationRepository $notificationRepository
     ) {
     }
 
@@ -42,32 +38,8 @@ class NotificationService
         $this->entityManager->persist($notification);
         $this->entityManager->flush();
 
-        // Send push notification immediately
-        try {
-            $url = '/';
-            if (is_array($data) && isset($data['url'])) {
-                $url = (string) $data['url'];
-            }
-
-            // Check user preference for this notification type (default: enabled)
-            $prefs = $user->getNotificationPreferences() ?? [];
-            $enabled = $prefs[$type] ?? true;
-
-            if ($enabled) {
-                $this->pushNotificationService->sendNotification(
-                    $user,
-                    $title,
-                    $message ?? '',
-                    $url
-                );
-
-                $notification->setIsSent(true);
-                $this->entityManager->flush();
-            }
-        } catch (Exception $e) {
-            // Log error but don't fail the notification creation
-            $this->logger->critical('Failed to send push notification: ' . $e->getMessage());
-        }
+        // Push-Versand erfolgt asynchron durch den Cron-Job app:notifications:send-unsent.
+        // isSent bleibt false, bis der Cron die Notification verarbeitet.
 
         return $notification;
     }
@@ -104,34 +76,8 @@ class NotificationService
 
         $this->entityManager->flush();
 
-        // Send push notifications for each user
-        $url = '/';
-        if (is_array($data) && isset($data['url'])) {
-            $url = (string) $data['url'];
-        }
-
-        foreach ($notifications as $notification) {
-            try {
-                // Check user preference for this notification type (default: enabled)
-                $prefs = $notification->getUser()->getNotificationPreferences() ?? [];
-                $enabled = $prefs[$type] ?? true;
-
-                if ($enabled) {
-                    $this->pushNotificationService->sendNotification(
-                        $notification->getUser(),
-                        $title,
-                        $message ?? '',
-                        $url
-                    );
-
-                    $notification->setIsSent(true);
-                }
-            } catch (Exception $e) {
-                $this->logger->warning('Failed to send push for user ' . $notification->getUser()->getId() . ': ' . $e->getMessage());
-            }
-        }
-
-        $this->entityManager->flush();
+        // Push-Versand erfolgt asynchron durch den Cron-Job app:notifications:send-unsent.
+        // isSent bleibt false, bis der Cron die Notifications verarbeitet.
 
         return $notifications;
     }

@@ -296,4 +296,96 @@ class CoachesControllerTest extends ApiWebTestCase
         $this->assertEquals(1, $data['page']);
         $this->assertEquals(3, $data['limit']);
     }
+
+    // ────────────────────────────── Date Format (Regression) ──────────────────────────────
+    // Regression: PHP \DateTime-Objekte dürfen NICHT als serialisiertes Objekt
+    // (mit timezone/offset/timestamp-Keys) gesendet werden, sondern immer als
+    // "YYYY-MM-DD"-String oder null.
+
+    private function assertDateFormat(mixed $value, string $context): void
+    {
+        if (null === $value) {
+            return; // null ist erlaubt
+        }
+        $this->assertIsString($value, "$context muss ein String sein, kein serialisiertes DateTime-Objekt");
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}$/',
+            $value,
+            "$context muss das Format YYYY-MM-DD haben"
+        );
+    }
+
+    public function testListCoachDatesAreStringNotSerializedObject(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/coaches?limit=25');
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        if (empty($data['coaches'])) {
+            $this->markTestSkipped('Keine Coaches in den Fixture-Daten');
+        }
+
+        foreach ($data['coaches'] as $coach) {
+            $this->assertDateFormat($coach['birthdate'] ?? null, 'coaches[].birthdate');
+
+            foreach ($coach['clubAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "clubAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "clubAssignments[$i].endDate");
+            }
+            foreach ($coach['teamAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "teamAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "teamAssignments[$i].endDate");
+            }
+            foreach ($coach['licenseAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "licenseAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "licenseAssignments[$i].endDate");
+            }
+            foreach ($coach['nationalityAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "nationalityAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "nationalityAssignments[$i].endDate");
+            }
+        }
+    }
+
+    public function testShowCoachDatesAreStringNotSerializedObject(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        // Coach-ID aus der Liste holen
+        $client->request('GET', '/api/coaches?limit=1');
+        $listData = json_decode($client->getResponse()->getContent(), true);
+
+        if (empty($listData['coaches'])) {
+            $this->markTestSkipped('Keine Coaches in den Fixture-Daten');
+        }
+
+        $coachId = $listData['coaches'][0]['id'];
+
+        $client->request('GET', '/api/coaches/' . $coachId);
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $coach = $data['coach'];
+
+        $this->assertDateFormat($coach['birthdate'] ?? null, 'coach.birthdate');
+
+        foreach ($coach['clubAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "clubAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "clubAssignments[$i].endDate");
+        }
+        foreach ($coach['teamAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "teamAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "teamAssignments[$i].endDate");
+        }
+        foreach ($coach['licenseAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "licenseAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "licenseAssignments[$i].endDate");
+        }
+        foreach ($coach['nationalityAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "nationalityAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "nationalityAssignments[$i].endDate");
+        }
+    }
 }

@@ -300,4 +300,88 @@ class PlayersControllerTest extends ApiWebTestCase
         $this->assertEquals(1, $data['page']);
         $this->assertEquals(3, $data['limit']);
     }
+
+    // ────────────────────────────── Date Format (Regression) ──────────────────────────────
+    // Regression: PHP \DateTime-Objekte dürfen NICHT als serialisiertes Objekt
+    // (mit timezone/offset/timestamp-Keys) gesendet werden, sondern immer als
+    // "YYYY-MM-DD"-String oder null.
+
+    private function assertDateFormat(mixed $value, string $context): void
+    {
+        if (null === $value) {
+            return; // null ist erlaubt
+        }
+        $this->assertIsString($value, "$context muss ein String sein, kein serialisiertes DateTime-Objekt");
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}$/',
+            $value,
+            "$context muss das Format YYYY-MM-DD haben"
+        );
+    }
+
+    public function testIndexPlayerDatesAreStringNotSerializedObject(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/players?limit=25');
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        if (empty($data['players'])) {
+            $this->markTestSkipped('Keine Spieler in den Fixture-Daten');
+        }
+
+        foreach ($data['players'] as $player) {
+            $this->assertDateFormat($player['birthdate'] ?? null, 'players[].birthdate');
+
+            foreach ($player['clubAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "clubAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "clubAssignments[$i].endDate");
+            }
+            foreach ($player['nationalityAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "nationalityAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "nationalityAssignments[$i].endDate");
+            }
+            foreach ($player['teamAssignments'] ?? [] as $i => $a) {
+                $this->assertDateFormat($a['startDate'] ?? null, "teamAssignments[$i].startDate");
+                $this->assertDateFormat($a['endDate'] ?? null, "teamAssignments[$i].endDate");
+            }
+        }
+    }
+
+    public function testShowPlayerDatesAreStringNotSerializedObject(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        // Spieler-ID aus der Liste holen
+        $client->request('GET', '/api/players?limit=1');
+        $listData = json_decode($client->getResponse()->getContent(), true);
+
+        if (empty($listData['players'])) {
+            $this->markTestSkipped('Keine Spieler in den Fixture-Daten');
+        }
+
+        $playerId = $listData['players'][0]['id'];
+
+        $client->request('GET', '/api/players/' . $playerId);
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $player = $data['player'];
+
+        $this->assertDateFormat($player['birthdate'] ?? null, 'player.birthdate');
+
+        foreach ($player['clubAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "clubAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "clubAssignments[$i].endDate");
+        }
+        foreach ($player['nationalityAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "nationalityAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "nationalityAssignments[$i].endDate");
+        }
+        foreach ($player['teamAssignments'] ?? [] as $i => $a) {
+            $this->assertDateFormat($a['startDate'] ?? null, "teamAssignments[$i].startDate");
+            $this->assertDateFormat($a['endDate'] ?? null, "teamAssignments[$i].endDate");
+        }
+    }
 }

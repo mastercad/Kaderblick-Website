@@ -41,8 +41,6 @@ interface RelationType {
 }
 
 interface ContextData {
-    players: EntityOption[];
-    coaches: EntityOption[];
     relationTypes: RelationType[];
 }
 
@@ -65,6 +63,11 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
     const [error, setError] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
+    // Search state for Step 1
+    const [searchInput, setSearchInput] = useState('');
+    const [searchResults, setSearchResults] = useState<EntityOption[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+
     useEffect(() => {
         if (open && !contextData) {
             setLoading(true);
@@ -77,13 +80,25 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
         }
     }, [open, contextData]);
 
+    // Debounced search: fetch after 300 ms when ≥ 2 chars are entered
+    useEffect(() => {
+        if (!entityType || searchInput.trim().length < 2) {
+            setSearchResults([]);
+            return;
+        }
+        setSearchLoading(true);
+        const timer = setTimeout(() => {
+            apiJson(`/api/registration-request/context/search?type=${entityType}&q=${encodeURIComponent(searchInput.trim())}`)
+                .then((data: any) => setSearchResults(data.results ?? []))
+                .catch(() => setSearchResults([]))
+                .finally(() => setSearchLoading(false));
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [entityType, searchInput]);
+
     const filteredRelationTypes = contextData?.relationTypes.filter(
         (rt) => rt.category === entityType
     ) ?? [];
-
-    const entityList = entityType === 'player'
-        ? (contextData?.players ?? [])
-        : (contextData?.coaches ?? []);
 
     const handleNext = () => {
         setActiveStep((prev) => prev + 1);
@@ -100,6 +115,8 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
         setEntityType(value);
         setSelectedEntity(null);
         setSelectedRelationType(null);
+        setSearchInput('');
+        setSearchResults([]);
     };
 
     const handleSubmit = async () => {
@@ -142,6 +159,8 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
         setNote('');
         setError('');
         setSubmitted(false);
+        setSearchInput('');
+        setSearchResults([]);
     };
 
     const handleClose = () => {
@@ -232,13 +251,26 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                         {activeStep === 1 && (
                             <Box>
                                 <Typography gutterBottom>
-                                    Suche den {entityLabel} in der Liste:
+                                    Gib mindestens 2 Buchstaben ein, um den {entityLabel} zu suchen:
                                 </Typography>
                                 <Autocomplete
-                                    options={entityList}
+                                    options={searchResults}
                                     getOptionLabel={(o) => o.fullName}
                                     value={selectedEntity}
                                     onChange={(_, val) => setSelectedEntity(val)}
+                                    inputValue={searchInput}
+                                    onInputChange={(_, val, reason) => {
+                                        if (reason !== 'reset') setSearchInput(val);
+                                    }}
+                                    filterOptions={(x) => x}
+                                    loading={searchLoading}
+                                    noOptionsText={
+                                        searchInput.trim().length < 2
+                                            ? 'Bitte mindestens 2 Buchstaben eingeben'
+                                            : searchLoading
+                                            ? 'Suche...'
+                                            : 'Keine Ergebnisse gefunden'
+                                    }
                                     renderOption={(props, option) => (
                                         <Box component="li" {...props}>
                                             <Box>
@@ -258,9 +290,26 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                             variant="outlined"
                                             size="small"
                                             fullWidth
+                                            autoFocus
+                                            helperText={
+                                                selectedEntity
+                                                    ? undefined
+                                                    : searchInput.trim().length < 2
+                                                    ? 'Mindestens 2 Buchstaben eingeben, um die Suche zu starten'
+                                                    : undefined
+                                            }
+                                            InputProps={{
+                                                ...params.InputProps,
+                                                endAdornment: (
+                                                    <>
+                                                        {searchLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                                        {params.InputProps.endAdornment}
+                                                    </>
+                                                ),
+                                            }}
                                         />
                                     )}
-                                    noOptionsText="Keine Ergebnisse"
+                                    isOptionEqualToValue={(option, value) => option.id === value.id}
                                     sx={{ mt: 1 }}
                                 />
                             </Box>

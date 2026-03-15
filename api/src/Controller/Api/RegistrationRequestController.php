@@ -28,33 +28,15 @@ class RegistrationRequestController extends AbstractController
     }
 
     /**
-     * Returns all players, coaches, and relation types for the registration context dialog.
-     * Public endpoint if needed for pre-auth (e.g., Google SSO popup).
+     * Returns only relation types for the registration context dialog.
+     * Players/coaches are fetched on demand via /context/search.
      */
     #[Route('/context', name: 'context', methods: ['GET'])]
     public function context(): JsonResponse
     {
-        $players = $this->em->getRepository(Player::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC']);
-        $coaches = $this->em->getRepository(Coach::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC']);
         $relationTypes = $this->em->getRepository(RelationType::class)->findBy([], ['name' => 'ASC']);
 
         return $this->json([
-            'players' => array_map(fn (Player $p) => [
-                'id' => $p->getId(),
-                'fullName' => $p->getFullName(),
-                'teams' => array_values(array_unique(array_map(
-                    fn ($pta) => $pta->getTeam()->getName(),
-                    $p->getPlayerTeamAssignments()->toArray()
-                ))),
-            ], $players),
-            'coaches' => array_map(fn (Coach $c) => [
-                'id' => $c->getId(),
-                'fullName' => $c->getFullName(),
-                'teams' => array_values(array_unique(array_map(
-                    fn ($cta) => $cta->getTeam()->getName(),
-                    $c->getCoachTeamAssignments()->toArray()
-                ))),
-            ], $coaches),
             'relationTypes' => array_map(fn (RelationType $rt) => [
                 'id' => $rt->getId(),
                 'identifier' => $rt->getIdentifier(),
@@ -62,6 +44,62 @@ class RegistrationRequestController extends AbstractController
                 'category' => $rt->getCategory(),
             ], $relationTypes),
         ]);
+    }
+
+    /**
+     * Search players or coaches by name (min. 2 characters).
+     */
+    #[Route('/context/search', name: 'context_search', methods: ['GET'])]
+    public function contextSearch(Request $request): JsonResponse
+    {
+        $type = $request->query->get('type');
+        $q = trim((string) $request->query->get('q', ''));
+
+        if (!in_array($type, ['player', 'coach'], true)) {
+            return $this->json(['error' => 'type muss "player" oder "coach" sein.'], 400);
+        }
+
+        if (mb_strlen($q) < 2) {
+            return $this->json(['results' => []]);
+        }
+
+        $search = '%' . mb_strtolower($q) . '%';
+
+        if ('player' === $type) {
+            $qb = $this->em->getRepository(Player::class)->createQueryBuilder('p')
+                ->where('LOWER(p.firstName) LIKE :q OR LOWER(p.lastName) LIKE :q OR LOWER(CONCAT(p.firstName, \' \', p.lastName)) LIKE :q')
+                ->setParameter('q', $search)
+                ->orderBy('p.lastName', 'ASC')
+                ->addOrderBy('p.firstName', 'ASC')
+                ->setMaxResults(30);
+
+            $results = array_map(fn (Player $p) => [
+                'id' => $p->getId(),
+                'fullName' => $p->getFullName(),
+                'teams' => array_values(array_unique(array_map(
+                    fn ($pta) => $pta->getTeam()->getName(),
+                    $p->getPlayerTeamAssignments()->toArray()
+                ))),
+            ], $qb->getQuery()->getResult());
+        } else {
+            $qb = $this->em->getRepository(Coach::class)->createQueryBuilder('c')
+                ->where('LOWER(c.firstName) LIKE :q OR LOWER(c.lastName) LIKE :q OR LOWER(CONCAT(c.firstName, \' \', c.lastName)) LIKE :q')
+                ->setParameter('q', $search)
+                ->orderBy('c.lastName', 'ASC')
+                ->addOrderBy('c.firstName', 'ASC')
+                ->setMaxResults(30);
+
+            $results = array_map(fn (Coach $c) => [
+                'id' => $c->getId(),
+                'fullName' => $c->getFullName(),
+                'teams' => array_values(array_unique(array_map(
+                    fn ($cta) => $cta->getTeam()->getName(),
+                    $c->getCoachTeamAssignments()->toArray()
+                ))),
+            ], $qb->getQuery()->getResult());
+        }
+
+        return $this->json(['results' => $results]);
     }
 
     /**

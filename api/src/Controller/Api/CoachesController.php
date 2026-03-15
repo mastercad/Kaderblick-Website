@@ -83,11 +83,11 @@ class CoachesController extends AbstractController
                 'firstName' => $coach->getFirstName(),
                 'lastName' => $coach->getLastName(),
                 'email' => $coach->getEmail(),
-                'birthdate' => $coach->getBirthdate(),
+                'birthdate' => $coach->getBirthdate()?->format('Y-m-d'),
                 'clubAssignments' => $coach->getCoachClubAssignments()->map(fn (CoachClubAssignment $coachClubAssignment) => [
                     'id' => $coachClubAssignment->getId(),
-                    'startDate' => $coachClubAssignment->getStartDate(),
-                    'endDate' => $coachClubAssignment->getEndDate(),
+                    'startDate' => $coachClubAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachClubAssignment->getEndDate()?->format('Y-m-d'),
                     'club' => [
                         'id' => $coachClubAssignment->getClub()->getId(),
                         'name' => $coachClubAssignment->getClub()->getName(),
@@ -95,8 +95,8 @@ class CoachesController extends AbstractController
                 ])->toArray(),
                 'teamAssignments' => $coach->getCoachTeamAssignments()->map(fn (CoachTeamAssignment $coachTeamAssignment) => [
                     'id' => $coachTeamAssignment->getId(),
-                    'startDate' => $coachTeamAssignment->getStartDate(),
-                    'endDate' => $coachTeamAssignment->getEndDate(),
+                    'startDate' => $coachTeamAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachTeamAssignment->getEndDate()?->format('Y-m-d'),
                     'team' => [
                         'id' => $coachTeamAssignment->getTeam()->getId(),
                         'name' => $coachTeamAssignment->getTeam()->getName(),
@@ -117,8 +117,8 @@ class CoachesController extends AbstractController
                 'licenseAssignments' => $coach->getCoachLicenseAssignments()->map(fn (CoachLicenseAssignment $coachLicenseAssignment) => [
                     'id' => $coachLicenseAssignment->getLicense()->getId(),
                     'name' => $coachLicenseAssignment->getLicense()->getName(),
-                    'startDate' => $coachLicenseAssignment->getStartDate(),
-                    'endDate' => $coachLicenseAssignment->getEndDate(),
+                    'startDate' => $coachLicenseAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachLicenseAssignment->getEndDate()?->format('Y-m-d'),
                     'license' => [
                         'id' => $coachLicenseAssignment->getLicense()->getId(),
                         'name' => $coachLicenseAssignment->getLicense()->getName()
@@ -126,8 +126,8 @@ class CoachesController extends AbstractController
                 ])->toArray(),
                 'nationalityAssignments' => $coach->getCoachNationalityAssignments()->map(fn (CoachNationalityAssignment $coachNationalityAssignment) => [
                     'id' => $coachNationalityAssignment->getId(),
-                    'startDate' => $coachNationalityAssignment->getStartDate(),
-                    'endDate' => $coachNationalityAssignment->getEndDate(),
+                    'startDate' => $coachNationalityAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachNationalityAssignment->getEndDate()?->format('Y-m-d'),
                     'nationality' => [
                         'id' => $coachNationalityAssignment->getNationality()->getId(),
                         'name' => $coachNationalityAssignment->getNationality()->getName(),
@@ -159,11 +159,11 @@ class CoachesController extends AbstractController
                 'firstName' => $coach->getFirstName(),
                 'lastName' => $coach->getLastName(),
                 'email' => $coach->getEmail(),
-                'birthdate' => $coach->getBirthdate(),
+                'birthdate' => $coach->getBirthdate()?->format('Y-m-d'),
                 'clubAssignments' => $coach->getCoachClubAssignments()->map(fn (CoachClubAssignment $coachClubAssignment) => [
                     'id' => $coachClubAssignment->getId(),
-                    'startDate' => $coachClubAssignment->getStartDate(),
-                    'endDate' => $coachClubAssignment->getEndDate(),
+                    'startDate' => $coachClubAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachClubAssignment->getEndDate()?->format('Y-m-d'),
                     'club' => [
                         'id' => $coachClubAssignment->getClub()->getId(),
                         'name' => $coachClubAssignment->getClub()->getName(),
@@ -171,8 +171,8 @@ class CoachesController extends AbstractController
                 ])->toArray(),
                 'teamAssignments' => $coach->getCoachTeamAssignments()->map(fn (CoachTeamAssignment $coachTeamAssignment) => [
                     'id' => $coachTeamAssignment->getId(),
-                    'startDate' => $coachTeamAssignment->getStartDate(),
-                    'endDate' => $coachTeamAssignment->getEndDate(),
+                    'startDate' => $coachTeamAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachTeamAssignment->getEndDate()?->format('Y-m-d'),
                     'team' => [
                         'id' => $coachTeamAssignment->getTeam()->getId(),
                         'name' => $coachTeamAssignment->getTeam()->getName(),
@@ -193,8 +193,8 @@ class CoachesController extends AbstractController
                 'licenseAssignments' => $coach->getCoachLicenseAssignments()->map(fn (CoachLicenseAssignment $coachLicenseAssignment) => [
                     'id' => $coachLicenseAssignment->getId(),
                     'name' => $coachLicenseAssignment->getLicense()->getName(),
-                    'startDate' => $coachLicenseAssignment->getStartDate(),
-                    'endDate' => $coachLicenseAssignment->getEndDate(),
+                    'startDate' => $coachLicenseAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachLicenseAssignment->getEndDate()?->format('Y-m-d'),
                     'license' => [
                         'id' => $coachLicenseAssignment->getLicense()->getId(),
                         'name' => $coachLicenseAssignment->getLicense()->getName()
@@ -202,8 +202,8 @@ class CoachesController extends AbstractController
                 ])->toArray(),
                 'nationalityAssignments' => $coach->getCoachNationalityAssignments()->map(fn (CoachNationalityAssignment $coachNationalityAssignment) => [
                     'id' => $coachNationalityAssignment->getId(),
-                    'startDate' => $coachNationalityAssignment->getStartDate(),
-                    'endDate' => $coachNationalityAssignment->getEndDate(),
+                    'startDate' => $coachNationalityAssignment->getStartDate()?->format('Y-m-d'),
+                    'endDate' => $coachNationalityAssignment->getEndDate()?->format('Y-m-d'),
                     'nationality' => [
                         'id' => $coachNationalityAssignment->getNationality()->getId(),
                         'name' => $coachNationalityAssignment->getNationality()->getName(),

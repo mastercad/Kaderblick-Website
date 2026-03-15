@@ -13,6 +13,8 @@ use Tests\Feature\ApiWebTestCase;
 class RegistrationRequestControllerTest extends ApiWebTestCase
 {
     // ────────────────────────────── GET /api/registration-request/context ──────────────────────────────
+    // Regression: context darf NIE WIEDER alle Spieler/Trainer auf einmal laden.
+    // Nur noch relationTypes – Spieler/Trainer werden über /context/search gesucht.
 
     public function testContextIsPubliclyAccessible(): void
     {
@@ -23,7 +25,7 @@ class RegistrationRequestControllerTest extends ApiWebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    public function testContextReturnsPlayersCoachesAndRelationTypes(): void
+    public function testContextReturnsOnlyRelationTypesNotPlayersOrCoaches(): void
     {
         $client = static::createClient();
 
@@ -32,29 +34,13 @@ class RegistrationRequestControllerTest extends ApiWebTestCase
         $this->assertResponseIsSuccessful();
         $data = json_decode($client->getResponse()->getContent(), true);
 
-        $this->assertArrayHasKey('players', $data);
-        $this->assertArrayHasKey('coaches', $data);
+        // Must have relationTypes
         $this->assertArrayHasKey('relationTypes', $data);
-        $this->assertIsArray($data['players']);
-        $this->assertIsArray($data['coaches']);
         $this->assertIsArray($data['relationTypes']);
-    }
 
-    public function testContextPlayerItemHasExpectedFields(): void
-    {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/registration-request/context');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        if (!empty($data['players'])) {
-            $player = $data['players'][0];
-            $this->assertArrayHasKey('id', $player);
-            $this->assertArrayHasKey('fullName', $player);
-        } else {
-            $this->markTestSkipped('No players in test database.');
-        }
+        // Must NOT contain players or coaches – those would cause a 15k-row payload
+        $this->assertArrayNotHasKey('players', $data, '/context darf keine Spielerliste enthalten – nutze /context/search stattdessen!');
+        $this->assertArrayNotHasKey('coaches', $data, '/context darf keine Trainerliste enthalten – nutze /context/search stattdessen!');
     }
 
     public function testContextRelationTypeItemHasExpectedFields(): void
@@ -71,6 +57,115 @@ class RegistrationRequestControllerTest extends ApiWebTestCase
         $this->assertArrayHasKey('identifier', $rt);
         $this->assertArrayHasKey('name', $rt);
         $this->assertArrayHasKey('category', $rt);
+    }
+
+    // ────────────────────────────── GET /api/registration-request/context/search ──────────────────────────────
+    // Regression: Suche muss min. 2 Zeichen erfordern und nie alle Datensätze auf einmal liefern.
+
+    public function testContextSearchRequiresTypeParameter(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/registration-request/context/search?q=Max');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+    }
+
+    public function testContextSearchRejectsInvalidType(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/registration-request/context/search?type=team&q=Max');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+    }
+
+    public function testContextSearchRequiresAtLeastTwoChars(): void
+    {
+        $client = static::createClient();
+
+        // 0 chars
+        $client->request('GET', '/api/registration-request/context/search?type=player&q=');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame([], $data['results'], 'Leere Suche darf keine Ergebnisse liefern');
+
+        // 1 char
+        $client->request('GET', '/api/registration-request/context/search?type=player&q=A');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame([], $data['results'], 'Ein-Zeichen-Suche darf keine Ergebnisse liefern');
+    }
+
+    public function testContextSearchPlayerReturnsResults(): void
+    {
+        $client = static::createClient();
+
+        // Fetch a real player name from the DB
+        $em = static::getContainer()->get('doctrine')->getManager();
+        $player = $em->getRepository(Player::class)->findOneBy([]);
+        $this->assertNotNull($player, 'Keine Spieler in den Testdaten');
+
+        $prefix = mb_substr($player->getLastName(), 0, 2);
+        $client->request('GET', '/api/registration-request/context/search?type=player&q=' . urlencode($prefix));
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        $this->assertArrayHasKey('results', $data);
+        $this->assertIsArray($data['results']);
+        $this->assertNotEmpty($data['results']);
+
+        $item = $data['results'][0];
+        $this->assertArrayHasKey('id', $item);
+        $this->assertArrayHasKey('fullName', $item);
+        $this->assertArrayHasKey('teams', $item);
+    }
+
+    public function testContextSearchCoachReturnsResults(): void
+    {
+        $client = static::createClient();
+
+        $em = static::getContainer()->get('doctrine')->getManager();
+        $coach = $em->getRepository(Coach::class)->findOneBy([]);
+        $this->assertNotNull($coach, 'Keine Coaches in den Testdaten');
+
+        // Use firstName prefix — lastName is a numeric string (e.g. "1") which is only
+        // 1 character and would be below the 2-char minimum required by the search endpoint.
+        $prefix = mb_substr($coach->getFirstName(), 0, 2);
+        $client->request('GET', '/api/registration-request/context/search?type=coach&q=' . urlencode($prefix));
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        $this->assertArrayHasKey('results', $data);
+        $this->assertIsArray($data['results']);
+        $this->assertNotEmpty($data['results']);
+    }
+
+    public function testContextSearchResultsCappedAt30(): void
+    {
+        $client = static::createClient();
+
+        // Search for a single letter – likely matches many players
+        $client->request('GET', '/api/registration-request/context/search?type=player&q=er');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        $this->assertLessThanOrEqual(30, count($data['results']), 'Suchergebnis darf maximal 30 Einträge enthalten');
+    }
+
+    public function testContextSearchNonMatchingQueryReturnsEmptyResults(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/registration-request/context/search?type=player&q=zzz_nonexistent_xyz');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        $this->assertSame([], $data['results']);
     }
 
     // ────────────────────────────── POST /api/registration-request ──────────────────────────────
