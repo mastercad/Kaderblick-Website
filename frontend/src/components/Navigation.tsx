@@ -7,6 +7,8 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Popover from '@mui/material/Popover';
+import Tooltip from '@mui/material/Tooltip';
 import Avatar from '@mui/material/Avatar';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
@@ -107,6 +109,25 @@ const getNotificationIcon = (type: AppNotification['type']) => {
     case 'feedback': return <FeedbackIcon fontSize="small" />;
     default: return <NotificationsNoneIcon fontSize="small" />;
   }
+};
+
+const formatNotifTime = (date: Date): string => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Gerade eben';
+  if (minutes < 60) return `Vor ${minutes} Min.`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Vor ${hours} Std.`;
+  if (hours < 48) return 'Gestern';
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
+const isToday = (date: Date) => new Date().toDateString() === date.toDateString();
+const isYesterday = (date: Date) => {
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  return y.toDateString() === date.toDateString();
 };
 
 export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }: NavigationProps) {
@@ -253,6 +274,10 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
   const handleAdminMenuClose = () => {
     setAdminMenuAnchor(null);
   };
+
+  const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
+  const handleNotifOpen = (event: React.MouseEvent<HTMLElement>) => setNotifAnchorEl(event.currentTarget);
+  const handleNotifClose = () => setNotifAnchorEl(null);
 
   const [trainerMenuAnchor, setTrainerMenuAnchor] = useState<null | HTMLElement>(null);
   const handleTrainerMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -562,6 +587,27 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
 
               {/* Common Controls */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {/* Notification Bell */}
+                <Tooltip title="Benachrichtigungen">
+                  <IconButton
+                    size="large"
+                    onClick={handleNotifOpen}
+                    sx={{
+                      color: isHome ? '#fff' : theme.palette.primary.contrastText,
+                      p: 0.75,
+                    }}
+                  >
+                    <Badge
+                      badgeContent={unreadCount}
+                      color="error"
+                      max={99}
+                      overlap="circular"
+                      sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 16, height: 16 } }}
+                    >
+                      {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
                 <IconButton
                   size="large"
                   aria-label="account of current user"
@@ -575,23 +621,15 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
                     p: 0.5,
                   }}
                 >
-                  <Badge
-                    badgeContent={unreadCount}
-                    color="error"
-                    max={99}
-                    overlap="circular"
-                    sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 16, height: 16 } }}
-                  >
-                    <UserAvatar
-                      icon={(user?.useGoogleAvatar && user?.googleAvatarUrl) ? user.googleAvatarUrl : (user?.avatarFile || undefined)}
-                      name=""
-                      avatarSize={32}
-                      fontSize={16}
-                      titleObj={user?.title && user?.title.hasTitle ? user.title : undefined}
-                      svgFrameOffsetY={0}
-                      level={user?.level?.level}
-                    />
-                  </Badge>
+                  <UserAvatar
+                    icon={(user?.useGoogleAvatar && user?.googleAvatarUrl) ? user.googleAvatarUrl : (user?.avatarFile || undefined)}
+                    name=""
+                    avatarSize={32}
+                    fontSize={16}
+                    titleObj={user?.title && user?.title.hasTitle ? user.title : undefined}
+                    svgFrameOffsetY={0}
+                    level={user?.level?.level}
+                  />
                 </IconButton>
               </Box>
             </>
@@ -846,61 +884,6 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
         </MenuItem>
         <Divider />
 
-        {/* Benachrichtigungen */}
-        <Box sx={{ px: 1, py: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ px: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Benachrichtigungen{unreadCount > 0 ? ` (${unreadCount})` : ''}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {unreadCount > 0 && (
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); markAllAsRead(); }} title="Alle gelesen">
-                <DoneAllIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            )}
-            {notifications.length > 0 && (
-              <IconButton size="small" onClick={(e) => { e.stopPropagation(); clearAll(); }} title="Alle löschen">
-                <DeleteIcon sx={{ fontSize: 14 }} />
-              </IconButton>
-            )}
-          </Box>
-        </Box>
-
-        {notifications.length === 0 ? (
-          <MenuItem disabled dense>
-            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-              Keine Benachrichtigungen
-            </Typography>
-          </MenuItem>
-        ) : (
-          <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
-            {notifications.slice(0, 6).map((notification) => (
-              <MenuItem
-                key={notification.id}
-                dense
-                onClick={() => { handleClose(); openNotificationDetail(notification); }}
-                sx={{
-                  alignItems: 'flex-start',
-                  gap: 1,
-                  py: 0.75,
-                  backgroundColor: notification.read ? 'transparent' : alpha(theme.palette.primary.main, 0.06),
-                  '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.12) },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 28, mt: 0.2, color: notification.read ? 'text.secondary' : 'primary.main' }}>
-                  {getNotificationIcon(notification.type)}
-                </ListItemIcon>
-                <ListItemText
-                  primary={notification.title}
-                  secondary={notification.message}
-                  primaryTypographyProps={{ variant: 'body2', fontWeight: notification.read ? 400 : 600, noWrap: true }}
-                  secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
-                />
-              </MenuItem>
-            ))}
-          </Box>
-        )}
-        <Divider />
-
         <MenuItem onClick={() => { handleClose(); onOpenProfile(); }}>
           <AccountCircleIcon fontSize="small" 
             sx={{
@@ -931,6 +914,176 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
           Logout
         </MenuItem>
       </Menu>
+
+      {/* ── Notification Center Popover ── */}
+      <Popover
+        open={Boolean(notifAnchorEl)}
+        anchorEl={notifAnchorEl}
+        onClose={handleNotifClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          elevation: 8,
+          sx: {
+            width: 400,
+            maxHeight: 540,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            mt: 1,
+            borderRadius: 2,
+          },
+        }}
+      >
+        {/* Header */}
+        <Box sx={{
+          px: 2, py: 1.5,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          flexShrink: 0,
+          background: theme.palette.background.paper,
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+            <Typography variant="subtitle1" fontWeight={700}>Benachrichtigungen</Typography>
+            {unreadCount > 0 && (
+              <Box sx={{
+                bgcolor: 'error.main', color: '#fff',
+                fontSize: '0.7rem', fontWeight: 700,
+                borderRadius: '10px', px: 0.75, py: 0.1, lineHeight: 1.6,
+              }}>
+                {unreadCount}
+              </Box>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {unreadCount > 0 && (
+              <Tooltip title="Alle als gelesen markieren">
+                <IconButton size="small" onClick={() => markAllAsRead()}>
+                  <DoneAllIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {notifications.length > 0 && (
+              <Tooltip title="Alle löschen">
+                <IconButton size="small" onClick={() => clearAll()}>
+                  <DeleteIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        </Box>
+
+        {/* Body */}
+        {notifications.length === 0 ? (
+          <Box sx={{ p: 5, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <NotificationsNoneIcon sx={{ fontSize: 52, color: 'text.disabled', mb: 1.5 }} />
+            <Typography variant="body2" color="text.secondary" fontWeight={500}>Keine Benachrichtigungen</Typography>
+            <Typography variant="caption" color="text.disabled">Du bist auf dem neuesten Stand!</Typography>
+          </Box>
+        ) : (
+          <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
+            {(() => {
+              const todayItems = notifications.filter(n => isToday(new Date(n.timestamp)));
+              const yesterdayItems = notifications.filter(n => isYesterday(new Date(n.timestamp)));
+              const olderItems = notifications.filter(n => !isToday(new Date(n.timestamp)) && !isYesterday(new Date(n.timestamp)));
+
+              const renderItem = (n: AppNotification) => (
+                <Box
+                  key={n.id}
+                  onClick={() => { handleNotifClose(); openNotificationDetail(n); }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 1.5,
+                    px: 2,
+                    py: 1.25,
+                    cursor: 'pointer',
+                    borderLeft: `3px solid ${n.read ? 'transparent' : theme.palette.primary.main}`,
+                    backgroundColor: n.read ? 'transparent' : alpha(theme.palette.primary.main, 0.04),
+                    transition: 'background-color 0.15s',
+                    '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.1) },
+                  }}
+                >
+                  <Box sx={{
+                    mt: 0.25,
+                    color: n.read ? 'text.disabled' : 'primary.main',
+                    flexShrink: 0,
+                  }}>
+                    {getNotificationIcon(n.type)}
+                  </Box>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={n.read ? 400 : 600}
+                      noWrap
+                      sx={{ color: n.read ? 'text.secondary' : 'text.primary' }}
+                    >
+                      {n.title}
+                    </Typography>
+                    {n.message && (
+                      <Typography variant="caption" color="text.secondary" sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        lineHeight: 1.4,
+                        mt: 0.2,
+                      }}>
+                        {n.message}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.4 }}>
+                      {formatNotifTime(new Date(n.timestamp))}
+                    </Typography>
+                  </Box>
+                  {!n.read && (
+                    <Box sx={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      bgcolor: 'primary.main', flexShrink: 0, mt: 0.5,
+                    }} />
+                  )}
+                </Box>
+              );
+
+              return (
+                <>
+                  {todayItems.length > 0 && (
+                    <>
+                      <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+                        <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.68rem' }}>
+                          Heute
+                        </Typography>
+                      </Box>
+                      {todayItems.map(renderItem)}
+                    </>
+                  )}
+                  {yesterdayItems.length > 0 && (
+                    <>
+                      <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+                        <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.68rem' }}>
+                          Gestern
+                        </Typography>
+                      </Box>
+                      {yesterdayItems.map(renderItem)}
+                    </>
+                  )}
+                  {olderItems.length > 0 && (
+                    <>
+                      <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+                        <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.68rem' }}>
+                          Früher
+                        </Typography>
+                      </Box>
+                      {olderItems.map(renderItem)}
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </Box>
+        )}
+      </Popover>
 
       <NotificationDetailModal
         notification={selectedNotification}
