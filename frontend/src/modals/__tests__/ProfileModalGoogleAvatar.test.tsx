@@ -187,7 +187,21 @@ import ProfileModal from '../ProfileModal';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const PROFILE_WITH_GOOGLE = {
+interface ProfileFixture {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarFile: null;
+  googleAvatarUrl: string | null;
+  useGoogleAvatar: boolean;
+  roles: Record<number, string>;
+  isCoach: boolean;
+  isPlayer: boolean;
+  needsRegistrationContext: boolean;
+}
+
+const PROFILE_WITH_GOOGLE: ProfileFixture = {
   id: 9,
   firstName: 'Max',
   lastName: 'Mustermann',
@@ -201,7 +215,7 @@ const PROFILE_WITH_GOOGLE = {
   needsRegistrationContext: false,
 };
 
-const PROFILE_WITHOUT_GOOGLE = {
+const PROFILE_WITHOUT_GOOGLE: ProfileFixture = {
   ...PROFILE_WITH_GOOGLE,
   googleAvatarUrl: null,
   useGoogleAvatar: false,
@@ -209,7 +223,7 @@ const PROFILE_WITHOUT_GOOGLE = {
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
-function setupApiMock(profile: typeof PROFILE_WITH_GOOGLE = PROFILE_WITH_GOOGLE) {
+function setupApiMock(profile: ProfileFixture = PROFILE_WITH_GOOGLE) {
   mockApiJson.mockImplementation((url: string) => {
     if (url === '/api/about-me') return Promise.resolve(profile);
     if (url === '/api/users/relations') return Promise.resolve([]);
