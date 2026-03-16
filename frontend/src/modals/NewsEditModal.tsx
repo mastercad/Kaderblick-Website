@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  Alert, TextField, Box, Typography,
+  Alert, TextField, Box, Typography, Stack,
 } from '@mui/material';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { apiJson } from '../utils/api';
 import RichTextEditor from '../components/RichTextEditor';
+import NewsTemplatePicker from '../components/NewsTemplatePicker';
 
 interface Props {
   open: boolean;
@@ -18,6 +20,7 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
   const [content, setContent] = useState(news.content);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     setTitle(news.title);
@@ -69,9 +72,22 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
           />
 
           <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 500 }}>
-              Inhalt
-            </Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                Inhalt
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                startIcon={<AutoAwesomeIcon sx={{ fontSize: '0.95rem !important' }} />}
+                onClick={() => setPickerOpen(true)}
+                disabled={loading}
+                sx={{ fontSize: '0.72rem', py: 0.25, px: 1 }}
+              >
+                Vorlage
+              </Button>
+            </Stack>
             <RichTextEditor
               value={content}
               onChange={setContent}
@@ -88,6 +104,13 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
           </Button>
         </DialogActions>
       </form>
+
+      <NewsTemplatePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onApply={html => setContent(html)}
+        hasContent={!!content && content !== '<p></p>'}
+      />
     </Dialog>
   );
 };

@@ -13,7 +13,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import {
   Box, IconButton, Tooltip, Divider, Dialog, DialogTitle,
   DialogContent, DialogActions, Button, TextField, Stack,
-  Paper, CircularProgress, useTheme, alpha,
+  Paper, CircularProgress, useTheme, alpha, Typography,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -34,6 +34,31 @@ import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import FormatClearIcon from '@mui/icons-material/FormatClear';
 import { apiRequest } from '../utils/api';
+
+// ── Custom Image extension – preserves the class attribute ───────────────────
+const CustomImage = ImageExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('class'),
+        renderHTML: (attributes) => {
+          if (!attributes.class) return {};
+          return { class: attributes.class };
+        },
+      },
+    };
+  },
+});
+
+// ── Image size options ────────────────────────────────────────────────────────
+const IMAGE_SIZE_OPTIONS: Array<{ id: string; label: string; desc: string; maxWidth: string }> = [
+  { id: 'img-banner', label: 'Banner',  desc: 'Vollbild – für Fotos & Gruppenbilder',              maxWidth: '100%' },
+  { id: 'img-large',  label: 'Groß',    desc: '80 % Breite – für Screenshots & Infografiken',       maxWidth: '80%'  },
+  { id: 'img-medium', label: 'Mittel',  desc: '55 % Breite – Feature-Vorschau (empfohlen)',          maxWidth: '55%'  },
+  { id: 'img-small',  label: 'Klein',   desc: '30 % Breite – Logos, Icons & kleine Highlights',     maxWidth: '30%'  },
+];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RichTextEditorProps {
@@ -148,6 +173,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [linkText, setLinkText] = useState('');
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [imageSizeOpen, setImageSizeOpen] = useState(false);
+  const [pendingImageSrc, setPendingImageSrc] = useState('');
+  const [imageSize, setImageSize] = useState<string>('img-medium');
 
   const editor = useEditor({
     extensions: [
@@ -165,7 +193,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         autolink: true,
         HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
       }),
-      ImageExtension.configure({ inline: false, allowBase64: false }),
+      CustomImage.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({ placeholder }),
     ],
     content: normalizeContent(value || ''),
@@ -222,10 +250,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // ── Image URL dialog ────────────────────────────────────────────────────────
   const applyImageUrl = useCallback(() => {
     if (!editor || !imageUrl.trim()) return;
-    editor.chain().focus().setImage({ src: imageUrl.trim() }).run();
+    const src = imageUrl.trim();
     setImageDialogOpen(false);
     setImageUrl('');
+    setPendingImageSrc(src);
+    setImageSizeOpen(true);
   }, [editor, imageUrl]);
+
+  // ── Confirm image insertion with chosen size ──────────────────────────────
+  const confirmInsertImage = useCallback(() => {
+    if (!editor || !pendingImageSrc) return;
+    // Use insertContent so we can attach the class attribute freely
+    const cls = imageSize && imageSize !== 'img-banner' ? ` class="${imageSize}"` : '';
+    editor.chain().focus().insertContent(`<img src="${pendingImageSrc}"${cls}>`).run();
+    setImageSizeOpen(false);
+    setPendingImageSrc('');
+  }, [editor, pendingImageSrc, imageSize]);
 
   // ── Image file upload ───────────────────────────────────────────────────────
   const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,7 +281,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       if (data.success && data.url) {
         // Absolute URL verwenden, damit das Bild im Editor (anderer Host als Frontend) korrekt angezeigt wird
         const absoluteUrl = data.url.startsWith('http') ? data.url : `${BACKEND_URL}${data.url}`;
-        editor.chain().focus().setImage({ src: absoluteUrl }).run();
+        setPendingImageSrc(absoluteUrl);
+        setImageSizeOpen(true);
       }
     } catch {
       // silently fail – user can retry
@@ -480,7 +521,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               borderRadius: '6px',
               display: 'block',
               my: '0.75em',
+              mx: 'auto',
             },
+            '& img.img-large':  { maxWidth: '80%' },
+            '& img.img-medium': { maxWidth: '55%' },
+            '& img.img-small':  { maxWidth: '30%' },
             // Highlight
             '& mark': {
               bgcolor: '#ffe066',
@@ -557,7 +602,105 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setImageDialogOpen(false); setImageUrl(''); }}>Abbrechen</Button>
-          <Button variant="contained" onClick={applyImageUrl} disabled={!imageUrl.trim()}>Einfügen</Button>
+          <Button variant="contained" onClick={applyImageUrl} disabled={!imageUrl.trim()}>Weiter →</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Image Size Picker ─────────────────────────────────────────── */}
+      <Dialog
+        open={imageSizeOpen}
+        onClose={() => { setImageSizeOpen(false); setPendingImageSrc(''); }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 0.5 }}>Bildgröße wählen</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Wie soll das Bild im Artikel erscheinen?
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            {IMAGE_SIZE_OPTIONS.map(opt => {
+              const selected = imageSize === opt.id;
+              return (
+                <Box
+                  key={opt.id}
+                  onClick={() => setImageSize(opt.id)}
+                  sx={{
+                    border: `2px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
+                    borderRadius: 2,
+                    p: 1.5,
+                    cursor: 'pointer',
+                    bgcolor: selected ? alpha(theme.palette.primary.main, 0.06) : 'transparent',
+                    transition: 'all 0.15s',
+                    '&:hover': {
+                      borderColor: theme.palette.primary.main,
+                      bgcolor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                  }}
+                >
+                  {/* Proportional image block preview */}
+                  <Box sx={{
+                    width: '100%',
+                    height: 44,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(theme.palette.action.hover, 0.7),
+                    borderRadius: 1,
+                    mb: 1,
+                    overflow: 'hidden',
+                  }}>
+                    <Box sx={{
+                      width: opt.maxWidth,
+                      height: 28,
+                      bgcolor: selected
+                        ? alpha(theme.palette.primary.main, 0.35)
+                        : alpha(theme.palette.text.disabled, 0.25),
+                      borderRadius: '3px',
+                      border: `2px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s',
+                    }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          color: selected ? theme.palette.primary.main : theme.palette.text.disabled,
+                          userSelect: 'none',
+                        }}
+                      >
+                        {opt.maxWidth}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    textAlign="center"
+                    color={selected ? 'primary' : 'text.primary'}
+                  >
+                    {opt.label}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    textAlign="center"
+                    display="block"
+                    sx={{ mt: 0.25, lineHeight: 1.3 }}
+                  >
+                    {opt.desc}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setImageSizeOpen(false); setPendingImageSrc(''); }}>Abbrechen</Button>
+          <Button variant="contained" onClick={confirmInsertImage}>Einfügen</Button>
         </DialogActions>
       </Dialog>
     </Box>

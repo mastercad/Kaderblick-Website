@@ -6,9 +6,11 @@ import {
 import PublicIcon from '@mui/icons-material/Public';
 import GroupsIcon from '@mui/icons-material/Groups';
 import BusinessIcon from '@mui/icons-material/Business';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { apiJson } from '../utils/api';
 import BaseModal from './BaseModal';
 import RichTextEditor from '../components/RichTextEditor';
+import NewsTemplatePicker from '../components/NewsTemplatePicker';
 
 interface Club { id: number; name: string; }
 interface Team { id: number; name: string; }
@@ -31,6 +33,7 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
   const [teamId, setTeamId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const reset = () => {
     setTitle('');
@@ -102,9 +105,22 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
 
         {/* Rich Text Editor */}
         <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 500 }}>
-            Inhalt
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+              Inhalt
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              startIcon={<AutoAwesomeIcon sx={{ fontSize: '0.95rem !important' }} />}
+              onClick={() => setPickerOpen(true)}
+              disabled={loading}
+              sx={{ fontSize: '0.72rem', py: 0.25, px: 1 }}
+            >
+              Vorlage
+            </Button>
+          </Stack>
           <RichTextEditor
             value={content}
             onChange={setContent}
@@ -165,6 +181,13 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
           )}
         </Stack>
       </form>
+
+      <NewsTemplatePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onApply={html => setContent(html)}
+        hasContent={!!content && content !== '<p></p>'}
+      />
     </BaseModal>
   );
 };
