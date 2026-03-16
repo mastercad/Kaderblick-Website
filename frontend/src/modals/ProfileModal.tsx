@@ -227,6 +227,8 @@ interface ProfileData {
   password?: string;
   confirmPassword?: string;
   avatarUrl?: string;
+  useGoogleAvatar?: boolean;
+  googleAvatarUrl?: string;
 }
 
 interface UserRelation {
@@ -257,6 +259,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
     height: '', weight: '', shoeSize: '',
     shirtSize: '', pantsSize: '', socksSize: '', jacketSize: '',
     password: '', confirmPassword: '', avatarUrl: '',
+    useGoogleAvatar: false, googleAvatarUrl: '',
   });
 
   // Avatar
@@ -373,6 +376,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
         pantsSize: userData.pantsSize || '', socksSize: userData.socksSize || '',
         jacketSize: userData.jacketSize || '', password: '', confirmPassword: '',
         avatarUrl: userData.avatarFile || '',
+        useGoogleAvatar: userData.useGoogleAvatar ?? false,
+        googleAvatarUrl: userData.googleAvatarUrl || '',
       });
       setProfileTitle(userData.title?.displayTitle?.displayName || null);
       setProfileLevel(userData.level?.level ?? null);
@@ -499,6 +504,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
         height: form.height, weight: form.weight, shoeSize: form.shoeSize,
         shirtSize: form.shirtSize, pantsSize: form.pantsSize,
         socksSize: form.socksSize, jacketSize: form.jacketSize, avatarUrl,
+        useGoogleAvatar: form.useGoogleAvatar,
         ...(form.password ? { password: form.password } : {}),
       };
       const response = await apiJson('/api/update-profile', { method: 'PUT', body: updateData });
@@ -521,7 +527,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
     if (!form.avatarUrl) return;
     try {
       await apiJson('/api/users/remove-avatar', { method: 'DELETE' });
-      setForm(prev => ({ ...prev, avatarUrl: '' }));
+      setForm(prev => ({ ...prev, avatarUrl: '', useGoogleAvatar: false }));
       setAvatarFile(null);
       setMessage({ text: 'Avatar erfolgreich entfernt', type: 'success' });
       await checkAuthStatus();
@@ -539,7 +545,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
 
   const avatarSrc = avatarFile
     ? URL.createObjectURL(avatarFile)
-    : form.avatarUrl ? `${BACKEND_URL}/uploads/avatar/${form.avatarUrl}` : undefined;
+    : (form.useGoogleAvatar && form.googleAvatarUrl)
+      ? form.googleAvatarUrl
+      : form.avatarUrl ? `${BACKEND_URL}/uploads/avatar/${form.avatarUrl}` : undefined;
 
   const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ');
 
@@ -613,9 +621,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
                 <EditIcon sx={{ fontSize: 13 }} />
               </IconButton>
             </Tooltip>
-            {form.avatarUrl && (
-              <Tooltip title="Profilbild entfernen">
-                <IconButton size="small" onClick={removeAvatarPicture}
+            {(form.avatarUrl || form.useGoogleAvatar) && (
+              <Tooltip title={form.useGoogleAvatar ? 'Google-Profilbild deaktivieren' : 'Profilbild entfernen'}>
+                <IconButton size="small" onClick={form.useGoogleAvatar
+                  ? () => setForm(prev => ({ ...prev, useGoogleAvatar: false }))
+                  : removeAvatarPicture}
                   sx={{
                     position: 'absolute', top: -4, right: -4,
                     bgcolor: 'error.main', color: 'white', width: 22, height: 22,
@@ -1014,7 +1024,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
                 setAvatarModalOpen(false);
               }}
               variant="contained"
-              disabled={!(avatarFile || form.avatarUrl)}
+              disabled={!(avatarFile || form.avatarUrl || form.useGoogleAvatar)}
             >
               Übernehmen
             </Button>
@@ -1022,6 +1032,43 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
         }
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: 1 }}>
+          {/* Google Avatar Toggle – only when the user has a Google account */}
+          {form.googleAvatarUrl && (
+            <Box sx={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+              p: 1.5, borderRadius: 2, border: '1px solid',
+              borderColor: form.useGoogleAvatar ? 'primary.main' : 'divider',
+              bgcolor: form.useGoogleAvatar ? alpha(muiTheme.palette.primary.main, 0.06) : 'transparent',
+              width: '100%', maxWidth: 300,
+            }}>
+              <Avatar src={form.googleAvatarUrl} sx={{ width: 56, height: 56 }} />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={form.useGoogleAvatar ?? false}
+                    onChange={e => {
+                      setForm(prev => ({ ...prev, useGoogleAvatar: e.target.checked }));
+                      if (e.target.checked) setAvatarFile(null);
+                    }}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="body2" fontWeight={600}>
+                    Google-Profilbild verwenden
+                  </Typography>
+                }
+                sx={{ m: 0 }}
+              />
+              {form.useGoogleAvatar && (
+                <Typography variant="caption" color="text.secondary" textAlign="center">
+                  Dein Google-Profilbild wird als Avatar angezeigt.
+                </Typography>
+              )}
+            </Box>
+          )}
+          {/* Upload area – disabled when Google avatar is active */}
+          <Box sx={{ opacity: form.useGoogleAvatar ? 0.4 : 1, pointerEvents: form.useGoogleAvatar ? 'none' : 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <Box sx={{ position: 'relative', width: 220, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Box
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDragActive(true); }}
@@ -1094,6 +1141,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
             sx={{ maxWidth: 300 }}
             onChange={e => { setForm(p => ({ ...p, avatarUrl: e.target.value })); setAvatarFile(null); }}
           />
+          </Box>
         </Box>
       </BaseModal>
 

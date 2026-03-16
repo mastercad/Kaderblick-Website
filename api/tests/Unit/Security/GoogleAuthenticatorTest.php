@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Security;
 
+use App\Entity\User;
 use App\Security\GoogleAuthenticator;
 use App\Service\RefreshTokenService;
 use App\Service\RegistrationNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityRepository;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use KnpU\OAuth2ClientBundle\Client\OAuth2Client;
 use KnpU\OAuth2ClientBundle\Client\Provider\GoogleClient;
 use KnpU\OAuth2ClientBundle\Exception\InvalidStateException;
+use League\OAuth2\Client\Provider\ResourceOwnerInterface;
+use League\OAuth2\Client\Token\AccessToken;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +27,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Twig\Environment;
 
 class GoogleAuthenticatorTest extends TestCase
@@ -235,5 +240,175 @@ class GoogleAuthenticatorTest extends TestCase
         $this->logger->expects($this->never())->method('info');
 
         $this->authenticator->onAuthenticationFailure($request, $exception);
+    }
+
+    // ── authenticate(): Google avatar URL persistence ─────────────────────
+
+    /**
+     * Helper: builds a mock GoogleClient that returns a successful OAuth exchange.
+     *
+     * @param array<string, mixed> $googleUserData Data returned by $googleUser->toArray()
+     * @param string               $googleId       The Google user ID
+     */
+    private function makeSuccessfulGoogleClient(array $googleUserData, string $googleId): GoogleClient&MockObject
+    {
+        $googleClient = $this->createMock(GoogleClient::class);
+        $accessToken = $this->createMock(AccessToken::class);
+        $googleUser = $this->createMock(ResourceOwnerInterface::class);
+
+        $googleUser->method('getId')->willReturn($googleId);
+        $googleUser->method('toArray')->willReturn($googleUserData);
+
+        $googleClient->method('getAccessToken')->willReturn($accessToken);
+        $googleClient->method('fetchUserFromToken')->willReturn($googleUser);
+
+        return $googleClient;
+    }
+
+    /**
+     * Invokes the UserBadge loader directly so unit tests can exercise the
+     * authenticate() closure without going through the full security stack.
+     */
+    private function invokeAuthenticateLoader(Request $request): User
+    {
+        $passport = $this->authenticator->authenticate($request);
+
+        /** @var UserBadge $badge */
+        $badge = $passport->getBadge(UserBadge::class);
+        $loader = $badge->getUserLoader();
+
+        /** @var User $user */
+        $user = $loader($badge->getUserIdentifier());
+
+        return $user;
+    }
+
+    public function testAuthenticateSetsGoogleAvatarUrlOnExistingUser(): void
+    {
+        $pictureUrl = 'https://lh3.googleusercontent.com/a/photo.jpg';
+        $googleId = 'google-id-existing';
+
+        $existingUser = new User();
+        $existingUser->setEmail('existing@gmail.com');
+        $existingUser->setGoogleId($googleId);
+
+        $googleUserData = [
+            'email' => 'existing@gmail.com',
+            'given_name' => 'Max',
+            'family_name' => 'Mustermann',
+            'picture' => $pictureUrl,
+        ];
+
+        $this->clientRegistry->method('getClient')->with('google')
+            ->willReturn($this->makeSuccessfulGoogleClient($googleUserData, $googleId));
+
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->with(['googleId' => $googleId])->willReturn($existingUser);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->expects($this->once())->method('flush');
+
+        $user = $this->invokeAuthenticateLoader(Request::create('/connect/google/check'));
+
+        $this->assertSame($existingUser, $user);
+        $this->assertSame($pictureUrl, $user->getGoogleAvatarUrl());
+    }
+
+    public function testAuthenticateSkipsGoogleAvatarUrlWhenPictureIsMissing(): void
+    {
+        $googleId = 'google-id-no-picture';
+
+        $existingUser = new User();
+        $existingUser->setEmail('nophoto@gmail.com');
+        $existingUser->setGoogleId($googleId);
+
+        // Google returns no picture field
+        $googleUserData = [
+            'email' => 'nophoto@gmail.com',
+            'given_name' => 'Test',
+            'family_name' => 'User',
+        ];
+
+        $this->clientRegistry->method('getClient')->with('google')
+            ->willReturn($this->makeSuccessfulGoogleClient($googleUserData, $googleId));
+
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->with(['googleId' => $googleId])->willReturn($existingUser);
+        $this->em->method('getRepository')->willReturn($repo);
+        // flush must NOT be called when there is no picture to persist
+        $this->em->expects($this->never())->method('flush');
+
+        $user = $this->invokeAuthenticateLoader(Request::create('/connect/google/check'));
+
+        $this->assertNull($user->getGoogleAvatarUrl());
+    }
+
+    public function testAuthenticateSetsGoogleAvatarUrlOnNewUser(): void
+    {
+        $pictureUrl = 'https://lh3.googleusercontent.com/a/new-user.jpg';
+        $googleId = 'google-id-new';
+        $email = 'newuser@gmail.com';
+
+        $googleUserData = [
+            'email' => $email,
+            'given_name' => 'New',
+            'family_name' => 'User',
+            'picture' => $pictureUrl,
+        ];
+
+        $this->clientRegistry->method('getClient')->with('google')
+            ->willReturn($this->makeSuccessfulGoogleClient($googleUserData, $googleId));
+
+        $repo = $this->createMock(EntityRepository::class);
+        // Neither by googleId nor by email
+        $repo->method('findOneBy')->willReturn(null);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('persist')->willReturnCallback(fn () => null);
+        // flush() is called twice: once after persist (new user) and once for the avatar URL
+        $this->em->expects($this->exactly(2))->method('flush');
+
+        $this->params->method('get')->willReturn('https://example.com');
+        $this->mailer->method('send')->willReturnCallback(fn () => null);
+
+        $request = Request::create('/connect/google/check');
+
+        $user = $this->invokeAuthenticateLoader($request);
+
+        $this->assertInstanceOf(User::class, $user);
+        $this->assertSame($pictureUrl, $user->getGoogleAvatarUrl());
+        $this->assertSame($email, $user->getEmail());
+    }
+
+    public function testAuthenticateUpdatesGoogleAvatarUrlOnEveryLogin(): void
+    {
+        $googleId = 'google-id-update';
+
+        $existingUser = new User();
+        $existingUser->setEmail('update@gmail.com');
+        $existingUser->setGoogleId($googleId);
+        $existingUser->setGoogleAvatarUrl('https://old-photo.jpg');
+
+        $newPictureUrl = 'https://new-photo.jpg';
+        $googleUserData = [
+            'email' => 'update@gmail.com',
+            'given_name' => 'Update',
+            'family_name' => 'User',
+            'picture' => $newPictureUrl,
+        ];
+
+        $this->clientRegistry->method('getClient')->with('google')
+            ->willReturn($this->makeSuccessfulGoogleClient($googleUserData, $googleId));
+
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($existingUser);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $user = $this->invokeAuthenticateLoader(Request::create('/connect/google/check'));
+
+        $this->assertSame(
+            $newPictureUrl,
+            $user->getGoogleAvatarUrl(),
+            'The Google avatar URL must be refreshed on every login, not only on first login.'
+        );
     }
 }

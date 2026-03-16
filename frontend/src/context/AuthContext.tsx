@@ -19,6 +19,8 @@ interface User {
   needsRegistrationContext?: boolean;
   roles: { [key: string]: string };
   avatarFile?: string;
+  googleAvatarUrl?: string;
+  useGoogleAvatar?: boolean;
   title?: {
     hasTitle: boolean;
     displayTitle: string;

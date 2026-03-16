@@ -583,7 +583,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
                     sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 16, height: 16 } }}
                   >
                     <UserAvatar
-                      icon={user?.avatarFile || undefined}
+                      icon={(user?.useGoogleAvatar && user?.googleAvatarUrl) ? user.googleAvatarUrl : (user?.avatarFile || undefined)}
                       name=""
                       avatarSize={32}
                       fontSize={16}

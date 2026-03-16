@@ -33,7 +33,8 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
     : undefined;
   if (typeof icon === "string") {
     if (icon && icon.trim() !== "") {
-      avatarContent = <Avatar src={`${BACKEND_URL}/uploads/avatar/${icon}`} alt="Avatar" sx={{ width: avatarSize, height: avatarSize }} />;
+      const src = icon.startsWith('http') ? icon : `${BACKEND_URL}/uploads/avatar/${icon}`;
+      avatarContent = <Avatar src={src} alt="Avatar" sx={{ width: avatarSize, height: avatarSize }} />;
     } else {
       avatarContent = <Avatar sx={{ width: avatarSize, height: avatarSize }}><FaUserAlt size={iconInnerSize} /></Avatar>;
     }

@@ -79,6 +79,8 @@ class ProfileController extends AbstractController
             'isCoach' => $isCoach,
             'isPlayer' => $isPlayer,
             'avatarFile' => $user->getAvatarFilename(),
+            'googleAvatarUrl' => $user->getGoogleAvatarUrl(),
+            'useGoogleAvatar' => $user->isUseGoogleAvatar(),
             'title' => $titleData,
             'level' => $levelData,
             'needsRegistrationContext' => $needsRegistrationContext
@@ -138,6 +140,11 @@ class ProfileController extends AbstractController
         }
         if (isset($data['jacketSize'])) {
             $user->setJacketSize($data['jacketSize']);
+        }
+
+        // Handle Google avatar toggle
+        if (array_key_exists('useGoogleAvatar', $data)) {
+            $user->setUseGoogleAvatar((bool) $data['useGoogleAvatar']);
         }
 
         // Handle password change

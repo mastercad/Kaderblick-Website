@@ -53,6 +53,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $avatarFilename = null;
 
+    #[ORM\Column(type: 'string', length: 500, nullable: true)]
+    private ?string $googleAvatarUrl = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $useGoogleAvatar = false;
+
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTime $verificationExpires = null;
 
@@ -812,6 +818,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAvatarFilename(?string $avatarFilename): self
     {
         $this->avatarFilename = $avatarFilename;
+
+        return $this;
+    }
+
+    public function getGoogleAvatarUrl(): ?string
+    {
+        return $this->googleAvatarUrl;
+    }
+
+    public function setGoogleAvatarUrl(?string $googleAvatarUrl): self
+    {
+        $this->googleAvatarUrl = $googleAvatarUrl;
+
+        return $this;
+    }
+
+    public function isUseGoogleAvatar(): bool
+    {
+        return $this->useGoogleAvatar;
+    }
+
+    public function setUseGoogleAvatar(bool $useGoogleAvatar): self
+    {
+        $this->useGoogleAvatar = $useGoogleAvatar;
 
         return $this;
     }

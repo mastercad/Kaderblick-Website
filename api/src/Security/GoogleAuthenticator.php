@@ -128,6 +128,12 @@ class GoogleAuthenticator extends AbstractAuthenticator
                     $mailer->send($email);
                 }
 
+                // Always keep the stored Google avatar URL up to date (runs for every login)
+                if (!empty($googleUserData['picture'])) {
+                    $user->setGoogleAvatarUrl($googleUserData['picture']);
+                    $this->em->flush();
+                }
+
                 return $user;
             })
         );
