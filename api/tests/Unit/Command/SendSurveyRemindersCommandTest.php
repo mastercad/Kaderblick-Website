@@ -5,6 +5,7 @@ namespace App\Tests\Unit\Command;
 use App\Command\SendSurveyRemindersCommand;
 use App\Entity\Survey;
 use App\Repository\SurveyRepository;
+use App\Service\HeartbeatService;
 use App\Service\SurveyNotificationService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +21,7 @@ class SendSurveyRemindersCommandTest extends TestCase
     private SurveyRepository&MockObject $surveyRepository;
     private SurveyNotificationService&MockObject $notificationService;
     private LoggerInterface&MockObject $logger;
+    private HeartbeatService&MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void
@@ -27,11 +29,13 @@ class SendSurveyRemindersCommandTest extends TestCase
         $this->surveyRepository = $this->createMock(SurveyRepository::class);
         $this->notificationService = $this->createMock(SurveyNotificationService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->heartbeatService = $this->createMock(HeartbeatService::class);
 
         $command = new SendSurveyRemindersCommand(
             $this->surveyRepository,
             $this->notificationService,
-            $this->logger
+            $this->logger,
+            $this->heartbeatService,
         );
 
         $application = new Application();
@@ -144,7 +148,8 @@ class SendSurveyRemindersCommandTest extends TestCase
         $command = new SendSurveyRemindersCommand(
             $this->surveyRepository,
             $this->notificationService,
-            $this->logger
+            $this->logger,
+            $this->heartbeatService,
         );
 
         $this->assertEquals('app:surveys:send-reminders', $command->getName());

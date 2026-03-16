@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Service\HeartbeatService;
 use App\Service\WeatherService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,8 +16,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class CollectWeatherDataForEventsCommand extends Command
 {
-    public function __construct(private WeatherService $weatherService)
-    {
+    public function __construct(
+        private WeatherService $weatherService,
+        private HeartbeatService $heartbeatService,
+    ) {
         parent::__construct();
     }
 
@@ -26,6 +29,7 @@ class CollectWeatherDataForEventsCommand extends Command
 
         $this->weatherService->retrieveWeatherData();
 
+        $this->heartbeatService->beat('app:collect-weather-data-for-events');
         $io->success('Weather data has been collected for upcoming events.');
 
         return Command::SUCCESS;

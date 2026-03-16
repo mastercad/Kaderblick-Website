@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Repository\SurveyRepository;
+use App\Service\HeartbeatService;
 use App\Service\SurveyNotificationService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -21,7 +22,8 @@ class SendSurveyRemindersCommand extends Command
     public function __construct(
         private SurveyRepository $surveyRepository,
         private SurveyNotificationService $surveyNotificationService,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
@@ -71,6 +73,8 @@ class SendSurveyRemindersCommand extends Command
             $surveysProcessed,
             $totalReminded
         ));
+
+        $this->heartbeatService->beat('app:surveys:send-reminders');
 
         return Command::SUCCESS;
     }

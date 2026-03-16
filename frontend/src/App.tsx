@@ -40,6 +40,9 @@ import MyFeedbackDetail from './pages/MyFeedbackDetail';
 import AdminTitleXpOverview from './pages/admin/AdminTitleXpOverview';
 import ActivityOverview from './pages/admin/ActivityOverview';
 import SystemSettings from './pages/admin/SystemSettings';
+import SystemAlerts from './pages/admin/SystemAlerts';
+import SystemAlertDetail from './pages/admin/SystemAlertDetail';
+import SystemAlertStats from './pages/admin/SystemAlertStats';
 import XpConfig from './pages/admin/XpConfig';
 import FabStackRoot from './components/FabStackRoot';
 import Locations from './pages/Locations';
@@ -207,6 +210,9 @@ function App() {
                   <Route path="/admin/xp-config" element={<ProtectedRoute><XpConfig /></ProtectedRoute>} />
                   <Route path="/admin/system-settings" element={<ProtectedRoute><SystemSettings /></ProtectedRoute>} />
                   <Route path="/admin/activity" element={<ProtectedRoute><ActivityOverview /></ProtectedRoute>} />
+                  <Route path="/admin/system-alerts" element={<ProtectedRoute><SystemAlerts /></ProtectedRoute>} />
+                  <Route path="/admin/system-alerts/stats" element={<ProtectedRoute><SystemAlertStats /></ProtectedRoute>} />
+                  <Route path="/admin/system-alerts/:id" element={<ProtectedRoute><SystemAlertDetail /></ProtectedRoute>} />
                   <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
                   <Route path="/news/:id" element={<ProtectedRoute><NewsDetail /></ProtectedRoute>} />
                   <Route path="locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />

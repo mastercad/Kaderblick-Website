@@ -22,6 +22,12 @@ services:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
       HOST_UID: ${HOST_UID:-10000}
       HOST_GID: ${HOST_GID:-1003}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - kaderblick-net
 
@@ -36,6 +42,12 @@ services:
       - ./public/uploads:/usr/share/nginx/html/uploads
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - kaderblick-net
 

@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\GameEvent;
 use App\Entity\PlayerTitle;
+use App\Service\HeartbeatService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -21,7 +22,8 @@ class AwardTitlesCommand extends Command
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private TitleCalculationService $titleCalculationService
+        private TitleCalculationService $titleCalculationService,
+        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
@@ -128,6 +130,7 @@ class AwardTitlesCommand extends Command
             $this->entityManager->clear();
         } else {
             $io->success('Titles awarded and persisted.');
+            $this->heartbeatService->beat('app:xp:award-titles');
         }
 
         return Command::SUCCESS;

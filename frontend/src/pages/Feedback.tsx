@@ -21,6 +21,8 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PublicIcon from '@mui/icons-material/Public';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import EditIcon from '@mui/icons-material/Edit';
+import SecurityIcon from '@mui/icons-material/Security';
+import { alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BACKEND_URL } from '../../config';
 import { apiJson } from '../utils/api';
@@ -393,6 +395,7 @@ function GitHubIssueDialog({ open, item, onClose, onConfirm }: {
 
 const FeedbackPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab]                 = useState<number>((location.state as any)?.tab ?? 0);
   const [unresolved, setUnresolved]   = useState<FeedbackItem[]>([]);
   const [inProgress, setInProgress]   = useState<FeedbackItem[]>([]);
@@ -553,6 +556,29 @@ const FeedbackPage: React.FC = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* System-Alerts cross-link */}
+      <Box
+        component="button"
+        onClick={() => navigate('/admin/system-alerts')}
+        sx={(theme) => ({
+          display: 'flex', alignItems: 'center', gap: 1.5, mb: 3,
+          p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'error.light',
+          bgcolor: alpha(theme.palette.error.main, 0.05),
+          cursor: 'pointer', width: '100%', textAlign: 'left',
+          '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.10) },
+          transition: 'background 0.15s',
+        })}
+      >
+        <Box sx={{ p: 0.75, borderRadius: 1, bgcolor: 'error.main', color: 'white', display: 'flex' }}>
+          <SecurityIcon sx={{ fontSize: 22 }} />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="body2" fontWeight={700} color="error.main">System-Alerts & Gesundheitsmonitoring</Typography>
+          <Typography variant="caption" color="text.secondary">Server-Fehler, Login-Anomalien und Brute-Force-Angriffe mit Trend-Analyse</Typography>
+        </Box>
+        <Typography variant="caption" color="error.main" sx={{ flexShrink: 0 }}>→ Öffnen</Typography>
+      </Box>
 
       {/* Search + Tabs */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>

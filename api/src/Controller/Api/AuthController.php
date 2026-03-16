@@ -5,6 +5,7 @@ namespace App\Controller\Api;
 use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Entity\UserRelation;
+use App\Service\AdminAlertService;
 use App\Service\RefreshTokenService;
 use App\Service\UserTitleService;
 use DateTime;
@@ -26,16 +27,31 @@ class AuthController extends AbstractController
         JWTTokenManagerInterface $JWTManager,
         EntityManagerInterface $entityManager,
         RefreshTokenService $refreshTokenService,
+        AdminAlertService $adminAlertService,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
+        $email = (string) ($data['email'] ?? '');
+        $clientIp = $request->getClientIp() ?? 'unbekannt';
         $user = $entityManager->getRepository(User::class)
-            ->findOneBy(['email' => $data['email']]);
+            ->findOneBy(['email' => $email]);
 
-        if (!$user || !password_verify($data['password'], $user->getPassword())) {
+        if (!$user || !password_verify((string) ($data['password'] ?? ''), $user->getPassword())) {
+            $adminAlertService->trackLoginFailure(
+                email: $email,
+                clientIp: $clientIp,
+                reason: 'Ungültige Zugangsdaten (E-Mail oder Passwort falsch)'
+            );
+
             return new JsonResponse(['error' => 'Invalid credentials'], 401);
         }
 
         if (!$user->isVerified()) {
+            $adminAlertService->trackLoginFailure(
+                email: $email,
+                clientIp: $clientIp,
+                reason: 'Konto nicht verifiziert'
+            );
+
             return new JsonResponse(['error' => 'User not verified'], 401);
         }
 

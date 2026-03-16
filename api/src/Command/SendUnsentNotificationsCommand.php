@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Repository\NotificationRepository;
+use App\Service\HeartbeatService;
 use App\Service\PushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -21,7 +22,8 @@ class SendUnsentNotificationsCommand extends Command
         private EntityManagerInterface $em,
         private NotificationRepository $notificationRepository,
         private PushNotificationService $pushNotificationService,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
@@ -93,6 +95,8 @@ class SendUnsentNotificationsCommand extends Command
 
         $io->progressFinish();
         $io->success(sprintf('Processed %d notifications, flushed %d.', $processed, $flushed ?: $processed));
+
+        $this->heartbeatService->beat('app:notifications:send-unsent');
 
         return Command::SUCCESS;
     }

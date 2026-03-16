@@ -31,6 +31,7 @@ services:
             $weatherApiUrl: '%env(resolve:WEATHER_API_URL)%'
             $frontendUrl: '%env(resolve:FRONTEND_URL)%'
             $mailerFrom: '%env(resolve:MAILER_FROM)%'
+            $adminAlertEmail: '%env(resolve:ADMIN_ALERT_EMAIL)%'
 
     App\Security\Json401EntryPoint:
         public: true
@@ -41,6 +42,7 @@ services:
     # Monolog channel bindings for custom loggers
     Psr\Log\LoggerInterface $xpProcessingLogger: '@monolog.logger.xp_processing'
     Psr\Log\LoggerInterface $cronLogger: '@monolog.logger.cron'
+    Psr\Log\LoggerInterface $securityLogger: '@monolog.logger.security'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

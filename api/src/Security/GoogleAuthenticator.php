@@ -8,7 +8,10 @@ use App\Service\RegistrationNotificationService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
+use KnpU\OAuth2ClientBundle\Client\OAuth2Client;
+use KnpU\OAuth2ClientBundle\Exception\InvalidStateException;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -18,6 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
@@ -36,6 +40,7 @@ class GoogleAuthenticator extends AbstractAuthenticator
         private MailerInterface $mailer,
         private ParameterBagInterface $params,
         private RegistrationNotificationService $registrationNotificationService,
+        private LoggerInterface $logger,
         private int $jwtTtl = 3600
     ) {
     }
@@ -48,7 +53,26 @@ class GoogleAuthenticator extends AbstractAuthenticator
     public function authenticate(Request $request): Passport
     {
         $client = $this->clientRegistry->getClient('google');
-        $accessToken = $client->getAccessToken();
+
+        try {
+            $accessToken = $client->getAccessToken();
+        } catch (InvalidStateException $e) {
+            // Diagnose: Session-State vs. URL-State loggen
+            $session = $request->hasSession() ? $request->getSession() : null;
+            $sessionState = $session?->get(OAuth2Client::OAUTH2_SESSION_STATE_KEY, '(nicht gesetzt)');
+            $urlState = $request->query->get('state', '(fehlt)');
+
+            $this->logger->warning('Google OAuth: Invalid state – Session und URL-State stimmen nicht überein.', [
+                'session_state' => $sessionState,
+                'url_state' => $urlState,
+                'session_id' => $session?->getId() ?? 'keine Session',
+                'user_agent' => $request->headers->get('User-Agent'),
+                'ip' => $request->getClientIp(),
+            ]);
+
+            // Als AuthenticationException weiterwerfen, damit onAuthenticationFailure() greift
+            throw new CustomUserMessageAuthenticationException('invalid_state');
+        }
         $googleUser = $client->fetchUserFromToken($accessToken);
         $googleUserData = $googleUser->toArray();
         $googleId = $googleUser->getId();
@@ -177,6 +201,14 @@ class GoogleAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?RedirectResponse
     {
+        // Bei Invalid-State: neuen Auth-Flow starten statt Fehler anzeigen.
+        // Der Nutzer merkt nichts – er wird einfach erneut zu Google weitergeleitet.
+        if ('invalid_state' === $exception->getMessageKey()) {
+            $this->logger->info('Google OAuth: Automatischer Retry nach Invalid-State.');
+
+            return new RedirectResponse('/connect/google');
+        }
+
         return new RedirectResponse('/login?error=google');
     }
 

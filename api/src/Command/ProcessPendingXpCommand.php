@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Service\HeartbeatService;
 use App\Service\XPEventProcessor;
 use Exception;
 use Psr\Log\LoggerInterface;
@@ -21,7 +22,8 @@ class ProcessPendingXpCommand extends Command
 {
     public function __construct(
         private XPEventProcessor $xpEventProcessor,
-        private LoggerInterface $xpProcessingLogger
+        private LoggerInterface $xpProcessingLogger,
+        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
@@ -36,6 +38,7 @@ class ProcessPendingXpCommand extends Command
         try {
             $this->xpEventProcessor->processPendingXpEvents();
             $this->xpProcessingLogger->info('Successfully processed all pending XP events');
+            $this->heartbeatService->beat('app:xp:process-pending');
             $io->success('Successfully processed all pending XP events');
 
             return Command::SUCCESS;
