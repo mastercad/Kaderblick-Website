@@ -168,6 +168,11 @@ const RichTextContent: React.FC<RichTextContentProps> = ({ html, compact = false
           boxShadow: compact ? 'none' : theme.shadows[2],
           mx: 'auto',
         },
+        // Size classes set by the image size picker
+        '& img.img-large':  { maxWidth: '80%'  },
+        '& img.img-medium': { maxWidth: '55%'  },
+        '& img.img-small':  { maxWidth: '30%'  },
+        // img-banner keeps the 100 % default – no override needed
 
         // ── Highlight ────────────────────────────────────────────────────────
         '& mark': {
