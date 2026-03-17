@@ -7,3 +7,4 @@ nginx.conf.example
 .docker/nginx/key.pem
 frontend/coverage/*
 nginx.conf.working
+immunify360.whitelist.commands

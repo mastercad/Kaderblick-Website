@@ -113,14 +113,16 @@ describe('SystemAlertStats', () => {
 
   it('zeigt alle drei Kategorien als TrendCards', async () => {
     await renderAndWait();
-    expect(screen.getByText('Server-Fehler')).toBeInTheDocument();
-    expect(screen.getByText('Login-Fehler')).toBeInTheDocument();
-    expect(screen.getByText('Brute Force')).toBeInTheDocument();
+    // Kategoriename erscheint je einmal im Filter-Chip und einmal in der TrendCard
+    expect(screen.getAllByText('Server-Fehler').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Login-Fehler').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('Brute Force').length).toBeGreaterThanOrEqual(2);
   });
 
   it('zeigt die vierte Kategorie Hack-Versuche als TrendCard', async () => {
     await renderAndWait();
-    expect(screen.getByText('Hack-Versuche')).toBeInTheDocument();
+    // Erscheint sowohl im Filter-Chip als auch in der TrendCard
+    expect(screen.getAllByText('Hack-Versuche').length).toBeGreaterThanOrEqual(2);
   });
 
   it('zeigt Trend-Gesamtzahlen in den Karten', async () => {
@@ -216,5 +218,124 @@ describe('SystemAlertStats', () => {
     // Chart-Datenpunkte prüfen (aus dem Mock gerendert)
     const dataPoints = screen.getAllByTestId('data-point');
     expect(dataPoints.length).toBeGreaterThan(0);
+  });
+
+  // ── Filter-Tests ──────────────────────────────────────────────────────────
+
+  describe('Kategorie-Filter', () => {
+
+    it('zeigt Filter-Chips für alle Kategorien', async () => {
+      await renderAndWait();
+      // Jede Kategorie hat mindestens einen Chip in der Filter-Leiste
+      expect(screen.getAllByText('Server-Fehler').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Login-Fehler').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Brute Force').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Hack-Versuche').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('zeigt das Filter-Label', async () => {
+      await renderAndWait();
+      expect(screen.getByText('Filter:')).toBeInTheDocument();
+    });
+
+    it('"Alle zeigen"-Button ist initial nicht sichtbar', async () => {
+      await renderAndWait();
+      expect(screen.queryByText('Alle zeigen')).not.toBeInTheDocument();
+    });
+
+    it('blendet TrendCard aus wenn Kategorie-Chip geklickt wird', async () => {
+      await renderAndWait();
+      // Vor dem Klick: TrendCard zeigt Gesamtzahl 8 für server_error
+      expect(screen.getByRole('heading', { level: 4, name: '8' })).toBeInTheDocument();
+
+      // Alle "Server-Fehler"-Texte holen; der erste ist der Filter-Chip
+      const chips = screen.getAllByText('Server-Fehler');
+      fireEvent.click(chips[0]);
+
+      // TrendCard für server_error (Gesamtzahl 8) sollte verschwunden sein
+      await waitFor(() =>
+        expect(screen.queryByRole('heading', { level: 4, name: '8' })).not.toBeInTheDocument()
+      );
+    });
+
+    it('zeigt "Alle zeigen"-Button nach Ausblenden einer Kategorie', async () => {
+      await renderAndWait();
+      const chips = screen.getAllByText('Server-Fehler');
+      fireEvent.click(chips[0]);
+      await waitFor(() =>
+        expect(screen.getByText('Alle zeigen')).toBeInTheDocument()
+      );
+    });
+
+    it('blendet TrendCard wieder ein beim zweiten Klick auf den Chip', async () => {
+      await renderAndWait();
+      const chips = screen.getAllByText('Server-Fehler');
+      // Ausblenden
+      fireEvent.click(chips[0]);
+      await waitFor(() =>
+        expect(screen.queryByRole('heading', { level: 4, name: '8' })).not.toBeInTheDocument()
+      );
+      // Wieder einblenden
+      fireEvent.click(screen.getAllByText('Server-Fehler')[0]);
+      await waitFor(() =>
+        expect(screen.getByRole('heading', { level: 4, name: '8' })).toBeInTheDocument()
+      );
+    });
+
+    it('entfernt Chart-Serie für ausgeblendete Kategorie', async () => {
+      await renderAndWait();
+      // Vor dem Klick: Chart-Serie für server_error vorhanden
+      expect(screen.getByTestId('series-Server-Fehler')).toBeInTheDocument();
+
+      const chips = screen.getAllByText('Server-Fehler');
+      fireEvent.click(chips[0]);
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('series-Server-Fehler')).not.toBeInTheDocument()
+      );
+    });
+
+    it('zeigt Chart-Serie wieder nach erneutem Einblenden', async () => {
+      await renderAndWait();
+      const chips = screen.getAllByText('Server-Fehler');
+      fireEvent.click(chips[0]);
+      await waitFor(() =>
+        expect(screen.queryByTestId('series-Server-Fehler')).not.toBeInTheDocument()
+      );
+      fireEvent.click(screen.getAllByText('Server-Fehler')[0]);
+      await waitFor(() =>
+        expect(screen.getByTestId('series-Server-Fehler')).toBeInTheDocument()
+      );
+    });
+
+    it('"Alle zeigen" setzt alle Filter zurück', async () => {
+      await renderAndWait();
+      // Zwei Kategorien ausblenden
+      fireEvent.click(screen.getAllByText('Server-Fehler')[0]);
+      fireEvent.click(screen.getAllByText('Login-Fehler')[0]);
+
+      await waitFor(() => expect(screen.getByText('Alle zeigen')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Alle zeigen'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Alle zeigen')).not.toBeInTheDocument();
+        expect(screen.getByTestId('series-Server-Fehler')).toBeInTheDocument();
+        expect(screen.getByTestId('series-Login-Fehler')).toBeInTheDocument();
+      });
+    });
+
+    it('mehrere Kategorien können gleichzeitig ausgeblendet werden', async () => {
+      await renderAndWait();
+      fireEvent.click(screen.getAllByText('Server-Fehler')[0]);
+      fireEvent.click(screen.getAllByText('Brute Force')[0]);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('series-Server-Fehler')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('series-Brute Force')).not.toBeInTheDocument();
+        // Login-Fehler noch sichtbar
+        expect(screen.getByTestId('series-Login-Fehler')).toBeInTheDocument();
+      });
+    });
   });
 });

@@ -42,6 +42,14 @@ class SecurityAlertSubscriber implements EventSubscriberInterface
             ? rtrim($exception->getMessageKey(), '.')
             : get_class($exception);
 
+        // invalid_state auf der Google-OAuth-Callback-Route ist kein Sicherheitsangriff –
+        // es handelt sich um Bots oder abgelaufene Sessions. GoogleAuthenticator loggt und
+        // behandelt diesen Fall bereits eigenständig (Redirect zurück zu /connect/google).
+        // Ein Admin-Alert würde hier nur Rauschen erzeugen.
+        if ('invalid_state' === $reason && 'connect_google_check' === $request->attributes->get('_route')) {
+            return;
+        }
+
         $this->securityLogger->warning(
             sprintf(
                 '[SecurityAlert] Login-Fehler – Identifier: %s | IP: %s | Grund: %s | Route: %s',

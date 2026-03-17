@@ -206,9 +206,19 @@ class GoogleAuthenticatorTest extends TestCase
 
     // ── onAuthenticationFailure() ─────────────────────────────────────────
 
-    public function testOnAuthenticationFailureRedirectsToGoogleOnInvalidState(): void
+    /**
+     * Echter Nutzer: Session-State ist gesetzt (z. B. abgelaufene oder doppelte Tab-Session).
+     * → Neuer OAuth-Flow wird gestartet, Info-Log wird geschrieben.
+     */
+    public function testOnAuthenticationFailureRedirectsToGoogleWhenSessionStateIsPresent(): void
     {
+        $session = new Session(new MockArraySessionStorage());
+        $session->set(OAuth2Client::OAUTH2_SESSION_STATE_KEY, 'valid-session-state');
+
         $request = Request::create('/connect/google/check');
+        $request->setSession($session);
+        $request->attributes->set('_route', 'connect_google_check');
+
         $exception = new CustomUserMessageAuthenticationException('invalid_state');
 
         $this->logger->expects($this->once())->method('info')
@@ -218,6 +228,52 @@ class GoogleAuthenticatorTest extends TestCase
 
         $this->assertNotNull($response);
         $this->assertSame('/connect/google', $response->getTargetUrl());
+    }
+
+    /**
+     * Bot / Direktaufruf: Kein Session-State vorhanden.
+     * → Redirect zu /login, kein neuer OAuth-Flow, Debug-Log statt Info.
+     */
+    public function testOnAuthenticationFailureRedirectsToLoginWhenNoSessionStatePresent(): void
+    {
+        // Request ohne Session (Bot oder direkter Probe-Request)
+        $request = Request::create('/connect/google/check');
+        $request->attributes->set('_route', 'connect_google_check');
+
+        $exception = new CustomUserMessageAuthenticationException('invalid_state');
+
+        $this->logger->expects($this->never())->method('info');
+        $this->logger->expects($this->once())->method('debug')
+            ->with($this->stringContains('Bot'));
+
+        $response = $this->authenticator->onAuthenticationFailure($request, $exception);
+
+        $this->assertNotNull($response);
+        $this->assertSame('/login', $response->getTargetUrl());
+    }
+
+    /**
+     * Bot / Direktaufruf: Session existiert, aber der OAuth-State-Key wurde nie gesetzt
+     * (z. B. Session mit anderem Inhalt, aber kein laufender OAuth-Flow).
+     * → Wie kein Session-State: Redirect zu /login, kein neuer OAuth-Flow.
+     */
+    public function testOnAuthenticationFailureRedirectsToLoginWhenSessionExistsButStateKeyMissing(): void
+    {
+        $session = new Session(new MockArraySessionStorage());
+        // Session hat keinen OAUTH2_SESSION_STATE_KEY
+
+        $request = Request::create('/connect/google/check');
+        $request->setSession($session);
+        $request->attributes->set('_route', 'connect_google_check');
+
+        $exception = new CustomUserMessageAuthenticationException('invalid_state');
+
+        $this->logger->expects($this->never())->method('info');
+
+        $response = $this->authenticator->onAuthenticationFailure($request, $exception);
+
+        $this->assertNotNull($response);
+        $this->assertSame('/login', $response->getTargetUrl());
     }
 
     public function testOnAuthenticationFailureRedirectsToLoginForOtherErrors(): void

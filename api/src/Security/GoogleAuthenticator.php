@@ -207,12 +207,24 @@ class GoogleAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?RedirectResponse
     {
-        // Bei Invalid-State: neuen Auth-Flow starten statt Fehler anzeigen.
-        // Der Nutzer merkt nichts – er wird einfach erneut zu Google weitergeleitet.
+        // Bei Invalid-State: unterscheiden ob echter Nutzer (Session-State vorhanden, aber abgelaufen)
+        // oder Bot (kein Session-State – direkte Probe der Callback-URL).
         if ('invalid_state' === $exception->getMessageKey()) {
-            $this->logger->info('Google OAuth: Automatischer Retry nach Invalid-State.');
+            $session = $request->hasSession() ? $request->getSession() : null;
+            $sessionState = $session?->get(OAuth2Client::OAUTH2_SESSION_STATE_KEY);
 
-            return new RedirectResponse('/connect/google');
+            if (null !== $sessionState) {
+                // Echter Nutzer: Session-State war gesetzt, aber stimmt nicht mehr überein
+                // (z. B. abgelaufene Session, mehrere Tabs). Neuen Auth-Flow starten.
+                $this->logger->info('Google OAuth: Automatischer Retry nach Invalid-State (Session-State vorhanden).');
+
+                return new RedirectResponse('/connect/google');
+            }
+
+            // Bot oder direkter Aufruf ohne vorherigen OAuth-Flow: kein neuen Flow starten.
+            $this->logger->debug('Google OAuth: Invalid-State ohne Session-State – wahrscheinlich Bot, kein Retry.');
+
+            return new RedirectResponse('/login');
         }
 
         return new RedirectResponse('/login?error=google');

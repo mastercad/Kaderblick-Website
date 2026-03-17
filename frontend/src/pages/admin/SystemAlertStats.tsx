@@ -167,10 +167,22 @@ function TrendCard({ categoryKey, label, color, trend, total }: {
 
 export default function SystemAlertStats() {
   const navigate  = useNavigate();
-  const [period, setPeriod]   = useState<Period>('7d');
-  const [data, setData]       = useState<StatsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [period, setPeriod]           = useState<Period>('7d');
+  const [data, setData]               = useState<StatsResponse | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (key: string) => {
+    setHiddenCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const visibleCategories = CATEGORIES.filter(c => !hiddenCategories.has(c.key));
 
   const load = useCallback(async (p: Period) => {
     setLoading(true);
@@ -231,6 +243,42 @@ export default function SystemAlertStats() {
         </ToggleButtonGroup>
       </Stack>
 
+      {/* Category filter chips */}
+      <Stack direction="row" spacing={1} flexWrap="wrap" mb={3} alignItems="center">
+        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Filter:</Typography>
+        {CATEGORIES.map(cat => {
+          const hidden = hiddenCategories.has(cat.key);
+          return (
+            <Chip
+              key={cat.key}
+              icon={<CategoryIcon category={cat.key} />}
+              label={cat.label}
+              size="small"
+              onClick={() => toggleCategory(cat.key)}
+              variant={hidden ? 'outlined' : 'filled'}
+              sx={{
+                cursor: 'pointer',
+                opacity: hidden ? 0.4 : 1,
+                textDecoration: hidden ? 'line-through' : 'none',
+                bgcolor: hidden ? undefined : cat.color,
+                color: hidden ? undefined : '#fff',
+                '& .MuiChip-icon': { color: hidden ? undefined : '#fff' },
+                '&:hover': { opacity: 0.85 },
+              }}
+            />
+          );
+        })}
+        {hiddenCategories.size > 0 && (
+          <Chip
+            label="Alle zeigen"
+            size="small"
+            variant="outlined"
+            onClick={() => setHiddenCategories(new Set())}
+            sx={{ cursor: 'pointer' }}
+          />
+        )}
+      </Stack>
+
       {loading && <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}
       {error   && <Alert severity="error">{error}</Alert>}
 
@@ -238,7 +286,7 @@ export default function SystemAlertStats() {
         <>
           {/* Trend summary cards */}
           <Grid container spacing={2} mb={3}>
-            {CATEGORIES.map(cat => (
+            {visibleCategories.map(cat => (
               <Grid size={{ xs: 12, sm: 4 }} key={cat.key}>
                 <TrendCard
                   categoryKey={cat.key}
@@ -275,7 +323,7 @@ export default function SystemAlertStats() {
                   data: xLabels,
                   tickLabelStyle: { fontSize: 11 },
                 }]}
-                series={CATEGORIES.map(cat => ({
+                series={visibleCategories.map(cat => ({
                   id:    cat.key,
                   label: cat.label,
                   data:  seriesMap[cat.key] ?? [],

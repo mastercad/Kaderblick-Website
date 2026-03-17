@@ -238,4 +238,113 @@ describe('SystemAlerts', () => {
     }));
     expect(screen.getByText('2 Scan/Hack-Versuch')).toBeInTheDocument();
   });
+
+  // ── Filter-Tests ────────────────────────────────────────────────────────────
+
+  describe('Kategorie-Filter', () => {
+
+    const multiResponse = () => makeResponse({
+      open: [
+        makeAlert({ id: 1, category: 'server_error',  message: 'Server Fehler Msg'  }),
+        makeAlert({ id: 2, category: 'login_failure',  message: 'Login Fehler Msg'   }),
+        makeAlert({ id: 3, category: 'brute_force',    message: 'Brute Force Msg'    }),
+      ],
+      stats: {
+        total: 3,
+        byCategory: { server_error: 1, login_failure: 1, brute_force: 1 },
+      },
+    });
+
+    it('zeigt Filter-Label und Chips wenn Stats vorhanden', async () => {
+      await renderAndWait(multiResponse());
+      expect(screen.getByText('Filter:')).toBeInTheDocument();
+      expect(screen.getByText('1 Server-Fehler')).toBeInTheDocument();
+      expect(screen.getByText('1 Login-Fehler')).toBeInTheDocument();
+      expect(screen.getByText('1 Brute Force')).toBeInTheDocument();
+    });
+
+    it('"Alle zeigen"-Button ist initial nicht sichtbar', async () => {
+      await renderAndWait(multiResponse());
+      expect(screen.queryByText('Alle zeigen')).not.toBeInTheDocument();
+    });
+
+    it('blendet Alerts der geklickten Kategorie aus', async () => {
+      await renderAndWait(multiResponse());
+      // Alle Alerts sind sichtbar
+      expect(screen.getByText('Server Fehler Msg')).toBeInTheDocument();
+      expect(screen.getByText('Login Fehler Msg')).toBeInTheDocument();
+
+      // Server-Fehler-Chip klicken
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Server Fehler Msg')).not.toBeInTheDocument();
+        // Login-Fehler noch sichtbar
+        expect(screen.getByText('Login Fehler Msg')).toBeInTheDocument();
+      });
+    });
+
+    it('zeigt "Alle zeigen"-Button nach Ausblenden einer Kategorie', async () => {
+      await renderAndWait(multiResponse());
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      await waitFor(() =>
+        expect(screen.getByText('Alle zeigen')).toBeInTheDocument()
+      );
+    });
+
+    it('blendet Alert wieder ein beim erneuten Klick auf den Chip', async () => {
+      await renderAndWait(multiResponse());
+      // Ausblenden
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      await waitFor(() =>
+        expect(screen.queryByText('Server Fehler Msg')).not.toBeInTheDocument()
+      );
+      // Wieder einblenden
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      await waitFor(() =>
+        expect(screen.getByText('Server Fehler Msg')).toBeInTheDocument()
+      );
+    });
+
+    it('mehrere Kategorien können gleichzeitig ausgeblendet werden', async () => {
+      await renderAndWait(multiResponse());
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      fireEvent.click(screen.getByText('1 Brute Force'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Server Fehler Msg')).not.toBeInTheDocument();
+        expect(screen.queryByText('Brute Force Msg')).not.toBeInTheDocument();
+        // Login-Fehler noch sichtbar
+        expect(screen.getByText('Login Fehler Msg')).toBeInTheDocument();
+      });
+    });
+
+    it('"Alle zeigen" setzt alle Filter zurück', async () => {
+      await renderAndWait(multiResponse());
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      fireEvent.click(screen.getByText('1 Login-Fehler'));
+
+      await waitFor(() => expect(screen.getByText('Alle zeigen')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByText('Alle zeigen'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('Alle zeigen')).not.toBeInTheDocument();
+        expect(screen.getByText('Server Fehler Msg')).toBeInTheDocument();
+        expect(screen.getByText('Login Fehler Msg')).toBeInTheDocument();
+        expect(screen.getByText('Brute Force Msg')).toBeInTheDocument();
+      });
+    });
+
+    it('zeigt Hinweis wenn alle Kategorien ausgeblendet sind', async () => {
+      await renderAndWait(makeResponse({
+        open: [makeAlert({ id: 1, category: 'server_error', message: 'Server Fehler Msg' })],
+        stats: { total: 1, byCategory: { server_error: 1 } },
+      }));
+      fireEvent.click(screen.getByText('1 Server-Fehler'));
+      await waitFor(() =>
+        expect(screen.getByText('Alle Typen ausgeblendet – Filter anpassen, um Alerts zu sehen.')).toBeInTheDocument()
+      );
+    });
+  });
 });

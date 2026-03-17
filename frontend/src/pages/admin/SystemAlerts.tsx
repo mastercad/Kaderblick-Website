@@ -174,6 +174,16 @@ export default function SystemAlerts() {
   const [error, setError]     = useState<string | null>(null);
   const [tab, setTab]         = useState(0);
   const [snack, setSnack]     = useState<string | null>(null);
+  const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (cat: string) => {
+    setHiddenCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  };
 
   // Resolve dialog state
   const [resolveId, setResolveId] = useState<number | null>(null);
@@ -234,6 +244,7 @@ export default function SystemAlerts() {
   ];
 
   const currentItems = tabs[tab]?.items ?? [];
+  const filteredItems = currentItems.filter(item => !hiddenCategories.has(item.category));
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 900, mx: 'auto' }}>
@@ -253,18 +264,34 @@ export default function SystemAlerts() {
         </Button>
       </Stack>
 
-      {/* Category summary chips */}
+      {/* Category summary chips – als Filter nutzbar */}
       {data.stats.total > 0 && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" mb={2}>
-          {Object.entries(data.stats.byCategory).map(([cat, cnt]) => (
+        <Stack direction="row" spacing={1} flexWrap="wrap" mb={2} alignItems="center">
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Filter:</Typography>
+          {Object.entries(data.stats.byCategory).map(([cat, cnt]) => {
+            const hidden = hiddenCategories.has(cat);
+            return (
+              <Chip
+                key={cat}
+                icon={<CategoryIcon category={cat} />}
+                label={`${cnt} ${cat === 'server_error' ? 'Server-Fehler' : cat === 'login_failure' ? 'Login-Fehler' : cat === 'suspicious_request' ? 'Scan/Hack-Versuch' : cat === 'queue_failure' ? 'Queue-Fehler' : cat === 'disk_space' ? 'Festplatten-Warnung' : cat === 'cron_failure' ? 'Cron-Ausfall' : 'Brute Force'}`}
+                color={hidden ? 'default' : categoryChipColor(cat)}
+                variant={hidden ? 'outlined' : 'filled'}
+                size="small"
+                onClick={() => toggleCategory(cat)}
+                sx={{ cursor: 'pointer', opacity: hidden ? 0.45 : 1, textDecoration: hidden ? 'line-through' : 'none' }}
+              />
+            );
+          })}
+          {hiddenCategories.size > 0 && (
             <Chip
-              key={cat}
-              icon={<CategoryIcon category={cat} />}
-              label={`${cnt} ${cat === 'server_error' ? 'Server-Fehler' : cat === 'login_failure' ? 'Login-Fehler' : cat === 'suspicious_request' ? 'Scan/Hack-Versuch' : cat === 'queue_failure' ? 'Queue-Fehler' : cat === 'disk_space' ? 'Festplatten-Warnung' : cat === 'cron_failure' ? 'Cron-Ausfall' : 'Brute Force'}`}
-              color={categoryChipColor(cat)}
+              label="Alle zeigen"
               size="small"
+              variant="outlined"
+              onClick={() => setHiddenCategories(new Set())}
+              sx={{ cursor: 'pointer' }}
             />
-          ))}
+          )}
         </Stack>
       )}
 
@@ -289,12 +316,14 @@ export default function SystemAlerts() {
         ))}
       </Tabs>
 
-      {currentItems.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <Typography color="text.secondary" textAlign="center" mt={4}>
-          Keine Einträge in dieser Kategorie.
+          {currentItems.length === 0
+            ? 'Keine Einträge in dieser Kategorie.'
+            : 'Alle Typen ausgeblendet – Filter anpassen, um Alerts zu sehen.'}
         </Typography>
       ) : (
-        currentItems.map(item => (
+        filteredItems.map(item => (
           <AlertCard
             key={item.id}
             item={item}
