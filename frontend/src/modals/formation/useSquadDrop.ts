@@ -105,7 +105,7 @@ export function useSquadDrop({
     } else if (!alreadyOnField && !alreadyOnBench) {
       // Ablage auf freier Feldfläche
       setPlayers(prev => [...prev, {
-        id: Date.now(),
+        id: Date.now() + Math.floor(Math.random() * 1e6),
         ...pos,
         number: player.shirtNumber ?? nextPlayerNumber,
         name: player.name,

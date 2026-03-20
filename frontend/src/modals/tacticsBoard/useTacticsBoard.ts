@@ -5,10 +5,10 @@ import { apiJson } from '../../utils/api';
 import type { Formation, PlayerData } from '../formation/types';
 import {
   Tool, DrawElement, FieldZone, FieldArrow, OpponentToken, TacticEntry, TacticsBoardData,
-  DrawPreview, ElDragState, OppDragState, OwnPlayerDragState, PlayerPositionOverride,
+  ElDragState, OppDragState, OwnPlayerDragState, PlayerPositionOverride,
 } from './types';
 import type { TacticPreset } from './types';
-import { svgCoords, makeMarkerId } from './utils';
+import { svgCoords, makeMarkerId, arrowPath, clipLine } from './utils';
 import { PALETTE } from './constants';
 
 // ─── Coordinate transforms between pitch modes ────────────────────────────────
@@ -77,10 +77,24 @@ function transformPlayerPos(
 interface ElDragOrigin {
   id: string;
   mode: 'move' | 'start' | 'end' | 'resize';
-  mouseX: number;
+  mouseX: number;        // SVG-unit position of pointer at drag start
   mouseY: number;
-  el: DrawElement;
+  el: DrawElement;       // snapshot of element at drag start
   hasMoved: boolean;
+  svgRect: DOMRect;       // cached once at drag-start – no more getBCR per frame
+  domGroup: SVGGElement | null;       // <g> for imperative transform during 'move' drag
+  liveX: number;                      // latest dx (SVG units) – written each frame, read on commit
+  liveY: number;                      // latest dy (SVG units)
+  // Child element refs for imperative handle-drag updates (zero React re-renders)
+  domVisualPath:   SVGPathElement     | null; // arrow: visual path
+  domHitPath:      SVGPathElement     | null; // arrow: transparent hit area
+  domStartHandle:  SVGGElement        | null; // arrow: start handle <g>
+  domEndHandle:    SVGGElement        | null; // arrow: end handle <g>
+  domBodyEllipse:  SVGEllipseElement  | null; // zone: main ellipse
+  domResizeHandle: SVGGElement        | null; // zone: resize handle <g>
+  domBadgeEllipse: SVGEllipseElement  | null; // step-number badge ellipse
+  domBadgeText:    SVGTextElement     | null; // step-number badge text
+  liveElData: DrawElement | null;             // latest geometry for handle drags, committed on mouseup
 }
 
 interface OppDragOrigin {
@@ -90,6 +104,10 @@ interface OppDragOrigin {
   x: number;
   y: number;
   hasMoved: boolean;
+  svgRect: DOMRect;
+  domEl: HTMLElement | null; // opponent div for direct style updates
+  liveDx: number;
+  liveDy: number;
 }
 
 interface OwnPlayerDragOrigin {
@@ -99,6 +117,10 @@ interface OwnPlayerDragOrigin {
   sx: number;
   sy: number;
   hasMoved: boolean;
+  svgRect: DOMRect;
+  domEl: HTMLElement | null; // player div for direct style updates
+  liveDx: number;
+  liveDy: number;
 }
 // ─── Return type ──────────────────────────────────────────────────────────────
 
@@ -123,10 +145,6 @@ export interface TacticsBoardState {
   setRenamingId: (id: string | null) => void;
   renameValue: string;
   setRenameValue: (v: string) => void;
-
-  // Drawing
-  preview: DrawPreview | null;
-  drawing: boolean;
 
   // UI toggles
   fullPitch: boolean;
@@ -160,10 +178,15 @@ export interface TacticsBoardState {
 
   // Handlers
   handleAddOpponent: () => void;
+  handleOppDblClick: (id: string) => void;
+  handleOppEditSave: (id: string, number: number, name: string) => void;
+  handleOppEditClose: () => void;
+  editingOppId: string | null;
   handleSave: () => Promise<void>;
   handleSvgDown: (e: React.MouseEvent | React.TouchEvent) => void;
   handleSvgMove: (e: React.MouseEvent | React.TouchEvent) => void;
   handleSvgUp: () => void;
+  handleSvgLeave: () => void;
   handleElDown: (
     e: React.MouseEvent | React.TouchEvent,
     id: string,
@@ -173,6 +196,9 @@ export interface TacticsBoardState {
   handleOwnPlayerDown: (e: React.MouseEvent | React.TouchEvent, id: number, sx: number, sy: number) => void;
   handleClear: () => void;
   handleUndo: () => void;
+  canUndo: boolean;
+  handleRedo: () => void;
+  canRedo: boolean;
   handleResetPlayerPositions: () => void;
   handleNewTactic: () => void;
   handleDeleteTactic: (id: string) => void;
@@ -180,6 +206,20 @@ export interface TacticsBoardState {
   handleLoadPreset: (preset: TacticPreset) => void;
   confirmRename: () => void;
   toggleFullscreen: () => Promise<void>;
+
+  // Selection
+  selectedId: string | null;
+  setSelectedId: (id: string | null) => void;
+  handleDeleteSelected: () => void;
+
+  // Interactive layer filter
+
+  // DOM ref registration (called by PitchCanvas to register rendered elements)
+  registerElRef: (id: string, el: SVGGElement | null) => void;
+  registerOppRef: (id: string, el: HTMLElement | null) => void;
+  registerPlayerRef: (id: number, el: HTMLElement | null) => void;
+  registerPreviewPathRef: (el: SVGPathElement | null) => void;
+  registerPreviewEllipseRef: (el: SVGEllipseElement | null) => void;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -204,10 +244,6 @@ export function useTacticsBoard(
   const [renamingId, setRenamingId]         = useState<string | null>(null);
   const [renameValue, setRenameValue]       = useState('');
 
-  // ── Drawing state ─────────────────────────────────────────────────────────
-  const [preview, setPreview] = useState<DrawPreview | null>(null);
-  const [drawing, setDrawing] = useState(false);
-
   // ── UI toggles ────────────────────────────────────────────────────────────
   const [fullPitch, setFullPitch]     = useState(true);
   const [isBrowserFS, setIsBrowserFS] = useState(false);
@@ -216,7 +252,15 @@ export function useTacticsBoard(
   // ── Save state ────────────────────────────────────────────────────────────
   const [saving, setSaving]   = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+
+  // ── Opponent-edit dialog state ────────────────────────────────────────────
+  const [editingOppId, setEditingOppId] = useState<string | null>(null);
+
+  // ── Selection state ───────────────────────────────────────────────────────
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // ── Drag state (React state: used only for visual feedback / cursor) ─────────
   const [elDrag, setElDrag]               = useState<ElDragState        | null>(null);
@@ -226,12 +270,55 @@ export function useTacticsBoard(
   // ── Drag origin refs (always current – used in move handler) ──────────────────
   // Storing immutable drag origins in refs instead of depending on stale closure
   // values ensures that fast mouse movements don't cause objects to drift.
-  const elDragOrigin       = useRef<ElDragOrigin       | null>(null);
-  const oppDragOrigin      = useRef<OppDragOrigin      | null>(null);
+  const elDragOrigin        = useRef<ElDragOrigin        | null>(null);
+  const oppDragOrigin       = useRef<OppDragOrigin       | null>(null);
   const ownPlayerDragOrigin = useRef<OwnPlayerDragOrigin | null>(null);
+
+  // ── DOM-element ref Maps – registered by PitchCanvas on mount/unmount ─────────
+  // All drag types bypass React setState during drag for smooth 60fps updates.
+  const elDomRefs     = useRef<Map<string, SVGGElement>>(new Map());
+  const oppDomRefs    = useRef<Map<string, HTMLElement>>(new Map());
+  const playerDomRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const undoStack     = useRef<TacticEntry[][]>([]);
+  const redoStack     = useRef<TacticEntry[][]>([]);
+  const tacticsRef    = useRef<TacticEntry[]>([]);
+  // Draw-preview origin – tracks start + live endpoint during draw (no React state).
+  // Null when not drawing. Enables zero-React-re-render draw preview (same pattern
+  // as element dragging).
+  const drawOrigin            = useRef<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const drawPreviewPathRef    = useRef<SVGPathElement | null>(null);
+  const drawPreviewEllipseRef = useRef<SVGEllipseElement | null>(null);
+
+  const registerElRef     = useCallback((id: string, el: SVGGElement | null) => {
+    if (el) elDomRefs.current.set(id, el); else elDomRefs.current.delete(id);
+  }, []);
+  const registerOppRef    = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) oppDomRefs.current.set(id, el); else oppDomRefs.current.delete(id);
+  }, []);
+  const registerPlayerRef = useCallback((id: number, el: HTMLElement | null) => {
+    if (el) playerDomRefs.current.set(id, el); else playerDomRefs.current.delete(id);
+  }, []);
+  const registerPreviewPathRef = useCallback((el: SVGPathElement | null) => {
+    drawPreviewPathRef.current = el;
+  }, []);
+  const registerPreviewEllipseRef = useCallback((el: SVGEllipseElement | null) => {
+    drawPreviewEllipseRef.current = el;
+  }, []);
+
+  // ── Undo / Redo – snapshot current tactics before any mutation ──────────────────
+  const pushUndo = useCallback(() => {
+    undoStack.current.push(tacticsRef.current);
+    if (undoStack.current.length > 50) undoStack.current.shift();
+    setCanUndo(true);
+    // Every new action invalidates the redo history
+    redoStack.current = [];
+    setCanRedo(false);
+  }, []);
 
   // ── Derived: active tactic ────────────────────────────────────────────────
   const activeTactic = tactics.find(t => t.id === activeTacticId) ?? tactics[0];
+  // Handle drags use imperative DOM mutations (zero React re-renders), so no
+  // liveEl state override is needed here. Values are committed once on mouseup.
   const elements  = activeTactic?.elements  ?? [];
   const opponents = activeTactic?.opponents ?? [];
 
@@ -242,6 +329,10 @@ export function useTacticsBoard(
   //                                    because the container is taller than wide)
   const pitchAspect = fullPitch ? '1920 / 1357' : '1357 / 960';
   const pitchAX     = fullPitch ? (1357 / 1920)  : (960  / 1357);
+  // Keep in a ref so the drag move handler can read it without being a dep
+  const pitchAXRef  = useRef(pitchAX);
+  pitchAXRef.current = pitchAX;
+  tacticsRef.current  = tactics; // keep in sync for undo snapshots
 
   const playerScreenPos = (px: number, py: number) =>
     fullPitch
@@ -287,8 +378,10 @@ export function useTacticsBoard(
       elDragOrigin.current        = null;
       oppDragOrigin.current       = null;
       ownPlayerDragOrigin.current = null;
+      drawOrigin.current = null;
+      if (drawPreviewPathRef.current)    drawPreviewPathRef.current.style.visibility    = 'hidden';
+      if (drawPreviewEllipseRef.current) drawPreviewEllipseRef.current.style.visibility = 'hidden';
       setElDrag(null); setOppDrag(null); setOwnPlayerDrag(null);
-      setDrawing(false); setPreview(null);
 
       setFullPitch(next);
     },
@@ -300,9 +393,7 @@ export function useTacticsBoard(
     makeMarkerId(uid, hex, kind);
 
   // ── SVG cursor ────────────────────────────────────────────────────────────
-  const svgCursor = elDrag || oppDrag
-    ? 'grabbing'
-    : tool === 'pointer' ? 'default' : 'crosshair';
+  const svgCursor = elDrag || oppDrag ? 'grabbing' : 'crosshair';
 
   // ── Mutation helpers – always operate on the active tactic ────────────────
   const updateActiveElements = useCallback(
@@ -333,8 +424,12 @@ export function useTacticsBoard(
   );
 
   const handleResetPlayerPositions = useCallback(() => {
+    pushUndo();
+    // Clear imperative inline styles set during drag so MUI's CSS class (with
+    // base positions) can take effect on the next React render.
+    playerDomRefs.current.forEach(el => { el.style.left = ''; el.style.top = ''; });
     updateActivePlayerPositions(() => []);
-  }, [updateActivePlayerPositions]);
+  }, [pushUndo, updateActivePlayerPositions]);
 
   // ── Mutation helpers – always operate on the active tactic ─────────────────────
   useEffect(() => {
@@ -356,11 +451,38 @@ export function useTacticsBoard(
     }
     setTactics(loaded);
     setActiveTacticId(loaded[0].id);
-    setPreview(null); setDrawing(false);
+    drawOrigin.current = null;
     setElDrag(null);  setOppDrag(null); setOwnPlayerDrag(null); setSaveMsg(null); setRenamingId(null);
     elDragOrigin.current = null; oppDragOrigin.current = null; ownPlayerDragOrigin.current = null;
-    setIsDirty(false);
+    setIsDirty(false); setSelectedId(null);
+    undoStack.current = []; setCanUndo(false);
+    redoStack.current = []; setCanRedo(false);
   }, [open, formation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Delete selected element / opponent ───────────────────────────────────
+  // Defined here (before the keyboard effect) to avoid TDZ reference error.
+  const handleDeleteSelected = useCallback(() => {
+    if (!selectedId) return;
+    pushUndo();
+    if ((activeTactic?.opponents ?? []).some(o => o.id === selectedId)) {
+      updateActiveOpponents(prev => prev.filter(o => o.id !== selectedId));
+    } else {
+      updateActiveElements(prev => prev.filter(el => el.id !== selectedId));
+    }
+    setSelectedId(null);
+  }, [selectedId, activeTactic, pushUndo, updateActiveOpponents, updateActiveElements]);
+
+  // ── Keyboard shortcut: Delete / Backspace removes selected element ─────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      handleDeleteSelected();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [handleDeleteSelected]);
 
   // ── Browser fullscreen ────────────────────────────────────────────────────
   useEffect(() => {
@@ -379,6 +501,7 @@ export function useTacticsBoard(
 
   // ── Add opponent ──────────────────────────────────────────────────────────
   const handleAddOpponent = useCallback(() => {
+    pushUndo();
     updateActiveOpponents(prev => {
       const n          = prev.length;
       const col        = n % 4;
@@ -391,8 +514,22 @@ export function useTacticsBoard(
         number: nextNumber,
       }];
     });
-    setTool('pointer');
-  }, [updateActiveOpponents]);
+  }, [pushUndo, updateActiveOpponents]);
+
+  // ── Opponent edit ─────────────────────────────────────────────────────────
+  const handleOppDblClick = useCallback((id: string) => {
+    setEditingOppId(id);
+  }, []);
+
+  const handleOppEditSave = useCallback((id: string, number: number, name: string) => {
+    pushUndo();
+    updateActiveOpponents(prev => prev.map(o => o.id !== id ? o : { ...o, number, name: name || undefined }));
+    setEditingOppId(null);
+  }, [pushUndo, updateActiveOpponents]);
+
+  const handleOppEditClose = useCallback(() => {
+    setEditingOppId(null);
+  }, []);
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -427,31 +564,57 @@ export function useTacticsBoard(
     if (tool === 'pointer') return;
     e.preventDefault();
     if (!svgRef.current) return;
-    const pt = svgCoords(e, svgRef.current);
-    setDrawing(true);
-    setPreview({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
-  }, [tool]);
+    const rect = svgRef.current.getBoundingClientRect();
+    const src  = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+    const x = Math.max(0, Math.min(100, ((src.clientX - rect.left) / rect.width)  * 100));
+    const y = Math.max(0, Math.min(100, ((src.clientY - rect.top)  / rect.height) * 100));
+    drawOrigin.current = { x1: x, y1: y, x2: x, y2: y };
+    // Initialise preview element imperatively – zero React re-renders during draw
+    if (tool === 'arrow' || tool === 'run') {
+      const pathEl = drawPreviewPathRef.current;
+      if (pathEl) {
+        pathEl.setAttribute('d', '');
+        pathEl.setAttribute('stroke', color);
+        pathEl.setAttribute('stroke-dasharray', tool === 'run' ? '2.5 1.8' : '');
+        pathEl.setAttribute('marker-end', `url(#${makeMarkerId(uid, color, tool === 'run' ? 'dashed' : 'solid')})`);
+        pathEl.style.visibility = 'visible';
+      }
+    } else if (tool === 'zone') {
+      const ellEl = drawPreviewEllipseRef.current;
+      if (ellEl) {
+        ellEl.setAttribute('cx', String(x));
+        ellEl.setAttribute('cy', String(y));
+        ellEl.setAttribute('rx', '0');
+        ellEl.setAttribute('ry', '0');
+        ellEl.setAttribute('stroke', color);
+        ellEl.setAttribute('fill', `${color}1a`);
+        ellEl.style.visibility = 'visible';
+      }
+    }
+  }, [tool, color, uid]);
 
   // ── SVG move ──────────────────────────────────────────────────────────────────
-  // All drag branches use ABSOLUTE positioning anchored to the drag-origin ref:
-  //   newPos = initObjPos + (currentMouse - initMouse)
-  // This is stale-closure-proof and drift-free regardless of how fast the mouse
-  // moves or how React batches state updates.
+  // Drag branches use ZERO React setState calls – only imperative DOM mutations.
+  // This makes dragging 60 fps regardless of component tree size.
+  // Values committed to tactics state once in handleSvgUp.
   const handleSvgMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!svgRef.current) return;
+    const src = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+    const cx  = src.clientX;
+    const cy  = src.clientY;
 
     const origin_own = ownPlayerDragOrigin.current;
     if (origin_own) {
       e.preventDefault();
-      const pt = svgCoords(e, svgRef.current);
-      const newSx = Math.max(1, Math.min(99, origin_own.sx + (pt.x - origin_own.mouseX)));
-      const newSy = Math.max(1, Math.min(99, origin_own.sy + (pt.y - origin_own.mouseY)));
-      updateActivePlayerPositions(prev => prev.map(pp =>
-        pp.id !== origin_own.id ? pp : { ...pp, sx: newSx, sy: newSy },
-      ));
-      if (!origin_own.hasMoved && Math.hypot(newSx - origin_own.sx, newSy - origin_own.sy) > 0.5) {
+      const r = origin_own.svgRect;
+      const px = Math.max(1, Math.min(99, origin_own.sx + ((cx - r.left) / r.width  * 100 - origin_own.mouseX)));
+      const py = Math.max(1, Math.min(99, origin_own.sy + ((cy - r.top)  / r.height * 100 - origin_own.mouseY)));
+      origin_own.liveDx = px - origin_own.sx;
+      origin_own.liveDy = py - origin_own.sy;
+      if (!origin_own.hasMoved && (Math.abs(origin_own.liveDx) > 0.5 || Math.abs(origin_own.liveDy) > 0.5))
         origin_own.hasMoved = true;
-        setOwnPlayerDrag(prev => prev ? { ...prev, hasMoved: true } : null);
+      if (origin_own.domEl) {
+        origin_own.domEl.style.left = `${px}%`;
+        origin_own.domEl.style.top  = `${py}%`;
       }
       return;
     }
@@ -459,15 +622,16 @@ export function useTacticsBoard(
     const origin_opp = oppDragOrigin.current;
     if (origin_opp) {
       e.preventDefault();
-      const pt = svgCoords(e, svgRef.current);
-      const newX = Math.max(2,  Math.min(98, origin_opp.x + (pt.x - origin_opp.mouseX)));
-      const newY = Math.max(1,  Math.min(99, origin_opp.y + (pt.y - origin_opp.mouseY)));
-      updateActiveOpponents(prev => prev.map(o =>
-        o.id !== origin_opp.id ? o : { ...o, x: newX, y: newY },
-      ));
-      if (!origin_opp.hasMoved && Math.hypot(newX - origin_opp.x, newY - origin_opp.y) > 0.5) {
+      const r = origin_opp.svgRect;
+      const nx = Math.max(2, Math.min(98, origin_opp.x + ((cx - r.left) / r.width  * 100 - origin_opp.mouseX)));
+      const ny = Math.max(1, Math.min(99, origin_opp.y + ((cy - r.top)  / r.height * 100 - origin_opp.mouseY)));
+      origin_opp.liveDx = nx - origin_opp.x;
+      origin_opp.liveDy = ny - origin_opp.y;
+      if (!origin_opp.hasMoved && (Math.abs(origin_opp.liveDx) > 0.5 || Math.abs(origin_opp.liveDy) > 0.5))
         origin_opp.hasMoved = true;
-        setOppDrag(prev => prev ? { ...prev, hasMoved: true } : null);
+      if (origin_opp.domEl) {
+        origin_opp.domEl.style.left = `${nx}%`;
+        origin_opp.domEl.style.top  = `${ny}%`;
       }
       return;
     }
@@ -475,108 +639,245 @@ export function useTacticsBoard(
     const origin_el = elDragOrigin.current;
     if (origin_el) {
       e.preventDefault();
-      const pt = svgCoords(e, svgRef.current);
-      const dx = pt.x - origin_el.mouseX;
-      const dy = pt.y - origin_el.mouseY;
-      updateActiveElements(prev => prev.map(el => {
-        if (el.id !== origin_el.id) return el;
+      const r  = origin_el.svgRect;
+      const px = (cx - r.left) / r.width  * 100;
+      const py = (cy - r.top)  / r.height * 100;
+      const dx = px - origin_el.mouseX;
+      const dy = py - origin_el.mouseY;
+      const init = origin_el.el;
 
-        // 'start' / 'end' / 'resize': snap to live cursor position (already absolute)
-        if (origin_el.mode === 'start' && (el.kind === 'arrow' || el.kind === 'run')) {
-          return { ...el,
-            x1: Math.max(0, Math.min(100, pt.x)),
-            y1: Math.max(0, Math.min(100, pt.y)),
-          };
-        }
-        if (origin_el.mode === 'end' && (el.kind === 'arrow' || el.kind === 'run')) {
-          return { ...el,
-            x2: Math.max(0, Math.min(100, pt.x)),
-            y2: Math.max(0, Math.min(100, pt.y)),
-          };
-        }
-        if (origin_el.mode === 'resize' && el.kind === 'zone') {
-          return { ...el,
-            r: Math.max(3, Math.min(40, Math.hypot(pt.x - el.cx, pt.y - el.cy))),
-          };
-        }
-
-        // 'move': offset from ORIGIN snapshot (not from current state) → drift-free
-        const init = origin_el.el;
+      // 'move' drag: update SVG attributes directly – same zero-React-state strategy as
+      // handle/resize drags and player/opponent drags. Avoids CSS transforms on SVG elements
+      // which can cause coordinate drift at higher speeds in some browser/GPU combinations.
+      if (origin_el.mode === 'move') {
+        origin_el.liveX = dx;
+        origin_el.liveY = dy;
+        if (!origin_el.hasMoved && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) origin_el.hasMoved = true;
         if (init.kind === 'arrow' || init.kind === 'run') {
-          return { ...el,
-            x1: Math.max(0, Math.min(100, (init as FieldArrow).x1 + dx)),
-            y1: Math.max(0, Math.min(100, (init as FieldArrow).y1 + dy)),
-            x2: Math.max(0, Math.min(100, (init as FieldArrow).x2 + dx)),
-            y2: Math.max(0, Math.min(100, (init as FieldArrow).y2 + dy)),
-          };
+          const x1 = Math.max(0, Math.min(100, (init as FieldArrow).x1 + dx));
+          const y1 = Math.max(0, Math.min(100, (init as FieldArrow).y1 + dy));
+          const x2 = Math.max(0, Math.min(100, (init as FieldArrow).x2 + dx));
+          const y2 = Math.max(0, Math.min(100, (init as FieldArrow).y2 + dy));
+          const vis = clipLine(x1, y1, x2, y2);
+          if (origin_el.domVisualPath)
+            origin_el.domVisualPath.setAttribute('d', vis ? arrowPath(vis.x1, vis.y1, vis.x2, vis.y2) : '');
+          if (origin_el.domHitPath)
+            origin_el.domHitPath.setAttribute('d', arrowPath(x1, y1, x2, y2));
+          if (origin_el.domStartHandle)
+            origin_el.domStartHandle.setAttribute('transform', `translate(${x1}, ${y1})`);
+          if (origin_el.domEndHandle)
+            origin_el.domEndHandle.setAttribute('transform', `translate(${x2}, ${y2})`);
+          // Badge follows midpoint of arrow
+          const bx = (x1 + x2) / 2; const by = (y1 + y2) / 2;
+          if (origin_el.domBadgeEllipse) { origin_el.domBadgeEllipse.setAttribute('cx', String(bx)); origin_el.domBadgeEllipse.setAttribute('cy', String(by)); }
+          if (origin_el.domBadgeText)    { origin_el.domBadgeText.setAttribute('x',  String(bx)); origin_el.domBadgeText.setAttribute('y',  String(by)); }
+        } else if (init.kind === 'zone') {
+          const cx = Math.max(3, Math.min(97, (init as FieldZone).cx + dx));
+          const cy = Math.max(3, Math.min(97, (init as FieldZone).cy + dy));
+          if (origin_el.domBodyEllipse) {
+            origin_el.domBodyEllipse.setAttribute('cx', String(cx));
+            origin_el.domBodyEllipse.setAttribute('cy', String(cy));
+          }
+          if (origin_el.domResizeHandle) {
+            const rx = (init as FieldZone).r * pitchAXRef.current;
+            origin_el.domResizeHandle.setAttribute('transform', `translate(${cx + rx}, ${cy})`);
+          }
+          // Badge follows zone centre
+          if (origin_el.domBadgeEllipse) { origin_el.domBadgeEllipse.setAttribute('cx', String(cx)); origin_el.domBadgeEllipse.setAttribute('cy', String(cy)); }
+          if (origin_el.domBadgeText)    { origin_el.domBadgeText.setAttribute('x',  String(cx)); origin_el.domBadgeText.setAttribute('y',  String(cy)); }
         }
-        return { ...el,
-          cx: Math.max(3, Math.min(97, (init as FieldZone).cx + dx)),
-          cy: Math.max(3, Math.min(97, (init as FieldZone).cy + dy)),
-        } as FieldZone;
-      }));
-      if (!origin_el.hasMoved && Math.hypot(dx, dy) > 0.5) {
-        origin_el.hasMoved = true;
-        setElDrag(prev => prev ? { ...prev, hasMoved: true } : null);
+      } else {
+        // Handle drags (start/end/resize): update SVG DOM directly – zero React re-renders.
+        // Same strategy as player/opponent drags: imperative mutations every frame,
+        // final geometry committed to React state once on mouseup.
+        let newEl: DrawElement | null = null;
+
+        if (origin_el.mode === 'start' && (init.kind === 'arrow' || init.kind === 'run')) {
+          const x1 = Math.max(0, Math.min(100, px));
+          const y1 = Math.max(0, Math.min(100, py));
+          newEl = { ...init, x1, y1 };
+          // Update visual (clipped) and hit paths + start handle position
+          const fullPath = arrowPath(x1, y1, init.x2, init.y2);
+          if (origin_el.domHitPath) origin_el.domHitPath.setAttribute('d', fullPath);
+          const vis = clipLine(x1, y1, init.x2, init.y2);
+          if (origin_el.domVisualPath) {
+            origin_el.domVisualPath.setAttribute('d', vis ? arrowPath(vis.x1, vis.y1, vis.x2, vis.y2) : '');
+          }
+          if (origin_el.domStartHandle) origin_el.domStartHandle.setAttribute('transform', `translate(${x1}, ${y1})`);
+          // Badge follows midpoint
+          { const bx = (x1 + init.x2) / 2; const by = (y1 + init.y2) / 2;
+            if (origin_el.domBadgeEllipse) { origin_el.domBadgeEllipse.setAttribute('cx', String(bx)); origin_el.domBadgeEllipse.setAttribute('cy', String(by)); }
+            if (origin_el.domBadgeText)    { origin_el.domBadgeText.setAttribute('x',  String(bx)); origin_el.domBadgeText.setAttribute('y',  String(by)); } }
+
+        } else if (origin_el.mode === 'end' && (init.kind === 'arrow' || init.kind === 'run')) {
+          const x2 = Math.max(0, Math.min(100, px));
+          const y2 = Math.max(0, Math.min(100, py));
+          newEl = { ...init, x2, y2 };
+          // Update visual (clipped) and hit paths + end handle position
+          const fullPath = arrowPath(init.x1, init.y1, x2, y2);
+          if (origin_el.domHitPath) origin_el.domHitPath.setAttribute('d', fullPath);
+          const vis = clipLine(init.x1, init.y1, x2, y2);
+          if (origin_el.domVisualPath) {
+            origin_el.domVisualPath.setAttribute('d', vis ? arrowPath(vis.x1, vis.y1, vis.x2, vis.y2) : '');
+          }
+          if (origin_el.domEndHandle) origin_el.domEndHandle.setAttribute('transform', `translate(${x2}, ${y2})`);
+          // Badge follows midpoint
+          { const bx = (init.x1 + x2) / 2; const by = (init.y1 + y2) / 2;
+            if (origin_el.domBadgeEllipse) { origin_el.domBadgeEllipse.setAttribute('cx', String(bx)); origin_el.domBadgeEllipse.setAttribute('cy', String(by)); }
+            if (origin_el.domBadgeText)    { origin_el.domBadgeText.setAttribute('x',  String(bx)); origin_el.domBadgeText.setAttribute('y',  String(by)); } }
+
+        } else if (origin_el.mode === 'resize' && init.kind === 'zone') {
+          const newR = Math.max(3, Math.min(40, Math.hypot(px - init.cx, py - init.cy)));
+          newEl = { ...init, r: newR };
+          // Update ellipse size + resize handle position
+          const rx = newR * pitchAXRef.current;
+          const ry = newR;
+          if (origin_el.domBodyEllipse) {
+            origin_el.domBodyEllipse.setAttribute('rx', String(rx));
+            origin_el.domBodyEllipse.setAttribute('ry', String(ry));
+          }
+          const resizeX = init.cx + rx;
+          if (origin_el.domResizeHandle) {
+            origin_el.domResizeHandle.setAttribute('transform', `translate(${resizeX}, ${init.cy})`);
+          }
+        }
+
+        if (newEl) origin_el.liveElData = newEl;
+        if (!origin_el.hasMoved && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) origin_el.hasMoved = true;
       }
       return;
     }
 
-    if (!drawing || tool === 'pointer') return;
+    if (!drawOrigin.current || tool === 'pointer') return;
     e.preventDefault();
-    const pt = svgCoords(e, svgRef.current);
-    setPreview(prev => prev ? { ...prev, x2: pt.x, y2: pt.y } : null);
-  }, [drawing, tool, updateActiveElements, updateActiveOpponents, updateActivePlayerPositions]);
+    if (!svgRef.current) return;
+    const svgR = svgRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((cx - svgR.left) / svgR.width)  * 100));
+    const y = Math.max(0, Math.min(100, ((cy - svgR.top)  / svgR.height) * 100));
+    drawOrigin.current.x2 = x;
+    drawOrigin.current.y2 = y;
+    if (tool === 'arrow' || tool === 'run') {
+      const vis = clipLine(drawOrigin.current.x1, drawOrigin.current.y1, x, y);
+      drawPreviewPathRef.current?.setAttribute('d',
+        vis ? arrowPath(vis.x1, vis.y1, vis.x2, vis.y2) : '');
+    } else if (tool === 'zone') {
+      const zR = Math.hypot(x - drawOrigin.current.x1, y - drawOrigin.current.y1);
+      const ellEl = drawPreviewEllipseRef.current;
+      if (ellEl) {
+        ellEl.setAttribute('rx', String(zR * pitchAXRef.current));
+        ellEl.setAttribute('ry', String(zR));
+      }
+    }
+  }, [tool]);
 
   // ── SVG pointer up ────────────────────────────────────────────────────────
-  const handleSvgUp = useCallback(() => {
+  // Commits DOM position to tactics state (one setTactics call per drag).
+  const handleSvgUp = useCallback((keepSelection = false) => {
     if (ownPlayerDragOrigin.current) {
+      const o = ownPlayerDragOrigin.current;
+      if (o.hasMoved) {
+        const id = o.id;
+        const sx = Math.max(1, Math.min(99, o.sx + o.liveDx));
+        const sy = Math.max(1, Math.min(99, o.sy + o.liveDy));
+        pushUndo();
+        updateActivePlayerPositions(prev => {
+          const exists = prev.some(pp => pp.id === id);
+          return exists
+            ? prev.map(pp => pp.id === id ? { ...pp, sx, sy } : pp)
+            : [...prev, { id, sx, sy }];
+        });
+      }
+      // Clear drag-time inline styles so React/MUI CSS class takes over on re-render.
+      // Without this, style.left / style.top override the MUI class after reset.
+      if (o.domEl) { o.domEl.style.left = ''; o.domEl.style.top = ''; }
       ownPlayerDragOrigin.current = null;
       setOwnPlayerDrag(null);
       return;
     }
     if (oppDragOrigin.current) {
-      if (!oppDragOrigin.current.hasMoved) {
-        const id = oppDragOrigin.current.id;
-        updateActiveOpponents(prev => prev.filter(o => o.id !== id));
+      const o = oppDragOrigin.current;
+      if (!o.hasMoved) {
+        const oppId = o.id;
+        if (!keepSelection) setSelectedId(prev => prev === oppId ? null : oppId);
+      } else {
+        const id = o.id;
+        const x  = Math.max(2, Math.min(98, o.x + o.liveDx));
+        const y  = Math.max(1, Math.min(99, o.y + o.liveDy));
+        pushUndo();
+        updateActiveOpponents(prev => prev.map(opp => opp.id !== id ? opp : { ...opp, x, y }));
+        if (!keepSelection) setSelectedId(null);
       }
+      if (o.domEl) { o.domEl.style.left = ''; o.domEl.style.top = ''; }
       oppDragOrigin.current = null;
       setOppDrag(null);
       return;
     }
     if (elDragOrigin.current) {
-      if (!elDragOrigin.current.hasMoved && tool === 'pointer') {
-        const id = elDragOrigin.current.id;
-        updateActiveElements(prev => prev.filter(el => el.id !== id));
+      const o = elDragOrigin.current;
+      if (!o.hasMoved) {
+        const elId = o.id;
+        if (!keepSelection) setSelectedId(prev => prev === elId ? null : elId);
+      } else {
+        pushUndo();
+        if (o.mode === 'move') {
+          const id = o.id; const init = o.el; const dx = o.liveX; const dy = o.liveY;
+          if (init.kind === 'arrow' || init.kind === 'run') {
+            const arr = init as FieldArrow;
+            updateActiveElements(prev => prev.map(el => el.id !== id ? el : { ...init,
+              x1: Math.max(0, Math.min(100, arr.x1 + dx)),
+              y1: Math.max(0, Math.min(100, arr.y1 + dy)),
+              x2: Math.max(0, Math.min(100, arr.x2 + dx)),
+              y2: Math.max(0, Math.min(100, arr.y2 + dy)),
+            }));
+          } else {
+            const zone = init as FieldZone;
+            updateActiveElements(prev => prev.map(el => el.id !== id ? el : { ...init,
+              cx: Math.max(3, Math.min(97, zone.cx + dx)),
+              cy: Math.max(3, Math.min(97, zone.cy + dy)),
+            } as FieldZone));
+          }
+        } else if (o.liveElData) {
+          const live = o.liveElData;
+          updateActiveElements(prev => prev.map(el => el.id !== live.id ? el : live));
+        }
+        if (!keepSelection) setSelectedId(null);
       }
       elDragOrigin.current = null;
       setElDrag(null);
       return;
     }
 
-    if (!drawing || !preview) { setDrawing(false); return; }
-    setDrawing(false);
-    const dist = Math.hypot(preview.x2 - preview.x1, preview.y2 - preview.y1);
-    if (dist < 2) { setPreview(null); return; }
+    // Click on empty space or finished drawing → deselect (but not on mouse-leave)
+    if (!keepSelection) setSelectedId(null);
+
+    // Hide preview elements and commit draw geometry
+    if (drawPreviewPathRef.current)    drawPreviewPathRef.current.style.visibility    = 'hidden';
+    if (drawPreviewEllipseRef.current) drawPreviewEllipseRef.current.style.visibility = 'hidden';
+    const origin = drawOrigin.current;
+    drawOrigin.current = null;
+    if (!origin) return;
+
+    const dist = Math.hypot(origin.x2 - origin.x1, origin.y2 - origin.y1);
+    if (dist < 2) return;
 
     const id = `el-${Date.now()}-${Math.random()}`;
+    pushUndo();
     if (tool === 'arrow' || tool === 'run') {
       updateActiveElements(prev => [...prev, {
         id, kind: tool,
-        x1: preview.x1, y1: preview.y1,
-        x2: preview.x2, y2: preview.y2,
+        x1: origin.x1, y1: origin.y1,
+        x2: origin.x2, y2: origin.y2,
         color,
       }]);
     } else if (tool === 'zone') {
       updateActiveElements(prev => [...prev, {
         id, kind: 'zone',
-        cx: preview.x1, cy: preview.y1,
+        cx: origin.x1, cy: origin.y1,
         r: Math.min(dist, 35),
         color,
       }]);
     }
-    setPreview(null);
-  }, [tool, drawing, preview, color, updateActiveElements, updateActiveOpponents]);
+  }, [tool, color, pushUndo, updateActiveElements, updateActiveOpponents, updateActivePlayerPositions]);
 
   // ── Element drag start ────────────────────────────────────────────────────
   const handleElDown = useCallback((
@@ -587,12 +888,30 @@ export function useTacticsBoard(
     e.stopPropagation();
     e.preventDefault();
     if (!svgRef.current) return;
-    const pt = svgCoords(e, svgRef.current);
-    // Find the element snapshot for 'move' origin anchoring
+    const rect  = svgRef.current.getBoundingClientRect();
+    const src   = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+    const mouseX = (src.clientX - rect.left) / rect.width  * 100;
+    const mouseY = (src.clientY - rect.top)  / rect.height * 100;
     const el = (activeTactic?.elements ?? []).find(el => el.id === id);
     if (!el) return;
-    elDragOrigin.current = { id, mode, mouseX: pt.x, mouseY: pt.y, el, hasMoved: false };
-    setElDrag({ id, mode, startX: pt.x, startY: pt.y, hasMoved: false });
+    const domGroup     = elDomRefs.current.get(id) ?? null;
+    // Query child elements once at drag-start for imperative updates during drag
+    const domVisualPath   = domGroup?.querySelector<SVGPathElement>('[data-role="visual"]')    ?? null;
+    const domHitPath      = domGroup?.querySelector<SVGPathElement>('[data-role="hit"]')        ?? null;
+    const domStartHandle  = domGroup?.querySelector<SVGGElement>('[data-role="start-handle"]')  ?? null;
+    const domEndHandle    = domGroup?.querySelector<SVGGElement>('[data-role="end-handle"]')    ?? null;
+    const domBodyEllipse  = domGroup?.querySelector<SVGEllipseElement>('[data-role="body"]')    ?? null;
+    const domResizeHandle = domGroup?.querySelector<SVGGElement>('[data-role="resize-handle"]') ?? null;
+    const domBadgeEllipse = domGroup?.querySelector<SVGEllipseElement>('[data-role="badge-ellipse"]') ?? null;
+    const domBadgeText    = domGroup?.querySelector<SVGTextElement>('[data-role="badge-text"]')       ?? null;
+    elDragOrigin.current = {
+      id, mode, mouseX, mouseY, el, hasMoved: false,
+      svgRect: rect, domGroup, liveX: 0, liveY: 0,
+      domVisualPath, domHitPath, domStartHandle, domEndHandle, domBodyEllipse, domResizeHandle,
+      domBadgeEllipse, domBadgeText,
+      liveElData: null,
+    };
+    setElDrag({ id, mode, startX: mouseX, startY: mouseY, hasMoved: false });
   }, [activeTactic]);
 
   // ── Opponent drag start ───────────────────────────────────────────────────
@@ -602,9 +921,14 @@ export function useTacticsBoard(
     if (!svgRef.current) return;
     const opp = (activeTactic?.opponents ?? []).find(o => o.id === id);
     if (!opp) return;
-    const pt = svgCoords(e, svgRef.current);
-    oppDragOrigin.current = { id, mouseX: pt.x, mouseY: pt.y, x: opp.x, y: opp.y, hasMoved: false };
-    setOppDrag({ id, startX: pt.x, startY: pt.y, hasMoved: false });
+    const rect  = svgRef.current.getBoundingClientRect();
+    const src   = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+    const mouseX = (src.clientX - rect.left) / rect.width  * 100;
+    const mouseY = (src.clientY - rect.top)  / rect.height * 100;
+    const domEl  = oppDomRefs.current.get(id) ?? null;
+    oppDragOrigin.current = { id, mouseX, mouseY, x: opp.x, y: opp.y, hasMoved: false,
+      svgRect: rect, domEl, liveDx: 0, liveDy: 0 };
+    setOppDrag({ id, startX: mouseX, startY: mouseY, hasMoved: false });
   }, [activeTactic]);
 
   // ── Own player drag start ─────────────────────────────────────────────────
@@ -617,25 +941,51 @@ export function useTacticsBoard(
     e.stopPropagation();
     e.preventDefault();
     if (!svgRef.current) return;
-    const pt = svgCoords(e, svgRef.current);
-    // Seed playerPositions so the absolute updater always finds an entry
-    updateActivePlayerPositions(prev =>
-      prev.some(pp => pp.id === id) ? prev : [...prev, { id, sx, sy }],
-    );
-    ownPlayerDragOrigin.current = { id, mouseX: pt.x, mouseY: pt.y, sx, sy, hasMoved: false };
-    setOwnPlayerDrag({ id, startX: pt.x, startY: pt.y, hasMoved: false });
-  }, [updateActivePlayerPositions]);
+    const rect  = svgRef.current.getBoundingClientRect();
+    const src   = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
+    const mouseX = (src.clientX - rect.left) / rect.width  * 100;
+    const mouseY = (src.clientY - rect.top)  / rect.height * 100;
+    const domEl  = playerDomRefs.current.get(id) ?? null;
+    ownPlayerDragOrigin.current = { id, mouseX, mouseY, sx, sy, hasMoved: false,
+      svgRect: rect, domEl, liveDx: 0, liveDy: 0 };
+    setOwnPlayerDrag({ id, startX: mouseX, startY: mouseY, hasMoved: false });
+  }, []);
 
   // ── Clear / Undo ──────────────────────────────────────────────────────────
   const handleClear = useCallback(() => {
+    pushUndo();
+    playerDomRefs.current.forEach(el => { el.style.left = ''; el.style.top = ''; });
+    oppDomRefs.current.forEach(el => { el.style.left = ''; el.style.top = ''; });
     updateActiveElements(() => []);
     updateActiveOpponents(() => []);
     updateActivePlayerPositions(() => []);
-  }, [updateActiveElements, updateActiveOpponents, updateActivePlayerPositions]);
+    setSelectedId(null);
+  }, [pushUndo, updateActiveElements, updateActiveOpponents, updateActivePlayerPositions]);
 
   const handleUndo = useCallback(() => {
-    updateActiveElements(prev => prev.slice(0, -1));
-  }, [updateActiveElements]);
+    if (undoStack.current.length === 0) return;
+    // Save current state to redo stack before restoring
+    redoStack.current.push(tacticsRef.current);
+    if (redoStack.current.length > 50) redoStack.current.shift();
+    setCanRedo(true);
+    const prev = undoStack.current.pop()!;
+    if (undoStack.current.length === 0) setCanUndo(false);
+    setTactics(prev);
+    setIsDirty(true);
+    setSelectedId(null);
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    // Save current state to undo stack before re-applying
+    undoStack.current.push(tacticsRef.current);
+    setCanUndo(true);
+    const next = redoStack.current.pop()!;
+    if (redoStack.current.length === 0) setCanRedo(false);
+    setTactics(next);
+    setIsDirty(true);
+    setSelectedId(null);
+  }, []);
 
   // ── Tactic management ─────────────────────────────────────────────────────
   const handleNewTactic = useCallback(() => {
@@ -652,7 +1002,6 @@ export function useTacticsBoard(
       if (prev.length <= 1) return prev;
       const idx  = prev.findIndex(t => t.id === id);
       const next = prev.filter(t => t.id !== id);
-      // If the deleted tactic was active, select the closest remaining one
       setActiveTacticId(current =>
         current === id ? next[Math.max(0, idx - 1)].id : current,
       );
@@ -692,7 +1041,6 @@ export function useTacticsBoard(
     activeTacticId, setActiveTacticId,
     renamingId, setRenamingId,
     renameValue, setRenameValue,
-    preview, drawing,
     fullPitch, setFullPitch: handleToggleFullPitch as React.Dispatch<React.SetStateAction<boolean>>,
     isBrowserFS,
     showNotes, setShowNotes,
@@ -702,11 +1050,18 @@ export function useTacticsBoard(
     pitchAX, pitchAspect, svgCursor, markerId,
     ownPlayers, formationName, formationCode, notes,
     isDirty,
-    handleAddOpponent, handleSave,
+    handleAddOpponent, handleOppDblClick, handleOppEditSave, handleOppEditClose, editingOppId,
+    handleSave,
     handleSvgDown, handleSvgMove, handleSvgUp,
+    handleSvgLeave: useCallback(() => handleSvgUp(true), [handleSvgUp]),
     handleElDown, handleOppDown, handleOwnPlayerDown,
-    handleClear, handleUndo, handleResetPlayerPositions,
+    handleClear, handleUndo, handleRedo, handleResetPlayerPositions,
     handleNewTactic, handleDeleteTactic, handleLoadPreset, confirmRename,
     toggleFullscreen,
+    selectedId, setSelectedId, handleDeleteSelected,
+    canUndo, canRedo,
+    registerElRef, registerOppRef, registerPlayerRef,
+    registerPreviewPathRef, registerPreviewEllipseRef,
   };
 }
+

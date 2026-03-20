@@ -1,11 +1,11 @@
 // ─── TacticsBoard – pitch canvas with SVG drawing layer ───────────────────────
-import React from 'react';
+import React, { useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { getZoneColor, truncateName } from '../formation/helpers';
 import { PALETTE } from './constants';
 import { arrowPath, clipLine } from './utils';
 import type {
-  DrawElement, OpponentToken, DrawPreview,
+  DrawElement, OpponentToken,
   ElDragState, OppDragState, OwnPlayerDragState, Tool,
 } from './types';
 import type { PlayerData } from '../formation/types';
@@ -26,8 +26,6 @@ export interface PitchCanvasProps {
   elements: DrawElement[];
   opponents: OpponentToken[];
   ownPlayers: Array<PlayerData & { sx: number; sy: number }>;
-  preview: DrawPreview | null;
-  drawing: boolean;
   tool: Tool;
   color: string;
   elDrag: ElDragState | null;
@@ -38,12 +36,27 @@ export interface PitchCanvasProps {
   onSvgDown: (e: React.MouseEvent | React.TouchEvent) => void;
   onSvgMove: (e: React.MouseEvent | React.TouchEvent) => void;
   onSvgUp: () => void;
+  onSvgLeave: () => void;
   onElDown: (e: React.MouseEvent | React.TouchEvent, id: string, mode?: 'move' | 'start' | 'end' | 'resize') => void;
   onOppDown: (e: React.MouseEvent | React.TouchEvent, id: string) => void;
+  onOppDblClick: (id: string) => void;
   onOwnPlayerDown: (e: React.MouseEvent | React.TouchEvent, id: number, sx: number, sy: number) => void;
 
   // Marker id helper (scoped to the current useId)
   markerId: (hex: string, kind: 'solid' | 'dashed') => string;
+
+  // Selection
+  selectedId: string | null;
+
+  // DOM ref registration (for imperative drag updates)
+  registerElRef: (id: string, el: SVGGElement | null) => void;
+  registerOppRef: (id: string, el: HTMLElement | null) => void;
+  registerPlayerRef: (id: number, el: HTMLElement | null) => void;
+  registerPreviewPathRef: (el: SVGPathElement | null) => void;
+  registerPreviewEllipseRef: (el: SVGEllipseElement | null) => void;
+
+  /** Show step-order number badges on arrows and zones */
+  showStepNumbers: boolean;
 }
 
 // ─── Zone labels per pitch mode ───────────────────────────────────────────────
@@ -67,13 +80,61 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
   pitchRef, svgRef,
   fullPitch, pitchAspect, pitchAX, svgCursor,
   elements, opponents, ownPlayers,
-  preview, drawing, tool, color,
+  tool, color,
   elDrag, oppDrag, ownPlayerDrag,
-  onSvgDown, onSvgMove, onSvgUp,
-  onElDown, onOppDown, onOwnPlayerDown,
+  onSvgDown, onSvgMove, onSvgUp, onSvgLeave,
+  onElDown, onOppDown, onOppDblClick, onOwnPlayerDown,
   markerId,
+  selectedId,
+  registerElRef, registerOppRef, registerPlayerRef,
+  registerPreviewPathRef, registerPreviewEllipseRef,
+  showStepNumbers,
 }) => {
   const zoneLabels = fullPitch ? FULL_ZONE_LABELS : HALF_ZONE_LABELS;
+
+  // Double-click / double-tap detection for opponent tokens.
+  // onDoubleClick can NEVER fire because handleOppDown calls preventDefault() on
+  // the underlying mousedown, which suppresses subsequent click/dblclick events.
+  //
+  // Strategy: record timestamp at mouseUP (= end of first click), then detect on
+  // the NEXT mousedown. This measures the inter-click gap (end→start) which is
+  // what OS double-click timers use (~300–700 ms). We use 650 ms to be generous.
+  const lastOppRelease = useRef<Map<string, number>>(new Map());
+  const DBLCLICK_MS = 650;
+
+  const handleOppMouseUp = (id: string) => {
+    lastOppRelease.current.set(id, Date.now());
+  };
+
+  const handleOppTouchEnd = (id: string) => {
+    lastOppRelease.current.set(id, Date.now());
+  };
+
+  const handleOppMouseDown = (e: React.MouseEvent, id: string) => {
+    const sinceRelease = Date.now() - (lastOppRelease.current.get(id) ?? 0);
+    if (sinceRelease < DBLCLICK_MS) {
+      // Second click started within threshold after first click ended → double-click
+      e.stopPropagation();
+      e.preventDefault();
+      lastOppRelease.current.delete(id);
+      onOppDblClick(id);
+    } else {
+      onOppDown(e, id);
+    }
+  };
+
+  const handleOppTouchStart = (e: React.TouchEvent, id: string) => {
+    const sinceRelease = Date.now() - (lastOppRelease.current.get(id) ?? 0);
+    if (sinceRelease < DBLCLICK_MS) {
+      // Double-tap
+      e.stopPropagation();
+      e.preventDefault();
+      lastOppRelease.current.delete(id);
+      onOppDblClick(id);
+    } else {
+      onOppDown(e, id);
+    }
+  };
 
   // Visual / hit-target handle sizes – compensated for landscape aspect ratio
   const hRy   = 1.9;
@@ -85,8 +146,8 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
     <Box
       ref={pitchRef}
       onMouseMove={onSvgMove}
-      onMouseUp={onSvgUp}
-      onMouseLeave={() => { /* up-handler cancels drag; move-handler stops preview */ onSvgUp(); }}
+      onMouseUp={() => onSvgUp()}
+      onMouseLeave={onSvgLeave}
       onTouchMove={onSvgMove}
       onTouchEnd={onSvgUp}
       sx={{
@@ -144,22 +205,22 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       {/* Pointer mode: sit above SVG (z:12), draggable.                       */}
       {/* Drawing modes: stay below SVG (z:3), pass events through.            */}
       {ownPlayers.map(player => {
-        const isPointer  = tool === 'pointer';
         const isDragging = ownPlayerDrag?.id === player.id;
         return (
           <Box
             key={player.id}
-            onMouseDown={isPointer ? e => onOwnPlayerDown(e, player.id, player.sx, player.sy) : undefined}
-            onTouchStart={isPointer ? e => onOwnPlayerDown(e, player.id, player.sx, player.sy) : undefined}
+            ref={(node) => registerPlayerRef(player.id, node as HTMLElement | null)}
+            onMouseDown={e => onOwnPlayerDown(e, player.id, player.sx, player.sy)}
+            onTouchStart={e => onOwnPlayerDown(e, player.id, player.sx, player.sy)}
             sx={{
               position: 'absolute',
               left: `${player.sx}%`, top: `${player.sy}%`,
               transform: 'translate(-50%, -50%)',
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              zIndex: isPointer ? 12 : 3,
-              pointerEvents: isPointer ? 'auto' : 'none',
+              zIndex: 12,
+              pointerEvents: 'auto',
               userSelect: 'none',
-              cursor: isDragging ? 'grabbing' : isPointer ? 'grab' : 'default',
+              cursor: isDragging ? 'grabbing' : 'grab',
             }}
           >
             <Box sx={{
@@ -234,13 +295,18 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       }
 
       {/* ── Opponent tokens (HTML, z:11) ─────────────────────────────────── */}
+      {/* Same layout as own players (circle + label) but hollow ring style   */}
+      {/* so they are immediately distinguishable regardless of color.        */}
       {fullPitch && opponents.map(opp => {
         const dragging = oppDrag?.id === opp.id;
         return (
           <Box
             key={opp.id}
-            onMouseDown={e => onOppDown(e, opp.id)}
-            onTouchStart={e => onOppDown(e, opp.id)}
+            ref={(node) => registerOppRef(opp.id, node as HTMLElement | null)}
+            onMouseDown={e => handleOppMouseDown(e, opp.id)}
+            onMouseUp={() => handleOppMouseUp(opp.id)}
+            onTouchStart={e => handleOppTouchStart(e, opp.id)}
+            onTouchEnd={() => handleOppTouchEnd(opp.id)}
             sx={{
               position: 'absolute',
               left: `${opp.x}%`, top: `${opp.y}%`,
@@ -248,31 +314,32 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
               zIndex: 11, userSelect: 'none',
               cursor: dragging ? 'grabbing' : 'grab',
               display: 'flex', flexDirection: 'column', alignItems: 'center',
-              '&:hover .opp-hint': { opacity: 1 },
             }}
           >
+            {/* Hollow ring – clearly distinct from the filled own-player circles */}
             <Box sx={{
-              width: { xs: 28, md: 34 }, height: { xs: 28, md: 34 },
-              bgcolor: dragging ? '#d32f2f' : '#c62828',
-              color: 'white', borderRadius: '50%',
+              width: { xs: 30, md: 38 }, height: { xs: 30, md: 38 },
+              bgcolor: 'transparent',
+              color: dragging ? '#ef4444' : '#f87171',
+              borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 900, fontSize: { xs: 11, md: 13 },
-              border: '2.5px solid rgba(255,255,255,0.9)',
+              fontWeight: 900, fontSize: { xs: 11, md: 14 },
+              border: `3px solid ${dragging ? '#ef4444' : '#f87171'}`,
               boxShadow: dragging
-                ? '0 0 14px rgba(244,67,54,0.9), 0 2px 8px rgba(0,0,0,0.7)'
-                : '0 2px 10px rgba(0,0,0,0.7)',
-              transition: 'box-shadow 0.12s',
+                ? '0 0 14px rgba(239,68,68,0.65), 0 2px 8px rgba(0,0,0,0.7)'
+                : '0 2px 8px rgba(0,0,0,0.5)',
+              transition: 'box-shadow 0.12s, border-color 0.12s, color 0.12s',
             }}>
               {opp.number}
             </Box>
-            <Box className="opp-hint" sx={{
-              mt: '2px', bgcolor: 'rgba(0,0,0,0.78)', color: 'rgba(255,255,255,0.65)',
+            <Box sx={{
+              mt: '2px', bgcolor: 'rgba(0,0,0,0.78)', color: 'rgba(239,68,68,0.85)',
               borderRadius: '4px', px: '4px', lineHeight: '1.45',
-              fontSize: { xs: '0.42rem', md: '0.5rem' }, fontWeight: 600,
-              whiteSpace: 'nowrap', opacity: 0, transition: 'opacity 0.15s',
-              pointerEvents: 'none',
+              fontSize: { xs: '0.5rem', md: '0.58rem' }, fontWeight: 700,
+              whiteSpace: 'nowrap', maxWidth: 60,
+              overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
-              tippen = löschen
+              {opp.name || 'Gegner'}
             </Box>
           </Box>
         );
@@ -302,6 +369,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
             .el-handles { opacity: 0; transition: opacity 0.18s ease; }
             .el-group:hover .el-handles { opacity: 1; }
             .el-group.el-active .el-handles { opacity: 1; }
+            .el-move-dragging path, .el-move-dragging ellipse { filter: none !important; }
           `}</style>
           {/* Markers for palette colors + any extra colors used by loaded elements
               (e.g. preset colors that differ from the palette) */}
@@ -326,10 +394,9 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         </defs>
 
         {/* ── Finalized elements ──────────────────────────────────────────── */}
-        {elements.map(el => {
+        {elements.map((el, stepIdx) => {
           const dragging  = elDrag?.id === el.id;
-          const bodyMode  = elDrag?.id === el.id ? elDrag.mode : null;
-
+          const bodyMode  = elDrag?.id === el.id ? elDrag.mode : null;          const isSelected = selectedId === el.id;
           if (el.kind === 'arrow' || el.kind === 'run') {
             // Clip the visual path to the field bounds [0,100]×[0,100] so that
             // arrows crossing into the opponent half (in half-pitch mode) still
@@ -344,25 +411,30 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
             const { x1: vx1, y1: vy1, x2: vx2, y2: vy2 } = vis;
             return (
               <g key={el.id}
-                className={`el-group${dragging ? ' el-active' : ''}`}
+                ref={(node) => registerElRef(el.id, node)}
+                className={`el-group${dragging || isSelected ? ' el-active' : ''}${dragging && bodyMode === 'move' ? ' el-move-dragging' : ''}`}
                 style={{ pointerEvents: 'all' }}>
                 {/* Visual path (clipped to field bounds) */}
                 <path
+                  data-role="visual"
                   d={arrowPath(vx1, vy1, vx2, vy2)}
                   stroke={el.color}
-                  strokeWidth={dragging && bodyMode === 'move' ? '1.4' : '0.9'}
+                  strokeWidth={dragging && bodyMode === 'move' ? '1.4' : isSelected ? '1.2' : '0.9'}
                   strokeDasharray={el.kind === 'run' ? '2.5 1.8' : undefined}
                   strokeLinecap="round" fill="none"
                   markerEnd={`url(#${markerId(el.color, el.kind === 'run' ? 'dashed' : 'solid')})`}
                   style={{
                     filter: dragging
                       ? `drop-shadow(0 0 6px ${el.color}cc)`
-                      : `drop-shadow(0 0 3px ${el.color}88)`,
+                      : isSelected
+                        ? `drop-shadow(0 0 8px ${el.color}ff)`
+                        : `drop-shadow(0 0 3px ${el.color}88)`,
                     pointerEvents: 'none',
                   }}
                 />
                 {/* Wide invisible hit area for body-move (full path, not clipped) */}
                 <path
+                  data-role="hit"
                   d={arrowPath(el.x1, el.y1, el.x2, el.y2)}
                   stroke="transparent" strokeWidth="6"
                   strokeLinecap="round" fill="none"
@@ -371,7 +443,8 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
                   onTouchStart={e => onElDown(e, el.id, 'move')}
                 />
                 {/* START handle */}
-                <g className="el-handles"
+                <g data-role="start-handle"
+                  className="el-handles"
                   transform={`translate(${el.x1}, ${el.y1})`}
                   cursor={dragging && bodyMode === 'start' ? 'grabbing' : 'crosshair'}
                   onMouseDown={e => onElDown(e, el.id, 'start')}
@@ -384,7 +457,8 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
                   />
                 </g>
                 {/* END handle */}
-                <g className="el-handles"
+                <g data-role="end-handle"
+                  className="el-handles"
                   transform={`translate(${el.x2}, ${el.y2})`}
                   cursor={dragging && bodyMode === 'end' ? 'grabbing' : 'crosshair'}
                   onMouseDown={e => onElDown(e, el.id, 'end')}
@@ -396,6 +470,20 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
                     style={{ filter: `drop-shadow(0 0 3px ${el.color}bb)` }}
                   />
                 </g>
+                {/* Step number badge */}
+                {showStepNumbers && (
+                  <g style={{ pointerEvents: 'none' }}>
+                    <ellipse data-role="badge-ellipse"
+                      cx={(el.x1 + el.x2) / 2} cy={(el.y1 + el.y2) / 2} rx={2.8 * pitchAX} ry={2.8}
+                      fill="rgba(15,15,30,0.85)" stroke={el.color} strokeWidth="0.4" />
+                    <text data-role="badge-text"
+                      x={(el.x1 + el.x2) / 2} y={(el.y1 + el.y2) / 2}
+                      textAnchor="middle" dominantBaseline="central"
+                      fontSize="2.5" fontWeight="bold" fill={el.color} fontFamily="sans-serif">
+                      {stepIdx + 1}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           }
@@ -407,25 +495,30 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
             const resizeY = el.cy;
             return (
               <g key={el.id}
-                className={`el-group${dragging ? ' el-active' : ''}`}
+                ref={(node) => registerElRef(el.id, node)}
+                className={`el-group${dragging || isSelected ? ' el-active' : ''}${dragging && bodyMode === 'move' ? ' el-move-dragging' : ''}`}
                 style={{ pointerEvents: 'all' }}>
                 <ellipse
+                  data-role="body"
                   cx={el.cx} cy={el.cy} rx={rx} ry={ry}
                   stroke={el.color}
-                  strokeWidth={dragging ? '0.9' : '0.6'}
+                  strokeWidth={dragging || isSelected ? '0.9' : '0.6'}
                   strokeDasharray="2.5 1.5"
-                  fill={dragging ? `${el.color}40` : `${el.color}26`}
+                  fill={dragging || isSelected ? `${el.color}40` : `${el.color}26`}
                   cursor={dragging && bodyMode === 'move' ? 'grabbing' : 'grab'}
                   style={{
                     filter: dragging
                       ? `drop-shadow(0 0 8px ${el.color}99)`
-                      : `drop-shadow(0 0 4px ${el.color}77)`,
+                      : isSelected
+                        ? `drop-shadow(0 0 10px ${el.color}bb)`
+                        : `drop-shadow(0 0 4px ${el.color}77)`,
                   }}
                   onMouseDown={e => onElDown(e, el.id, 'move')}
                   onTouchStart={e => onElDown(e, el.id, 'move')}
                 />
                 {/* RESIZE handle */}
-                <g className="el-handles"
+                <g data-role="resize-handle"
+                  className="el-handles"
                   transform={`translate(${resizeX}, ${resizeY})`}
                   cursor={dragging && bodyMode === 'resize' ? 'grabbing' : 'ew-resize'}
                   onMouseDown={e => onElDown(e, el.id, 'resize')}
@@ -437,6 +530,20 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
                     style={{ filter: `drop-shadow(0 0 3px ${el.color}bb)` }}
                   />
                 </g>
+                {/* Step number badge */}
+                {showStepNumbers && (
+                  <g style={{ pointerEvents: 'none' }}>
+                    <ellipse data-role="badge-ellipse"
+                      cx={el.cx} cy={el.cy} rx={2.8 * pitchAX} ry={2.8}
+                      fill="rgba(15,15,30,0.85)" stroke={el.color} strokeWidth="0.4" />
+                    <text data-role="badge-text"
+                      x={el.cx} y={el.cy}
+                      textAnchor="middle" dominantBaseline="central"
+                      fontSize="2.5" fontWeight="bold" fill={el.color} fontFamily="sans-serif">
+                      {stepIdx + 1}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           }
@@ -444,28 +551,21 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           return null;
         })}
 
-        {/* ── Live draw preview ───────────────────────────────────────────── */}
-        {drawing && preview && (tool === 'arrow' || tool === 'run') && (
-          <path
-            d={arrowPath(preview.x1, preview.y1, preview.x2, preview.y2)}
-            stroke={color} strokeWidth="0.9"
-            strokeDasharray={tool === 'run' ? '2.5 1.8' : undefined}
-            strokeLinecap="round" strokeOpacity="0.7" fill="none"
-            markerEnd={`url(#${markerId(color, tool === 'run' ? 'dashed' : 'solid')})`}
-            pointerEvents="none"
-          />
-        )}
-        {drawing && preview && tool === 'zone' && (() => {
-          const r = Math.hypot(preview.x2 - preview.x1, preview.y2 - preview.y1);
-          return (
-            <ellipse
-              cx={preview.x1} cy={preview.y1}
-              rx={r * pitchAX} ry={r}
-              stroke={color} strokeWidth="0.6" strokeDasharray="2.5 1.5"
-              strokeOpacity="0.7" fill={`${color}1a`} pointerEvents="none"
-            />
-          );
-        })()}
+        {/* ── Live draw preview – always in DOM, shown/hidden imperatively ── */}
+        {/* Attributes are set via imperative DOM in handleSvgDown/Move (same    */}
+        {/* pattern as element dragging: zero React re-renders per frame).        */}
+        <path
+          ref={registerPreviewPathRef}
+          strokeWidth="0.9" strokeLinecap="round" strokeOpacity="0.7" fill="none"
+          style={{ visibility: 'hidden' }}
+          pointerEvents="none"
+        />
+        <ellipse
+          ref={registerPreviewEllipseRef}
+          strokeWidth="0.6" strokeDasharray="2.5 1.5" strokeOpacity="0.7"
+          style={{ visibility: 'hidden' }}
+          pointerEvents="none"
+        />
       </svg>
     </Box>
   );

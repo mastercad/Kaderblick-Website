@@ -187,11 +187,14 @@ class TaskController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(Task $task, CalendarEventService $calendarEventService): JsonResponse
+    public function delete(Task $task, CalendarEventService $calendarEventService, EntityManagerInterface $em): JsonResponse
     {
         $this->denyAccessUnlessGranted(TaskVoter::DELETE, $task);
 
         $calendarEventService->deleteCalendarEventsForTask($task);
+
+        $em->remove($task);
+        $em->flush();
 
         return new JsonResponse(['message' => 'Task deleted successfully with all Dependencies'], Response::HTTP_OK);
     }

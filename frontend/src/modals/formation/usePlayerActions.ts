@@ -13,6 +13,11 @@ import { findFreePosition, positionCategory } from './helpers';
 import type { FormationTemplate } from './templates';
 import type { DragSource, Player, PlayerData } from './types';
 
+// Monotonically increasing counter – guarantees unique numeric IDs even when
+// multiple players are created within the same millisecond.
+let _idCounter = Date.now();
+const nextId = () => ++_idCounter;
+
 interface UsePlayerActionsParams {
   players: PlayerData[];
   setPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
@@ -43,7 +48,7 @@ export function usePlayerActions({
   // ─── Template anwenden ────────────────────────────────────────────────────
   const applyTemplate = (template: FormationTemplate) => {
     const templatePlayers: PlayerData[] = template.players.map((tp, idx) => ({
-      id: Date.now() + idx,
+      id: nextId(),
       x: tp.x,
       y: tp.y,
       number: idx + 1,
@@ -65,7 +70,7 @@ export function usePlayerActions({
     if (alreadyIn) return;
 
     const newPlayer: PlayerData = {
-      id: Date.now(),
+      id: nextId(),
       x: 0,
       y: 0,
       number: player.shirtNumber ?? nextPlayerNumber,
@@ -89,7 +94,7 @@ export function usePlayerActions({
   const addGenericPlayer = () => {
     const pos = findFreePosition(players);
     setPlayers(prev => [...prev, {
-      id: Date.now(),
+      id: nextId(),
       ...pos,
       number: nextPlayerNumber,
       name: `Spieler ${nextPlayerNumber}`,
@@ -222,8 +227,8 @@ export function usePlayerActions({
     );
     const benchAdditions: PlayerData[] = remaining
       .filter(p => !existingBenchIds.has(p.id))
-      .map((p, i) => ({
-        id: Date.now() + i + 1,
+      .map((p) => ({
+        id: nextId(),
         x: 0,
         y: 0,
         number: p.shirtNumber ?? 0,

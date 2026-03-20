@@ -254,7 +254,9 @@ class GamesController extends ApiController
                 $relatedUserTitleData = $userTitleService->retrieveTitleDataForPlayer($event->getRelatedPlayer());
             }
 
-            $titleData = $userTitleService->retrieveTitleDataForPlayer($event->getPlayer());
+            if ($event->getPlayer() instanceof Player) {
+                $titleData = $userTitleService->retrieveTitleDataForPlayer($event->getPlayer());
+            }
 
             return [
                 'id' => $event->getId(),

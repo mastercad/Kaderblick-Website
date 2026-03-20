@@ -41,7 +41,7 @@ const makeBoardState = (overrides: Record<string, unknown> = {}) => ({
   ownPlayers: [], markerId: jest.fn(() => 'id'),
   activeTactic: undefined,
   handleAddOpponent: jest.fn(), handleUndo: jest.fn(), handleClear: jest.fn(),
-  handleSvgDown: jest.fn(), handleSvgMove: jest.fn(), handleSvgUp: jest.fn(),
+  handleSvgDown: jest.fn(), handleSvgMove: jest.fn(), handleSvgUp: jest.fn(), handleSvgLeave: jest.fn(),
   handleElDown: jest.fn(), handleOppDown: jest.fn(),
   handleNewTactic: jest.fn(), handleDeleteTactic: jest.fn(),
   handleLoadPreset: jest.fn(), confirmRename: jest.fn(),

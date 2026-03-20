@@ -199,7 +199,7 @@ class FormationController extends AbstractController
         $copy = new Formation();
         $copy->setUser($user);
         $copy->setFormationType($formation->getFormationType());
-        $copy->setName($formation->getName() . ' (Kopie)');
+        $copy->setName($formation->getName());
         $copy->setFormationData($formation->getFormationData());
         $em->persist($copy);
         $em->flush();

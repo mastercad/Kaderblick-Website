@@ -9,6 +9,8 @@ export interface OpponentToken {
   x: number; // 0-100 % within the pitch SVG coordinate system
   y: number;
   number: number;
+  /** Optional label to highlight specific opponents in a tactic */
+  name?: string;
 }
 
 export interface FieldArrow {

@@ -124,16 +124,17 @@ export function useFormationData(open: boolean, formationId: number | null): For
           setFormation(f);
           setName(f.name);
 
+          let _loadId = Date.now();
           const fieldPlayers: PlayerData[] = Array.isArray(f.formationData?.players)
             ? f.formationData.players.map((p: any) => ({
                 ...p,
-                id: p.id ?? Date.now() + Math.random(),
+                id: p.id ?? ++_loadId,
               }))
             : [];
           const bench: PlayerData[] = Array.isArray(f.formationData?.bench)
             ? f.formationData.bench.map((p: any) => ({
                 ...p,
-                id: p.id ?? Date.now() + Math.random(),
+                id: p.id ?? ++_loadId,
               }))
             : [];
 

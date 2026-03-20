@@ -6,10 +6,10 @@ import type { Tool, DrawElement, OpponentToken } from './types';
 // ─── Tool descriptions ────────────────────────────────────────────────────────
 
 const TOOL_HINT: Record<Tool, string> = {
-  pointer: 'Auswahl – ziehen = verschieben, kurz tippen = löschen',
-  arrow:   'Bewegungspfeil – ziehen zum Zeichnen',
-  run:     'Laufweg (gestrichelt) – ziehen zum Zeichnen',
-  zone:    'Zone – ziehen für Radius',
+  pointer: 'Elemente antippen zum Auswählen → dann mit „Löschen" entfernen oder einfach verschieben',
+  arrow:   'Passpfeil zeichnen – auf das Feld klicken/tippen und ziehen',
+  run:     'Laufweg zeichnen – auf das Feld klicken/tippen und ziehen (gestrichelt)',
+  zone:    'Bereich markieren – auf das Feld klicken/tippen und Radius ziehen',
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────

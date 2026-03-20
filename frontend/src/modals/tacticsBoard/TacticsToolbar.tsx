@@ -2,18 +2,21 @@
 import React, { useState } from 'react';
 import {
   Box, Chip, Divider, Tooltip, Typography, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
 } from '@mui/material';
 import CloseIcon          from '@mui/icons-material/Close';
 import FullscreenIcon     from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import UndoIcon           from '@mui/icons-material/Undo';
+import RedoIcon           from '@mui/icons-material/Redo';
 import DeleteSweepIcon    from '@mui/icons-material/DeleteSweep';
+import DeleteIcon         from '@mui/icons-material/Delete';
 import RestartAltIcon     from '@mui/icons-material/RestartAlt';
-import TouchAppIcon       from '@mui/icons-material/TouchApp';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import PersonAddIcon   from '@mui/icons-material/PersonAdd';
 import SaveIcon        from '@mui/icons-material/Save';
-import BookmarksIcon   from '@mui/icons-material/BookmarksOutlined';
+import BookmarksIcon            from '@mui/icons-material/BookmarksOutlined';
+import FormatListNumberedIcon   from '@mui/icons-material/FormatListNumbered';
 
 import { ToolBtn, ArrowToolIcon } from './ToolBtn';
 import { PALETTE } from './constants';
@@ -60,6 +63,21 @@ export interface TacticsToolbarProps {
   onLoadPreset: (preset: TacticPreset) => void;
   /** Data of the currently active tactic, used by the save-as-preset form */
   activeTactic: TacticEntry | undefined;
+
+  /** Currently selected drawing/opponent element id (null = none) */
+  selectedId: string | null;
+  /** Delete the currently selected element */
+  onDeleteSelected: () => void;
+
+  /** Whether there is something on the undo stack */
+  canUndo: boolean;
+  /** Whether there is something on the redo stack */
+  canRedo: boolean;
+  onRedo: () => void;
+  /** Whether step-order numbers are shown on arrows and zones */
+  showStepNumbers: boolean;
+  onToggleStepNumbers: () => void;
+
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -74,10 +92,15 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
   formation,
   onAddOpponent, onUndo, onClear, onResetPlayerPositions, onSave, onToggleFullscreen, onClose,
   onLoadPreset, activeTactic,
+  selectedId, onDeleteSelected,
+  canUndo, showStepNumbers, onToggleStepNumbers,
+  canRedo, onRedo,
 }) => {
   const [presetAnchor, setPresetAnchor] = useState<Element | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   return (
+  <>
   <Box sx={{
     display: 'flex', alignItems: 'center', gap: 0.5,
     px: 1.5, py: 0.75,
@@ -105,36 +128,26 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
     <Divider orientation="vertical" flexItem
       sx={{ borderColor: 'rgba(255,255,255,0.15)', mx: 0.5 }} />
 
-    {/* Drawing tools */}
-    <ToolBtn active={tool === 'pointer'}
-      title="Auswahl – ziehen=verschieben, tippen=löschen"
-      onClick={() => setTool('pointer')}>
-      <TouchAppIcon sx={{ fontSize: 20 }} />
-    </ToolBtn>
-    <ToolBtn active={tool === 'arrow'}
-      title="Bewegungspfeil (Pass / Ballweg)"
-      onClick={() => setTool('arrow')}>
+    {/* ── Drawing tools – labeled buttons for zero-learning-curve UX ─────── */}
+    <LabeledToolBtn active={tool === 'arrow'} onClick={() => setTool('arrow')}
+      label="Ballweg" tooltip="Passpfeil / Ballweg zeichnen – einfach auf das Feld ziehen">
       <ArrowToolIcon />
-    </ToolBtn>
-    <ToolBtn active={tool === 'run'}
-      title="Laufweg (Spieler ohne Ball, gestrichelt)"
-      onClick={() => setTool('run')}>
+    </LabeledToolBtn>
+    <LabeledToolBtn active={tool === 'run'} onClick={() => setTool('run')}
+      label="Laufweg" tooltip="Laufweg eines Spielers zeichnen (gestrichelte Linie)">
       <ArrowToolIcon dashed />
-    </ToolBtn>
-    <ToolBtn active={tool === 'zone'}
-      title="Zone markieren (Kreis)"
-      onClick={() => setTool('zone')}>
-      <RadioButtonUncheckedIcon sx={{ fontSize: 20 }} />
-    </ToolBtn>
+    </LabeledToolBtn>
+    <LabeledToolBtn active={tool === 'zone'} onClick={() => setTool('zone')}
+      label="Zone" tooltip="Bereich / Zone auf dem Feld markieren (Kreis ziehen)">
+      <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />
+    </LabeledToolBtn>
 
     <Divider orientation="vertical" flexItem
       sx={{ borderColor: 'rgba(255,255,255,0.15)', mx: 0.5 }} />
 
     {/* Add opponent – only in full-pitch mode */}
     {fullPitch && (
-      <Tooltip
-        title="Gegner-Token hinzufügen (linke Feldhälfte)"
-        arrow placement="bottom">
+      <Tooltip title="Roten Gegner-Token auf dem Feld platzieren (danach verschieben)" arrow placement="bottom">
         <Box
           onClick={onAddOpponent}
           sx={{
@@ -150,7 +163,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
           }}
         >
           <PersonAddIcon sx={{ fontSize: 16 }} />
-          <span>Gegner</span>
+          <span>+ Gegner</span>
         </Box>
       </Tooltip>
     )}
@@ -158,8 +171,8 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
     {/* Half / Full pitch toggle */}
     <Tooltip
       title={fullPitch
-        ? 'Zur Spielfeldhälfte wechseln (nur eigene Hälfte, kein Gegner)'
-        : 'Zum vollen Spielfeld wechseln (beide Hälften)'}
+        ? 'Nur die eigene Spielfeldhälfte anzeigen'
+        : 'Komplettes Spielfeld mit beiden Hälften anzeigen'}
       arrow placement="bottom">
       <Box
         onClick={() => setFullPitch(v => !v)}
@@ -181,7 +194,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
     </Tooltip>
 
     {/* Vorlagen */}
-    <Tooltip title="Taktik-Vorlagen laden oder speichern" arrow placement="bottom">
+    <Tooltip title="Fertige Taktik-Vorlagen laden oder aktuelle Taktik als Vorlage speichern" arrow placement="bottom">
       <Box
         onClick={e => setPresetAnchor(e.currentTarget)}
         sx={{
@@ -234,20 +247,83 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
     <Divider orientation="vertical" flexItem
       sx={{ borderColor: 'rgba(255,255,255,0.15)', mx: 0.5 }} />
 
-    {/* Undo / Clear */}
-    <ToolBtn title="Letzte Zeichnung rückgängig"
-      onClick={onUndo} disabled={elements.length === 0}>
+    {/* ── Edit actions ──────────────────────────────────────────────────── */}
+    {/* Delete selected: prominent when something is selected */}
+    <Tooltip title={selectedId ? 'Ausgewähltes Element löschen (oder Entf-Taste)' : 'Nichts ausgewählt – Element antippen zum Auswählen'} arrow placement="bottom">
+      <span>
+        <Box
+          component="button"
+          onClick={onDeleteSelected}
+          disabled={!selectedId}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 0.5,
+            px: 1, py: 0.5,
+            bgcolor: selectedId ? 'rgba(244,67,54,0.2)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${selectedId ? 'rgba(244,67,54,0.6)' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 1.5, cursor: selectedId ? 'pointer' : 'default',
+            color: selectedId ? '#ff5252' : 'rgba(255,255,255,0.25)',
+            fontSize: '0.72rem', fontWeight: 700, userSelect: 'none',
+            transition: 'all 0.15s',
+            '&:hover': selectedId ? { bgcolor: 'rgba(244,67,54,0.32)' } : {},
+            '&:disabled': { opacity: 1 },
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 16 }} />
+          <span>Löschen</span>
+        </Box>
+      </span>
+    </Tooltip>
+
+    <ToolBtn title="Letzte Aktion rückgängig (Pfeil, Zone, Spieler, Gegner)" onClick={onUndo} disabled={!canUndo}>
       <UndoIcon fontSize="small" />
     </ToolBtn>
-    <ToolBtn title="Alles löschen (Zeichnungen + Gegner)"
-      onClick={onClear}
-      disabled={elements.length === 0 && opponents.length === 0}>
-      <DeleteSweepIcon fontSize="small" />
+    <ToolBtn title="Wiederholen" onClick={onRedo} disabled={!canRedo}>
+      <RedoIcon fontSize="small" />
     </ToolBtn>
-    <ToolBtn title="Spielerpositionen zurücksetzen (auf Formations-Standard)"
-      onClick={onResetPlayerPositions}>
-      <RestartAltIcon fontSize="small" />
+    <ToolBtn title="Schrittnummerierung – zeigt die Reihenfolge der gezeichneten Elemente" onClick={onToggleStepNumbers} active={showStepNumbers}>
+      <FormatListNumberedIcon fontSize="small" />
     </ToolBtn>
+    <Tooltip title="Alle Zeichnungen und Gegner entfernen" arrow placement="bottom">
+      <span>
+        <Box
+          component="button"
+          onClick={() => setConfirmClear(true)}
+          disabled={elements.length === 0 && opponents.length === 0}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 0.5,
+            px: 0.75, py: 0.5,
+            bgcolor: 'transparent',
+            border: '1px solid transparent',
+            borderRadius: 1.5, cursor: 'pointer',
+            color: 'rgba(255,255,255,0.45)', fontSize: '0.72rem',
+            userSelect: 'none', transition: 'all 0.15s',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' },
+            '&:disabled': { opacity: 0.3, cursor: 'default', '&:hover': { bgcolor: 'transparent' } },
+          }}
+        >
+          <DeleteSweepIcon sx={{ fontSize: 18 }} />
+        </Box>
+      </span>
+    </Tooltip>
+    <Tooltip title="Spielerpositionen auf Formations-Standard zurücksetzen" arrow placement="bottom">
+      <span>
+        <Box
+          component="button"
+          onClick={onResetPlayerPositions}
+          sx={{
+            display: 'flex', alignItems: 'center',
+            px: 0.75, py: 0.5,
+            bgcolor: 'transparent', border: '1px solid transparent',
+            borderRadius: 1.5, cursor: 'pointer',
+            color: 'rgba(255,255,255,0.45)',
+            userSelect: 'none', transition: 'all 0.15s',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' },
+          }}
+        >
+          <RestartAltIcon sx={{ fontSize: 18 }} />
+        </Box>
+      </span>
+    </Tooltip>
 
     {/* Notes toggle */}
     {notes && (
@@ -284,9 +360,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
 
     {/* Save button */}
     {formation && (
-      <Tooltip
-        title="Taktik speichern – Gegner-Positionen & Zeichnungen werden in der Aufstellung gespeichert"
-        arrow placement="bottom">
+      <Tooltip title="Taktik speichern" arrow placement="bottom">
         <Box
           onClick={saving ? undefined : onSave}
           sx={{
@@ -316,13 +390,83 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
 
     {/* Fullscreen + Close */}
     <ToolBtn
-      title={isBrowserFS ? 'Vollbild beenden' : 'Vollbild – Beamer-Modus'}
+      title={isBrowserFS ? 'Vollbild beenden' : 'Vollbild (ideal für Bildschirm / Beamer)'}
       onClick={onToggleFullscreen}>
       {isBrowserFS ? <FullscreenExitIcon /> : <FullscreenIcon />}
     </ToolBtn>
-    <ToolBtn title="Schließen" onClick={onClose}>
+    <ToolBtn title="Board schließen" onClick={onClose}>
       <CloseIcon />
     </ToolBtn>
   </Box>
+
+  {/* ── Bestätigung: Alles löschen ─────────────────────────────────────── */}
+  <Dialog
+    open={confirmClear}
+    onClose={() => setConfirmClear(false)}
+    PaperProps={{
+      sx: {
+        bgcolor: '#1f2937', color: '#e5e7eb',
+        borderRadius: 2, border: '1px solid #374151', minWidth: 320,
+      },
+    }}
+  >
+    <DialogTitle sx={{ color: '#f9fafb', fontWeight: 700, pb: 1 }}>
+      Alles löschen?
+    </DialogTitle>
+    <DialogContent sx={{ pt: 0 }}>
+      <DialogContentText sx={{ color: '#9ca3af' }}>
+        Alle Zeichnungen und Gegner-Token werden von der aktuellen Taktik entfernt. Die Spielerpositionen bleiben erhalten.
+      </DialogContentText>
+    </DialogContent>
+    <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+      <Button onClick={() => setConfirmClear(false)} sx={{ color: '#9ca3af' }}>
+        Abbrechen
+      </Button>
+      <Button
+        onClick={() => { onClear(); setConfirmClear(false); }}
+        variant="contained" color="error" sx={{ fontWeight: 700 }}
+      >
+        Alles löschen
+      </Button>
+    </DialogActions>
+  </Dialog>
+  </>
   );
 };
+
+// ── Labeled drawing tool button ────────────────────────────────────────────────
+
+interface LabeledToolBtnProps {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  tooltip: string;
+  children: React.ReactNode;
+}
+
+const LabeledToolBtn: React.FC<LabeledToolBtnProps> = ({ active, onClick, label, tooltip, children }) => (
+  <Tooltip title={tooltip} arrow placement="bottom">
+    <Box
+      onClick={onClick}
+      sx={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 0.2, px: 1, py: 0.4, cursor: 'pointer',
+        bgcolor: active ? 'rgba(33,150,243,0.18)' : 'transparent',
+        border: active ? '1px solid rgba(33,150,243,0.5)' : '1px solid transparent',
+        borderRadius: 1.5, userSelect: 'none',
+        color: active ? 'primary.light' : 'rgba(255,255,255,0.6)',
+        '&:hover': { bgcolor: active ? 'rgba(33,150,243,0.25)' : 'rgba(255,255,255,0.08)', color: active ? 'primary.light' : 'rgba(255,255,255,0.88)' },
+        transition: 'all 0.15s',
+        minWidth: 38,
+      }}
+    >
+      {children}
+      <Typography sx={{
+        fontSize: '0.58rem', fontWeight: active ? 700 : 500,
+        lineHeight: 1, color: 'inherit', whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </Typography>
+    </Box>
+  </Tooltip>
+);

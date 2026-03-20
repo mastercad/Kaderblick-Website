@@ -1,6 +1,6 @@
 // ─── PitchCanvas – ghost indicator tests ──────────────────────────────────────
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PitchCanvas } from '../PitchCanvas';
 import type { PitchCanvasProps } from '../PitchCanvas';
 
@@ -20,7 +20,7 @@ jest.mock('../utils', () => ({
 
 // ── Prop factory ──────────────────────────────────────────────────────────────
 
-const noop = () => undefined;
+const noop = (..._args: any[]) => undefined;
 const noopHandler = jest.fn();
 
 const pitchRef = { current: null } as React.RefObject<HTMLDivElement | null>;
@@ -37,20 +37,27 @@ function makeProps(overrides: Partial<PitchCanvasProps> = {}): PitchCanvasProps 
     elements: [],
     opponents: [],
     ownPlayers: [],
-    preview: null,
-    drawing: false,
     tool: 'pointer',
     color: '#22c55e',
     elDrag:         null,
     oppDrag:        null,
     ownPlayerDrag:  null,
+    selectedId:     null,
+    showStepNumbers: false,
     onSvgDown:  noopHandler,
     onSvgMove:  noopHandler,
     onSvgUp:    noopHandler,
+    onSvgLeave: noopHandler,
     onElDown:   noopHandler,
     onOppDown:  noopHandler,
+    onOppDblClick: noopHandler,
     onOwnPlayerDown: noopHandler,
     markerId: (hex, kind) => `marker-${hex}-${kind}`,
+    registerElRef: noop,
+    registerOppRef: noop,
+    registerPlayerRef: noop,
+    registerPreviewPathRef: noop,
+    registerPreviewEllipseRef: noop,
     ...overrides,
   };
 }
@@ -140,5 +147,97 @@ describe('PitchCanvas – ghost indicators for off-screen players', () => {
 
     const instances = screen.getAllByText('17');
     expect(instances.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ─── Opponent token rendering ─────────────────────────────────────────────────
+
+// Opponent factory
+function makeOpp(id: string, number: number, name?: string) {
+  return { id, x: 30, y: 40, number, name };
+}
+
+describe('PitchCanvas – opponent token rendering', () => {
+  // opponents only render in fullPitch mode
+  it('renders the opponent number', () => {
+    const opps = [makeOpp('o1', 9)];
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: true })} />);
+    expect(screen.getByText('9')).toBeInTheDocument();
+  });
+
+  it('renders "Gegner" as default label when name is undefined', () => {
+    const opps = [makeOpp('o1', 9)];
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: true })} />);
+    expect(screen.getByText('Gegner')).toBeInTheDocument();
+  });
+
+  it('renders the opponent name when name prop is set', () => {
+    const opps = [makeOpp('o1', 9, 'Stürmer')];
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: true })} />);
+    expect(screen.getByText('Stürmer')).toBeInTheDocument();
+    expect(screen.queryByText('Gegner')).not.toBeInTheDocument();
+  });
+
+  it('renders multiple opponent tokens', () => {
+    const opps = [makeOpp('o1', 9), makeOpp('o2', 11)];
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: true })} />);
+    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(screen.getByText('11')).toBeInTheDocument();
+  });
+
+  it('does NOT render opponents in half-pitch mode', () => {
+    const opps = [makeOpp('o1', 9)];
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: false })} />);
+    expect(screen.queryByText('Gegner')).not.toBeInTheDocument();
+  });
+});
+
+// ─── Opponent double-click / double-tap detection ─────────────────────────────
+
+describe('PitchCanvas – opponent double-click detection', () => {
+  // opponents only render in fullPitch mode; helper makes an opp token container
+  function renderOpp(opps: any[], extra?: Partial<PitchCanvasProps>) {
+    render(<PitchCanvas {...makeProps({ opponents: opps, fullPitch: true, ...extra })} />);
+    // The outer Box for an opponent wraps "number" + "label" children
+    return screen.getByText(String(opps[0].number)).parentElement!;
+  }
+
+  it('calls onOppDblClick when two clicks are fired within 650 ms', () => {
+    const onOppDblClick = jest.fn();
+    const opps = [makeOpp('o1', 9)];
+    const badge = renderOpp(opps, { onOppDblClick });
+
+    // First click: mouseUp stamps the timestamp on the state ref
+    fireEvent.mouseDown(badge);
+    fireEvent.mouseUp(badge);
+
+    // Second mouseDown within the threshold triggers onOppDblClick
+    fireEvent.mouseDown(badge);
+
+    expect(onOppDblClick).toHaveBeenCalledTimes(1);
+    expect(onOppDblClick).toHaveBeenCalledWith('o1');
+  });
+
+  it('does NOT call onOppDblClick when only one click is fired', () => {
+    const onOppDblClick = jest.fn();
+    const opps = [makeOpp('o1', 9)];
+    const badge = renderOpp(opps, { onOppDblClick });
+
+    fireEvent.mouseDown(badge);
+    fireEvent.mouseUp(badge);
+
+    expect(onOppDblClick).not.toHaveBeenCalled();
+  });
+
+  it('calls onOppDown (start drag) on single mouseDown, not onOppDblClick', () => {
+    const onOppDblClick = jest.fn();
+    const onOppDown = jest.fn();
+    const opps = [makeOpp('o1', 9)];
+    const badge = renderOpp(opps, { onOppDblClick, onOppDown });
+
+    fireEvent.mouseDown(badge);
+
+    expect(onOppDown).toHaveBeenCalledTimes(1);
+    expect(onOppDblClick).not.toHaveBeenCalled();
   });
 });

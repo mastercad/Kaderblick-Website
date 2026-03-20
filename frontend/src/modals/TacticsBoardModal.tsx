@@ -1,9 +1,6 @@
 /**
  * TacticsBoardModal – interaktives taktisches Whiteboard
  *
- * Dieser Einstiegspunkt bleibt bewusst schlank und delegiert
- * Zustand, Logik und Teilbereiche an dedizierte Module:
- *
  *   tacticsBoard/types.ts            Alle TypeScript-Typen
  *   tacticsBoard/constants.ts        Farbpalette & Konstanten
  *   tacticsBoard/utils.ts            Reine Hilfsfunktionen (arrowPath, svgCoords …)
@@ -17,6 +14,7 @@ import React, { useState, useCallback } from 'react';
 import {
   Dialog, Box, Typography,
   DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
+  TextField, InputAdornment,
 } from '@mui/material';
 import { useTacticsBoard }  from './tacticsBoard/useTacticsBoard';
 import { PitchCanvas }      from './tacticsBoard/PitchCanvas';
@@ -41,6 +39,28 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   const board = useTacticsBoard(open, formation, onBoardSaved);
 
   const [showCloseWarning, setShowCloseWarning] = useState(false);
+  const [showStepNumbers, setShowStepNumbers] = useState(false);
+
+  // ── Opponent edit form state ──────────────────────────────────────────────
+  const [oppEditForm, setOppEditForm] = useState({ number: '', name: '' });
+  const editingOpp = board.editingOppId
+    ? board.opponents.find(o => o.id === board.editingOppId) ?? null
+    : null;
+
+  const handleOppDblClick = useCallback((id: string) => {
+    const opp = board.opponents.find(o => o.id === id);
+    if (opp) {
+      setOppEditForm({ number: String(opp.number), name: opp.name ?? '' });
+      board.handleOppDblClick(id);
+    }
+  }, [board]);
+
+  const handleOppEditSave = useCallback(() => {
+    if (!board.editingOppId) return;
+    const num = parseInt(oppEditForm.number, 10);
+    if (isNaN(num) || num < 1) return;
+    board.handleOppEditSave(board.editingOppId, num, oppEditForm.name.trim());
+  }, [board, oppEditForm]);
 
   const handleCloseRequest = useCallback(() => {
     if (board.isDirty) {
@@ -92,6 +112,13 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           onClose={handleCloseRequest}
           onLoadPreset={board.handleLoadPreset}
           activeTactic={board.activeTactic}
+          selectedId={board.selectedId}
+          onDeleteSelected={board.handleDeleteSelected}
+          canUndo={board.canUndo}
+          canRedo={board.canRedo}
+          onRedo={board.handleRedo}
+          showStepNumbers={showStepNumbers}
+          onToggleStepNumbers={() => setShowStepNumbers(v => !v)}
         />
 
         <TacticsBar
@@ -120,8 +147,6 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             elements={board.elements}
             opponents={board.opponents}
             ownPlayers={board.ownPlayers}
-            preview={board.preview}
-            drawing={board.drawing}
             tool={board.tool}
             color={board.color}
             elDrag={board.elDrag}
@@ -130,10 +155,19 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             onSvgDown={board.handleSvgDown}
             onSvgMove={board.handleSvgMove}
             onSvgUp={board.handleSvgUp}
+            onSvgLeave={board.handleSvgLeave}
             onElDown={board.handleElDown}
             onOppDown={board.handleOppDown}
+            onOppDblClick={handleOppDblClick}
             onOwnPlayerDown={board.handleOwnPlayerDown}
             markerId={board.markerId}
+            selectedId={board.selectedId}
+            registerElRef={board.registerElRef}
+            registerOppRef={board.registerOppRef}
+            registerPlayerRef={board.registerPlayerRef}
+            registerPreviewPathRef={board.registerPreviewPathRef}
+            registerPreviewEllipseRef={board.registerPreviewEllipseRef}
+            showStepNumbers={showStepNumbers}
           />
           {board.showNotes && board.notes && (
             <Box sx={{ maxWidth: 248, width: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, p: 2, alignSelf: 'flex-start', mt: 1, backdropFilter: 'blur(4px)' }}>
@@ -154,6 +188,68 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           isBrowserFS={board.isBrowserFS}
         />
       </Box>
+    </Dialog>
+
+    {/* ── Gegner-Badge bearbeiten ──────────────────────────────────────── */}
+    <Dialog
+      open={Boolean(editingOpp)}
+      onClose={board.handleOppEditClose}
+      PaperProps={{
+        sx: {
+          bgcolor: '#1f2937', color: '#e5e7eb',
+          borderRadius: 2, border: '1px solid #374151', minWidth: 300,
+        },
+      }}
+    >
+      <DialogTitle sx={{ color: '#f9fafb', fontWeight: 700, pb: 0.5 }}>
+        Gegner-Badge bearbeiten
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <TextField
+          label="Nummer"
+          type="number"
+          value={oppEditForm.number}
+          onChange={e => setOppEditForm(f => ({ ...f, number: e.target.value }))}
+          onKeyDown={e => e.key === 'Enter' && handleOppEditSave()}
+          slotProps={{ htmlInput: { min: 1, max: 99 }, input: { startAdornment: <InputAdornment position="start">#</InputAdornment> } }}
+          size="small"
+          fullWidth
+          sx={{
+            '& .MuiOutlinedInput-root': { color: '#f3f4f6', '& fieldset': { borderColor: '#4b5563' }, '&:hover fieldset': { borderColor: '#9ca3af' } },
+            '& .MuiInputLabel-root': { color: '#9ca3af' },
+            '& .MuiInputAdornment-root': { color: '#6b7280' },
+          }}
+        />
+        <TextField
+          label="Name / Beschriftung"
+          placeholder="z. B. Stürmer 9"
+          value={oppEditForm.name}
+          onChange={e => setOppEditForm(f => ({ ...f, name: e.target.value }))}
+          onKeyDown={e => e.key === 'Enter' && handleOppEditSave()}
+          size="small"
+          fullWidth
+          inputProps={{ maxLength: 20 }}
+          sx={{
+            '& .MuiOutlinedInput-root': { color: '#f3f4f6', '& fieldset': { borderColor: '#4b5563' }, '&:hover fieldset': { borderColor: '#9ca3af' } },
+            '& .MuiInputLabel-root': { color: '#9ca3af' },
+          }}
+        />
+      </DialogContent>
+      <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+        <Button
+          onClick={board.handleOppEditClose}
+          sx={{ color: '#9ca3af', textTransform: 'none' }}
+        >
+          Abbrechen
+        </Button>
+        <Button
+          onClick={handleOppEditSave}
+          variant="contained"
+          sx={{ textTransform: 'none', bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}
+        >
+          Übernehmen
+        </Button>
+      </DialogActions>
     </Dialog>
 
     {/* ── Unsaved changes warning ─────────────────────────────────────── */}

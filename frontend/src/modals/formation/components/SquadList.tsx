@@ -71,7 +71,7 @@ const SquadList: React.FC<SquadListProps> = ({
   notes, onNotesChange,
 }) => {
   const filtered = availablePlayers.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     String(p.shirtNumber ?? '').includes(searchQuery),
   );
 
