@@ -152,7 +152,8 @@ export const lightTheme = createTheme({
       main: '#00c853',
       light: '#5efc82',
       dark: '#009624',
-      contrastText: '#ffffff',
+      // #fff auf #00c853 = 2.24:1 → schl​ägt WCAG; schwarz = 9.38:1
+      contrastText: '#000000',
     },
     success: {
       main: '#00e676', // Leuchtend grün für Erfolg
@@ -238,13 +239,15 @@ export const darkTheme = createTheme({
       main: '#4caf50', // Helleres Grün – besser sichtbar auf dunklem Untergrund
       light: '#80e27e',
       dark: '#087f23',
-      contrastText: '#ffffff',
+      // Schwarz als contrastText: #000 auf #4caf50 = 7.55:1 (WCAG AAA)
+      // Weiß würde nur 2.78:1 ergeben → schlägt WCAG AA
+      contrastText: '#000000',
     },
     secondary: {
       main: '#00e676', // Leuchtendes Grün als Akzent
       light: '#66ffa6',
       dark: '#00b248',
-      contrastText: '#000000', // Dunkler Text auf sehr hellem Grün
+      contrastText: '#000000', // #000 auf #00e676 = 12.6:1 (WCAG AAA)
     },
     success: {
       main: '#00e676',
@@ -265,6 +268,9 @@ export const darkTheme = createTheme({
       styleOverrides: {
         root: {
           background: 'linear-gradient(135deg, #2e7d32 0%, #43a047 100%)',
+          // AppBar-Text explizit weiß – unabhängig von primary.contrastText,
+          // das für Buttons auf #000 gesetzt ist.
+          color: 'rgba(255,255,255,0.87)',
         },
       },
     },
