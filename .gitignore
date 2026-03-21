@@ -8,3 +8,4 @@ nginx.conf.example
 frontend/coverage/*
 nginx.conf.working
 immunify360.whitelist.commands
+regex_replacements
