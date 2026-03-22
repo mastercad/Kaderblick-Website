@@ -127,7 +127,77 @@ class CalendarController extends AbstractController
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     id: int,
+     *     title: string,
+     *     start: string,
+     *     end: string,
+     *     description: string|null,
+     *     tournamentSettings: mixed,
+     *     weatherData: array{weatherCode: mixed},
+     *     game: array{
+     *         id: int,
+     *         homeTeam: array{id: int|null, name: string|null},
+     *         awayTeam: array{id: int|null, name: string|null},
+     *         gameType: array{id: int, name: string},
+     *         league: array{id: int|null, name: string|null},
+     *         cup: array{id: int|null, name: string|null}
+     *     }|null,
+     *     task: array{
+     *         id: int,
+     *         isRecurring: bool,
+     *         recurrenceMode: mixed,
+     *         recurrenceRule: mixed,
+     *         rotationUsers: list<array{id: int, fullName: string}>,
+     *         rotationCount: int,
+     *         offset: mixed
+     *     }|null,
+     *     type: array{id: int, name: string, color: mixed}|null,
+     *     location: array{
+     *         id: int,
+     *         name: string,
+     *         latitude: mixed,
+     *         longitude: mixed,
+     *         city: mixed,
+     *         address: mixed
+     *     }|null,
+     *     permissions: array{
+     *         canCreate: bool,
+     *         canEdit: bool,
+     *         canDelete: bool,
+     *         canCancel: bool,
+     *         canViewRides: bool,
+     *         canParticipate: bool
+     *     },
+     *     trainingTeamId: int|null,
+     *     permissionType: string,
+     *     trainingWeekdays: mixed,
+     *     trainingSeriesEndDate: mixed,
+     *     trainingSeriesId: mixed,
+     *     cancelled: bool,
+     *     cancelReason: string|null,
+     *     cancelledBy: string|null,
+     *     participation_status: array{
+     *         id: int,
+     *         name: string,
+     *         code: string,
+     *         icon: mixed,
+     *         color: mixed
+     *     }|null,
+     *     tournament?: array{
+     *         id: int,
+     *         settings: mixed,
+     *         matches: list<array{
+     *             id: int,
+     *             round: mixed,
+     *             slot: mixed,
+     *             homeTeamId: int|null,
+     *             awayTeamId: int|null,
+     *             scheduledAt: string|null,
+     *             gameId: int|null
+     *         }>
+     *     }
+     * }
      */
     private function serializeCalendarEvent(CalendarEvent $calendarEvent, ?User $user, ?CalendarEventType $tournamentEventType): array
     {
