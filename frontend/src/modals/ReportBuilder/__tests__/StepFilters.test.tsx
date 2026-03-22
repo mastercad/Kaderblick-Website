@@ -152,7 +152,7 @@ describe('StepFilters - Spieler-Autocomplete-Suche', () => {
       fireEvent.change(getPlayerInput(), { target: { value: 'M' } });
     });
 
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(400);
     });
 
@@ -167,7 +167,7 @@ describe('StepFilters - Spieler-Autocomplete-Suche', () => {
       fireEvent.change(getPlayerInput(), { target: { value: '' } });
     });
 
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(400);
     });
 
@@ -182,7 +182,7 @@ describe('StepFilters - Spieler-Autocomplete-Suche', () => {
       fireEvent.change(getPlayerInput(), { target: { value: 'Mu' } });
     });
 
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(300);
     });
 
@@ -197,14 +197,14 @@ describe('StepFilters - Spieler-Autocomplete-Suche', () => {
     await act(async () => {
       fireEvent.change(input, { target: { value: 'Mu' } });
     });
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(100);
     });
 
     await act(async () => {
       fireEvent.change(input, { target: { value: 'Mue' } });
     });
-    act(() => {
+    await act(async () => {
       jest.advanceTimersByTime(300);
     });
 

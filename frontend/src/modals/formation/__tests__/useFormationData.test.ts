@@ -129,6 +129,7 @@ describe('refreshShirtNumbers – reine Funktion', () => {
 describe('useFormationData – Teams laden', () => {
   it('lädt Teams und setzt selectedTeam auf das erste', async () => {
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => { expect(result.current.teams.length).toBeGreaterThan(0); });
     expect(result.current.teams[0].name).toBe('A-Team');
     expect(result.current.selectedTeam).toBe(1);
@@ -140,6 +141,7 @@ describe('useFormationData – Teams laden', () => {
       return {};
     });
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => { expect(result.current.error).not.toBeNull(); });
     expect(result.current.error).toContain('keinem Team');
   });
@@ -148,6 +150,7 @@ describe('useFormationData – Teams laden', () => {
 describe('useFormationData – Kader laden', () => {
   it('befüllt availablePlayers wenn Team ausgewählt', async () => {
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => {
       expect(result.current.availablePlayers.some(p => p.name === 'Müller')).toBe(true);
     });
@@ -155,6 +158,7 @@ describe('useFormationData – Kader laden', () => {
 
   it('mappt shirtNumber aus dem API-Response korrekt', async () => {
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => {
       const m = result.current.availablePlayers.find(p => p.name === 'Müller');
       expect(m?.shirtNumber).toBe(7);
@@ -168,6 +172,7 @@ describe('useFormationData – Kader laden', () => {
       return {};
     });
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => { expect(result.current.error).not.toBeNull(); });
     expect(result.current.error).toContain('Keine Spieler');
   });
@@ -196,16 +201,17 @@ describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
 
     const { result } = renderHook(() => useFormationData(true, null));
     // Teams und initialer Kader geladen
+    await act(async () => {});
     await waitFor(() => { expect(result.current.teams.length).toBe(2); });
 
     // Spieler auf Feld und Bank mit bekannten (veralteten) Nummern setzen
-    act(() => {
+    await act(async () => {
       result.current.setPlayers([mkPD({ id: 100, playerId: 10, number: 77, name: 'Müller' })]);
       result.current.setBenchPlayers([mkPD({ id: 200, playerId: 20, number: 66, name: 'Neuer' })]);
     });
 
-    // Wechsel auf Team 2
-    act(() => { result.current.setSelectedTeam(2); });
+    // Wechsel auf Team 2 – triggert async players-Effect, daher await act(async)
+    await act(async () => { result.current.setSelectedTeam(2); });
 
     return result;
   };
@@ -234,11 +240,12 @@ describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
     });
 
     const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
     await waitFor(() => { expect(result.current.teams.length).toBe(2); });
 
     const placeholder = mkPD({ id: 300, playerId: null, isRealPlayer: false, number: 5, name: 'TW' });
-    act(() => { result.current.setPlayers([placeholder]); });
-    act(() => { result.current.setSelectedTeam(2); });
+    await act(async () => { result.current.setPlayers([placeholder]); });
+    await act(async () => { result.current.setSelectedTeam(2); });
 
     // Kader für Team 2 laden lassen
     await waitFor(() => {

@@ -3,9 +3,11 @@
 namespace App\Tests\Unit\Service;
 
 use App\Service\ReportFieldAliasService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
+#[AllowMockObjectsWithoutExpectations]
 class ReportFieldAliasServiceTest extends TestCase
 {
     public function testFieldAliasesReturnsArrayWithoutEntityManager(): void

@@ -59,9 +59,11 @@ function setupMocks(overview: ActivityOverviewData = makeOverview(), trend: Acti
 
 async function renderAndWait(overview?: ActivityOverviewData, trend?: ActivityTrendData) {
   setupMocks(overview, trend);
-  render(<ActivityOverview />);
-  // Warten bis Ladeanimationen verschwinden
-  await waitFor(() => expect(screen.queryAllByRole('progressbar')).toHaveLength(0));
+  await act(async () => {
+    render(<ActivityOverview />);
+    // waitFor inside act keeps the act scope alive while Promise chains flush
+    await waitFor(() => expect(screen.queryAllByRole('progressbar')).toHaveLength(0));
+  });
 }
 
 // Reset mocks before each test
@@ -160,7 +162,7 @@ describe('ActivityOverview', () => {
     // Noch nicht aufgerufen (Debounce läuft)
     expect(mockFetchUsers).toHaveBeenCalledTimes(1); // nur initialer Aufruf
 
-    act(() => { jest.advanceTimersByTime(400); });
+    await act(async () => { jest.advanceTimersByTime(400); });
 
     await waitFor(() => {
       const calls = mockFetchUsers.mock.calls;

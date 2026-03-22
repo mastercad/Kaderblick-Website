@@ -163,7 +163,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.runOnlyPendingTimers();
   jest.useRealTimers();
 });
 

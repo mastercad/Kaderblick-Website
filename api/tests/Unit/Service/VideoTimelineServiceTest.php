@@ -12,7 +12,9 @@ use App\Service\VideoTimelineService;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Generator;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -27,9 +29,10 @@ use Symfony\Bundle\SecurityBundle\Security;
  *  - Video.gameStart = Sekunden im Video bis Spielbeginn (Vorspann).
  *  - Mehrere Videos pro Kamera werden per Sort-Wert geordnet und nahtlos hintereinander gelegt.
  */
+#[AllowMockObjectsWithoutExpectations]
 class VideoTimelineServiceTest extends TestCase
 {
-    private Security $security;
+    private Security&MockObject $security;
     private VideoTimelineService $service;
 
     protected function setUp(): void

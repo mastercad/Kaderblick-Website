@@ -33,8 +33,8 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
         getOptionLabel={getUserLabel}
         value={users.filter(u => (formData.taskRotationUsers || []).includes(u.id.toString()))}
         onChange={(_, val) => handleChange('taskRotationUsers', val.map(v => v.id.toString()))}
-        renderOption={(props, option) => (
-          <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        renderOption={({ key, ...props }, option) => (
+          <Box key={key} component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box>
               <Typography variant="body2">
                 {option.fullName || `${option.firstName} ${option.lastName}`}

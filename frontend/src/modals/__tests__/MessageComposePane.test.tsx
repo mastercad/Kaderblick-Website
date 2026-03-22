@@ -7,7 +7,7 @@ import { ComposeForm, User } from '../messages/types';
 // ── MUI-Mocks ────────────────────────────────────────────────────────────────
 
 jest.mock('@mui/material/Alert',            () => ({ children, severity, ...p }: any) => <div role="alert" data-severity={severity} {...p}>{children}</div>);
-jest.mock('@mui/material/Autocomplete',     () => ({ renderInput, options, disabled, ...p }: any) => (
+jest.mock('@mui/material/Autocomplete',     () => ({ renderInput, options: _o, disabled, getOptionLabel: _gl, renderOption: _ro, isOptionEqualToValue: _ioe, filterOptions: _fo, freeSolo: _fs, fullWidth: _fw, multiple: _m, value: _v, onChange: _oc, loading: _l, sx: _sx, ...p }: any) => (
   <div data-testid="autocomplete" data-disabled={disabled ? 'true' : 'false'} {...p}>
     {renderInput({ InputProps: { startAdornment: null }, inputProps: {}, disabled })}
   </div>
@@ -22,20 +22,20 @@ jest.mock('@mui/material/Button',           () => ({ children, disabled, startIc
 jest.mock('@mui/material/Chip',             () => ({ label, ...p }: any) => <span data-testid="chip" {...p}>{label}</span>);
 jest.mock('@mui/material/CircularProgress', () => () => <span data-testid="spinner" />);
 jest.mock('@mui/material/IconButton',       () => ({ children, onClick, ...p }: any) => <button onClick={onClick} {...p}>{children}</button>);
-jest.mock('@mui/material/InputLabel',       () => ({ children, ...p }: any) => <label {...p}>{children}</label>);
+jest.mock('@mui/material/InputLabel',       () => ({ children, shrink: _s, sx: _sx, ...p }: any) => <label {...p}>{children}</label>);
 jest.mock('@mui/material/MenuItem',         () => ({ children, value, ...p }: any) => <option value={value} {...p}>{children}</option>);
 jest.mock('@mui/material/Stack',            () => ({ children, ...p }: any) => <div {...p}>{children}</div>);
-jest.mock('@mui/material/TextField',        () => ({ label, disabled, value, onChange, multiline, ...p }: any) => (
+jest.mock('@mui/material/TextField',        () => ({ label, disabled, value, onChange, multiline: _ml, InputProps: _IP, inputProps: _ip, InputLabelProps: _ILP, fullWidth: _fw, margin: _m, variant: _v, size: _s, sx: _sx, ...p }: any) => (
   <input
     aria-label={label}
     data-testid={`textfield-${label}`}
     disabled={disabled}
     value={value || ''}
-    onChange={onChange}
+    onChange={onChange ?? (() => {})}
     {...p}
   />
 ));
-jest.mock('@mui/material/Typography',       () => ({ children, ...p }: any) => <span {...p}>{children}</span>);
+jest.mock('@mui/material/Typography',       () => ({ children, sx: _sx, variant: _v, gutterBottom: _gb, component: _c, color: _col, ...p }: any) => <span {...p}>{children}</span>);
 
 jest.mock('@mui/icons-material/ArrowBack',    () => () => <span />);
 jest.mock('@mui/icons-material/Close',        () => () => <span />);

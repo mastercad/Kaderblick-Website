@@ -504,4 +504,277 @@ class TeamsControllerTest extends ApiWebTestCase
 
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
+
+    // ───────────────────────────── Banner Upload ────────────────────────────────
+
+    public function testUploadBannerRequiresAuthentication(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        $client->request('POST', "/api/teams/{$teamId}/banner");
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testUploadBannerForbiddenForRegularUser(): void
+    {
+        $client = static::createClient();
+
+        // Fetch a team id using an admin token
+        $this->authenticateUser($client, 'user16@example.com');
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        // Switch to a user without banner-edit rights
+        $this->authenticateUser($client, 'user1@example.com');
+        $client->request('POST', "/api/teams/{$teamId}/banner");
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    public function testUploadBannerWithNoFileReturnsBadRequest(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        $client->request('POST', "/api/teams/{$teamId}/banner");
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('error', $body);
+    }
+
+    public function testUploadBannerWithInvalidMimeTypeReturnsUnprocessableEntity(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        // A plain text file will be detected as text/plain by finfo
+        $tmpFile = tempnam(sys_get_temp_dir(), 'test_banner_invalid_') . '.txt';
+        file_put_contents($tmpFile, 'this is not an image');
+
+        $uploadedFile = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+            $tmpFile,
+            'not_an_image.txt',
+            'text/plain',
+            null,
+            true
+        );
+
+        $client->request('POST', "/api/teams/{$teamId}/banner", [], ['banner' => $uploadedFile]);
+
+        @unlink($tmpFile);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('error', $body);
+    }
+
+    public function testUploadBannerWithValidPngAsAdminReturns200(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        // Minimal 1×1 PNG (8-bit RGB)
+        $tmpFile = tempnam(sys_get_temp_dir(), 'test_banner_') . '.png';
+        file_put_contents($tmpFile, $this->minimalPng());
+
+        $uploadedFile = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+            $tmpFile,
+            'banner.png',
+            'image/png',
+            null,
+            true
+        );
+
+        $client->request('POST', "/api/teams/{$teamId}/banner", [], ['banner' => $uploadedFile]);
+
+        @unlink($tmpFile);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($body['success']);
+        $this->assertArrayHasKey('bannerImage', $body);
+        $this->assertNotEmpty($body['bannerImage']);
+
+        // Clean up: remove the uploaded banner via the API
+        $client->request('DELETE', "/api/teams/{$teamId}/banner");
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+    }
+
+    public function testUploadBannerResponseContainsExpectedShape(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'test_banner_') . '.png';
+        file_put_contents($tmpFile, $this->minimalPng());
+
+        $uploadedFile = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+            $tmpFile,
+            'banner.png',
+            'image/png',
+            null,
+            true
+        );
+
+        $client->request('POST', "/api/teams/{$teamId}/banner", [], ['banner' => $uploadedFile]);
+
+        @unlink($tmpFile);
+
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertIsArray($body);
+        $this->assertArrayHasKey('success', $body);
+        $this->assertArrayHasKey('bannerImage', $body);
+        $this->assertIsString($body['bannerImage']);
+        // The returned filename must end in .jpg (server always re-encodes as JPEG) or
+        // match the original extension if GD is unavailable.
+        $extension = strtolower(pathinfo($body['bannerImage'], PATHINFO_EXTENSION));
+        $this->assertContains($extension, ['jpg', 'jpeg', 'png', 'webp']);
+
+        // Cleanup
+        $client->request('DELETE', "/api/teams/{$teamId}/banner");
+    }
+
+    // ───────────────────────────── Banner Delete ────────────────────────────────
+
+    public function testDeleteBannerRequiresAuthentication(): void
+    {
+        $client = static::createClient();
+
+        $client->request('GET', '/api/teams?limit=1');
+
+        $client->request('DELETE', '/api/teams/1/banner');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testDeleteBannerForbiddenForRegularUser(): void
+    {
+        $client = static::createClient();
+
+        $this->authenticateUser($client, 'user16@example.com');
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        $this->authenticateUser($client, 'user1@example.com');
+        $client->request('DELETE', "/api/teams/{$teamId}/banner");
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    public function testDeleteBannerWithNoBannerReturnsSuccess(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        // Use a team that has no banner (we cannot guarantee this without clearing state,
+        // so we just assert the endpoint always succeeds for an admin)
+        $teamId = $data['teams'][0]['id'];
+
+        $client->request('DELETE', "/api/teams/{$teamId}/banner");
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($body['success']);
+    }
+
+    public function testDeleteBannerClearsBannerImageOnTeam(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user16@example.com');
+
+        $client->request('GET', '/api/teams?limit=1');
+        $data = json_decode($client->getResponse()->getContent(), true);
+        if (empty($data['teams'])) {
+            $this->markTestSkipped('No teams in fixture data');
+        }
+        $teamId = $data['teams'][0]['id'];
+
+        // Upload a banner first
+        $tmpFile = tempnam(sys_get_temp_dir(), 'test_banner_') . '.png';
+        file_put_contents($tmpFile, $this->minimalPng());
+        $uploadedFile = new \Symfony\Component\HttpFoundation\File\UploadedFile(
+            $tmpFile,
+            'banner.png',
+            'image/png',
+            null,
+            true
+        );
+        $client->request('POST', "/api/teams/{$teamId}/banner", [], ['banner' => $uploadedFile]);
+        @unlink($tmpFile);
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        // Now delete it
+        $client->request('DELETE', "/api/teams/{$teamId}/banner");
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        // Verify the team detail no longer has a bannerImage
+        $client->request('GET', "/api/teams/{$teamId}/details");
+        $this->assertResponseIsSuccessful();
+        $teamData = json_decode($client->getResponse()->getContent(), true);
+        $this->assertNull($teamData['team']['bannerImage']);
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the binary content of a minimal valid 1×1 pixel PNG image.
+     * finfo will correctly detect this as image/png.
+     */
+    private function minimalPng(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC' .
+            'AAAAC0lEQVR42mP8/x8AAwMCAO+a8DcAAAAASUVORK5CYII='
+        );
+    }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -31,6 +31,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import StarIcon from '@mui/icons-material/Star';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import TeamBannerSection from '../components/TeamBannerSection';
 
 interface RelationHint {
   identifier: string;
@@ -67,6 +68,8 @@ interface TeamData {
   coaches: CoachData[];
   playerCount: number;
   coachCount: number;
+  bannerImage?: string | null;
+  canEditBanner?: boolean;
 }
 
 interface EventData {
@@ -108,15 +111,21 @@ export default function MyTeam() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeamIdx, setSelectedTeamIdx] = useState(0);
+  const [teams, setTeams] = useState<TeamData[]>([]);
 
   useEffect(() => {
     setLoading(true);
     apiJson<MyTeamResponse>('/api/my-team')
       .then((res) => {
         setData(res);
+        setTeams(res.teams);
       })
       .catch(() => setError('Team-Daten konnten nicht geladen werden.'))
       .finally(() => setLoading(false));
+  }, []);
+
+  const handleBannerChange = useCallback((teamId: number, newBanner: string | null) => {
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, bannerImage: newBanner } : t));
   }, []);
 
   if (loading) {
@@ -135,7 +144,7 @@ export default function MyTeam() {
     );
   }
 
-  if (!data || data.teams.length === 0) {
+  if (!data || teams.length === 0) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <GroupsIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
@@ -149,7 +158,7 @@ export default function MyTeam() {
     );
   }
 
-  const currentTeam = data.teams[selectedTeamIdx];
+  const currentTeam = teams[selectedTeamIdx];
 
   return (
     <Box sx={{ mx: 'auto', p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
@@ -161,13 +170,13 @@ export default function MyTeam() {
             Mein Team
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Alles rund um {data.teams.length === 1 ? 'dein Team' : 'deine Teams'} auf einen Blick
+            Alles rund um {teams.length === 1 ? 'dein Team' : 'deine Teams'} auf einen Blick
           </Typography>
         </Box>
       </Stack>
 
       {/* Team-Tabs (wenn mehrere Teams) */}
-      {data.teams.length > 1 && (
+      {teams.length > 1 && (
         <Paper sx={{ mb: 3 }} elevation={0} variant="outlined">
           <Tabs
             value={selectedTeamIdx}
@@ -176,7 +185,7 @@ export default function MyTeam() {
             scrollButtons={isMobile ? 'auto' : false}
             sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 500 } }}
           >
-            {data.teams.map((team, idx) => (
+            {teams.map((team, idx) => (
               <Tab
                 key={team.id}
                 label={
@@ -192,6 +201,14 @@ export default function MyTeam() {
           </Tabs>
         </Paper>
       )}
+
+      {/* Team Banner */}
+      <TeamBannerSection
+        teamId={currentTeam.id}
+        bannerImage={currentTeam.bannerImage}
+        canEditBanner={currentTeam.canEditBanner ?? false}
+        onBannerChange={(newBanner) => handleBannerChange(currentTeam.id, newBanner)}
+      />
 
       {/* Team-Info Header */}
       <Card sx={{ mb: 3, background: `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}15 100%)` }} elevation={0} variant="outlined">
@@ -379,7 +396,7 @@ export default function MyTeam() {
               ) : (
                 <List dense disablePadding>
                   {data.upcomingEvents
-                    .filter(e => e.teamId === currentTeam.id || data.teams.length === 1)
+                    .filter(e => e.teamId === currentTeam.id || teams.length === 1)
                     .slice(0, 5)
                     .map((event) => (
                       <ListItem

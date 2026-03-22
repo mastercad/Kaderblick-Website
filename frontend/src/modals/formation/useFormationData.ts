@@ -97,8 +97,10 @@ export function useFormationData(open: boolean, formationId: number | null): For
   // ── Teams des Trainers laden ───────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     apiJson<{ teams: Team[] }>('/formation/coach-teams')
       .then(data => {
+        if (cancelled) return;
         const loaded = Array.isArray(data.teams) ? data.teams : [];
         setTeams(loaded);
         if (loaded.length === 0) {
@@ -108,18 +110,22 @@ export function useFormationData(open: boolean, formationId: number | null): For
         }
       })
       .catch(() => {
+        if (cancelled) return;
         setTeams([]);
         setError('Teams konnten nicht geladen werden.');
       });
+    return () => { cancelled = true; };
   }, [open]);
 
   // ── Bestehende Formation laden (Bearbeitungsmodus) ────────────────────────
   useEffect(() => {
     if (!open) return;
     if (formationId) {
+      let cancelled = false;
       setLoading(true);
       apiJson<any>(`/formation/${formationId}/edit`)
         .then(data => {
+          if (cancelled) return;
           const f = data.formation;
           setFormation(f);
           setName(f.name);
@@ -159,8 +165,9 @@ export function useFormationData(open: boolean, formationId: number | null): For
             setBenchPlayers(prev => refreshShirtNumbers(prev, available));
           }
         })
-        .catch(err => setError(err?.message ?? 'Fehler beim Laden'))
-        .finally(() => setLoading(false));
+        .catch(err => { if (!cancelled) setError(err?.message ?? 'Fehler beim Laden'); })
+        .finally(() => { if (!cancelled) setLoading(false); });
+      return () => { cancelled = true; };
     } else {
       // Zurücksetzen für neue Formation
       setFormation(null);
@@ -181,8 +188,10 @@ export function useFormationData(open: boolean, formationId: number | null): For
       if (!selectedTeam) setAvailablePlayers([]);
       return;
     }
+    let cancelled = false;
     apiJson<any>(`/formation/team/${selectedTeam}/players`)
       .then(data => {
+        if (cancelled) return;
         if (Array.isArray(data.players)) {
           const mapped = data.players
             .filter((e: any) => e?.id)
@@ -197,7 +206,8 @@ export function useFormationData(open: boolean, formationId: number | null): For
           setAvailablePlayers([]);
         }
       })
-      .catch(() => setAvailablePlayers([]));
+      .catch(() => { if (!cancelled) setAvailablePlayers([]); });
+    return () => { cancelled = true; };
   }, [open, selectedTeam]);
 
   return {

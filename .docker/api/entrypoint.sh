@@ -15,6 +15,7 @@ chmod -R 775 /var/www/symfony/var
 # Uploads-Verzeichnis: Subdirs anlegen und Rechte setzen,
 # damit der www-data-Prozess (ggf. via HOST_UID umgemappt) schreiben kann.
 mkdir -p /var/www/symfony/public/uploads/avatar
+mkdir -p /var/www/symfony/public/uploads/team-banners
 chown -R www-data:www-data /var/www/symfony/public
 chmod -R 775 /var/www/symfony/public
 

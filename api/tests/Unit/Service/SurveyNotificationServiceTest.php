@@ -9,11 +9,13 @@ use App\Service\NotificationService;
 use App\Service\SurveyNotificationService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
 
+#[AllowMockObjectsWithoutExpectations]
 class SurveyNotificationServiceTest extends TestCase
 {
     private SurveyNotificationService $service;

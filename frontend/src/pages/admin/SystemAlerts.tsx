@@ -104,7 +104,8 @@ function AlertCard({ item, onResolve, onReopen }: {
         mb: 1.5,
       }}
     >
-      <CardActionArea onClick={() => navigate(`/admin/system-alerts/${item.id}`)}>
+      <CardActionArea component="div" onClick={() => navigate(`/admin/system-alerts/${item.id}`)}>
+
         <CardContent sx={{ pb: '8px !important' }}>
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
             <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>

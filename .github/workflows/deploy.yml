@@ -252,6 +252,8 @@ jobs:
             docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
             docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag || github.sha }}
             docker compose -f docker-compose.yml -p production down --remove-orphans api frontend 2>/dev/null || true
+            command -v conntrack >/dev/null 2>&1 || apt-get install -y conntrack-tools -qq
+            conntrack -D -s 172.18.0.0/16
             IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
             DATABASE_URL="${{ secrets.DATABASE_URL }}" XDEBUG_MODE=off \
             HOST_UID=$(id -u kaderblick-ftp-admin) HOST_GID=$(id -g kaderblick-ftp-admin) \

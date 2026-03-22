@@ -9,6 +9,7 @@ import { Team } from '../types/team';
 import TeamDeleteConfirmationModal from './TeamDeleteConfirmationModal';
 import TeamEditModal from './TeamEditModal';
 import BaseModal from './BaseModal';
+import TeamBannerSection from '../components/TeamBannerSection';
 
 interface TeamDetailsModalProps {
   teamDetailOpen: boolean;
@@ -19,6 +20,7 @@ interface TeamDetailsModalProps {
 
 const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ teamDetailOpen, teamId, onClose, loadTeams }) => {
     const [team, setTeam] = useState<Team | null>(null);
+    const [bannerImage, setBannerImage] = useState<string | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteTeam, setDeleteTeam] = useState<Team | null>(null);
     const [teamEditModalOpen, setTeamEditModalOpen] = useState(false);
@@ -29,6 +31,7 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ teamDetailOpen, tea
             apiJson<{ team: Team }>(`/api/teams/${teamId}/details`)
             .then(data => {
                 setTeam(data.team);
+                setBannerImage(data.team.bannerImage ?? null);
             })
             .catch(() => setTeam(null));
         }
@@ -79,7 +82,13 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ teamDetailOpen, tea
             >
                 {team && team.permissions?.canView ? (
                     <Box mb={2}>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Beschreibung</Typography>
+                        <TeamBannerSection
+                            teamId={teamId!}
+                            bannerImage={bannerImage}
+                            canEditBanner={team.permissions?.canEditBanner ?? false}
+                            onBannerChange={setBannerImage}
+                        />
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, mt: bannerImage || team.permissions?.canEditBanner ? 2 : 0 }}>Beschreibung</Typography>
                         <Typography variant="body1" sx={{ mb: 2 }}>{team.description}</Typography>
                         <Divider sx={{ mb: 2 }} />
                         <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>

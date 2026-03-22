@@ -10,14 +10,15 @@ use App\Service\HeartbeatService;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Result;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[AllowMockObjectsWithoutExpectations]
 class AppHealthMonitorCommandTest extends TestCase
 {
     private AdminAlertService&MockObject $alertService;
@@ -41,9 +42,6 @@ class AppHealthMonitorCommandTest extends TestCase
             $this->cronLogger,
             '/tmp/health_monitor_test_nonexistent',
         );
-
-        $application = new Application();
-        $application->add($command);
 
         $this->commandTester = new CommandTester($command);
     }

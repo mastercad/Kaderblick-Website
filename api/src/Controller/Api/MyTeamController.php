@@ -190,6 +190,8 @@ class MyTeamController extends AbstractController
                 'coaches' => $coachesData,
                 'playerCount' => count($playersData),
                 'coachCount' => count($coachesData),
+                'bannerImage' => $team->getBannerImage(),
+                'canEditBanner' => $this->canEditBannerForTeam($user, $team),
             ];
         }
 
@@ -300,5 +302,41 @@ class MyTeamController extends AbstractController
             'isCoach' => $isCoach,
             'isPlayer' => $isPlayer,
         ]);
+    }
+
+    private function canEditBannerForTeam(User $user, \App\Entity\Team $team): bool
+    {
+        $roles = $user->getRoles();
+
+        if (in_array('ROLE_SUPERADMIN', $roles, true) || in_array('ROLE_ADMIN', $roles, true)) {
+            return true;
+        }
+
+        if (!in_array('ROLE_SUPPORTER', $roles, true)) {
+            return false;
+        }
+
+        $teamId = $team->getId();
+        foreach ($user->getUserRelations() as $relation) {
+            $player = $relation->getPlayer();
+            if (null !== $player) {
+                foreach ($player->getPlayerTeamAssignments() as $pta) {
+                    if ($pta->getTeam()->getId() === $teamId) {
+                        return true;
+                    }
+                }
+            }
+
+            $coach = $relation->getCoach();
+            if (null !== $coach) {
+                foreach ($coach->getCoachTeamAssignments() as $cta) {
+                    if ($cta->getTeam()->getId() === $teamId) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

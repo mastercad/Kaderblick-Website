@@ -7,8 +7,10 @@ use App\Entity\UserLevel;
 use App\Repository\XpRuleRepository;
 use App\Service\XPService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class XPServiceTest extends TestCase
 {
     public function testAddXPToUserCreatesUserLevelAndAddsXP(): void

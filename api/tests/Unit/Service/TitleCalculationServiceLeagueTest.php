@@ -6,9 +6,11 @@ use App\Repository\PlayerTitleRepository;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
+#[AllowMockObjectsWithoutExpectations]
 class TitleCalculationServiceLeagueTest extends TestCase
 {
     public function testAwardTitlesOlympicPrincipleLeague(): void

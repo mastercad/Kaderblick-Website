@@ -16,9 +16,14 @@ jest.mock('@mui/material/Select', () => (props: any) => (
     {props.children}
   </select>
 ));
-jest.mock('@mui/material/MenuItem', () => (props: any) => (
-  <option value={props.value}>{props.children}</option>
-));
+jest.mock('@mui/material/MenuItem', () => (props: any) => {
+  const { value, children } = props;
+  // Unwrap a single React element wrapper (e.g. <em>) to avoid invalid <option> content
+  const content = children && typeof children === 'object' && children.props
+    ? children.props.children
+    : children;
+  return <option value={value}>{content}</option>;
+});
 
 // ── Fixtures ──────────────────────────────────────────────────────────────
 const baseFormData: EventData = {

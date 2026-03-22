@@ -5,11 +5,13 @@ namespace App\Tests\Unit\Service;
 use App\Entity\User;
 use App\Service\UserVerificationService;
 use DateTime;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class UserVerificationServiceTest extends TestCase
 {
     private string $frontendUrl = 'https://example.com';

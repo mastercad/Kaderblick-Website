@@ -70,6 +70,57 @@ export default defineConfig({
     }
   },
   build: {
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          if (id.includes('react-big-calendar') || id.includes('/moment/') || id.includes('/moment-timezone')) {
+            return 'calendar-vendor';
+          }
+
+          if (id.includes('@tiptap')) {
+            return 'editor-vendor';
+          }
+
+          if (id.includes('@mui/icons-material')) {
+            return 'mui-icons-vendor';
+          }
+
+          if (id.includes('@mui/x-charts') || id.includes('chart.js') || id.includes('react-chartjs-2')) {
+            return 'charts-vendor';
+          }
+
+          if (id.includes('@dnd-kit') || id.includes('@hello-pangea/dnd')) {
+            return 'dnd-vendor';
+          }
+
+          if (id.includes('html2canvas') || id.includes('react-easy-crop') || id.includes('qrcode.react')) {
+            return 'media-vendor';
+          }
+
+          if (id.includes('workbox')) {
+            return 'pwa-vendor';
+          }
+
+          if (id.includes('@mui') || id.includes('@emotion')) {
+            return 'mui-vendor';
+          }
+
+          if (id.includes('react-router')) {
+            return 'router-vendor';
+          }
+
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+            return 'react-vendor';
+          }
+
+          return 'vendor';
+        }
+      }
+    }
   }
 })

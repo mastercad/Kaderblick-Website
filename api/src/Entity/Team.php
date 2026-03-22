@@ -58,6 +58,10 @@ class Team
     #[ORM\Column(type: 'smallint', nullable: true, name: 'default_halftime_break_duration')]
     private ?int $defaultHalftimeBreakDuration = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true, name: 'banner_image')]
+    #[Groups(['team:read'])]
+    private ?string $bannerImage = null;
+
     /** @var Collection<int, GameEvent> */
     #[Groups(['team:read'])]
     #[ORM\OneToMany(targetEntity: GameEvent::class, mappedBy: 'team')]
@@ -298,6 +302,18 @@ class Team
     public function setDefaultHalftimeBreakDuration(?int $defaultHalftimeBreakDuration): self
     {
         $this->defaultHalftimeBreakDuration = $defaultHalftimeBreakDuration;
+
+        return $this;
+    }
+
+    public function getBannerImage(): ?string
+    {
+        return $this->bannerImage;
+    }
+
+    public function setBannerImage(?string $bannerImage): self
+    {
+        $this->bannerImage = $bannerImage;
 
         return $this;
     }

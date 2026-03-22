@@ -3,4 +3,5 @@ export type Permissions = {
   canEdit: boolean;
   canView: boolean;
   canDelete: boolean;
+  canEditBanner?: boolean;
 };

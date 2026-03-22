@@ -105,7 +105,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm />);
     fillForm();
-    submit();
+    await act(async () => { submit(); });
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('E-Mail-Adresse bereits registriert.');
@@ -117,7 +117,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm />);
     fillForm();
-    submit();
+    await act(async () => { submit(); });
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/fehlgeschlagen/i);
@@ -129,7 +129,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm />);
     fillForm({ email: 'max@example.com' });
-    submit();
+    await act(async () => { submit(); });
 
     await waitFor(() => {
       expect(screen.getByText(/Fast geschafft/i)).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm onSwitchToLogin={onSwitchToLogin} />);
     fillForm();
-    submit();
+    await act(async () => { submit(); });
 
     await waitFor(() => screen.getByText(/Zum Login/i));
     fireEvent.click(screen.getByText(/Zum Login/i));
@@ -157,7 +157,7 @@ describe('RegisterForm', () => {
 
     render(<RegisterForm />);
     fillForm({ fullName: 'Erika Muster', email: 'erika@example.com', password: 'SecurePass1!', passwordConfirm: 'SecurePass1!' });
-    submit();
+    await act(async () => { submit(); });
 
     await waitFor(() => {
       expect(mockApiJson).toHaveBeenCalledWith(
@@ -186,6 +186,6 @@ describe('RegisterForm', () => {
       expect(screen.getByRole('button', { name: /wird registriert/i })).toBeDisabled();
     });
 
-    act(() => resolve({ message: 'OK' }));
+    await act(async () => { resolve({ message: 'OK' }); });
   });
 });

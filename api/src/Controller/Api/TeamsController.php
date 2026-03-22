@@ -12,6 +12,7 @@ use App\Service\CoachTeamPlayerService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -70,11 +71,13 @@ class TeamsController extends AbstractController
                 ],
                 'defaultHalfDuration' => isset($team['default_half_duration']) ? (int) $team['default_half_duration'] : null,
                 'defaultHalftimeBreakDuration' => isset($team['default_halftime_break_duration']) ? (int) $team['default_halftime_break_duration'] : null,
+                'bannerImage' => $team['banner_image'] ?? null,
                 'permissions' => [
                     'canView' => true,
                     'canEdit' => $isAdmin || in_array($team['id'], $coachTeamIds),
                     'canDelete' => $isAdmin || in_array($team['id'], $coachTeamIds),
                     'canCreate' => $isAdmin,
+                    'canEditBanner' => $isAdmin,
                 ]
             ], $teams)
         ]);
@@ -122,11 +125,13 @@ class TeamsController extends AbstractController
                     'id' => $team['league_id'],
                     'name' => $team['league_name'],
                 ],
+                'bannerImage' => $team['banner_image'] ?? null,
                 'permissions' => [
                     'canView' => true,
                     'canEdit' => $isAdmin || in_array($team['id'], $coachTeamIds),
                     'canDelete' => $isAdmin || in_array($team['id'], $coachTeamIds),
                     'canCreate' => $isAdmin,
+                    'canEditBanner' => $isAdmin,
                 ]
             ], $result['data']),
             'total' => $result['total'],
@@ -163,11 +168,13 @@ class TeamsController extends AbstractController
                 'defaultHalftimeBreakDuration' => $team->getDefaultHalftimeBreakDuration(),
                 'fussballDeId' => $team->getFussballDeId(),
                 'fussballDeUrl' => $team->getFussballDeUrl(),
+                'bannerImage' => $team->getBannerImage(),
                 'permissions' => [
                     'canView' => $this->isGranted(TeamVoter::VIEW, $team),
                     'canEdit' => $this->isGranted(TeamVoter::EDIT, $team),
                     'canDelete' => $this->isGranted(TeamVoter::DELETE, $team),
-                    'canCreate' => $this->isGranted(TeamVoter::CREATE, $team)
+                    'canCreate' => $this->isGranted(TeamVoter::CREATE, $team),
+                    'canEditBanner' => $this->canEditBanner($team),
                 ]
             ]
         ]);
@@ -343,5 +350,173 @@ class TeamsController extends AbstractController
         });
 
         return $this->json($result);
+    }
+
+    #[Route('/{id}/banner', name: 'api_team_upload_banner', methods: ['POST'])]
+    public function uploadBanner(Team $team, Request $request): JsonResponse
+    {
+        if (!$this->canEditBanner($team)) {
+            return $this->json(['error' => 'Zugriff verweigert'], Response::HTTP_FORBIDDEN);
+        }
+
+        $file = $request->files->get('banner');
+        if (!$file instanceof UploadedFile) {
+            return $this->json(['error' => 'Kein Bild übermittelt'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!in_array($file->getMimeType(), $allowedMimes, true)) {
+            return $this->json(['error' => 'Ungültiger Dateityp. Erlaubt: JPG, PNG, WebP'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if ($file->getSize() > 50 * 1024 * 1024) {
+            return $this->json(['error' => 'Bild zu groß. Maximal 50 MB erlaubt'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Remove old banner file
+        if ($team->getBannerImage()) {
+            $oldPath = $this->getParameter('kernel.project_dir') . '/public/uploads/team-banners/' . $team->getBannerImage();
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/team-banners';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $ext = $file->guessExtension() ?? 'jpg';
+        $tmpFilename = 'team_' . $team->getId() . '_banner_tmp_' . uniqid('', true) . '.' . $ext;
+        $file->move($uploadDir, $tmpFilename);
+
+        // Re-encode as JPEG on the server side (compression + optional downscale).
+        // If GD is not available the original file is used as-is.
+        $filename = $this->compressBannerAsJpeg($uploadDir, $tmpFilename, $team->getId());
+
+        $team->setBannerImage($filename);
+        $this->entityManager->flush();
+
+        return $this->json(['success' => true, 'bannerImage' => $filename]);
+    }
+
+    #[Route('/{id}/banner', name: 'api_team_delete_banner', methods: ['DELETE'])]
+    public function deleteBanner(Team $team): JsonResponse
+    {
+        if (!$this->canEditBanner($team)) {
+            return $this->json(['error' => 'Zugriff verweigert'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($team->getBannerImage()) {
+            $path = $this->getParameter('kernel.project_dir') . '/public/uploads/team-banners/' . $team->getBannerImage();
+            if (file_exists($path)) {
+                unlink($path);
+            }
+            $team->setBannerImage(null);
+            $this->entityManager->flush();
+        }
+
+        return $this->json(['success' => true]);
+    }
+
+    /**
+     * Re-encodes the uploaded banner as JPEG (quality 88, max 2 400 px wide) via GD.
+     * Returns the final filename (JPEG) or the original filename if GD is unavailable.
+     */
+    private function compressBannerAsJpeg(string $uploadDir, string $srcFilename, int $teamId): string
+    {
+        if (!function_exists('imagecreatefromjpeg')) {
+            return $srcFilename;
+        }
+
+        $srcPath = $uploadDir . '/' . $srcFilename;
+        $mime = mime_content_type($srcPath) ?: 'image/jpeg';
+
+        $image = match (true) {
+            str_contains($mime, 'jpeg') || str_contains($mime, 'jpg') => @imagecreatefromjpeg($srcPath),
+            str_contains($mime, 'png') => @imagecreatefrompng($srcPath),
+            str_contains($mime, 'webp') => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($srcPath) : false,
+            default => false,
+        };
+
+        if (false === $image) {
+            return $srcFilename;
+        }
+
+        // Downscale if wider than 2 400 px
+        $w = imagesx($image);
+        $h = imagesy($image);
+        $maxW = 2400;
+
+        if ($w > $maxW) {
+            $newH = (int) round($h * $maxW / $w);
+            $scaled = imagescale($image, $maxW, $newH, IMG_BILINEAR_FIXED);
+            imagedestroy($image);
+            if (false === $scaled) {
+                return $srcFilename;
+            }
+            $image = $scaled;
+        }
+
+        $jpgFilename = 'team_' . $teamId . '_banner_' . uniqid('', true) . '.jpg';
+        $jpgPath = $uploadDir . '/' . $jpgFilename;
+
+        if (!imagejpeg($image, $jpgPath, 88)) {
+            imagedestroy($image);
+
+            return $srcFilename;
+        }
+
+        imagedestroy($image);
+
+        if ($srcPath !== $jpgPath && file_exists($srcPath)) {
+            unlink($srcPath);
+        }
+
+        return $jpgFilename;
+    }
+
+    private function canEditBanner(Team $team): bool
+    {
+        /** @var User|null $user */
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return false;
+        }
+
+        $roles = $user->getRoles();
+
+        if (in_array('ROLE_SUPERADMIN', $roles, true) || in_array('ROLE_ADMIN', $roles, true)) {
+            return true;
+        }
+
+        if (!in_array('ROLE_SUPPORTER', $roles, true)) {
+            return false;
+        }
+
+        // ROLE_SUPPORTER: must have an active UserRelation to a player/coach in this team
+        $teamId = $team->getId();
+        foreach ($user->getUserRelations() as $relation) {
+            $player = $relation->getPlayer();
+            if (null !== $player) {
+                foreach ($player->getPlayerTeamAssignments() as $pta) {
+                    if ($pta->getTeam()->getId() === $teamId) {
+                        return true;
+                    }
+                }
+            }
+
+            $coach = $relation->getCoach();
+            if (null !== $coach) {
+                foreach ($coach->getCoachTeamAssignments() as $cta) {
+                    if ($cta->getTeam()->getId() === $teamId) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

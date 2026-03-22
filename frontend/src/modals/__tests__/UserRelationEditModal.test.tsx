@@ -44,7 +44,17 @@ jest.mock('@mui/material', () => ({
       {p.children}
     </select>
   ),
-  MenuItem:         (p: any) => <option value={p.value}>{p.children}</option>,
+  MenuItem: (p: any) => {
+    // Recursively extract text to avoid invalid HTML (<div> inside <option>)
+    function extractText(node: any): string {
+      if (!node) return '';
+      if (typeof node === 'string' || typeof node === 'number') return String(node);
+      if (Array.isArray(node)) return node.map(extractText).join('');
+      if (node?.props?.children !== undefined) return extractText(node.props.children);
+      return '';
+    }
+    return <option value={p.value}>{extractText(p.children)}</option>;
+  },
   Checkbox:         (p: any) => <input type="checkbox" checked={p.checked} onChange={p.onChange} />,
   FormControlLabel: (p: any) => <label>{p.control}{p.label}</label>,
   FormGroup:        (p: any) => <div>{p.children}</div>,

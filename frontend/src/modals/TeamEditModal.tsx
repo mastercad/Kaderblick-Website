@@ -11,6 +11,7 @@ import { League } from '../types/league';
 import { Team } from '../types/team';
 import { apiJson } from '../utils/api';
 import BaseModal from './BaseModal';
+import TeamBannerSection from '../components/TeamBannerSection';
 
 interface TeamEditModalProps {
     openTeamEditModal: boolean;
@@ -21,6 +22,7 @@ interface TeamEditModalProps {
 
 const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId, onTeamEditModalClose, onTeamSaved }) => {
     const [team, setTeam] = useState<any>(null);
+    const [bannerImage, setBannerImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
             apiJson(`/api/teams/${teamId}/details`)
                 .then(data => {
                     setTeam(data.team);
+                    setBannerImage(data.team?.bannerImage ?? null);
                     setLoading(false);
                 })
                 .catch(() => {
@@ -144,6 +147,16 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                     <form id="teamEditForm" autoComplete="off" onSubmit={handleTeamEditSubmit}>
                         <input type="hidden" name="id" value={team?.id} />
                         <Box className="modal-body" sx={{ bgcolor: 'background.default', p: 0 }}>
+                            {teamId && (
+                                <Box mb={3}>
+                                    <TeamBannerSection
+                                        teamId={teamId}
+                                        bannerImage={bannerImage}
+                                        canEditBanner={team?.permissions?.canEditBanner ?? true}
+                                        onBannerChange={setBannerImage}
+                                    />
+                                </Box>
+                            )}
                             <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
                                 <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
                                     Stammdaten
