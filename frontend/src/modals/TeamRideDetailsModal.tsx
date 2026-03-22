@@ -30,9 +30,10 @@ interface TeamRideDetailsModalProps {
   onClose: () => void;
   eventId: number | null;
   cancelled?: boolean;
+  onUpdated?: () => void;
 }
 
-const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClose, eventId, cancelled = false }) => {
+const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClose, eventId, cancelled = false, onUpdated }) => {
   const { user } = useAuth();
   const [rides, setRides] = useState<TeamRide[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,10 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
       .finally(() => setLoading(false));
   };
 
+  const notifyUpdated = () => {
+    onUpdated?.();
+  };
+
   useEffect(() => {
     if (!eventId || !open) return;
     refreshRides();
@@ -67,6 +72,7 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           return;
         }
         refreshRides();
+        notifyUpdated();
       })
       .catch(() => setBookingError('Unbekannter Fehler beim Buchen.'))
       .finally(() => setBookingRideId(null));
@@ -82,6 +88,7 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           return;
         }
         refreshRides();
+        notifyUpdated();
       })
       .catch(() => setBookingError('Unbekannter Fehler beim Stornieren.'))
       .finally(() => setCancellingRideId(null));
@@ -97,6 +104,7 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           return;
         }
         refreshRides();
+        notifyUpdated();
       })
       .catch(() => setBookingError('Unbekannter Fehler beim Entfernen.'))
       .finally(() => setRemovingPassenger(null));
@@ -112,6 +120,7 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           return;
         }
         refreshRides();
+        notifyUpdated();
       })
       .catch(() => setBookingError('Unbekannter Fehler beim Zurückziehen.'))
       .finally(() => setDeletingRideId(null));
@@ -254,7 +263,7 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
         )}
       </BaseModal>
 
-      <AddTeamRideModal open={addTeamRideModalOpen} onClose={() => setAddTeamRideModalOpen(false)} eventId={eventId} onAdded={refreshRides} />
+      <AddTeamRideModal open={addTeamRideModalOpen} onClose={() => setAddTeamRideModalOpen(false)} eventId={eventId} onAdded={() => { refreshRides(); notifyUpdated(); }} />
     </>
   );
 };

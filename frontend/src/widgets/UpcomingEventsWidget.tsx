@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import { EventDetailsModal } from '../modals/EventDetailsModal';
+import { useCalendarEventDetailsLoader } from '../hooks/useCalendarEventDetails';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
@@ -35,25 +36,38 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
   const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
+  const {
+    selectedEvent,
+    loadingEventId,
+    openEventDetails,
+    closeEventDetails,
+  } = useCalendarEventDetailsLoader((message) => setError(message));
 
   const refreshTrigger = getRefreshTrigger(widgetId);
 
-  useEffect(() => {
+  const loadWidgetContent = useCallback(async () => {
     if (!widgetId) {
       setError('Widget-ID fehlt');
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError(null);
-    apiJson(`/widget/${widgetId}/content`)
-      .then((data) => {
-        setEvents(data.events || []);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [widgetId, refreshTrigger]);
+
+    try {
+      const data = await apiJson(`/widget/${widgetId}/content`);
+      setEvents(data.events || []);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [widgetId]);
+
+  useEffect(() => {
+    loadWidgetContent();
+  }, [loadWidgetContent, refreshTrigger]);
 
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>;
@@ -72,7 +86,7 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
         <ListItem
           key={event.id}
           alignItems="flex-start"
-          onClick={() => setSelectedEvent(event)}
+          onClick={() => void openEventDetails(event.id)}
           sx={{ borderLeft: `4px solid ${event.calendarEventType?.color || '#1976d2'}`, mb: 1, pl: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
         >
           <ListItemIcon sx={{ minWidth: 32, color: event.calendarEventType?.color || 'primary.main' }}>
@@ -81,6 +95,7 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
           <ListItemText
             primary={<>
               <Typography variant="subtitle2" component="span">{event.title}</Typography>
+              {loadingEventId === event.id && <CircularProgress size={14} sx={{ ml: 1, verticalAlign: 'middle' }} />}
               {event.calendarEventType?.name && (
                 <Box component="span" sx={{ ml: 1, fontSize: 12, color: event.calendarEventType.color || 'primary.main', fontWeight: 500 }}>
                   {event.calendarEventType.name}
@@ -114,24 +129,13 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
     </List>
     <EventDetailsModal
       open={!!selectedEvent}
-      onClose={() => setSelectedEvent(null)}
-      event={selectedEvent ? {
-        id: selectedEvent.id,
-        title: selectedEvent.title,
-        start: selectedEvent.startDate,
-        end: selectedEvent.endDate || selectedEvent.startDate,
-        type: selectedEvent.calendarEventType,
-        location: selectedEvent.location
-          ? typeof selectedEvent.location === 'string'
-            ? { name: selectedEvent.location }
-            : {
-                name: selectedEvent.location.name,
-                latitude: selectedEvent.location.latitude,
-                longitude: selectedEvent.location.longitude,
-                address: selectedEvent.location.address,
-              }
-          : undefined,
-      } : null as any}
+      onClose={closeEventDetails}
+      event={selectedEvent}
+      onUpdated={loadWidgetContent}
+      onCancelled={() => {
+        closeEventDetails();
+        loadWidgetContent();
+      }}
     />
     </>
   );

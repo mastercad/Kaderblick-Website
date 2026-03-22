@@ -73,6 +73,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   onEdit,
   onDelete,
   onCancelled,
+  onUpdated,
   initialOpenRides = false,
 }) => {
   const theme = useTheme();
@@ -99,10 +100,11 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     setNoteDialogOpen(true);
   };
 
-  const handleParticipationSubmit = () => {
+  const handleParticipationSubmit = async () => {
     if (!pendingStatusId) return;
     setNoteDialogOpen(false);
-    submitParticipation(pendingStatusId, dialogNote);
+    await submitParticipation(pendingStatusId, dialogNote);
+    onUpdated?.();
   };
 
   // ── Event actions (cancel / reactivate) ───────────────────────────────────
@@ -394,6 +396,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         onClose={() => setTeamRideModalOpen(false)}
         eventId={event.id}
         cancelled={event.cancelled}
+        onUpdated={onUpdated}
       />
 
       <PlayerOverviewModal

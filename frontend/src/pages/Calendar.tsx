@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { EventDetailsModal } from '../modals/EventDetailsModal';
 import { EventModal } from '../modals/EventModal';
 import { getEventTypeFlags } from '../hooks/useEventTypeFlags';
+import { fetchCalendarEventDetails, toEventDetailsCalendarEvent } from '../hooks/useCalendarEventDetails';
 import { DynamicConfirmationModal } from '../modals/DynamicConfirmationModal';
 import { TaskDeletionModal } from '../modals/TaskDeletionModal';
 import { AlertModal } from '../modals/AlertModal';
@@ -353,14 +354,14 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
     }
 
     // Fetch event details if not in current view
-    apiJson(`/api/calendar/event/${eventId}`)
-      .then((ev: any) => {
-        if (ev && !ev.error) {
+    fetchCalendarEventDetails(eventId)
+      .then((ev) => {
+        if (ev) {
           const calEvent: CalendarEvent = {
             id: ev.id || eventId,
             title: ev.title || 'Termin',
-            start: new Date(ev.start || ev.startDate),
-            end: new Date(ev.end || ev.endDate),
+            start: new Date(ev.start),
+            end: new Date(ev.end),
             description: ev.description || '',
             eventType: ev.type || {},
             location: ev.location || {},
@@ -1576,22 +1577,8 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       <EventDetailsModal 
         open={!!selectedEvent} 
         onClose={() => { setSelectedEvent(null); setInitialOpenRides(false); }} 
-        event={selectedEvent ? {
-          id: selectedEvent.id,
-          title: selectedEvent.title,
-          start: selectedEvent.start,
-          end: selectedEvent.end,
-          description: selectedEvent.description,
-          type: selectedEvent.eventType,
-          location: selectedEvent.location,
-          game: selectedEvent.game,
-          task: selectedEvent.task,
-          weatherData: selectedEvent.weatherData,
-          permissions: selectedEvent.permissions,
-          cancelled: selectedEvent.cancelled,
-          cancelReason: selectedEvent.cancelReason,
-          cancelledBy: selectedEvent.cancelledBy,
-        } : null}
+        event={toEventDetailsCalendarEvent(selectedEvent)}
+        onUpdated={refreshEvents}
         onEdit={selectedEvent?.permissions?.canEdit ? () => selectedEvent && handleEditEvent(selectedEvent) : undefined}
         showEdit={selectedEvent?.permissions?.canEdit === true}
         onDelete={selectedEvent?.permissions?.canDelete ? handleDeleteSelectedEvent : undefined}

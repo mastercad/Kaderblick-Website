@@ -92,6 +92,7 @@ export interface EventDetailsModalProps {
   showEdit?: boolean;
   onDelete?: () => void;
   onCancelled?: () => void;
+  onUpdated?: () => void;
   // Legacy props – unused in refactored version but kept for compatibility
   participationStatuses?: ParticipationStatus[];
   currentParticipation?: CurrentParticipation;

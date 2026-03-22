@@ -30,8 +30,8 @@ import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import StarIcon from '@mui/icons-material/Star';
 import { EventDetailsModal } from '../modals/EventDetailsModal';
+import { useCalendarEventDetailsLoader } from '../hooks/useCalendarEventDetails';
 import { apiJson } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 import TeamBannerSection from '../components/TeamBannerSection';
 
 interface RelationHint {
@@ -105,7 +105,6 @@ interface MyTeamResponse {
 }
 
 export default function MyTeam() {
-  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [data, setData] = useState<MyTeamResponse | null>(null);
@@ -113,18 +112,31 @@ export default function MyTeam() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTeamIdx, setSelectedTeamIdx] = useState(0);
   const [teams, setTeams] = useState<TeamData[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+  const {
+    selectedEvent,
+    loadingEventId,
+    openEventDetails,
+    closeEventDetails,
+  } = useCalendarEventDetailsLoader((message) => setError(message));
+
+  const loadMyTeamData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await apiJson<MyTeamResponse>('/api/my-team');
+      setData(res);
+      setTeams(res.teams);
+    } catch {
+      setError('Team-Daten konnten nicht geladen werden.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
-    apiJson<MyTeamResponse>('/api/my-team')
-      .then((res) => {
-        setData(res);
-        setTeams(res.teams);
-      })
-      .catch(() => setError('Team-Daten konnten nicht geladen werden.'))
-      .finally(() => setLoading(false));
-  }, []);
+    loadMyTeamData();
+  }, [loadMyTeamData]);
 
   const handleBannerChange = useCallback((teamId: number, newBanner: string | null) => {
     setTeams(prev => prev.map(t => t.id === teamId ? { ...t, bannerImage: newBanner } : t));
@@ -403,12 +415,12 @@ export default function MyTeam() {
                     .map((event) => (
                       <ListItem
                         key={event.id}
-                        onClick={() => setSelectedEvent(event)}
+                        onClick={() => void openEventDetails(event.id)}
                         sx={{
                           borderLeft: `4px solid ${event.calendarEventType?.color || theme.palette.primary.main}`,
                           mb: 1,
                           borderRadius: '0 8px 8px 0',
-                          bgcolor: 'action.hover',
+                          bgcolor: loadingEventId === event.id ? 'action.selected' : 'action.hover',
                           cursor: 'pointer',
                           transition: 'background-color 0.2s ease',
                           '&:hover': {
@@ -425,6 +437,7 @@ export default function MyTeam() {
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {event.title}
                               </Typography>
+                              {loadingEventId === event.id && <CircularProgress size={14} />}
                               {event.calendarEventType?.name && (
                                 <Chip
                                   label={event.calendarEventType.name}
@@ -532,15 +545,13 @@ export default function MyTeam() {
 
       <EventDetailsModal
         open={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-        event={selectedEvent ? {
-          id: selectedEvent.id,
-          title: selectedEvent.title,
-          start: selectedEvent.startDate,
-          end: selectedEvent.endDate || selectedEvent.startDate,
-          type: selectedEvent.calendarEventType,
-          location: selectedEvent.location ? { name: selectedEvent.location } : undefined,
-        } : null}
+        onClose={closeEventDetails}
+        event={selectedEvent}
+        onUpdated={loadMyTeamData}
+        onCancelled={() => {
+          closeEventDetails();
+          loadMyTeamData();
+        }}
       />
     </Box>
   );
