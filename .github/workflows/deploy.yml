@@ -135,6 +135,7 @@ jobs:
             sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$PROD_DIR/api/.env"
             echo "APP_DEBUG=0"                           >> "$PROD_DIR/api/.env"
             echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$PROD_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$PROD_DIR/api/.env"
             mkdir -p "$PROD_DIR/api/config/secrets/prod"
             echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
               > "$PROD_DIR/api/config/secrets/prod/prod.decrypt.private.php"
@@ -148,6 +149,7 @@ jobs:
             sed -i 's|^FRONTEND_URL=.*$|FRONTEND_URL=https://staging.kaderblick.de|' "$STAGING_DIR/api/.env"
             echo "APP_DEBUG=0"                           >> "$STAGING_DIR/api/.env"
             echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$STAGING_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$STAGING_DIR/api/.env"
             mkdir -p "$STAGING_DIR/api/config/secrets/staging"
             echo '${{ secrets.STAGING_DECRYPT_KEY }}' | base64 -d \
               > "$STAGING_DIR/api/config/secrets/staging/staging.decrypt.private.php"
