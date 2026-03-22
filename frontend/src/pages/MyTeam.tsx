@@ -109,6 +109,7 @@ export default function MyTeam() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [data, setData] = useState<MyTeamResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeamIdx, setSelectedTeamIdx] = useState(0);
   const [teams, setTeams] = useState<TeamData[]>([]);
@@ -119,9 +120,15 @@ export default function MyTeam() {
     closeEventDetails,
   } = useCalendarEventDetailsLoader((message) => setError(message));
 
-  const loadMyTeamData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadMyTeamData = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const res = await apiJson<MyTeamResponse>('/api/my-team');
@@ -130,7 +137,11 @@ export default function MyTeam() {
     } catch {
       setError('Team-Daten konnten nicht geladen werden.');
     } finally {
-      setLoading(false);
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -180,8 +191,9 @@ export default function MyTeam() {
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <GroupsIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
             Mein Team
+            {refreshing && <CircularProgress size={20} />}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Alles rund um {teams.length === 1 ? 'dein Team' : 'deine Teams'} auf einen Blick
@@ -547,10 +559,10 @@ export default function MyTeam() {
         open={!!selectedEvent}
         onClose={closeEventDetails}
         event={selectedEvent}
-        onUpdated={loadMyTeamData}
+        onUpdated={() => loadMyTeamData({ silent: true })}
         onCancelled={() => {
           closeEventDetails();
-          loadMyTeamData();
+          loadMyTeamData({ silent: true });
         }}
       />
     </Box>

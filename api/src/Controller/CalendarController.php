@@ -60,160 +60,26 @@ class CalendarController extends AbstractController
         /** @var ?User $user */
         $user = $this->getUser();
 
-        $formattedEvents = array_map(function ($calendarEvent) use ($user, $tournamentEventType) {
-            $endDate = $calendarEvent->getEndDate();
-            if (!$endDate) {
-                $endDate = new DateTime();
-                $endDate->setTimestamp($calendarEvent->getStartDate()->getTimestamp());
-                $endDate->modify('23:59:59');
-            }
-
-            // Participation-Status für eingeloggten User holen
-            $participationStatus = null;
-            $participation = $user instanceof User ? $this->participationRepository->findByUserAndEvent($user, $calendarEvent) : [];
-            if ($participation && $participation->getStatus()) {
-                $participationStatus = [
-                    'id' => $participation->getStatus()->getId(),
-                    'name' => $participation->getStatus()->getName(),
-                    'code' => $participation->getStatus()->getCode(),
-                    'icon' => $participation->getStatus()->getIcon(),
-                    'color' => $participation->getStatus()->getColor(),
-                ];
-            } else {
-                $participationStatus = null;
-            }
-
-            // Find task through TaskAssignment
-            $taskFromAssignment = null;
-            $taskAssignment = $this->entityManager->getRepository(TaskAssignment::class)
-                ->findOneBy(['calendarEvent' => $calendarEvent]);
-            if ($taskAssignment && $taskAssignment->getTask()) {
-                $task = $taskAssignment->getTask();
-                $taskFromAssignment = [
-                    'id' => $task->getId(),
-                    'isRecurring' => $task->isRecurring(),
-                    'recurrenceMode' => $task->getRecurrenceMode(),
-                    'recurrenceRule' => $task->getRecurrenceRule(),
-                    'rotationUsers' => $task->getRotationUsers()->map(fn ($rotationUser) => [
-                        'id' => $rotationUser->getId(),
-                        'fullName' => $rotationUser->getFullName()
-                    ])->toArray(),
-                    'rotationCount' => $task->getRotationCount(),
-                    'offset' => $task->getOffsetDays(),
-                ];
-            }
-
-            $isTournamentEvent = $calendarEvent->getCalendarEventType()?->getId() === $tournamentEventType?->getId();
-
-            $eventArr = [
-                'id' => $calendarEvent->getId(),
-                'title' => $calendarEvent->getTitle(),
-                'start' => $calendarEvent->getStartDate()->format('Y-m-d\TH:i:s'),
-                'end' => $endDate->format('Y-m-d\TH:i:s'),
-                'description' => $calendarEvent->getDescription(),
-                'tournamentSettings' => $calendarEvent->getTournament()?->getSettings(),
-                'weatherData' => [
-                    'weatherCode' => $calendarEvent->getWeatherData()?->getDailyWeatherData()['weathercode'][0] ?? null,
-                ],
-                'game' => $calendarEvent->getGame() ? [
-                    'id' => $calendarEvent->getGame()->getId(),
-                    'homeTeam' => [
-                        'id' => $calendarEvent->getGame()->getHomeTeam() ? $calendarEvent->getGame()->getHomeTeam()->getId() : null,
-                        'name' => $calendarEvent->getGame()->getHomeTeam() ? $calendarEvent->getGame()->getHomeTeam()->getName() : null
-                    ],
-                    'awayTeam' => [
-                        'id' => $calendarEvent->getGame()->getAwayTeam() ? $calendarEvent->getGame()->getAwayTeam()->getId() : null,
-                        'name' => $calendarEvent->getGame()->getAwayTeam() ? $calendarEvent->getGame()->getAwayTeam()->getName() : null
-                    ],
-                    'gameType' => [
-                        'id' => $calendarEvent->getGame()->getGameType()->getId(),
-                        'name' => $calendarEvent->getGame()->getGameType()->getName()
-                    ],
-                    'league' => [
-                        'id' => $calendarEvent->getGame()->getLeague()?->getId(),
-                        'name' => $calendarEvent->getGame()->getLeague()?->getName()
-                    ],
-                    'cup' => [
-                        'id' => $calendarEvent->getGame()->getCup()?->getId(),
-                        'name' => $calendarEvent->getGame()->getCup()?->getName()
-                    ]
-                ] : null,
-                'task' => $taskFromAssignment,
-                'type' => $calendarEvent->getCalendarEventType() ? [
-                    'id' => $calendarEvent->getCalendarEventType()->getId(),
-                    'name' => $calendarEvent->getCalendarEventType()->getName(),
-                    'color' => $calendarEvent->getCalendarEventType()->getColor()
-                ] : null,
-                'location' => $calendarEvent->getLocation() ? [
-                    'id' => $calendarEvent->getLocation()->getId(),
-                    'name' => $calendarEvent->getLocation()->getName(),
-                    'latitude' => $calendarEvent->getLocation()->getLatitude(),
-                    'longitude' => $calendarEvent->getLocation()->getLongitude(),
-                    'city' => $calendarEvent->getLocation()->getCity(),
-                    'address' => $calendarEvent->getLocation()->getAddress()
-                ] : null,
-                'permissions' => [
-                    'canCreate' => $this->isGranted(CalendarEventVoter::CREATE, $calendarEvent->getGame() ?? null),
-                    'canEdit' => $this->isGranted(CalendarEventVoter::EDIT, $calendarEvent),
-                    'canDelete' => $this->isGranted(CalendarEventVoter::DELETE, $calendarEvent),
-                    'canCancel' => $this->isGranted(CalendarEventVoter::CANCEL, $calendarEvent),
-                    'canViewRides' => $this->canUserViewRides($calendarEvent),
-                    'canParticipate' => $this->canUserParticipateInCalendarEvent($calendarEvent),
-                ],
-                'trainingTeamId' => (static function () use ($calendarEvent): ?int {
-                    foreach ($calendarEvent->getPermissions() as $perm) {
-                        if (CalendarEventPermissionType::TEAM === $perm->getPermissionType() && $perm->getTeam()) {
-                            return $perm->getTeam()->getId();
-                        }
-                    }
-
-                    return null;
-                })(),
-                'permissionType' => (static function () use ($calendarEvent): string {
-                    foreach ($calendarEvent->getPermissions() as $perm) {
-                        return $perm->getPermissionType()->value;
-                    }
-
-                    return 'public';
-                })(),
-                'trainingWeekdays' => $calendarEvent->getTrainingWeekdays(),
-                'trainingSeriesEndDate' => $calendarEvent->getTrainingSeriesEndDate(),
-                'trainingSeriesId' => $calendarEvent->getTrainingSeriesId(),
-                'cancelled' => $calendarEvent->isCancelled(),
-                'cancelReason' => $calendarEvent->getCancelReason(),
-                'cancelledBy' => $calendarEvent->getCancelledBy()?->getFullName(),
-                'participation_status' => $participationStatus,
-            ];
-
-            // Wenn das Event ein Tournament hat, hänge es mit Matches und Games an
-            // (sowohl für CalendarEventType "Turnier" als auch für "Spiel" mit GameType "Turnier")
-            $tournament = $calendarEvent->getTournament();
-            if (!$tournament) {
-                // Fallback: suche per Repository (falls die ORM-Relation nicht geladen ist)
-                $tournament = $this->entityManager->getRepository(\App\Entity\Tournament::class)->findOneBy(['calendarEvent' => $calendarEvent]);
-            }
-            if ($tournament) {
-                $eventArr['tournament'] = [
-                    'id' => $tournament->getId(),
-                    'settings' => $tournament->getSettings(),
-                    'matches' => array_map(function ($match) {
-                        return [
-                            'id' => $match->getId(),
-                            'round' => $match->getRound(),
-                            'slot' => $match->getSlot(),
-                            'homeTeamId' => $match->getHomeTeam()?->getId(),
-                            'awayTeamId' => $match->getAwayTeam()?->getId(),
-                            'scheduledAt' => $match->getScheduledAt()?->format('Y-m-d\\TH:i:s'),
-                            'gameId' => $match->getGame()?->getId(),
-                        ];
-                    }, $tournament->getMatches()->toArray()),
-                ];
-            }
-
-            return $eventArr;
-        }, $calendarEvents);
+        $formattedEvents = array_map(
+            fn (CalendarEvent $calendarEvent) => $this->serializeCalendarEvent($calendarEvent, $user, $tournamentEventType),
+            $calendarEvents
+        );
 
         return $this->json(array_values($formattedEvents));
+    }
+
+    #[Route('/event/{id}', name: 'event_show', methods: ['GET'])]
+    public function getEvent(CalendarEvent $calendarEvent): JsonResponse
+    {
+        if (!$this->isGranted(CalendarEventVoter::VIEW, $calendarEvent)) {
+            return $this->json(['error' => 'Forbidden'], 403);
+        }
+
+        /** @var ?User $user */
+        $user = $this->getUser();
+        $tournamentEventType = $this->entityManager->getRepository(CalendarEventType::class)->findOneBy(['name' => 'Turnier']);
+
+        return $this->json($this->serializeCalendarEvent($calendarEvent, $user, $tournamentEventType));
     }
 
     #[Route('/event', name: 'event_create', methods: ['POST'])]
@@ -259,6 +125,155 @@ class CalendarController extends AbstractController
         $this->dispatcher->dispatch(new CalendarEventCreatedEvent($currentUser, $calendarEvent));
 
         return $this->json(['success' => true]);
+    }
+
+    private function serializeCalendarEvent(CalendarEvent $calendarEvent, ?User $user, ?CalendarEventType $tournamentEventType): array
+    {
+        $endDate = $calendarEvent->getEndDate();
+        if (!$endDate) {
+            $endDate = new DateTime();
+            $endDate->setTimestamp($calendarEvent->getStartDate()->getTimestamp());
+            $endDate->modify('23:59:59');
+        }
+
+        $participationStatus = null;
+        $participation = $user instanceof User ? $this->participationRepository->findByUserAndEvent($user, $calendarEvent) : [];
+        if ($participation && $participation->getStatus()) {
+            $participationStatus = [
+                'id' => $participation->getStatus()->getId(),
+                'name' => $participation->getStatus()->getName(),
+                'code' => $participation->getStatus()->getCode(),
+                'icon' => $participation->getStatus()->getIcon(),
+                'color' => $participation->getStatus()->getColor(),
+            ];
+        }
+
+        $taskFromAssignment = null;
+        $taskAssignment = $this->entityManager->getRepository(TaskAssignment::class)
+            ->findOneBy(['calendarEvent' => $calendarEvent]);
+        if ($taskAssignment && $taskAssignment->getTask()) {
+            $task = $taskAssignment->getTask();
+            $taskFromAssignment = [
+                'id' => $task->getId(),
+                'isRecurring' => $task->isRecurring(),
+                'recurrenceMode' => $task->getRecurrenceMode(),
+                'recurrenceRule' => $task->getRecurrenceRule(),
+                'rotationUsers' => $task->getRotationUsers()->map(fn ($rotationUser) => [
+                    'id' => $rotationUser->getId(),
+                    'fullName' => $rotationUser->getFullName()
+                ])->toArray(),
+                'rotationCount' => $task->getRotationCount(),
+                'offset' => $task->getOffsetDays(),
+            ];
+        }
+
+        $eventArr = [
+            'id' => $calendarEvent->getId(),
+            'title' => $calendarEvent->getTitle(),
+            'start' => $calendarEvent->getStartDate()->format('Y-m-d\TH:i:s'),
+            'end' => $endDate->format('Y-m-d\TH:i:s'),
+            'description' => $calendarEvent->getDescription(),
+            'tournamentSettings' => $calendarEvent->getTournament()?->getSettings(),
+            'weatherData' => [
+                'weatherCode' => $calendarEvent->getWeatherData()?->getDailyWeatherData()['weathercode'][0] ?? null,
+            ],
+            'game' => $calendarEvent->getGame() ? [
+                'id' => $calendarEvent->getGame()->getId(),
+                'homeTeam' => [
+                    'id' => $calendarEvent->getGame()->getHomeTeam() ? $calendarEvent->getGame()->getHomeTeam()->getId() : null,
+                    'name' => $calendarEvent->getGame()->getHomeTeam() ? $calendarEvent->getGame()->getHomeTeam()->getName() : null
+                ],
+                'awayTeam' => [
+                    'id' => $calendarEvent->getGame()->getAwayTeam() ? $calendarEvent->getGame()->getAwayTeam()->getId() : null,
+                    'name' => $calendarEvent->getGame()->getAwayTeam() ? $calendarEvent->getGame()->getAwayTeam()->getName() : null
+                ],
+                'gameType' => [
+                    'id' => $calendarEvent->getGame()->getGameType()->getId(),
+                    'name' => $calendarEvent->getGame()->getGameType()->getName()
+                ],
+                'league' => [
+                    'id' => $calendarEvent->getGame()->getLeague()?->getId(),
+                    'name' => $calendarEvent->getGame()->getLeague()?->getName()
+                ],
+                'cup' => [
+                    'id' => $calendarEvent->getGame()->getCup()?->getId(),
+                    'name' => $calendarEvent->getGame()->getCup()?->getName()
+                ]
+            ] : null,
+            'task' => $taskFromAssignment,
+            'type' => $calendarEvent->getCalendarEventType() ? [
+                'id' => $calendarEvent->getCalendarEventType()->getId(),
+                'name' => $calendarEvent->getCalendarEventType()->getName(),
+                'color' => $calendarEvent->getCalendarEventType()->getColor()
+            ] : null,
+            'location' => $calendarEvent->getLocation() ? [
+                'id' => $calendarEvent->getLocation()->getId(),
+                'name' => $calendarEvent->getLocation()->getName(),
+                'latitude' => $calendarEvent->getLocation()->getLatitude(),
+                'longitude' => $calendarEvent->getLocation()->getLongitude(),
+                'city' => $calendarEvent->getLocation()->getCity(),
+                'address' => $calendarEvent->getLocation()->getAddress()
+            ] : null,
+            'permissions' => [
+                'canCreate' => $this->isGranted(CalendarEventVoter::CREATE, $calendarEvent->getGame() ?? null),
+                'canEdit' => $this->isGranted(CalendarEventVoter::EDIT, $calendarEvent),
+                'canDelete' => $this->isGranted(CalendarEventVoter::DELETE, $calendarEvent),
+                'canCancel' => $this->isGranted(CalendarEventVoter::CANCEL, $calendarEvent),
+                'canViewRides' => $this->canUserViewRides($calendarEvent),
+                'canParticipate' => $this->canUserParticipateInCalendarEvent($calendarEvent),
+            ],
+            'trainingTeamId' => (static function () use ($calendarEvent): ?int {
+                foreach ($calendarEvent->getPermissions() as $perm) {
+                    if (CalendarEventPermissionType::TEAM === $perm->getPermissionType() && $perm->getTeam()) {
+                        return $perm->getTeam()->getId();
+                    }
+                }
+
+                return null;
+            })(),
+            'permissionType' => (static function () use ($calendarEvent): string {
+                foreach ($calendarEvent->getPermissions() as $perm) {
+                    return $perm->getPermissionType()->value;
+                }
+
+                return 'public';
+            })(),
+            'trainingWeekdays' => $calendarEvent->getTrainingWeekdays(),
+            'trainingSeriesEndDate' => $calendarEvent->getTrainingSeriesEndDate(),
+            'trainingSeriesId' => $calendarEvent->getTrainingSeriesId(),
+            'cancelled' => $calendarEvent->isCancelled(),
+            'cancelReason' => $calendarEvent->getCancelReason(),
+            'cancelledBy' => $calendarEvent->getCancelledBy()?->getFullName(),
+            'participation_status' => $participationStatus,
+        ];
+
+        $isTournamentEvent = $calendarEvent->getCalendarEventType()?->getId() === $tournamentEventType?->getId();
+
+        if ($isTournamentEvent || $calendarEvent->getTournament()) {
+            $tournament = $calendarEvent->getTournament();
+            if (!$tournament) {
+                $tournament = $this->entityManager->getRepository(\App\Entity\Tournament::class)->findOneBy(['calendarEvent' => $calendarEvent]);
+            }
+            if ($tournament) {
+                $eventArr['tournament'] = [
+                    'id' => $tournament->getId(),
+                    'settings' => $tournament->getSettings(),
+                    'matches' => array_map(function ($match) {
+                        return [
+                            'id' => $match->getId(),
+                            'round' => $match->getRound(),
+                            'slot' => $match->getSlot(),
+                            'homeTeamId' => $match->getHomeTeam()?->getId(),
+                            'awayTeamId' => $match->getAwayTeam()?->getId(),
+                            'scheduledAt' => $match->getScheduledAt()?->format('Y-m-d\\TH:i:s'),
+                            'gameId' => $match->getGame()?->getId(),
+                        ];
+                    }, $tournament->getMatches()->toArray()),
+                ];
+            }
+        }
+
+        return $eventArr;
     }
 
     /**

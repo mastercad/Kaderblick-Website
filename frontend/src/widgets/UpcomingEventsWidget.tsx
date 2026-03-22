@@ -35,6 +35,7 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
   const { getRefreshTrigger } = useWidgetRefresh();
   const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
     selectedEvent,
@@ -45,15 +46,21 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
 
   const refreshTrigger = getRefreshTrigger(widgetId);
 
-  const loadWidgetContent = useCallback(async () => {
+  const loadWidgetContent = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+
     if (!widgetId) {
       setError('Widget-ID fehlt');
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const data = await apiJson(`/widget/${widgetId}/content`);
@@ -61,7 +68,11 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
     } catch (e: any) {
       setError(e.message);
     } finally {
-      setLoading(false);
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [widgetId]);
 
@@ -81,6 +92,7 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
 
   return (
     <>
+    {refreshing && <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}><CircularProgress size={16} /></Box>}
     <List dense disablePadding>
       {events.map(event => (
         <ListItem
@@ -131,10 +143,10 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
       open={!!selectedEvent}
       onClose={closeEventDetails}
       event={selectedEvent}
-      onUpdated={loadWidgetContent}
+      onUpdated={() => loadWidgetContent({ silent: true })}
       onCancelled={() => {
         closeEventDetails();
-        loadWidgetContent();
+        loadWidgetContent({ silent: true });
       }}
     />
     </>
