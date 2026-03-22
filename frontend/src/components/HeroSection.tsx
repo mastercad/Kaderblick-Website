@@ -74,14 +74,14 @@ export default function HeroSection({ onStartClick, heroRef, onScrollDown }: Her
       <Box 
         className="hero-scroll-indicator"
         onClick={onScrollDown}
-        sx={{ cursor: onScrollDown ? 'pointer' : 'default', bottom: { xs: user ? 'calc(3rem + 56px)' : '3rem', md: '3rem' } }}
+        sx={{ cursor: onScrollDown ? 'pointer' : 'default', bottom: { xs: user ? 'calc(3rem + 56px + env(safe-area-inset-bottom, 0px))' : '3rem', md: '3rem' } }}
       >
         <Typography variant="body2" className="hero-scroll-text">
           Mehr erfahren
         </Typography>
         <KeyboardArrowDownIcon className="hero-scroll-arrow" />
       </Box>
-      <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, pb: { xs: user ? '56px' : 0, md: 0 } }}>
+      <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20, pb: { xs: user ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
         <Footer />
       </Box>
     </Box>

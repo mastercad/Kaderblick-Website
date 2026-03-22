@@ -15,7 +15,6 @@ import AuthModal from './modals/AuthModal';
 import ProfileModal from './modals/ProfileModal';
 import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
-import FooterWithContact from './components/FooterWithContact';
 import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
 import Privacy from './pages/Privacy';
@@ -27,6 +26,7 @@ import { PullToRefresh } from './components/PullToRefresh';
 import { PushWarningBanner } from './components/PushWarningBanner';
 import RegistrationContextDialog from './modals/RegistrationContextDialog';
 import QRCodeShareModal from './modals/QRCodeShareModal';
+import ContactModal from './modals/ContactModal';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Calendar = lazy(() => import('./pages/Calendar'));
@@ -99,6 +99,7 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [messagesInitialId, setMessagesInitialId] = useState<string | undefined>();
+  const [showContact, setShowContact] = useState(false);
   const [showRegistrationContext, setShowRegistrationContext] = useState(false);
   const [showQRShare, setShowQRShare] = useState(false);
   const location = useLocation();
@@ -205,6 +206,15 @@ function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const onOpenContact = () => setShowContact(true);
+    window.addEventListener('openContactModal', onOpenContact);
+
+    return () => {
+      window.removeEventListener('openContactModal', onOpenContact);
+    };
+  }, []);
+
   // Keep rendering even during loading - preload screen will stay visible
   if (isLoading) {
     return null; // Return null while loading, preload screen stays visible
@@ -228,7 +238,7 @@ function App() {
                   onOpenQRShare={() => setShowQRShare(true)}
                 />
                 {!isHome && <PushWarningBanner />}
-              <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? '64px' : 0, md: 0 } }}>
+              <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={<Home />} />
@@ -297,8 +307,9 @@ function App() {
                 onClose={() => setShowRegistrationContext(false)}
               />
               <QRCodeShareModal open={showQRShare} onClose={() => setShowQRShare(false)} />
+              <ContactModal open={showContact} onClose={() => setShowContact(false)} />
               {!isHome && (user ? (
-                <Box sx={{ pb: { xs: '56px', md: 0 } }}><FooterWithContact /></Box>
+                <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>
               ) : (
                 <Footer />
               ))}

@@ -95,6 +95,105 @@ interface NavigationProps {
   onOpenQRShare: () => void;
 }
 
+const MOBILE_BOTTOM_NAV_HEIGHT = 56;
+const MOBILE_BOTTOM_NAV_SAFE_AREA = 'env(safe-area-inset-bottom, 0px)';
+
+type ViewportPinnedNavStyle = {
+  left: number;
+  top: number;
+  width: number;
+};
+
+const isIosStandalonePwa = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const isIos = /iP(hone|ad|od)/.test(window.navigator.userAgent)
+    || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+
+  if (!isIos) {
+    return false;
+  }
+
+  const standaloneNavigator = window.navigator as Navigator & { standalone?: boolean };
+  const isStandalone = standaloneNavigator.standalone === true;
+  const isStandaloneDisplayMode = window.matchMedia?.('(display-mode: standalone)').matches === true
+    || window.matchMedia?.('(display-mode: fullscreen)').matches === true
+    || window.matchMedia?.('(display-mode: minimal-ui)').matches === true;
+
+  return isStandalone || isStandaloneDisplayMode;
+};
+
+function useViewportPinnedBottomNav(enabled: boolean, navHeight: number): ViewportPinnedNavStyle | null {
+  const [style, setStyle] = React.useState<ViewportPinnedNavStyle | null>(null);
+
+  React.useLayoutEffect(() => {
+    if (!enabled || typeof window === 'undefined' || !isIosStandalonePwa() || !window.visualViewport) {
+      setStyle(null);
+      return undefined;
+    }
+
+    const viewport = window.visualViewport;
+    let frameId = 0;
+
+    const update = () => {
+      frameId = 0;
+
+      const nextStyle = {
+        left: Math.round(viewport.offsetLeft),
+        top: Math.round(viewport.offsetTop + viewport.height - navHeight),
+        width: Math.round(viewport.width),
+      };
+
+      setStyle(prev => {
+        if (
+          prev
+          && prev.left === nextStyle.left
+          && prev.top === nextStyle.top
+          && prev.width === nextStyle.width
+        ) {
+          return prev;
+        }
+
+        return nextStyle;
+      });
+    };
+
+    const scheduleUpdate = () => {
+      if (frameId !== 0) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(update);
+    };
+
+    scheduleUpdate();
+
+    viewport.addEventListener('resize', scheduleUpdate);
+    viewport.addEventListener('scroll', scheduleUpdate);
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('orientationchange', scheduleUpdate);
+    window.addEventListener('pageshow', scheduleUpdate);
+    document.addEventListener('visibilitychange', scheduleUpdate);
+
+    return () => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      viewport.removeEventListener('resize', scheduleUpdate);
+      viewport.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('orientationchange', scheduleUpdate);
+      window.removeEventListener('pageshow', scheduleUpdate);
+      document.removeEventListener('visibilitychange', scheduleUpdate);
+    };
+  }, [enabled, navHeight]);
+
+  return style;
+}
+
 const getNotificationIcon = (type: AppNotification['type']) => {
   switch (type) {
     case 'news': return <NewsIcon fontSize="small" />;
@@ -135,6 +234,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
   const { isOnHeroSection } = useHomeScroll();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const viewportPinnedBottomNav = useViewportPinnedBottomNav(isMobile && isAuthenticated, MOBILE_BOTTOM_NAV_HEIGHT);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [trainerDrawerOpen, setTrainerDrawerOpen] = useState(false);
@@ -801,7 +901,20 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
       {isMobile && isAuthenticated && (
         <Paper
           sx={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100,
+            position: 'fixed',
+            zIndex: 1100,
+            left: viewportPinnedBottomNav ? `${viewportPinnedBottomNav.left}px` : 0,
+            right: viewportPinnedBottomNav ? 'auto' : 0,
+            top: viewportPinnedBottomNav ? `${viewportPinnedBottomNav.top}px` : 'auto',
+            bottom: viewportPinnedBottomNav ? 'auto' : 0,
+            width: viewportPinnedBottomNav ? `${viewportPinnedBottomNav.width}px` : 'auto',
+            minHeight: `calc(${MOBILE_BOTTOM_NAV_HEIGHT}px + ${MOBILE_BOTTOM_NAV_SAFE_AREA})`,
+            pb: MOBILE_BOTTOM_NAV_SAFE_AREA,
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+            willChange: viewportPinnedBottomNav ? 'top, left, width' : 'auto',
             ...(isHome && {
               background: 'transparent',
               boxShadow: 'none',
@@ -821,7 +934,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
           <BottomNavigation
             showLabels
             value={['dashboard', 'my-team', 'calendar', 'games'].find(k => isNavItemActive(k)) ?? (mobileMenuOpen ? 'more' : false)}
-            sx={{ height: 56 }}
+            sx={{ height: MOBILE_BOTTOM_NAV_HEIGHT }}
           >
             <BottomNavigationAction
               label="Dashboard"

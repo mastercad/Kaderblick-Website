@@ -269,9 +269,6 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
       >
         {bannerSrc ? (
           <>
-            {/* Parallax wrapper – extends 80 px beyond container on each side.
-                overflow:hidden on the parent clips it; translateY shifts which
-                crop of the (oversized) image is visible. */}
             <Box
               ref={imgWrapRef}
               sx={{
@@ -280,18 +277,19 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
                 left: 0,
                 right: 0,
                 bottom: -80,
+                display: 'flex',
+                alignItems: 'center',
                 willChange: 'transform',
               }}
             >
               <img
-                ref={imgRef}
                 src={bannerSrc}
+                ref={imgRef}
                 alt="Team Banner"
                 onLoad={handleImgLoad}
                 style={{
                   width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
+                  height: 'auto',
                   display: 'block',
                   // Initial state – Ken Burns reveal animates these to 1 / scale(1)
                   opacity: 0,
