@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Entity\CalendarEvent;
 use App\Entity\CalendarEventPermission;
 use App\Entity\CalendarEventType;
-use App\Entity\GameType;
 use App\Entity\Location;
 use App\Entity\TaskAssignment;
 use App\Entity\Team;
@@ -127,6 +126,9 @@ class CalendarController extends AbstractController
         return $this->json(['success' => true]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function serializeCalendarEvent(CalendarEvent $calendarEvent, ?User $user, ?CalendarEventType $tournamentEventType): array
     {
         $endDate = $calendarEvent->getEndDate();
