@@ -44,11 +44,57 @@ class TaskEventGeneratorService
         }
         $this->em->flush();
 
-        if ($task->isRecurring() && 'classic' === $task->getRecurrenceMode()) {
-            $this->generateClassicOccurrences($task, $user);
-        } elseif ('per_match' === $task->getRecurrenceMode()) {
+        if ('per_match' === $task->getRecurrenceMode()) {
             $this->generatePerMatchOccurrences($task, $user);
+        } elseif ($task->isRecurring() && 'classic' === $task->getRecurrenceMode()) {
+            $this->generateClassicOccurrences($task, $user);
+        } elseif (!$task->isRecurring()) {
+            $this->generateSingleOccurrence($task, $user);
         }
+    }
+
+    public function generateSingleOccurrence(Task $task, User $user): void
+    {
+        $aufgabeType = $this->calendarEventTypeRepository->findOneBy(['name' => 'Aufgabe']);
+        if (!$aufgabeType) {
+            return;
+        }
+
+        $assignedDate = $task->getAssignedDate();
+        $startDate = $assignedDate instanceof DateTimeImmutable
+            ? $assignedDate
+            : new DateTimeImmutable($assignedDate?->format('Y-m-d') ?? 'now');
+
+        $users = $task->getRotationUsers()->toArray();
+        if (0 === count($users)) {
+            $users = [$user];
+        }
+
+        $rotationCount = min($task->getRotationCount() ?? 1, count($users));
+
+        for ($index = 0; $index < $rotationCount; ++$index) {
+            $assignedUser = $users[$index];
+
+            $assignment = new TaskAssignment();
+            $assignment->setTask($task);
+            $assignment->setUser($assignedUser);
+            $assignment->setSubstituteUser($user);
+            $assignment->setAssignedDate($startDate);
+            $assignment->setStatus('offen');
+            $this->em->persist($assignment);
+
+            $aufgabeEvent = new CalendarEvent();
+            $aufgabeEvent->setTitle($task->getTitle() . ' - ' . $assignedUser->getFullName());
+            $aufgabeEvent->setDescription($task->getDescription());
+            $aufgabeEvent->setStartDate($startDate);
+            $aufgabeEvent->setCalendarEventType($aufgabeType);
+            $this->em->persist($aufgabeEvent);
+            $this->em->flush();
+
+            $assignment->setCalendarEvent($aufgabeEvent);
+        }
+
+        $this->em->flush();
     }
 
     /**
@@ -68,11 +114,13 @@ class TaskEventGeneratorService
         }
 
         // Hole alle zukünftigen Spiel-Events
+        $startDate = $task->getAssignedDate() ?? new DateTimeImmutable();
+
         $spielEvents = $this->calendarEventRepository->createQueryBuilder('ce')
             ->where('ce.calendarEventType = :spielType')
-            ->andWhere('ce.startDate >= :now')
+            ->andWhere('ce.startDate >= :startDate')
             ->setParameter('spielType', $spielType)
-            ->setParameter('now', new DateTimeImmutable())
+            ->setParameter('startDate', $startDate)
             ->orderBy('ce.startDate', 'ASC')
             ->getQuery()->getResult();
 
@@ -194,7 +242,10 @@ class TaskEventGeneratorService
             return;
         }
 
-        $startDate = new DateTimeImmutable();
+        $assignedDate = $task->getAssignedDate();
+        $startDate = $assignedDate instanceof DateTimeImmutable
+            ? $assignedDate
+            : new DateTimeImmutable($assignedDate?->format('Y-m-d') ?? 'now');
         $dates = [];
 
         // Erzeuge nächste 12 Vorkommnisse basierend auf Rule

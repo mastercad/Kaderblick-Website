@@ -16,7 +16,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import TaskEditModal from '../modals/TaskEditModal';
+import TaskEditModal, { TaskEditModalCloseResult } from '../modals/TaskEditModal';
 import { TaskDeletionModal } from '../modals/TaskDeletionModal';
 
 interface TaskUser {
@@ -38,6 +38,7 @@ interface Task {
   id: number;
   title: string;
   description?: string;
+  assignedDate?: string;
   isRecurring: boolean;
   recurrenceMode?: string;
   recurrenceRule?: string;
@@ -45,6 +46,7 @@ interface Task {
   createdAt?: string;
   rotationUsers?: TaskUser[];
   rotationCount?: number;
+  offset?: number;
   assignments: Assignment[];
 }
 
@@ -374,10 +376,19 @@ const Tasks: React.FC = () => {
 
   const handleAdd = () => { setEditTask(null); setShowModal(true); };
 
-  const handleModalClose = (changed: boolean) => {
+  const handleModalClose = (result: TaskEditModalCloseResult) => {
     setShowModal(false);
     setEditTask(null);
-    if (changed) fetchTasks();
+    if (!result.changed) return;
+
+    if (result.action === 'created') {
+      setTab(1);
+      setSnackbar({ open: true, message: 'Aufgabe angelegt und unter "Von mir erstellt" einsortiert.', severity: 'success' });
+    } else {
+      setSnackbar({ open: true, message: 'Aufgabe aktualisiert.', severity: 'success' });
+    }
+
+    fetchTasks();
   };
 
   // Stats
