@@ -1,59 +1,59 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField, Checkbox, FormControlLabel, CircularProgress, Autocomplete, Box, Typography } from '@mui/material';
-import { apiJson } from '../utils/api';
+import { Alert, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
+import { TaskEventFields } from '../components/EventModal/TaskEventFields';
+import { EventData, User } from '../types/event';
+import { apiJson, getApiErrorMessage } from '../utils/api';
+import { buildTaskRecurrenceRule, getTaskConfigFromEvent, TaskConfigErrors, validateTaskConfiguration } from '../utils/taskConfig';
 import BaseModal from './BaseModal';
-
-interface User {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  context?: string;
-}
 
 interface Task {
   id?: number;
   title: string;
   description?: string;
+  assignedDate?: string;
   isRecurring: boolean;
   recurrenceMode?: string;
   recurrenceRule?: string;
   rotationUsers?: User[];
   rotationCount?: number;
-  assignments?: Assignment[];
+  offset?: number;
+  assignments?: Array<{ assignedDate: string }>;
 }
 
-interface Assignment {
-  id?: number;
-  user: User;
-  assignedDate: string;
-  status: string;
+export interface TaskEditModalCloseResult {
+  changed: boolean;
+  action?: 'created' | 'updated';
 }
 
 interface TaskEditModalProps {
   open: boolean;
-  onClose: (changed: boolean) => void;
+  onClose: (result: TaskEditModalCloseResult) => void;
   task: Task | null;
 }
 
 const TaskEditModal: React.FC<TaskEditModalProps> = ({ open, onClose, task }) => {
-  const [title, setTitle] = useState(task?.title || '');
-  const [description, setDescription] = useState(task?.description || '');
-  const [isRecurring, setIsRecurring] = useState(task?.isRecurring || false);
-  const [recurrenceMode, setRecurrenceMode] = useState<string>(task?.recurrenceMode || 'classic');
-  const [freq, setFreq] = useState<string>('WEEKLY');
-  const [interval, setInterval] = useState<number>(1);
-  const [byDay, setByDay] = useState<string>('MO');
-  const [byMonthDay, setByMonthDay] = useState<number>(1);
-  const [recurrenceRule, setRecurrenceRule] = useState<string>(task?.recurrenceRule || '');
+  const today = new Date().toISOString().slice(0, 10);
   const [users, setUsers] = useState<User[]>([]);
   const [userLoadError, setUserLoadError] = useState<string | null>(null);
-  const [assignments, setAssignments] = useState<Assignment[]>(task?.assignments || []);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [assignedDate, setAssignedDate] = useState('');
+  const [formData, setFormData] = useState<EventData>({
+    title: '',
+    date: today,
+    description: '',
+    taskIsRecurring: false,
+    taskRecurrenceMode: 'classic',
+    taskFreq: 'WEEKLY',
+    taskInterval: 1,
+    taskByDay: 'MO',
+    taskByMonthDay: 1,
+    taskRotationUsers: [],
+    taskRotationCount: 1,
+    taskOffset: 0,
+  });
   const [loading, setLoading] = useState(false);
-  const [rotationUsers, setRotationUsers] = useState<User[]>([]);
-  const [rotationCount, setRotationCount] = useState<number>(1);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<TaskConfigErrors>({});
+
+  const isCreateMode = !task?.id;
 
   useEffect(() => {
     apiJson<{ users: User[] }>('/api/users/contacts')
@@ -73,223 +73,166 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({ open, onClose, task }) =>
   }, []);
 
   useEffect(() => {
-    setTitle(task?.title || '');
-    setDescription(task?.description || '');
-    setIsRecurring(task?.isRecurring || false);
-    setRecurrenceMode(task?.recurrenceMode || 'classic');
-    setRecurrenceRule(task?.recurrenceRule || '');
-    setRotationUsers(task?.rotationUsers || []);
-    setRotationCount(task?.rotationCount || 1);
-    // Falls ein bestehender Task geladen wird, Recurrence-Rule parsen
-    if (task?.recurrenceRule) {
-      try {
-        const rule = JSON.parse(task.recurrenceRule);
-        setFreq(rule.freq || 'WEEKLY');
-        setInterval(rule.interval || 1);
-        setByDay(rule.byday ? rule.byday[0] : 'MO');
-        setByMonthDay(rule.bymonthday || 1);
-      } catch {}
-    }
-    setAssignments(task?.assignments || []);
+    const initialEventData: EventData = {
+      title: task?.title || '',
+      date: task?.assignedDate || task?.assignments?.map(assignment => assignment.assignedDate).sort()[0] || today,
+      description: task?.description || '',
+      taskIsRecurring: task?.isRecurring ?? false,
+      taskRecurrenceMode: task?.recurrenceMode || 'classic',
+      taskRecurrenceRule: task?.recurrenceRule || '',
+      taskRotationUsers: task?.rotationUsers?.map(user => String(user.id)) || [],
+      taskRotationCount: task?.rotationCount || 1,
+      taskOffset: task?.offset || 0,
+      task: task ? {
+        id: task.id,
+        isRecurring: task.isRecurring,
+        recurrenceMode: task.recurrenceMode,
+        recurrenceRule: task.recurrenceRule,
+        rotationUsers: task.rotationUsers?.map(user => ({ id: Number(user.id), fullName: user.fullName || '' })) || [],
+        rotationCount: task.rotationCount,
+        offset: task.offset,
+      } : undefined,
+    };
+
+    const config = getTaskConfigFromEvent(initialEventData, { defaultRecurring: false });
+    setFormData({
+      ...initialEventData,
+      taskIsRecurring: config.isRecurring,
+      taskRecurrenceMode: config.recurrenceMode,
+      taskFreq: config.freq,
+      taskInterval: config.interval,
+      taskByDay: config.byDay,
+      taskByMonthDay: config.byMonthDay,
+      taskRotationUsers: config.rotationUserIds,
+      taskRotationCount: config.rotationCount,
+      taskOffset: config.offset,
+    });
+    setFieldErrors({});
+    setFormError(null);
   }, [task]);
 
-  const handleSave = async () => {
-    setLoading(true);
-  // Recurrence-Rule als JSON generieren
-  let ruleString = '';
-  if (isRecurring && recurrenceMode === 'classic') {
-    const rule: any = { freq, interval };
-    if (freq === 'WEEKLY') rule.byday = [byDay];
-    if (freq === 'MONTHLY') rule.bymonthday = byMonthDay;
-    ruleString = JSON.stringify(rule);
-  }
-  if (isRecurring && recurrenceMode === 'per_match') {
-    ruleString = '';
-  }
-  const payload = { title, description, isRecurring, recurrenceMode, recurrenceRule: ruleString, rotationUsers: rotationUsers.map(u => u.id), rotationCount };
-    try {
-      if (task && task.id) {
-        await apiJson(`/api/tasks/${task.id}`, { method: 'PUT', body: payload });
-      } else {
-        await apiJson('/api/tasks', { method: 'POST', body: payload });
-      }
-      onClose(true);
-    } catch (e) {
-      // Fehlerbehandlung
-    }
-    setLoading(false);
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormError(null);
+    setFieldErrors(prev => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field as keyof TaskConfigErrors];
+      return next;
+    });
   };
 
-  const handleAddAssignment = async () => {
-    if (!task || !selectedUser || !assignedDate) return;
+  const handleSave = async () => {
+    const trimmedTitle = (formData.title || '').trim();
+    const startDate = formData.date || '';
+    const config = getTaskConfigFromEvent(formData, { defaultRecurring: false });
+    const validation = validateTaskConfiguration(config);
+
+    const nextFieldErrors = { ...validation.errors };
+    if (!trimmedTitle || !startDate) {
+      setFormError('Bitte korrigiere die markierten Felder.');
+      setFieldErrors(nextFieldErrors);
+      return;
+    }
+
+    if (!validation.isValid) {
+      setFormError('Bitte korrigiere die markierten Felder.');
+      setFieldErrors(nextFieldErrors);
+      return;
+    }
+
     setLoading(true);
     try {
-      await apiJson(`/api/tasks/${task.id}/assignments`, {
-        method: 'POST',
-        body: {
-          userId: selectedUser.id,
-          assignedDate,
-          status: 'offen',
-        },
-      });
-      // assignments neu laden
-      // ...
-      onClose(true);
-    } catch (e) {}
-    setLoading(false);
+      const payload = {
+        title: trimmedTitle,
+        assignedDate: startDate,
+        description: (formData.description || '').trim() || null,
+        isRecurring: config.isRecurring,
+        recurrenceMode: config.recurrenceMode,
+        recurrenceRule: buildTaskRecurrenceRule(config) || null,
+        rotationUsers: config.rotationUserIds.map(id => Number(id)),
+        rotationCount: config.rotationCount,
+        offset: config.offset,
+      };
+
+      if (task && task.id) {
+        await apiJson(`/api/tasks/${task.id}`, { method: 'PUT', body: payload });
+        onClose({ changed: true, action: 'updated' });
+      } else {
+        await apiJson('/api/tasks', { method: 'POST', body: payload });
+        onClose({ changed: true, action: 'created' });
+      }
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, 'Aufgabe konnte nicht gespeichert werden.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <BaseModal
       open={open}
-      onClose={() => onClose(false)}
-      maxWidth="sm"
+      onClose={() => onClose({ changed: false })}
+      maxWidth="md"
       title={`Aufgabe ${task ? 'bearbeiten' : 'anlegen'}`}
+      disableBackdropClick={loading}
       actions={
         <>
-          <Button onClick={() => onClose(false)} variant="outlined" color="secondary" disabled={loading}>Abbrechen</Button>
+          <Button onClick={() => onClose({ changed: false })} variant="outlined" color="secondary" disabled={loading}>Abbrechen</Button>
           <Button onClick={handleSave} variant="contained" color="primary" disabled={loading}>
             {loading ? <CircularProgress size={24} /> : 'Speichern'}
           </Button>
         </>
       }
     >
-      <TextField
-        label="Titel"
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        fullWidth
-        margin="normal"
-      />
-      <TextField
-          label="Beschreibung"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          fullWidth
-          margin="normal"
-        />
-        <Autocomplete
-          multiple
-          options={users}
-          getOptionLabel={u => {
-            const name = u.fullName
-              ? u.fullName
-              : u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.firstName || u.lastName || `User #${u.id}`;
-            return u.context ? `${name} (${u.context})` : name;
-          }}
-          value={rotationUsers}
-          onChange={(_, val) => setRotationUsers(val)}
-          renderOption={(props, option) => (
-            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box>
-                <Typography variant="body2">
-                  {option.fullName || `${option.firstName} ${option.lastName}`}
-                </Typography>
-                {option.context && (
-                  <Typography variant="caption" color="text.secondary">{option.context}</Typography>
-                )}
-              </Box>
-            </Box>
-          )}
-          renderInput={params => <TextField {...params} label="Benutzer-Rotation" margin="normal" />}
-          sx={{ mt: 2, mb: 2 }}
-        />
-        {userLoadError && (
-          <div style={{ color: 'red', margin: '8px 0 16px 0' }}>{userLoadError}</div>
-        )}
-        {users.length === 0 && !userLoadError && (
-          <div style={{ color: 'orange', margin: '8px 0 16px 0' }}>Keine Benutzer zur Auswahl vorhanden.</div>
-        )}
+      <Stack spacing={2}>
+        <Typography variant="body2" color="text.secondary">
+          Du kannst hier einmalige Aufgaben, wiederkehrende Aufgaben oder Aufgaben pro Spiel anlegen.
+        </Typography>
+
+        {formError && <Alert severity="error">{formError}</Alert>}
+
         <TextField
-          label="Personen pro Aufgabe gleichzeitig"
-          type="number"
-          value={rotationCount}
-          onChange={e => setRotationCount(Number(e.target.value))}
+          label="Titel"
+          value={formData.title || ''}
+          onChange={e => handleChange('title', e.target.value)}
           fullWidth
-          margin="normal"
-          inputProps={{ min: 1, max: rotationUsers.length || 99 }}
+          required
+          error={!formData.title?.trim() && !!formError}
+          helperText={!formData.title?.trim() && !!formError ? 'Bitte einen Titel angeben.' : 'Kurzer, verständlicher Aufgabenname.'}
         />
-        <FormControlLabel
-          control={<Checkbox checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />}
-          label="Wiederkehrend"
+
+        <TextField
+          label="Startdatum"
+          type="date"
+          value={formData.date || ''}
+          onChange={e => handleChange('date', e.target.value)}
+          fullWidth
+          required
+          InputLabelProps={{ shrink: true }}
+          error={!formData.date && !!formError}
+          helperText={!formData.date && !!formError ? 'Bitte ein Startdatum angeben.' : 'Ab diesem Datum werden die Aufgaben-Termine erzeugt.'}
         />
-        {isRecurring && (
-          <>
-            <TextField
-              select
-              label="Wiederkehr-Modus"
-              value={recurrenceMode}
-              onChange={e => setRecurrenceMode(e.target.value)}
-              fullWidth
-              margin="normal"
-              SelectProps={{ native: true }}
-            >
-              <option value="classic">Regelmäßig (z.B. wöchentlich)</option>
-              <option value="per_match">Pro Spiel (laut Spielplan)</option>
-            </TextField>
-            {recurrenceMode === 'classic' && (
-              <>
-                <TextField
-                  select
-                  label="Frequenz"
-                  value={freq}
-                  onChange={e => setFreq(e.target.value)}
-                  fullWidth
-                  margin="normal"
-                  SelectProps={{ native: true }}
-                >
-                  <option value="DAILY">Täglich</option>
-                  <option value="WEEKLY">Wöchentlich</option>
-                  <option value="MONTHLY">Monatlich</option>
-                </TextField>
-                <TextField
-                  label="Intervall (z.B. alle 2 Wochen)"
-                  type="number"
-                  value={interval}
-                  onChange={e => setInterval(Number(e.target.value))}
-                  fullWidth
-                  margin="normal"
-                  inputProps={{ min: 1 }}
-                />
-                {(freq === 'WEEKLY' || (freq === 'DAILY' && interval > 7)) && (
-                  <TextField
-                    select
-                    label="Wochentag"
-                    value={byDay}
-                    onChange={e => setByDay(e.target.value)}
-                    fullWidth
-                    margin="normal"
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="MO">Montag</option>
-                    <option value="TU">Dienstag</option>
-                    <option value="WE">Mittwoch</option>
-                    <option value="TH">Donnerstag</option>
-                    <option value="FR">Freitag</option>
-                    <option value="SA">Samstag</option>
-                    <option value="SU">Sonntag</option>
-                  </TextField>
-                )}
-                {freq === 'MONTHLY' && (
-                  <TextField
-                    label="Tag des Monats"
-                    type="number"
-                    value={byMonthDay}
-                    onChange={e => setByMonthDay(Number(e.target.value))}
-                    fullWidth
-                    margin="normal"
-                    inputProps={{ min: 1, max: 31 }}
-                  />
-                )}
-              </>
-            )}
-            {recurrenceMode === 'per_match' && (
-              <>
-                <p>Die Aufgabe wird automatisch jedem Spiel zugeordnet.</p>
-              </>
-            )}
-          </>
-        )}
+
+        <TaskEventFields
+          formData={formData}
+          users={users}
+          handleChange={handleChange}
+          fieldErrors={fieldErrors}
+          userLoadError={userLoadError}
+          recurringHint={isCreateMode ? 'Aktiviere Wiederkehrend nur dann, wenn die Aufgabe regelmäßig oder pro Spiel automatisch erzeugt werden soll.' : null}
+        />
+
+        <TextField
+          label="Beschreibung"
+          value={formData.description || ''}
+          onChange={e => handleChange('description', e.target.value)}
+          fullWidth
+          multiline
+          minRows={4}
+          helperText="Optional, aber hilfreich für Kontext und Erwartungen."
+        />
+      </Stack>
     </BaseModal>
   );
 };

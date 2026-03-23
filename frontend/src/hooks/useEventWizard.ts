@@ -11,6 +11,7 @@ import {
   WizardStep,
   WizardStepKey,
 } from '../components/EventModal/eventWizardConstants';
+import { getTaskConfigFromEvent, validateTaskConfiguration } from '../utils/taskConfig';
 
 export interface UseEventWizardParams {
   open: boolean;
@@ -125,23 +126,11 @@ export function useEventWizard({
         }
       }
       if (isTask) {
-        if (!event.taskRotationUsers || event.taskRotationUsers.length === 0) {
-          setStepError('Bitte mindestens einen Benutzer für die Rotation auswählen!');
+        const validation = validateTaskConfiguration(getTaskConfigFromEvent(event));
+        const firstTaskError = Object.values(validation.errors)[0];
+        if (firstTaskError) {
+          setStepError(firstTaskError);
           return false;
-        }
-        if (!event.taskRotationCount || event.taskRotationCount < 1) {
-          setStepError('Bitte eine gültige Anzahl Personen pro Aufgabe angeben!');
-          return false;
-        }
-        if (event.taskIsRecurring) {
-          if (!event.taskRecurrenceMode) {
-            setStepError('Bitte Wiederkehr-Modus wählen!');
-            return false;
-          }
-          if (event.taskRecurrenceMode === 'classic' && (!event.taskFreq || !event.taskInterval)) {
-            setStepError('Bitte Frequenz und Intervall angeben!');
-            return false;
-          }
         }
       }
     }

@@ -6,7 +6,11 @@ import { EventData, User } from '../../../types/event';
 
 // ────── MUI Mock ──────────────────────────────────────────────────────────────
 jest.mock('@mui/material/Autocomplete', () => (props: any) => (
-  <div data-testid="autocomplete">
+  <div
+    data-testid="autocomplete"
+    data-disable-close-on-select={props.disableCloseOnSelect ? 'true' : 'false'}
+    data-blur-on-select={String(props.blurOnSelect)}
+  >
     {props.options?.map((option: any) => {
       const rendered = props.renderOption
         ? props.renderOption({ key: option.id }, option, { inputValue: '', selected: false })
@@ -114,5 +118,15 @@ describe('TaskEventFields – Benutzer-Rotation mit context', () => {
       <TaskEventFields formData={baseFormData} users={[]} handleChange={noop} />
     );
     expect(screen.getByText(/keine benutzer/i)).toBeInTheDocument();
+  });
+
+  it('hält das Multi-Select nach jeder Auswahl offen', () => {
+    render(
+      <TaskEventFields formData={baseFormData} users={usersWithContext} handleChange={noop} />
+    );
+
+    const autocomplete = screen.getByTestId('autocomplete');
+    expect(autocomplete).toHaveAttribute('data-disable-close-on-select', 'true');
+    expect(autocomplete).toHaveAttribute('data-blur-on-select', 'false');
   });
 });

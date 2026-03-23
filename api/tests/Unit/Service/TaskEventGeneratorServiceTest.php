@@ -437,11 +437,11 @@ class TaskEventGeneratorServiceTest extends TestCase
         $task = new Task();
         $task->setRecurrenceMode('classic');
 
-        // Non-templates don't trigger event generation for per_match
+        // Direct per-match generation must ignore non-per_match tasks.
         $this->calendarEventTypeRepository->expects($this->never())->method('findOneBy');
         $this->entityManager->expects($this->never())->method('persist');
         $user = new User();
-        $this->service->generateEvents($task, $user);
+        $this->service->generatePerMatchOccurrences($task, $user);
     }
 
     public function testGeneratePerMatchEventsOnlyCreatesEventsForUserTeams(): void
