@@ -1,6 +1,6 @@
 # Trainer
 
-In der Trainerverwaltung werden alle Trainerinnen und Trainer mit ihren Profildaten, Lizenzen, Team-Zugehörigkeiten und Vereinszuordnungen erfasst.
+In der Trainerverwaltung werden alle Trainer mit ihren Profildaten, Lizenzen, Team-Zugehörigkeiten und Vereinszuordnungen erfasst.
 
 ---
 

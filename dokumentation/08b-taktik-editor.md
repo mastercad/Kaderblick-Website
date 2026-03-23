@@ -3,7 +3,7 @@
 Der **Taktik-Editor** ist euer digitales Taktikboard. Ihr könnt auf dem Spielfeld Pfeile, Laufwege und Zonen einzeichnen, Gegner-Spieler platzieren und eure eigenen Spieler verschieben — und das alles für mehrere Taktik-Varianten gleichzeitig.
 
 > **Für wen ist das?**  
-> Hauptsächlich für **Trainerinnen und Trainer**. Gespeicherte Taktiken können je nach Vereinseinstellung auch von Spielern eingesehen werden.
+> Hauptsächlich für **Trainer**. Gespeicherte Taktiken können je nach Vereinseinstellung auch von Spielern eingesehen werden.
 
 ---
 

@@ -10,9 +10,9 @@ Kaderblick hilft Spielern, Trainern, Eltern und dem gesamten Vereinsleben, alles
 
 Diese Dokumentation richtet sich an **alle Nutzer** von Kaderblick:
 
-- **Spielerinnen und Spieler** — Termine checken, zu-/absagen, Aufgaben erledigen, XP sammeln
+- **Spieler** — Termine checken, zu-/absagen, Aufgaben erledigen, XP sammeln
 - **Eltern** — Überblick behalten, Fahrgemeinschaften organisieren, Nachrichten lesen
-- **Trainerinnen und Trainer** — Spiele planen, Aufstellungen bauen, Statistiken auswerten
+- **Trainer** — Spiele planen, Aufstellungen bauen, Statistiken auswerten
 - **Administratoren** — Nutzer und Stammdaten verwalten, Feedback bearbeiten
 
 ---
