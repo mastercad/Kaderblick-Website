@@ -1,6 +1,6 @@
 # Spieler
 
-Die Spielerverwaltung ist das Herzstück von Kaderblick. Hier sind alle Spielerinnen und Spieler mit ihren Profildaten, Positionen, Teamzugehörigkeiten und Statistiken erfasst.
+Die Spielerverwaltung ist das Herzstück von Kaderblick. Hier sind alle Spieler mit ihren Profildaten, Positionen, Teamzugehörigkeiten und Statistiken erfasst.
 
 ---
 
