@@ -146,7 +146,7 @@ describe('useTacticsBoard – local draft protection', () => {
 
     act(() => result.current.handleAddOpponent());
 
-    const beforeUnloadRegistration = addEventListenerSpy.mock.calls.find(([eventName]) => eventName === 'beforeunload');
+    const beforeUnloadRegistration = addEventListenerSpy.mock.calls.find(([eventName]) => String(eventName) === 'beforeunload');
     expect(beforeUnloadRegistration).toBeDefined();
 
     const beforeUnloadHandler = beforeUnloadRegistration?.[1] as (event: BeforeUnloadEvent) => void;
