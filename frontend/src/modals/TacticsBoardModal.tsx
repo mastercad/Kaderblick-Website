@@ -37,6 +37,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   open, onClose, formation, onBoardSaved,
 }) => {
   const board = useTacticsBoard(open, formation, onBoardSaved);
+  const getDialogContainer = useCallback(() => board.containerRef.current ?? document.body, [board.containerRef]);
 
   const [showCloseWarning, setShowCloseWarning] = useState(false);
   const [showStepNumbers, setShowStepNumbers] = useState(false);
@@ -194,6 +195,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     <Dialog
       open={Boolean(editingOpp)}
       onClose={board.handleOppEditClose}
+      container={getDialogContainer}
       PaperProps={{
         sx: {
           bgcolor: '#1f2937', color: '#e5e7eb',
@@ -256,6 +258,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     <Dialog
       open={showCloseWarning}
       onClose={() => setShowCloseWarning(false)}
+      container={getDialogContainer}
       PaperProps={{
         sx: {
           bgcolor: '#1f2937',
