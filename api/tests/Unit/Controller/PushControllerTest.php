@@ -12,6 +12,7 @@ use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -237,5 +238,83 @@ class PushControllerTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertCount(0, $data['subscriptions']);
+    }
+
+    public function testHealthDoesNotReportAllDeliveriesFailedWhenRecentPushSucceeded(): void
+    {
+        $subscription = new PushSubscription();
+
+        $this->params->method('get')
+            ->with('vapid_public_key')
+            ->willReturn('test-vapid-key');
+
+        $this->repo->method('findBy')->willReturn([$subscription]);
+
+        $this->notificationRepo->expects($this->once())
+            ->method('getPushDeliveryStats')
+            ->with($this->user, 7)
+            ->willReturn([
+                'total' => 3,
+                'sent' => 0,
+                'unsent' => 3,
+                'failRate' => 100.0,
+            ]);
+
+        $this->notificationRepo->expects($this->once())
+            ->method('findUnsentByUser')
+            ->with($this->user)
+            ->willReturn([]);
+
+        $this->user->method('getLastPushSuccessAt')->willReturn(new DateTime('-5 minutes'));
+        $this->user->method('getLastPushFailureAt')->willReturn(new DateTime('-1 minute'));
+
+        $response = $this->controller->health();
+        $data = json_decode($response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertContains('notification_queue_stuck', $data['issues']);
+        $this->assertNotContains('all_deliveries_failed', $data['issues']);
+    }
+
+    public function testHealthTreatsSingleUnsentNotificationAsQueueIssueNotTotalFailure(): void
+    {
+        $subscription = new PushSubscription();
+
+        $this->params->method('get')
+            ->with('vapid_public_key')
+            ->willReturn('test-vapid-key');
+
+        $this->repo->method('findBy')->willReturn([$subscription]);
+
+        $this->notificationRepo->expects($this->once())
+            ->method('getPushDeliveryStats')
+            ->with($this->user, 7)
+            ->willReturn([
+                'total' => 1,
+                'sent' => 0,
+                'unsent' => 1,
+                'failRate' => 100.0,
+            ]);
+
+        $this->notificationRepo->expects($this->once())
+            ->method('findLastSentForUser')
+            ->with($this->user)
+            ->willReturn(null);
+
+        $this->notificationRepo->expects($this->once())
+            ->method('findUnsentByUser')
+            ->with($this->user)
+            ->willReturn([new stdClass()]);
+
+        $this->user->method('getLastPushSuccessAt')->willReturn(null);
+        $this->user->method('getLastPushFailureAt')->willReturn(null);
+
+        $response = $this->controller->health();
+        $data = json_decode($response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertContains('notification_queue_stuck', $data['issues']);
+        $this->assertNotContains('all_deliveries_failed', $data['issues']);
+        $this->assertNotContains('high_failure_rate', $data['issues']);
     }
 }
