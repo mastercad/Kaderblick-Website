@@ -115,7 +115,7 @@ class VideosController extends AbstractController
         }
 
         // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Videos anlegen/bearbeiten
-            // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos anlegen/bearbeiten
+        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos anlegen/bearbeiten
         if (!$this->isGranted(VideoVoter::CREATE, $game)) {
             return new JsonResponse(['error' => 'Zugriff verweigert – nur Teammitglieder können Videos verwalten.'], 403);
         }
@@ -220,7 +220,7 @@ class VideosController extends AbstractController
         }
 
         // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Videos löschen
-            // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos löschen
+        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos löschen
         if (!$this->isGranted(VideoVoter::DELETE, $video)) {
             return new JsonResponse(['error' => 'Zugriff verweigert – nur Teammitglieder können Videos löschen.'], 403);
         }

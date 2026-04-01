@@ -120,7 +120,11 @@ class SupporterRequestAdminController extends AbstractController
         $supporterRequest->setStatus(SupporterRequest::STATUS_REJECTED)
             ->setProcessedAt(new DateTime())
             ->setProcessedBy($admin)
-            ->setNote($reason ? ($supporterRequest->getNote() ? $supporterRequest->getNote() . "\n\nAblehnungsgrund: " . $reason : 'Ablehnungsgrund: ' . $reason) : $supporterRequest->getNote());
+            ->setNote(
+                $reason ?
+                    ($supporterRequest->getNote() ? $supporterRequest->getNote() . "\n\nAblehnungsgrund: " . $reason :
+                'Ablehnungsgrund: ' . $reason) : $supporterRequest->getNote()
+            );
 
         $this->em->flush();
 
