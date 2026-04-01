@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
-import { getZoneColor, getPositionColor, truncateName } from '../helpers';
+import { getZoneColor, truncateName } from '../helpers';
 import type { PlayerData } from '../types';
 
 interface PlayerTokenProps {
@@ -37,7 +37,7 @@ const buildTooltip = (player: PlayerData): React.ReactNode => {
 
 /**
  * A player token displayed on the pitch.
- * Shows the shirt number in a color-coded circle (by field zone)
+ * Shows the shirt number in a color-coded circle (by current field zone)
  * and the player's name in a label beneath it.
  * Also renders a subtle dashed-border ring around placeholders.
  * The tooltip shows name, shirt number and position data for debugging.
@@ -51,6 +51,10 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ player, isDragging
     <Box
       ref={domRef}
       sx={{
+        '--token-size': 'clamp(24px, 7.4vw, 44px)',
+        '--token-number-size': 'clamp(10px, 2.6vw, 15px)',
+        '--token-label-size': 'clamp(0.5rem, 1.55vw, 0.62rem)',
+        '--token-label-width': 'clamp(42px, 12vw, 58px)',
         position: 'absolute',
         left: player.x + '%',
         top: player.y + '%',
@@ -68,16 +72,16 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ player, isDragging
     >
       {/* Numbered circle */}
       <Box sx={{
-        width: 44,
-        height: 44,
-        bgcolor: isDragging ? getPositionColor(player.position) : getZoneColor(player.y),
+        width: 'var(--token-size)',
+        height: 'var(--token-size)',
+        bgcolor: getZoneColor(player.y),
         color: 'white',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 800,
-        fontSize: 15,
+        fontSize: 'var(--token-number-size)',
         border: isHighlighted
           ? '3px solid #fff'
           : player.isRealPlayer
@@ -90,21 +94,23 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ player, isDragging
         transform: isHighlighted ? 'scale(1.2)' : 'scale(1)',
         flexShrink: 0,
         opacity: player.isRealPlayer ? 1 : 0.75,
-      }}>
+      }}
+      data-token-circle="true"
+      >
         {player.number}
       </Box>
 
       {/* Name label */}
       <Box sx={{
-        mt: '2px',
+        mt: 'clamp(1px, 0.35vw, 2px)',
         bgcolor: 'rgba(0,0,0,0.68)',
         color: 'white',
         borderRadius: '4px',
-        px: '4px',
+        px: 'clamp(3px, 0.9vw, 4px)',
         lineHeight: '1.4',
-        fontSize: '0.62rem',
+        fontSize: 'var(--token-label-size)',
         fontWeight: 600,
-        maxWidth: 58,
+        maxWidth: 'var(--token-label-width)',
         textAlign: 'center',
         whiteSpace: 'nowrap',
         overflow: 'hidden',

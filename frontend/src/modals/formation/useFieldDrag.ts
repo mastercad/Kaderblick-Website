@@ -15,7 +15,7 @@
  * beim Loslassen (finalizeDrop) mit der finalen Position aufgerufen.
  */
 import React, { useState, useRef, useCallback } from 'react';
-import { getRelativePosition } from './helpers';
+import { getRelativePosition, getZoneColor } from './helpers';
 import type { DragSource, PlayerData } from './types';
 
 /** In % der Felddimensionen – Token gilt als "Ziel" wenn Abstand kleiner. */
@@ -58,6 +58,19 @@ export function useFieldDrag({
     setDraggedFrom(val);
   };
 
+  const updateDraggedTokenPreview = useCallback((id: number, x: number, y: number) => {
+    const tokenEl = tokenRefs.current.get(id);
+    if (!tokenEl) return;
+
+    tokenEl.style.left = x + '%';
+    tokenEl.style.top = y + '%';
+
+    const circleEl = tokenEl.querySelector<HTMLElement>('[data-token-circle="true"]');
+    if (circleEl) {
+      circleEl.style.backgroundColor = getZoneColor(y);
+    }
+  }, [tokenRefs]);
+
   const startDragFromField = (id: number, e: React.MouseEvent | React.TouchEvent) => {
     const origin = players.find(p => p.id === id);
     draggedPlayerIdRef.current = id;
@@ -65,8 +78,6 @@ export function useFieldDrag({
     setDraggedPlayerId(id);
     updateDraggedFrom('field');
     e.stopPropagation();
-    // nativen Scroll auf Touch-Geräten unterdrücken
-    if ('touches' in e) e.preventDefault?.();
   };
 
   const startDragFromBench = (id: number, e: React.MouseEvent | React.TouchEvent) => {
@@ -112,14 +123,10 @@ export function useFieldDrag({
         const currentId = draggedPlayerIdRef.current;
         const currentPos = dragPosRef.current;
         if (currentId === null || currentPos === null) return;
-        const el = tokenRefs.current.get(currentId);
-        if (el) {
-          el.style.left = currentPos.x + '%';
-          el.style.top  = currentPos.y + '%';
-        }
+        updateDraggedTokenPreview(currentId, currentPos.x, currentPos.y);
       });
     }
-  }, [benchPlayers, setBenchPlayers, setPlayers, pitchRef, tokenRefs]);
+  }, [benchPlayers, setBenchPlayers, setPlayers, pitchRef, updateDraggedTokenPreview]);
 
   /**
    * Beim Loslassen:
@@ -225,7 +232,6 @@ export function useFieldDrag({
   const handlePitchMouseMove = useCallback((e: React.MouseEvent) => applyDragMove(e.clientX, e.clientY), [applyDragMove]);
 
   const handlePitchTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
     applyDragMove(e.touches[0].clientX, e.touches[0].clientY);
   }, [applyDragMove]);
 

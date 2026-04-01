@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Paper, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getPositionColor, truncateName } from '../helpers';
 import type { PlayerData } from '../types';
@@ -42,19 +42,36 @@ const Bench: React.FC<BenchProps> = ({
   onMouseDown,
   onTouchStart,
 }) => (
-  <Box sx={{
-    mt: 1, p: 1.5,
-    bgcolor: 'background.paper',
-    border: '1px dashed',
-    borderColor: 'divider',
-    borderRadius: 2,
-    minHeight: 68,
-  }}>
-    <Typography variant="caption" color="text.secondary" sx={{
-      display: 'block', mb: 0.75, fontWeight: 700, letterSpacing: 1,
-    }}>
-      ERSATZBANK ({benchPlayers.length})
-    </Typography>
+  <Paper
+    variant="outlined"
+    sx={{
+      mt: 1,
+      p: { xs: 1.25, sm: 1.5 },
+      borderRadius: 3,
+      minHeight: 88,
+      borderStyle: 'dashed',
+    }}
+  >
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'flex-start', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 0.75,
+        mb: 1,
+      }}
+    >
+      <Box>
+        <Typography variant="subtitle2" fontWeight={800}>
+          Ersatzbank
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Antippen setzt einen Spieler zurück aufs Feld, Ziehen erlaubt gezieltes Platzieren.
+        </Typography>
+      </Box>
+      <Chip size="small" label={`${benchPlayers.length} bereit`} />
+    </Box>
 
     <Box display="flex" flexWrap="wrap" gap={0.75}>
       {benchPlayers.map(player => (
@@ -62,15 +79,17 @@ const Bench: React.FC<BenchProps> = ({
           <Box
             sx={{
               display: 'flex', alignItems: 'center', gap: 0.5,
-              bgcolor: 'grey.100',
+              bgcolor: 'background.default',
               border: '1px solid',
-              borderColor: 'grey.300',
+              borderColor: 'divider',
               borderRadius: 2,
-              px: 1, py: 0.5,
+              px: 1,
+              py: 0.75,
               cursor: 'grab',
               touchAction: 'none',
               userSelect: 'none',
-              '&:hover': { bgcolor: 'primary.50', borderColor: 'primary.main' },
+              minHeight: 42,
+              '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' },
             }}
             onClick={() => onSendToField(player.id)}
             onMouseDown={e => onMouseDown(player.id, e)}
@@ -89,7 +108,7 @@ const Bench: React.FC<BenchProps> = ({
             </Box>
 
             <Typography variant="caption" fontWeight={600} sx={{
-              maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: { xs: 92, sm: 72 }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {truncateName(player.name, 10)}
             </Typography>
@@ -107,12 +126,12 @@ const Bench: React.FC<BenchProps> = ({
       ))}
 
       {benchPlayers.length === 0 && (
-        <Typography variant="caption" color="text.disabled" sx={{ alignSelf: 'center' }}>
-          Spieler per Drag oder „Bank"-Button auf die Bank setzen
+        <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+          Noch keine Bankspieler. Schicke Spieler per Drag oder über den Bank-Button hierhin.
         </Typography>
       )}
     </Box>
-  </Box>
+  </Paper>
 );
 
 export default Bench;
