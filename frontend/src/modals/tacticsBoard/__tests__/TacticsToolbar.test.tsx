@@ -8,8 +8,6 @@ import type { TacticsToolbarProps } from '../TacticsToolbar';
 const formation = { id: 1, name: 'Formation', formationData: { code: '4-3-3', players: [] } } as any;
 
 const baseProps: TacticsToolbarProps = {
-  formationName: 'Test Formation',
-  formationCode: '4-3-3',
   notes: undefined,
   tool: 'arrow',
   setTool: jest.fn(),
@@ -32,7 +30,6 @@ const baseProps: TacticsToolbarProps = {
   onResetPlayerPositions: jest.fn(),
   onSave: jest.fn(),
   onToggleFullscreen: jest.fn(),
-  onClose: jest.fn(),
   onLoadPreset: jest.fn(),
   activeTactic: undefined,
   selectedId: null,
@@ -47,16 +44,6 @@ const baseProps: TacticsToolbarProps = {
 beforeEach(() => jest.clearAllMocks());
 
 describe('TacticsToolbar', () => {
-  it('renders the formation name', () => {
-    render(<TacticsToolbar {...baseProps} />);
-    expect(screen.getByText('Test Formation')).toBeInTheDocument();
-  });
-
-  it('renders the formation code chip', () => {
-    render(<TacticsToolbar {...baseProps} />);
-    expect(screen.getByText('4-3-3')).toBeInTheDocument();
-  });
-
   it('undo button is disabled when elements array is empty', () => {
     render(<TacticsToolbar {...baseProps} elements={[]} />);
     // MUI IconButton renders a <button> element
