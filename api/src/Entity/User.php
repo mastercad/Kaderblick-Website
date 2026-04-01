@@ -122,6 +122,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTime $lastActivityAt = null;
 
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTime $lastPushSuccessAt = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?DateTime $lastPushFailureAt = null;
+
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: UserLevel::class, cascade: ['persist', 'remove'])]
     private ?UserLevel $userLevel = null;
 
@@ -555,6 +561,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastActivityAt(?DateTime $lastActivityAt): self
     {
         $this->lastActivityAt = $lastActivityAt;
+
+        return $this;
+    }
+
+    public function getLastPushSuccessAt(): ?DateTime
+    {
+        return $this->lastPushSuccessAt;
+    }
+
+    public function setLastPushSuccessAt(?DateTime $lastPushSuccessAt): self
+    {
+        $this->lastPushSuccessAt = $lastPushSuccessAt;
+
+        return $this;
+    }
+
+    public function getLastPushFailureAt(): ?DateTime
+    {
+        return $this->lastPushFailureAt;
+    }
+
+    public function setLastPushFailureAt(?DateTime $lastPushFailureAt): self
+    {
+        $this->lastPushFailureAt = $lastPushFailureAt;
 
         return $this;
     }

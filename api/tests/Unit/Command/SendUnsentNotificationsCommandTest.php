@@ -141,6 +141,12 @@ class SendUnsentNotificationsCommandTest extends TestCase
                 if ('N1' === $title) {
                     throw new Exception('Network error');
                 }
+
+                return [
+                    'attempted' => 1,
+                    'successful' => 1,
+                    'failed' => 0,
+                ];
             });
 
         $this->logger->expects($this->once())->method('error');
