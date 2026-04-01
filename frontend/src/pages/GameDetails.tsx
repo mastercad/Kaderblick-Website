@@ -72,6 +72,7 @@ import { formatEventTime, formatDateTime } from '../utils/formatter'
 import { UserAvatar } from '../components/UserAvatar';
 import { getAvatarFrameUrl } from '../utils/avatarFrame';
 import { calculateCumulativeOffset } from '../utils/videoTimeline';
+import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
 
 /** Helper: format date to "Sa, 15. Mär 2025" style */
 const formatDateNice = (dateString: string) => {
@@ -189,6 +190,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const [finishing, setFinishing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [confirmFinishOpen, setConfirmFinishOpen] = useState(false);
+  const [supporterApplicationOpen, setSupporterApplicationOpen] = useState(false);
 
   // Timing state
   const [halfDuration, setHalfDuration] = useState<number>(45);
@@ -459,6 +461,25 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const canCreateVideos = () => {
     return game?.permissions?.can_create_videos ?? false;
   }
+
+  const handleProtectedEventAction = () => {
+    if (canCreateEvents()) {
+      setEventToEdit(null);
+      setEventFormOpen(true);
+      return;
+    }
+
+    setSupporterApplicationOpen(true);
+  };
+
+  const handleProtectedVideoAction = () => {
+    if (canCreateVideos()) {
+      handleOpenAddVideo();
+      return;
+    }
+
+    setSupporterApplicationOpen(true);
+  };
 
   if (loading) {
     return (
@@ -772,20 +793,15 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
               />
             )}
           </Box>
-          {canCreateEvents() && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setEventToEdit(null);
-                setEventFormOpen(true);
-              }}
-              sx={{ fontSize: '0.8rem' }}
-            >
-              Erfassen
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={handleProtectedEventAction}
+            sx={{ fontSize: '0.8rem' }}
+          >
+            Event hinzufügen
+          </Button>
         </Box>
 
         <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>
@@ -1054,17 +1070,15 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                 Schnittliste
               </Button>
             )}
-            {canCreateVideos() && (
-              <Button
-                variant="contained"
-                startIcon={<VideoIcon />}
-                size="small"
-                onClick={handleOpenAddVideo}
-                sx={{ fontSize: '0.8rem' }}
-              >
-                Hinzufügen
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              startIcon={<VideoIcon />}
+              size="small"
+              onClick={handleProtectedVideoAction}
+              sx={{ fontSize: '0.8rem' }}
+            >
+              Video hinzufügen
+            </Button>
           </Box>
         </Box>
 
@@ -1371,6 +1385,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         youtubeLinks={youtubeLinks}
         onCreateEventAtPosition={handleCreateEventFromVideoAtPosition}
         canCreateEvents={canCreateEvents()}
+        onRequestSupporterAccess={() => setSupporterApplicationOpen(true)}
       >
         {canCreateEvents() && (
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
@@ -1428,21 +1443,19 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
       />
 
       {/* Floating Action Button for quick event creation */}
-      {canCreateEvents() && (
-        <Fab
-          color="primary"
-          aria-label="Ereignis erfassen"
-          sx={{
-            position: 'fixed',
-            bottom: { xs: 16, sm: 24 },
-            right: { xs: 16, sm: 24 },
-            zIndex: 10,
-          }}
-          onClick={() => setEventFormOpen(true)}
-        >
-          <AddIcon />
-        </Fab>
-      )}
+      <Fab
+        color="primary"
+        aria-label="Ereignis erfassen"
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 16, sm: 24 },
+          right: { xs: 16, sm: 24 },
+          zIndex: 10,
+        }}
+        onClick={handleProtectedEventAction}
+      >
+        <AddIcon />
+      </Fab>
 
       {/* Confirmation Modal for Event Deletion */}
       <ConfirmationModal
@@ -1491,6 +1504,11 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         onClose={() => setVideoSegmentModalOpen(false)}
         videos={videos}
         gameId={gameId!}
+      />
+
+      <SupporterApplicationModal
+        open={supporterApplicationOpen}
+        onClose={() => setSupporterApplicationOpen(false)}
       />
     </Box>
   );

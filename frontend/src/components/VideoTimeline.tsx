@@ -658,6 +658,7 @@ const VideoTimeline: React.FC<VideoTimelineProps> = ({
     // Handler für Mausbewegung während mousedown
     const handleMove = (moveEvent: MouseEvent | TouchEvent) => {
       if (isFineTuning) return;
+      if (!onEventMove) return;
       
       // Prevent default behavior to avoid scrolling during drag
       if ('touches' in moveEvent) {
@@ -672,40 +673,42 @@ const VideoTimeline: React.FC<VideoTimelineProps> = ({
       window.removeEventListener('touchmove', handleMoveWithPrevent as any);
     };
 
-    // Long-Press: nach 500ms Fine-Tuning aktivieren (nur wenn keine Bewegung)
-    const videoPosition = origSeconds;
-    const left = `${(videoPosition / duration) * 100}%`;
-    setLongPressProgress({
-      type: 'event',
-      eventId,
-      left,
-      top: 16 + row * rowHeight,
-      row,
-      startTime: Date.now(),
-    });
-    
-    longPressTimeoutRef.current = setTimeout(() => {
-      if (hasMoved || isDragging) return; // Nicht aktivieren wenn bereits bewegt/dragging
-      
-      isFineTuning = true;
-      setLongPressProgress(null);
-      // Drag-State abbrechen falls irgendwie gestartet
-      setDragState(null);
-      
-      // Fine-Tuning Modus aktivieren
-      setFineTuningState({
+    if (onEventMove) {
+      // Long-Press: nach 500ms Fine-Tuning aktivieren (nur wenn keine Bewegung)
+      const videoPosition = origSeconds;
+      const left = `${(videoPosition / duration) * 100}%`;
+      setLongPressProgress({
         type: 'event',
         eventId,
-        centerSeconds: origSeconds,
-        currentSeconds: origSeconds,
+        left,
+        top: 16 + row * rowHeight,
         row,
+        startTime: Date.now(),
       });
-      // Event-Listener entfernen
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('touchmove', handleMoveWithPrevent as any);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchend', handleMouseUp);
-    }, 500);
+      
+      longPressTimeoutRef.current = setTimeout(() => {
+        if (hasMoved || isDragging) return; // Nicht aktivieren wenn bereits bewegt/dragging
+        
+        isFineTuning = true;
+        setLongPressProgress(null);
+        // Drag-State abbrechen falls irgendwie gestartet
+        setDragState(null);
+        
+        // Fine-Tuning Modus aktivieren
+        setFineTuningState({
+          type: 'event',
+          eventId,
+          centerSeconds: origSeconds,
+          currentSeconds: origSeconds,
+          row,
+        });
+        // Event-Listener entfernen
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('touchmove', handleMoveWithPrevent as any);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchend', handleMouseUp);
+      }, 500);
+    }
 
     // Handle mouseup to check if it was a click or drag
     const handleMouseUp = () => {

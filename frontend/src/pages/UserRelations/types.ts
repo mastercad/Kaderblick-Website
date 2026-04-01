@@ -20,4 +20,14 @@ export interface RegistrationRequestRow {
   processedBy?: { id: number; name: string };
 }
 
+export interface SupporterRequestRow {
+  id: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  processedAt?: string;
+  note?: string;
+  user: { id: number; fullName: string; email: string };
+  processedBy?: { id: number; name: string };
+}
+
 export type RequestCounts = { pending: number; approved: number; rejected: number };

@@ -32,6 +32,8 @@ interface VideoPlayModalProps {
   onCreateEventAtPosition?: (videoPositionSeconds: number) => void;
   /** Ob der Benutzer Events anlegen darf (steuert Mobile-Button-Sichtbarkeit) */
   canCreateEvents?: boolean;
+  /** Öffnet den Supporter-Bewerbungsdialog */
+  onRequestSupporterAccess?: () => void;
   children?: React.ReactNode;
 }
 
@@ -45,7 +47,7 @@ function secondsToMinuteFormat(seconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, videoId, videoName, videoObj, gameEvents, gameStartDate, gameId, onEventUpdated, allVideos, youtubeLinks, onCreateEventAtPosition, canCreateEvents, children }, ref) => {
+const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, videoId, videoName, videoObj, gameEvents, gameStartDate, gameId, onEventUpdated, allVideos, youtubeLinks, onCreateEventAtPosition, canCreateEvents, onRequestSupporterAccess, children }, ref) => {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const playerReadyRef = useRef<boolean>(false);
   const lastSeekTimeRef = useRef<number>(0);
@@ -148,6 +150,11 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
 
   // Handler für Drag & Drop
   const handleEventMove = (eventId: number, newSeconds: number) => {
+    if (!canCreateEvents) {
+      onRequestSupporterAccess?.();
+      return;
+    }
+
     // Lokalen State aktualisieren
     setMovedEvents(prev => {
       const base = prev || mapGameEventsToTimelineEvents({
@@ -305,12 +312,17 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
 
   // Mobile: Ereignis an aktueller Position anlegen
   const handleMobileCreateEvent = useCallback((videoPositionSeconds: number) => {
+    if (!canCreateEvents) {
+      onRequestSupporterAccess?.();
+      return;
+    }
+
     // Video pausieren
     try {
       playerRef.current?.pauseVideo?.();
     } catch { /* ignore */ }
     onCreateEventAtPosition?.(videoPositionSeconds);
-  }, [onCreateEventAtPosition]);
+  }, [canCreateEvents, onCreateEventAtPosition, onRequestSupporterAccess]);
 
   // Mobile: Schnittmarke setzen (zwei-Schritt-Flow: Start → Ende)
   const handleMobileSetCutMarker = useCallback((videoPositionSeconds: number) => {
@@ -426,6 +438,29 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
         />
       )}
 
+      {!canCreateEvents && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'warning.main',
+            bgcolor: 'warning.50',
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Zeitstempel bearbeiten und Ereignisse anlegen ist Supportern vorbehalten
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Bewirb dich als Supporter, um Spielereignisse direkt im Video anzulegen und bestehende Zeitstempel per Timeline zu korrigieren.
+          </Typography>
+          <Button variant="contained" onClick={onRequestSupporterAccess}>
+            Als Supporter bewerben
+          </Button>
+        </Box>
+      )}
+
       {/* Schnittmarken Toggle Button */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
         <Tooltip title={cutModeActive ? "Schnittmarken-Modus deaktivieren" : "Schnittmarken-Modus aktivieren"}>
@@ -449,7 +484,7 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           events={timelineEvents}
           onSeek={handleSeek}
           onSeekToGameStart={handleSeekToGameStart}
-          onEventMove={handleEventMove}
+          onEventMove={canCreateEvents ? handleEventMove : undefined}
           gameStart={safeVideoObj.gameStart || 0}
           cumulativeOffset={cumulativeOffset}
           cutMarkers={cutMarkers}

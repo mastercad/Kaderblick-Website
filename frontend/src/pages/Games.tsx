@@ -17,6 +17,8 @@ import {
   ListSubheader,
   FormControl,
   InputLabel,
+  IconButton,
+  Collapse,
 } from '@mui/material';
 import {
   SportsSoccer as SoccerIcon,
@@ -27,6 +29,8 @@ import {
   CalendarToday as CalendarIcon,
   AccessTime as TimeIcon,
   FilterList as FilterIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { fetchGamesOverview, GamesOverviewData } from '../services/games';
 import { Game, GameWithScore, TournamentOverview } from '../types/games';
@@ -60,6 +64,11 @@ export default function Games() {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<number | 'all'>('all');
   const [noTeamAssignment, setNoTeamAssignment] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState({
+    running: true,
+    upcoming: true,
+    finished: true,
+  });
   const [selectedSeason, setSelectedSeason] = useState<number>(() => {
     const today = new Date();
     return today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
@@ -103,6 +112,10 @@ export default function Games() {
 
   const handleTournamentClick = (tournamentId: number) => {
     navigate(`/tournaments/${tournamentId}`);
+  };
+
+  const toggleSection = (section: 'running' | 'upcoming' | 'finished') => {
+    setSectionsOpen((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   if (loading) {
@@ -494,11 +507,13 @@ export default function Games() {
   );
 
   // ─── Section Header Component ─────────────────────────────────
-  const SectionHeader = ({ icon, label, count, color }: {
+  const SectionHeader = ({ icon, label, count, color, open, onToggle }: {
     icon: React.ReactNode;
     label: string;
     count: number;
     color: string;
+    open: boolean;
+    onToggle: () => void;
   }) => (
     <Box sx={{
       display: 'flex',
@@ -506,23 +521,44 @@ export default function Games() {
       gap: 1,
       mb: 2,
       mt: 1,
+      p: 0.75,
+      borderRadius: 2,
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        bgcolor: alpha(color, 0.06),
+      },
     }}>
-      {icon}
-      <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
-        {label}
-      </Typography>
-      <Chip
-        label={count}
-        size="small"
+      <Box
+        onClick={onToggle}
         sx={{
-          bgcolor: alpha(color, 0.12),
-          color: color,
-          fontWeight: 700,
-          fontSize: '0.75rem',
-          height: 22,
-          minWidth: 22,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flex: 1,
+          minWidth: 0,
         }}
-      />
+      >
+        {icon}
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
+          {label}
+        </Typography>
+        <Chip
+          label={count}
+          size="small"
+          sx={{
+            bgcolor: alpha(color, 0.12),
+            color: color,
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            height: 22,
+            minWidth: 22,
+          }}
+        />
+      </Box>
+      <IconButton size="small" onClick={onToggle} aria-label={`${label} ${open ? 'zuklappen' : 'aufklappen'}`}>
+        {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </IconButton>
     </Box>
   );
 
@@ -633,18 +669,22 @@ export default function Games() {
         <Box sx={{ mb: 4 }}>
           <SectionHeader
             icon={<LiveIcon sx={{ color: 'success.main', fontSize: 22 }} />}
-            label="Aktuell laufend"
+            label="Laufende Spiele"
             count={runningCount}
             color={theme.palette.success.main}
+            open={sectionsOpen.running}
+            onToggle={() => toggleSection('running')}
           />
-          <Stack spacing={2}>
-            {data.running_games.map(game => (
-              <GameCard key={`running-game-${game.id}`} game={game} isRunning />
-            ))}
-            {runningTournaments.map(t => (
-              <TournamentCard key={`running-tournament-${t.id}`} tournament={t} isRunning />
-            ))}
-          </Stack>
+          <Collapse in={sectionsOpen.running} timeout="auto" unmountOnExit>
+            <Stack spacing={2}>
+              {data.running_games.map(game => (
+                <GameCard key={`running-game-${game.id}`} game={game} isRunning />
+              ))}
+              {runningTournaments.map(t => (
+                <TournamentCard key={`running-tournament-${t.id}`} tournament={t} isRunning />
+              ))}
+            </Stack>
+          </Collapse>
         </Box>
       )}
 
@@ -653,18 +693,22 @@ export default function Games() {
         <Box sx={{ mb: 4 }}>
           <SectionHeader
             icon={<ScheduleIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
-            label="Anstehend"
+            label="Anstehende Spiele"
             count={upcomingCount}
             color={theme.palette.primary.main}
+            open={sectionsOpen.upcoming}
+            onToggle={() => toggleSection('upcoming')}
           />
-          <Stack spacing={2}>
-            {data.upcoming_games.map(game => (
-              <GameCard key={`upcoming-game-${game.id}`} game={game} />
-            ))}
-            {upcomingTournaments.map(t => (
-              <TournamentCard key={`upcoming-tournament-${t.id}`} tournament={t} />
-            ))}
-          </Stack>
+          <Collapse in={sectionsOpen.upcoming} timeout="auto" unmountOnExit>
+            <Stack spacing={2}>
+              {data.upcoming_games.map(game => (
+                <GameCard key={`upcoming-game-${game.id}`} game={game} />
+              ))}
+              {upcomingTournaments.map(t => (
+                <TournamentCard key={`upcoming-tournament-${t.id}`} tournament={t} />
+              ))}
+            </Stack>
+          </Collapse>
         </Box>
       )}
 
@@ -673,22 +717,26 @@ export default function Games() {
         <Box sx={{ mb: 4 }}>
           <SectionHeader
             icon={<CompletedIcon sx={{ color: 'text.secondary', fontSize: 22 }} />}
-            label="Absolviert"
+            label="Abgeschlossene Spiele"
             count={finishedCount}
             color={theme.palette.text.secondary}
+            open={sectionsOpen.finished}
+            onToggle={() => toggleSection('finished')}
           />
-          <Stack spacing={2}>
-            {data.finished_games.map(gameData => (
-              <GameCard
-                key={`finished-game-${gameData.game.id}`}
-                game={gameData.game}
-                score={{ homeScore: gameData.homeScore, awayScore: gameData.awayScore }}
-              />
-            ))}
-            {finishedTournaments.map(t => (
-              <TournamentCard key={`finished-tournament-${t.id}`} tournament={t} />
-            ))}
-          </Stack>
+          <Collapse in={sectionsOpen.finished} timeout="auto" unmountOnExit>
+            <Stack spacing={2}>
+              {data.finished_games.map(gameData => (
+                <GameCard
+                  key={`finished-game-${gameData.game.id}`}
+                  game={gameData.game}
+                  score={{ homeScore: gameData.homeScore, awayScore: gameData.awayScore }}
+                />
+              ))}
+              {finishedTournaments.map(t => (
+                <TournamentCard key={`finished-tournament-${t.id}`} tournament={t} />
+              ))}
+            </Stack>
+          </Collapse>
         </Box>
       )}
 

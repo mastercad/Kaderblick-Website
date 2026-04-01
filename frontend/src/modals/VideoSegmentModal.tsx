@@ -11,14 +11,12 @@ import {
   Box,
   Typography,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Divider,
   Chip,
   Alert,
-  Paper
+  Paper,
+  Stack,
+  useMediaQuery,
+  alpha
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,6 +37,7 @@ import {
 } from '../services/videoSegments';
 import { Video } from '../services/videos';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '@mui/material/styles';
 
 interface VideoSegmentModalProps {
   open: boolean;
@@ -71,6 +70,8 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
   videos,
   gameId
 }) => {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const { showToast } = useToast();
   const [segments, setSegments] = useState<VideoSegment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -194,12 +195,14 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
     setSelectedVideoId(null);
   };
 
-  const formatTime = (minutes: number, seconds: number) => {
-    const totalSeconds = minutes * 60 + seconds;
+  const formatSeconds = (seconds: number) => {
+    const totalSeconds = Math.max(0, Math.round(seconds));
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const getSegmentCountLabel = (count: number) => `${count} Segment${count === 1 ? '' : 'e'}`;
 
   const groupedSegments = segments.reduce((acc, segment) => {
     if (!acc[segment.videoId]) {
@@ -209,197 +212,349 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
     return acc;
   }, {} as Record<number, VideoSegment[]>);
 
+  const sortedVideos = [...videos].sort((left, right) => {
+    const leftCount = groupedSegments[left.id]?.length || 0;
+    const rightCount = groupedSegments[right.id]?.length || 0;
+
+    if (leftCount !== rightCount) {
+      return rightCount - leftCount;
+    }
+
+    return left.name.localeCompare(right.name, 'de');
+  });
+
+  const selectedVideo = videos.find((video) => video.id === selectedVideoId) || null;
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={fullScreen}>
       <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Video-Schnittliste</Typography>
-          <Box>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between">
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Video-Schnittliste
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Eigene Clips pro Video verwalten, exportieren und sauber nach Szenen strukturieren.
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
             <Button
               startIcon={<DownloadIcon />}
               onClick={handleExport}
               disabled={segments.length === 0}
               size="small"
-              sx={{ mr: 1 }}
+              variant="outlined"
+              fullWidth={fullScreen}
             >
               Export CSV
             </Button>
           </Box>
-        </Box>
+        </Stack>
       </DialogTitle>
 
-      <DialogContent>
-        <Alert severity="info" sx={{ mb: 2 }}>
+      <DialogContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
           <Typography variant="body2">
-            <strong>Anleitung:</strong> Wähle ein Video aus und lege Segmente fest, die du schneiden möchtest. 
-            Gib an, ab welcher Minute das Segment startet und wie lang es sein soll.
+            Wähle zuerst ein Video. Darunter siehst du direkt alle vorhandenen Segmente mit Startzeit, Länge und optionalen Labels.
           </Typography>
         </Alert>
 
         {/* Video Auswahl */}
         {!showForm && (
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>
-              Wähle ein Video aus:
-            </Typography>
-            <List>
-              {videos.map((video) => (
-                <Paper key={video.id} elevation={1} sx={{ mb: 1 }}>
-                  <ListItem>
-                    <ListItemText
-                      primary={video.name}
-                      secondary={`${groupedSegments[video.id]?.length || 0} Segment(e)`}
-                    />
-                    <ListItemSecondaryAction>
+          <Stack spacing={1.5}>
+            {sortedVideos.map((video) => {
+              const videoSegments = (groupedSegments[video.id] || []).slice().sort((left, right) => left.sortOrder - right.sortOrder || left.startMinute - right.startMinute);
+              const segmentCount = videoSegments.length;
+
+              return (
+                <Paper
+                  key={video.id}
+                  variant="outlined"
+                  sx={{
+                    overflow: 'hidden',
+                    borderRadius: 3,
+                    borderColor: alpha(theme.palette.primary.main, 0.14),
+                  }}
+                >
+                  <Box
+                    sx={{
+                      p: { xs: 1.5, sm: 2 },
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1.25,
+                      bgcolor: alpha(theme.palette.primary.main, 0.02),
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.25 }}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 700,
+                            lineHeight: 1.3,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {video.name}
+                        </Typography>
+                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                          <Chip label={getSegmentCountLabel(segmentCount)} size="small" color={segmentCount > 0 ? 'primary' : 'default'} />
+                          {video.length ? <Chip label={`Länge ${formatSeconds(video.length)}`} size="small" variant="outlined" /> : null}
+                          {video.camera?.name ? <Chip label={video.camera.name} size="small" variant="outlined" /> : null}
+                        </Stack>
+                      </Box>
                       <Button
                         startIcon={<AddIcon />}
                         onClick={() => handleVideoSelect(video.id)}
                         color="primary"
+                        variant="contained"
                         size="small"
+                        sx={{ flexShrink: 0, alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
                       >
-                        Segment hinzufügen
+                        Neu
                       </Button>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-
-                  {groupedSegments[video.id] && groupedSegments[video.id].length > 0 && (
-                    <Box sx={{ px: 2, pb: 2 }}>
-                      {groupedSegments[video.id].map((segment) => (
-                        <Paper key={segment.id} variant="outlined" sx={{ p: 1, mb: 1 }}>
-                          <Box display="flex" justifyContent="space-between" alignItems="start">
-                            <Box flex={1}>
-                              <Typography variant="body2" fontWeight="bold">
-                                Start: {segment.startMinute} Min • Länge: {segment.lengthSeconds}s
-                              </Typography>
-                              {segment.title && (
-                                <Typography variant="body2" color="text.secondary">
-                                  Titel: {segment.title}
-                                </Typography>
-                              )}
-                              {segment.subTitle && (
-                                <Typography variant="body2" color="text.secondary">
-                                  Untertitel: {segment.subTitle}
-                                </Typography>
-                              )}
-                              <Chip
-                                label={segment.includeAudio ? 'Mit Ton' : 'Ohne Ton'}
-                                size="small"
-                                color={segment.includeAudio ? 'success' : 'default'}
-                                sx={{ mt: 0.5 }}
-                              />
-                            </Box>
-                            <Box>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEditSegment(segment)}
-                                color="primary"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDeleteSegment(segment.id)}
-                                color="error"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        </Paper>
-                      ))}
                     </Box>
-                  )}
+
+                    {videoSegments.length > 0 ? (
+                      <Stack spacing={1} sx={{ p: { xs: 1.25, sm: 1.5 } }}>
+                        {videoSegments.map((segment, index) => (
+                          <Paper
+                            key={segment.id}
+                            variant="outlined"
+                            sx={{
+                              p: 1.25,
+                              borderRadius: 2.5,
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <Stack spacing={1}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                                <Box sx={{ minWidth: 0, flex: 1 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+                                    Segment {index + 1}
+                                  </Typography>
+                                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                                    <Chip label={`Start ${formatSeconds(segment.startMinute)}`} size="small" />
+                                    <Chip label={`Dauer ${formatSeconds(segment.lengthSeconds)}`} size="small" variant="outlined" />
+                                    <Chip
+                                      label={segment.includeAudio ? 'Mit Ton' : 'Ohne Ton'}
+                                      size="small"
+                                      color={segment.includeAudio ? 'success' : 'default'}
+                                      variant={segment.includeAudio ? 'filled' : 'outlined'}
+                                    />
+                                  </Stack>
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleEditSegment(segment)}
+                                    color="primary"
+                                    aria-label="Segment bearbeiten"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteSegment(segment.id)}
+                                    color="error"
+                                    aria-label="Segment löschen"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+
+                              {(segment.title || segment.subTitle) && (
+                                <Box sx={{ display: 'grid', gap: 0.5 }}>
+                                  {segment.title && (
+                                    <Box>
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        Titel
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                                        {segment.title}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  {segment.subTitle && (
+                                    <Box>
+                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        Untertitel
+                                      </Typography>
+                                      <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                                        {segment.subTitle}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </Box>
+                              )}
+                            </Stack>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Box sx={{ px: { xs: 1.5, sm: 2 }, pb: { xs: 1.5, sm: 2 } }}>
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2.5,
+                            borderStyle: 'dashed',
+                            color: 'text.secondary',
+                          }}
+                        >
+                          <Typography variant="body2">
+                            Für dieses Video gibt es noch keine Segmente.
+                          </Typography>
+                        </Paper>
+                      </Box>
+                    )}
+                  </Box>
                 </Paper>
-              ))}
-            </List>
-          </Box>
+              );
+            })}
+
+            {sortedVideos.length === 0 && (
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Es sind noch keine Videos für dieses Spiel vorhanden.
+                </Typography>
+              </Paper>
+            )}
+          </Stack>
         )}
 
         {/* Segment Formular */}
         {showForm && (
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>
-              {editingId ? 'Segment bearbeiten' : 'Neues Segment'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Video: {videos.find(v => v.id === selectedVideoId)?.name}
-            </Typography>
+          <Stack spacing={2}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.primary.main, 0.03),
+                borderColor: alpha(theme.palette.primary.main, 0.16),
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                Ausgewähltes Video
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {selectedVideo?.name}
+              </Typography>
+            </Paper>
 
-            <Box sx={{ mt: 2 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }} gutterBottom>
+                {editingId ? 'Segment bearbeiten' : 'Neues Segment'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Trage Startpunkt und Dauer ein. Titel und Untertitel helfen später beim Export und bei der Orientierung.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               <TextField
                 fullWidth
-                label="Startzeit (Minuten)"
+                label="Startzeit in Sekunden"
                 type="text"
                 value={formData.startMinute}
                 onChange={(e) => setFormData({ ...formData, startMinute: e.target.value })}
-                helperText="z.B. 5 oder 5,5 für 5 Minuten 30 Sekunden"
-                margin="normal"
+                helperText="Zum Beispiel 125 für 2:05"
               />
 
               <TextField
                 fullWidth
-                label="Länge (Sekunden)"
+                label="Dauer in Sekunden"
                 type="number"
                 value={formData.lengthSeconds}
                 onChange={(e) => setFormData({ ...formData, lengthSeconds: e.target.value })}
-                helperText="Wie viele Sekunden soll das Segment lang sein?"
-                margin="normal"
+                helperText="Wie lang soll der Clip sein?"
               />
+            </Box>
 
-              <TextField
-                fullWidth
-                label="Titel (optional)"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                helperText="Wird im Export für alle Segmente dieses Videos verwendet"
-                margin="normal"
-              />
+            <TextField
+              fullWidth
+              label="Titel"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              helperText="Optionaler Titel für bessere Orientierung"
+            />
 
-              <TextField
-                fullWidth
-                label="Untertitel (optional)"
-                value={formData.subTitle}
-                onChange={(e) => setFormData({ ...formData, subTitle: e.target.value })}
-                helperText="Zusätzlicher Text für dieses spezifische Segment"
-                margin="normal"
-              />
+            <TextField
+              fullWidth
+              label="Untertitel"
+              value={formData.subTitle}
+              onChange={(e) => setFormData({ ...formData, subTitle: e.target.value })}
+              helperText="Optionaler Zusatztext für dieses Segment"
+              multiline
+              minRows={2}
+            />
 
+            <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2.5 }}>
               <FormControlLabel
+                sx={{ m: 0, alignItems: 'flex-start' }}
                 control={
                   <Switch
                     checked={formData.includeAudio}
                     onChange={(e) => setFormData({ ...formData, includeAudio: e.target.checked })}
                   />
                 }
-                label="Tonspur übernehmen"
+                label={
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Tonspur übernehmen
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Aktivieren, wenn der exportierte Clip Audio enthalten soll.
+                    </Typography>
+                  </Box>
+                }
               />
+            </Paper>
 
-              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSaveSegment}
-                  disabled={loading}
-                  fullWidth
-                >
-                  {editingId ? 'Aktualisieren' : 'Hinzufügen'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<CancelIcon />}
-                  onClick={handleCancelEdit}
-                  disabled={loading}
-                  fullWidth
-                >
-                  Abbrechen
-                </Button>
-              </Box>
-            </Box>
-          </Box>
+            <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<CancelIcon />}
+                onClick={handleCancelEdit}
+                disabled={loading}
+                fullWidth
+              >
+                Abbrechen
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveSegment}
+                disabled={loading}
+                fullWidth
+              >
+                {editingId ? 'Änderungen speichern' : 'Segment anlegen'}
+              </Button>
+            </Stack>
+          </Stack>
         )}
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 1.5 }}>
         <Button onClick={onClose}>Schließen</Button>
       </DialogActions>
     </Dialog>

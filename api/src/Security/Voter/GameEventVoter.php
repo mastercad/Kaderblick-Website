@@ -42,6 +42,10 @@ final class GameEventVoter extends Voter
                     return true;
                 }
 
+                if (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPPORTER', $user->getRoles())) {
+                    return true;
+                }
+
                 if (
                     !in_array('ROLE_ADMIN', $user->getRoles())
                     && !in_array('ROLE_SUPPORTER', $user->getRoles())
@@ -77,6 +81,10 @@ final class GameEventVoter extends Voter
             case self::DELETE:
             case self::EDIT:
                 if (in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+                    return true;
+                }
+
+                if (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPPORTER', $user->getRoles())) {
                     return true;
                 }
 

@@ -44,23 +44,6 @@ final class VideoVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
-                foreach ($user->getUserRelations() as $userRelation) {
-                    if ($userRelation->getCoach()) {
-                        foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            if ($subject instanceof Game) {
-                                if (
-                                    $assignment->getTeam() === $subject->getHomeTeam()
-                                    || $assignment->getTeam() === $subject->getAwayTeam()
-                                ) {
-                                    return true;
-                                }
-                            } elseif ($assignment->getTeam() === $subject) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-
                 if (
                     !in_array('ROLE_ADMIN', $user->getRoles())
                     && !in_array('ROLE_SUPPORTER', $user->getRoles())
@@ -104,41 +87,31 @@ final class VideoVoter extends Voter
             case self::DELETE:
             case self::EDIT:
                 /* @var Video $subject */
-                // ROLE_ADMIN or ROLE_SUPPORTER must be a team member
-                if (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPPORTER', $user->getRoles())) {
-                    foreach ($user->getUserRelations() as $userRelation) {
-                        if ($userRelation->getPlayer()) {
-                            foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                                if ($assignment->getTeam() === $subject->getGame()->getHomeTeam()) {
-                                    return true;
-                                }
-                                if ($assignment->getTeam() === $subject->getGame()->getAwayTeam()) {
-                                    return true;
-                                }
-                            }
-                        }
+                if (
+                    !in_array('ROLE_ADMIN', $user->getRoles())
+                    && !in_array('ROLE_SUPPORTER', $user->getRoles())
+                ) {
+                    return false;
+                }
 
-                        if ($userRelation->getCoach()) {
-                            foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                                if ($assignment->getTeam() === $subject->getGame()->getHomeTeam()) {
-                                    return true;
-                                }
-                                if ($assignment->getTeam() === $subject->getGame()->getAwayTeam()) {
-                                    return true;
-                                }
+                foreach ($user->getUserRelations() as $userRelation) {
+                    if ($userRelation->getPlayer()) {
+                        foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
+                            if ($assignment->getTeam() === $subject->getGame()->getHomeTeam()) {
+                                return true;
+                            }
+                            if ($assignment->getTeam() === $subject->getGame()->getAwayTeam()) {
+                                return true;
                             }
                         }
                     }
-                }
 
-                // Coach of the game's teams (even without ROLE_ADMIN/ROLE_SUPPORTER)
-                foreach ($user->getUserRelations() as $userRelation) {
                     if ($userRelation->getCoach()) {
                         foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getGame()->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getGame()->getAwayTeam()
-                            ) {
+                            if ($assignment->getTeam() === $subject->getGame()->getHomeTeam()) {
+                                return true;
+                            }
+                            if ($assignment->getTeam() === $subject->getGame()->getAwayTeam()) {
                                 return true;
                             }
                         }

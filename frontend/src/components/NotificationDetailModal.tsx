@@ -22,6 +22,8 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import { useNavigate } from 'react-router-dom';
 import { AppNotification } from '../types/notifications';
 
@@ -46,6 +48,14 @@ const getNotificationIcon = (type: AppNotification['type']) => {
       return <EventBusyIcon />;
     case 'feedback':
       return <FeedbackIcon />;
+    case 'new_user_registration':
+    case 'registration_request':
+    case 'registration_request_approved':
+      return <HowToRegIcon />;
+    case 'supporter_request':
+    case 'supporter_request_approved':
+    case 'supporter_request_rejected':
+      return <SupportAgentIcon />;
     default: return <SystemIcon />;
   }
 };
@@ -66,6 +76,17 @@ const getNotificationColor = (type: AppNotification['type']) => {
       return '#e65100';
     case 'feedback':
       return '#7b5ea7';
+    case 'new_user_registration':
+      return '#455a64';
+    case 'registration_request':
+    case 'registration_request_approved':
+      return '#1565c0';
+    case 'supporter_request':
+      return '#00695c';
+    case 'supporter_request_approved':
+      return '#2e7d32';
+    case 'supporter_request_rejected':
+      return '#c62828';
     default: return '#757575';
   }
 };
@@ -82,6 +103,12 @@ const getNotificationLabel = (type: AppNotification['type']) => {
     case 'team_ride_deleted': return 'Mitfahrt gelöscht';
     case 'event_cancelled': return 'Event abgesagt';
     case 'feedback': return 'Feedback-Antwort';
+    case 'new_user_registration': return 'Neue Registrierung';
+    case 'registration_request': return 'Zuordnungsantrag';
+    case 'registration_request_approved': return 'Zuordnungsantrag';
+    case 'supporter_request': return 'Supporter-Anfrage';
+    case 'supporter_request_approved': return 'Supporter-Anfrage';
+    case 'supporter_request_rejected': return 'Supporter-Anfrage';
     default: return 'Benachrichtigung';
   }
 };
