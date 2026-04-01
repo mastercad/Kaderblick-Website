@@ -169,7 +169,8 @@ class PushController extends AbstractController
         $lastPushFailureAt = $user->getLastPushFailureAt();
         $hasRecentPushSuccess = null !== $lastPushSuccessAt && $lastPushSuccessAt >= $statsWindowStart;
         $hasRecentPushFailure = null !== $lastPushFailureAt && $lastPushFailureAt >= $statsWindowStart;
-        $hasRecoveredPushDelivery = $hasRecentPushSuccess && (!$hasRecentPushFailure || $lastPushSuccessAt >= $lastPushFailureAt);
+        $hasRecoveredPushDelivery = $hasRecentPushSuccess;
+        $hasEnoughDeliverySamples = $recentStats['total'] >= 3;
 
         // 4. Last successfully sent notification
         $lastSentAt = $lastPushSuccessAt?->format('c');
@@ -190,12 +191,14 @@ class PushController extends AbstractController
             $issues[] = 'no_subscriptions';
         }
         if ($recentStats['total'] > 0 && 0 === $recentStats['sent']) {
-            $issues[] = $hasRecoveredPushDelivery ? 'notification_queue_stuck' : 'all_deliveries_failed';
+            $issues[] = ($hasRecoveredPushDelivery || !$hasEnoughDeliverySamples)
+                ? 'notification_queue_stuck'
+                : 'all_deliveries_failed';
         }
         if ($unsentCount > 5) {
             $issues[] = 'many_unsent_stuck';
         }
-        if ($recentStats['total'] > 0 && $recentStats['failRate'] > 50 && !$hasRecoveredPushDelivery) {
+        if ($hasEnoughDeliverySamples && $recentStats['failRate'] > 50 && !$hasRecoveredPushDelivery) {
             $issues[] = 'high_failure_rate';
         }
 
