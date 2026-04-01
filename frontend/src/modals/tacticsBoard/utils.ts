@@ -32,16 +32,24 @@ export function clipLine(
 
 /**
  * Build a quadratic Bézier path for arrows / runs.
- * The control point is slightly perpendicular to the line, giving a gentle curve.
+ * The control point depends only on the arrow's vertical field position:
+ * arrows in the upper field half arch upward, arrows in the lower half arch
+ * downward, and arrows near midfield stay almost straight.
  */
 export function arrowPath(x1: number, y1: number, x2: number, y2: number): string {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.hypot(dx, dy);
   if (len < 0.5) return `M ${x1} ${y1} L ${x2} ${y2}`;
-  const strength = Math.min(len * 0.18, 6);
-  const cpx = (x1 + x2) / 2 + (-dy / len) * strength;
-  const cpy = (y1 + y2) / 2 + (dx / len) * strength;
+
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const verticalBias = (midY - 50) / 50;
+  const distanceFromMidfield = Math.abs(midY - 50) / 50;
+  const curveStrength = Math.min(len * 0.22, 10) * Math.pow(distanceFromMidfield, 0.8);
+  const cpx = midX;
+  const cpy = midY + Math.sign(verticalBias) * curveStrength;
+
   return `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
 }
 

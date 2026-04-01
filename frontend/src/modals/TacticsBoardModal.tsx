@@ -14,8 +14,12 @@ import React, { useState, useCallback } from 'react';
 import {
   Dialog, Box, Typography,
   DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
-  TextField, InputAdornment,
+  TextField, InputAdornment, IconButton, CircularProgress, Chip,
+  useTheme,
 } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import { useTacticsBoard }  from './tacticsBoard/useTacticsBoard';
 import { PitchCanvas }      from './tacticsBoard/PitchCanvas';
 import { TacticsToolbar }   from './tacticsBoard/TacticsToolbar';
@@ -37,9 +41,13 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   open, onClose, formation, onBoardSaved,
 }) => {
   const board = useTacticsBoard(open, formation, onBoardSaved);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const getDialogContainer = useCallback(() => board.containerRef.current ?? document.body, [board.containerRef]);
 
   const [showCloseWarning, setShowCloseWarning] = useState(false);
   const [showStepNumbers, setShowStepNumbers] = useState(false);
+  const [tacticToDeleteId, setTacticToDeleteId] = useState<string | null>(null);
 
   // ── Opponent edit form state ──────────────────────────────────────────────
   const [oppEditForm, setOppEditForm] = useState({ number: '', name: '' });
@@ -76,6 +84,24 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     onClose();
   }, [board, onClose]);
 
+  const tacticToDelete = tacticToDeleteId
+    ? board.tactics.find(tactic => tactic.id === tacticToDeleteId) ?? null
+    : null;
+
+  const handleDeleteRequest = useCallback((id: string) => {
+    setTacticToDeleteId(id);
+  }, []);
+
+  const handleConfirmDeleteTactic = useCallback(() => {
+    if (!tacticToDeleteId) return;
+    board.handleDeleteTactic(tacticToDeleteId);
+    setTacticToDeleteId(null);
+  }, [board, tacticToDeleteId]);
+
+  const handleCancelDeleteTactic = useCallback(() => {
+    setTacticToDeleteId(null);
+  }, []);
+
   return (
     <>
     <Dialog
@@ -90,9 +116,116 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         ref={board.containerRef}
         sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0a0f0a' }}
       >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+            px: { xs: 1, sm: 1.5 },
+            py: { xs: 0.75, sm: 1 },
+            bgcolor: 'rgba(255,255,255,0.03)',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            flexShrink: 0,
+          }}
+        >
+          <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'rgba(255,255,255,0.42)',
+                fontWeight: 800,
+                letterSpacing: 1.8,
+                lineHeight: 1,
+              }}
+            >
+              TAKTIKTAFEL
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+              <Typography
+                variant="subtitle1"
+                fontWeight={700}
+                sx={{ color: 'white', lineHeight: 1.1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {board.formationName}
+              </Typography>
+              {board.formationCode && (
+                <Chip
+                  label={board.formationCode}
+                  size="small"
+                  sx={{
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    height: 22,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </Box>
+            {isMobile && board.saveMsg && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: board.saveMsg.ok ? '#69f0ae' : '#ff5252',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  lineHeight: 1.1,
+                }}
+              >
+                {board.saveMsg.text}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+            {formation && isMobile && (
+              <Box
+                onClick={board.saving ? undefined : board.handleSave}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1.1,
+                  py: 0.55,
+                  bgcolor: 'rgba(33,150,243,0.18)',
+                  border: '1px solid rgba(33,150,243,0.45)',
+                  borderRadius: 1.5,
+                  cursor: board.saving ? 'default' : 'pointer',
+                  color: board.saving ? 'rgba(255,255,255,0.4)' : 'primary.light',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  userSelect: 'none',
+                  '&:hover': { bgcolor: board.saving ? undefined : 'rgba(33,150,243,0.3)' },
+                  transition: 'background 0.15s',
+                }}
+              >
+                {board.saving
+                  ? <CircularProgress size={14} sx={{ color: 'inherit' }} />
+                  : <SaveIcon sx={{ fontSize: 16 }} />
+                }
+                <span>Speichern{board.isDirty ? ' *' : ''}</span>
+              </Box>
+            )}
+
+            <IconButton
+              aria-label="Board schließen"
+              onClick={handleCloseRequest}
+              sx={{
+                color: 'rgba(255,255,255,0.78)',
+                bgcolor: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 1.75,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
         <TacticsToolbar
-          formationName={board.formationName}
-          formationCode={board.formationCode}
           notes={board.notes}
           tool={board.tool}            setTool={board.setTool}
           color={board.color}          setColor={board.setColor}
@@ -109,7 +242,6 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           onResetPlayerPositions={board.handleResetPlayerPositions}
           onSave={board.handleSave}
           onToggleFullscreen={board.toggleFullscreen}
-          onClose={handleCloseRequest}
           onLoadPreset={board.handleLoadPreset}
           activeTactic={board.activeTactic}
           selectedId={board.selectedId}
@@ -128,7 +260,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           renameValue={board.renameValue}
           onSelect={board.setActiveTacticId}
           onNew={board.handleNewTactic}
-          onDelete={board.handleDeleteTactic}
+          onDelete={handleDeleteRequest}
           onStartRename={(id, name) => { board.setRenamingId(id); board.setRenameValue(name); }}
           onRenameChange={board.setRenameValue}
           onConfirmRename={board.confirmRename}
@@ -194,6 +326,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     <Dialog
       open={Boolean(editingOpp)}
       onClose={board.handleOppEditClose}
+      container={getDialogContainer}
       PaperProps={{
         sx: {
           bgcolor: '#1f2937', color: '#e5e7eb',
@@ -256,6 +389,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     <Dialog
       open={showCloseWarning}
       onClose={() => setShowCloseWarning(false)}
+      container={getDialogContainer}
       PaperProps={{
         sx: {
           bgcolor: '#1f2937',
@@ -271,7 +405,8 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
       </DialogTitle>
       <DialogContent sx={{ pt: 0 }}>
         <DialogContentText sx={{ color: '#9ca3af' }}>
-          Die aktuelle Taktik wurde noch nicht gespeichert. Wenn du jetzt schließt, gehen alle Änderungen verloren.
+          Die aktuelle Taktik ist noch nicht auf dem Server gespeichert. Wenn du jetzt schließt,
+          bleibt ein lokaler Entwurf auf diesem Gerät erhalten und wird beim nächsten Öffnen automatisch wiederhergestellt.
         </DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
@@ -287,7 +422,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           variant="outlined"
           sx={{ textTransform: 'none', borderColor: '#ef4444', color: '#ef4444', '&:hover': { bgcolor: 'rgba(239,68,68,0.1)' } }}
         >
-          Schließen ohne Speichern
+          Lokal schließen
         </Button>
         <Button
           onClick={handleSaveAndClose}
@@ -295,6 +430,47 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           sx={{ textTransform: 'none', bgcolor: '#1d4ed8', '&:hover': { bgcolor: '#1e40af' } }}
         >
           Speichern & Schließen
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog
+      open={Boolean(tacticToDelete)}
+      onClose={handleCancelDeleteTactic}
+      container={getDialogContainer}
+      PaperProps={{
+        sx: {
+          bgcolor: '#1f2937',
+          color: '#e5e7eb',
+          borderRadius: 2,
+          border: '1px solid #374151',
+          minWidth: 340,
+        },
+      }}
+    >
+      <DialogTitle sx={{ color: '#f9fafb', fontWeight: 700, pb: 1 }}>
+        Taktik löschen?
+      </DialogTitle>
+      <DialogContent sx={{ pt: 0 }}>
+        <DialogContentText sx={{ color: '#9ca3af' }}>
+          Soll die Taktik &quot;{tacticToDelete?.name ?? 'Diese Taktik'}&quot; wirklich gelöscht werden?
+          Diese Aktion kann nicht rückgängig gemacht werden.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+        <Button
+          onClick={handleCancelDeleteTactic}
+          sx={{ color: '#9ca3af', textTransform: 'none' }}
+        >
+          Abbrechen
+        </Button>
+        <Button
+          onClick={handleConfirmDeleteTactic}
+          color="error"
+          variant="contained"
+          sx={{ textTransform: 'none', bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}
+        >
+          Löschen
         </Button>
       </DialogActions>
     </Dialog>

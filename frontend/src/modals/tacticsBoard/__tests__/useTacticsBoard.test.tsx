@@ -12,7 +12,10 @@ const makeFormation = (overrides: Record<string, unknown> = {}) => ({
   formationData: { code: '4-3-3', players: [], ...overrides },
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  window.localStorage.clear();
+});
 
 describe('useTacticsBoard – initial load', () => {
   it('creates a default Standard tactic when no saved data exists', () => {
@@ -57,6 +60,110 @@ describe('useTacticsBoard – initial load', () => {
 
     // tactics remain at initial empty default before the effect fires
     expect(result.current.tactics).toHaveLength(0);
+  });
+
+  it('restores a newer local draft when one exists', () => {
+    window.localStorage.setItem('tactics-board-draft:1', JSON.stringify({
+      version: 1,
+      formationId: 1,
+      updatedAt: '2026-04-01T10:30:00.000Z',
+      tactics: [{
+        id: 'local-1',
+        name: 'Lokaler Entwurf',
+        elements: [{ id: 'e1', kind: 'zone', cx: 40, cy: 50, r: 10, color: '#22c55e' }],
+        opponents: [{ id: 'o1', x: 30, y: 40, number: 9 }],
+      }],
+      activeTacticId: 'local-1',
+      fullPitch: false,
+    }));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation({
+        tacticsBoardDataArr: [{
+          id: 'server-1',
+          name: 'Serverstand',
+          elements: [],
+          opponents: [],
+          savedAt: '2026-04-01T10:00:00.000Z',
+        }],
+      }) as any));
+
+    expect(result.current.tactics).toHaveLength(1);
+    expect(result.current.tactics[0].name).toBe('Lokaler Entwurf');
+    expect(result.current.activeTacticId).toBe('local-1');
+    expect(result.current.fullPitch).toBe(false);
+    expect(result.current.isDirty).toBe(true);
+  });
+});
+
+describe('useTacticsBoard – local draft protection', () => {
+  const { apiJson } = jest.requireMock('../../../utils/api');
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('writes a local draft after unsaved changes', () => {
+    jest.useFakeTimers();
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleAddOpponent());
+    act(() => { jest.advanceTimersByTime(300); });
+
+    const rawDraft = window.localStorage.getItem('tactics-board-draft:1');
+    expect(rawDraft).not.toBeNull();
+
+    const draft = JSON.parse(rawDraft!);
+    expect(draft.formationId).toBe(1);
+    expect(draft.tactics[0].opponents).toHaveLength(1);
+    expect(draft.fullPitch).toBe(true);
+  });
+
+  it('clears the local draft after a successful save', async () => {
+    jest.useFakeTimers();
+    apiJson.mockResolvedValueOnce({ formation: makeFormation() });
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleAddOpponent());
+    act(() => { jest.advanceTimersByTime(300); });
+    expect(window.localStorage.getItem('tactics-board-draft:1')).not.toBeNull();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(window.localStorage.getItem('tactics-board-draft:1')).toBeNull();
+  });
+
+  it('registers a beforeunload warning while unsaved changes exist', () => {
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+
+    const { result, unmount } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleAddOpponent());
+
+    const beforeUnloadRegistration = addEventListenerSpy.mock.calls.find(([eventName]) => String(eventName) === 'beforeunload');
+    expect(beforeUnloadRegistration).toBeDefined();
+
+    const beforeUnloadHandler = beforeUnloadRegistration?.[1] as (event: BeforeUnloadEvent) => void;
+    const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    Object.defineProperty(event, 'returnValue', { value: undefined, writable: true });
+
+    beforeUnloadHandler(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(event.returnValue).toBe('');
+
+    unmount();
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', beforeUnloadHandler);
+
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
   });
 });
 
@@ -346,6 +453,49 @@ describe('useTacticsBoard – isDirty', () => {
     rerender({ open: false });
     rerender({ open: true });
     expect(result.current.isDirty).toBe(false);
+  });
+});
+
+describe('useTacticsBoard – selected element recoloring', () => {
+  it('updates the selected arrow color via the shared palette', () => {
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation({
+        tacticsBoardDataArr: [{
+          id: 'tactic-1',
+          name: 'Standard',
+          elements: [{ id: 'arrow-1', kind: 'arrow', x1: 10, y1: 10, x2: 30, y2: 30, color: '#22c55e' }],
+          opponents: [],
+        }],
+      }) as any));
+
+    act(() => result.current.setSelectedId('arrow-1'));
+
+    expect(result.current.color).toBe('#22c55e');
+
+    act(() => result.current.setColor('#ef4444'));
+
+    expect(result.current.elements[0]).toMatchObject({ id: 'arrow-1', color: '#ef4444' });
+    expect(result.current.color).toBe('#ef4444');
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.canUndo).toBe(true);
+  });
+
+  it('syncs the palette selection to the currently selected zone color', () => {
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation({
+        tacticsBoardDataArr: [{
+          id: 'tactic-1',
+          name: 'Standard',
+          elements: [{ id: 'zone-1', kind: 'zone', cx: 45, cy: 55, r: 12, color: '#3b82f6' }],
+          opponents: [],
+        }],
+      }) as any));
+
+    expect(result.current.color).not.toBe('#3b82f6');
+
+    act(() => result.current.setSelectedId('zone-1'));
+
+    expect(result.current.color).toBe('#3b82f6');
   });
 });
 

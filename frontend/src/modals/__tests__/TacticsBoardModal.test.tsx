@@ -3,12 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TacticsBoardModal from '../TacticsBoardModal';
 
 // ── Mock child components ──────────────────────────────────────────────────────
-// TacticsToolbar exposes an accessible close button that forwards its onClose prop,
-// so we can trigger handleCloseRequest in tests without coupling to MUI internals.
 jest.mock('../tacticsBoard/TacticsToolbar', () => ({
-  TacticsToolbar: ({ onClose }: { onClose: () => void }) => (
-    <button data-testid="close-btn" onClick={onClose}>Schließen</button>
-  ),
+  TacticsToolbar: () => null,
 }));
 jest.mock('../tacticsBoard/TacticsBar',   () => ({ TacticsBar:   () => null }));
 jest.mock('../tacticsBoard/PitchCanvas',  () => ({ PitchCanvas:  () => null }));
@@ -68,7 +64,7 @@ beforeEach(() => {
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 function clickClose() {
-  fireEvent.click(screen.getByTestId('close-btn'));
+  fireEvent.click(screen.getByLabelText('Board schließen'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,7 +100,7 @@ describe('TacticsBoardModal – close warning dialog (isDirty=true)', () => {
     render(<TacticsBoardModal {...defaultProps} />);
     clickClose();
     expect(
-      screen.getByText(/nicht gespeichert.*Änderungen verloren/i),
+      screen.getByText(/nicht auf dem Server gespeichert.*lokaler Entwurf.*automatisch wiederhergestellt/i),
     ).toBeInTheDocument();
   });
 
@@ -112,7 +108,7 @@ describe('TacticsBoardModal – close warning dialog (isDirty=true)', () => {
     render(<TacticsBoardModal {...defaultProps} />);
     clickClose();
     expect(screen.getByText('Weiter bearbeiten')).toBeInTheDocument();
-    expect(screen.getByText('Schließen ohne Speichern')).toBeInTheDocument();
+    expect(screen.getByText('Lokal schließen')).toBeInTheDocument();
     expect(screen.getByText('Speichern & Schließen')).toBeInTheDocument();
   });
 
@@ -135,20 +131,20 @@ describe('TacticsBoardModal – close warning dialog (isDirty=true)', () => {
     expect(mockHandleSave).not.toHaveBeenCalled();
   });
 
-  // ── "Schließen ohne Speichern" ─────────────────────────────────────────
-  it('"Schließen ohne Speichern" calls onClose without saving', () => {
+  // ── "Lokal schließen" ──────────────────────────────────────────────────
+  it('"Lokal schließen" calls onClose without saving', () => {
     const onClose = jest.fn();
     render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
     clickClose();
-    fireEvent.click(screen.getByText('Schließen ohne Speichern'));
+    fireEvent.click(screen.getByText('Lokal schließen'));
     expect(mockHandleSave).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('"Schließen ohne Speichern" dismisses the dialog', async () => {
+  it('"Lokal schließen" dismisses the dialog', async () => {
     render(<TacticsBoardModal {...defaultProps} />);
     clickClose();
-    fireEvent.click(screen.getByText('Schließen ohne Speichern'));
+    fireEvent.click(screen.getByText('Lokal schließen'));
     await waitFor(() =>
       expect(screen.queryByText('Ungespeicherte Änderungen')).not.toBeInTheDocument(),
     );

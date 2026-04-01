@@ -11,6 +11,78 @@ import type { TacticPreset } from './types';
 import { svgCoords, makeMarkerId, arrowPath, clipLine } from './utils';
 import { PALETTE } from './constants';
 
+const SAVE_MSG_TIMEOUT_MS = 3500;
+const DRAFT_SAVE_DEBOUNCE_MS = 250;
+const LOCAL_DRAFT_VERSION = 1;
+
+interface LocalTacticsBoardDraft {
+  version: number;
+  formationId: number;
+  updatedAt: string;
+  tactics: TacticEntry[];
+  activeTacticId: string;
+  fullPitch: boolean;
+}
+
+function getDraftStorageKey(formationId: number) {
+  return `tactics-board-draft:${formationId}`;
+}
+
+function readLocalDraft(formationId: number): LocalTacticsBoardDraft | null {
+  try {
+    const raw = window.localStorage.getItem(getDraftStorageKey(formationId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<LocalTacticsBoardDraft>;
+    if (
+      parsed.version !== LOCAL_DRAFT_VERSION
+      || parsed.formationId !== formationId
+      || !Array.isArray(parsed.tactics)
+      || typeof parsed.updatedAt !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      version: LOCAL_DRAFT_VERSION,
+      formationId,
+      updatedAt: parsed.updatedAt,
+      tactics: parsed.tactics,
+      activeTacticId: typeof parsed.activeTacticId === 'string' ? parsed.activeTacticId : '',
+      fullPitch: typeof parsed.fullPitch === 'boolean' ? parsed.fullPitch : true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalDraft(draft: LocalTacticsBoardDraft) {
+  try {
+    window.localStorage.setItem(getDraftStorageKey(draft.formationId), JSON.stringify(draft));
+  } catch {
+    // Ignore quota and privacy-mode failures; the board still works in-memory.
+  }
+}
+
+function clearLocalDraft(formationId: number) {
+  try {
+    window.localStorage.removeItem(getDraftStorageKey(formationId));
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function getLatestSavedAt(entries: TacticEntry[]) {
+  const timestamps = entries
+    .map(entry => entry.savedAt)
+    .filter((value): value is string => typeof value === 'string')
+    .map(value => Date.parse(value))
+    .filter(value => Number.isFinite(value));
+
+  if (timestamps.length === 0) return null;
+  return Math.max(...timestamps);
+}
+
 // ─── Coordinate transforms between pitch modes ────────────────────────────────
 //
 // Both modes use SVG viewBox 0 0 100 100. The pitch areas they show differ:
@@ -236,7 +308,7 @@ export function useTacticsBoard(
 
   // ── Tool / color ──────────────────────────────────────────────────────────
   const [tool, setTool]   = useState<Tool>('arrow');
-  const [color, setColor] = useState(PALETTE[0].value);
+  const [color, setColorState] = useState(PALETTE[0].value);
 
   // ── Multi-tactic state ────────────────────────────────────────────────────
   const [tactics, setTactics]               = useState<TacticEntry[]>([]);
@@ -282,6 +354,8 @@ export function useTacticsBoard(
   const undoStack     = useRef<TacticEntry[][]>([]);
   const redoStack     = useRef<TacticEntry[][]>([]);
   const tacticsRef    = useRef<TacticEntry[]>([]);
+  const saveMsgTimeoutRef = useRef<number | null>(null);
+  const draftSaveTimeoutRef = useRef<number | null>(null);
   // Draw-preview origin – tracks start + live endpoint during draw (no React state).
   // Null when not drawing. Enables zero-React-re-render draw preview (same pattern
   // as element dragging).
@@ -305,6 +379,24 @@ export function useTacticsBoard(
     drawPreviewEllipseRef.current = el;
   }, []);
 
+  const clearSaveMsgTimeout = useCallback(() => {
+    if (saveMsgTimeoutRef.current !== null) {
+      window.clearTimeout(saveMsgTimeoutRef.current);
+      saveMsgTimeoutRef.current = null;
+    }
+  }, []);
+
+  const showTransientSaveMsg = useCallback((message: { ok: boolean; text: string } | null, duration = SAVE_MSG_TIMEOUT_MS) => {
+    clearSaveMsgTimeout();
+    setSaveMsg(message);
+    if (message && duration > 0) {
+      saveMsgTimeoutRef.current = window.setTimeout(() => {
+        setSaveMsg(null);
+        saveMsgTimeoutRef.current = null;
+      }, duration);
+    }
+  }, [clearSaveMsgTimeout]);
+
   // ── Undo / Redo – snapshot current tactics before any mutation ──────────────────
   const pushUndo = useCallback(() => {
     undoStack.current.push(tacticsRef.current);
@@ -321,6 +413,9 @@ export function useTacticsBoard(
   // liveEl state override is needed here. Values are committed once on mouseup.
   const elements  = activeTactic?.elements  ?? [];
   const opponents = activeTactic?.opponents ?? [];
+  const selectedDrawElement = selectedId
+    ? elements.find(el => el.id === selectedId) ?? null
+    : null;
 
   // ── Pitch layout helpers ──────────────────────────────────────────────────
   //
@@ -423,6 +518,15 @@ export function useTacticsBoard(
     [activeTacticId],
   );
 
+  const setColor = useCallback((nextColor: string) => {
+    if (selectedDrawElement && selectedDrawElement.color !== nextColor) {
+      pushUndo();
+      updateActiveElements(prev => prev.map(el =>
+        el.id === selectedDrawElement.id ? { ...el, color: nextColor } : el));
+    }
+    setColorState(nextColor);
+  }, [selectedDrawElement, pushUndo, updateActiveElements]);
+
   const handleResetPlayerPositions = useCallback(() => {
     pushUndo();
     // Clear imperative inline styles set during drag so MUI's CSS class (with
@@ -449,15 +553,107 @@ export function useTacticsBoard(
     } else {
       loaded = [{ id: 'tactic-1', name: 'Standard', elements: [], opponents: [] }];
     }
-    setTactics(loaded);
-    setActiveTacticId(loaded[0].id);
+
+    let nextTactics = loaded;
+    let nextActiveTacticId = loaded[0].id;
+    let nextFullPitch = true;
+    let restoredLocalDraft = false;
+
+    if (formation?.id) {
+      const localDraft = readLocalDraft(formation.id);
+      if (localDraft) {
+        const localUpdatedAt = Date.parse(localDraft.updatedAt);
+        const serverUpdatedAt = getLatestSavedAt(loaded);
+        const shouldRestore = Number.isFinite(localUpdatedAt)
+          && (serverUpdatedAt === null || localUpdatedAt >= serverUpdatedAt);
+
+        if (shouldRestore && localDraft.tactics.length > 0) {
+          nextTactics = localDraft.tactics;
+          nextActiveTacticId = nextTactics.some(t => t.id === localDraft.activeTacticId)
+            ? localDraft.activeTacticId
+            : nextTactics[0].id;
+          nextFullPitch = localDraft.fullPitch;
+          restoredLocalDraft = true;
+        } else if (!shouldRestore) {
+          clearLocalDraft(formation.id);
+        }
+      }
+    }
+
+    setTactics(nextTactics);
+    setActiveTacticId(nextActiveTacticId);
+    setFullPitch(nextFullPitch);
     drawOrigin.current = null;
-    setElDrag(null);  setOppDrag(null); setOwnPlayerDrag(null); setSaveMsg(null); setRenamingId(null);
+    setElDrag(null);  setOppDrag(null); setOwnPlayerDrag(null); setRenamingId(null);
     elDragOrigin.current = null; oppDragOrigin.current = null; ownPlayerDragOrigin.current = null;
-    setIsDirty(false); setSelectedId(null);
+    setIsDirty(restoredLocalDraft); setSelectedId(null);
     undoStack.current = []; setCanUndo(false);
     redoStack.current = []; setCanRedo(false);
-  }, [open, formation?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (restoredLocalDraft) {
+      showTransientSaveMsg({ ok: true, text: 'Lokaler Entwurf wiederhergestellt' }, 5000);
+    } else {
+      showTransientSaveMsg(null, 0);
+    }
+  }, [open, formation?.id, showTransientSaveMsg]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open || !formation?.id || !isDirty) return;
+
+    const activeId = tactics.some(t => t.id === activeTacticId)
+      ? activeTacticId
+      : (tactics[0]?.id ?? '');
+
+    const draft: LocalTacticsBoardDraft = {
+      version: LOCAL_DRAFT_VERSION,
+      formationId: formation.id,
+      updatedAt: new Date().toISOString(),
+      tactics,
+      activeTacticId: activeId,
+      fullPitch,
+    };
+
+    if (draftSaveTimeoutRef.current !== null) {
+      window.clearTimeout(draftSaveTimeoutRef.current);
+    }
+
+    draftSaveTimeoutRef.current = window.setTimeout(() => {
+      writeLocalDraft(draft);
+      draftSaveTimeoutRef.current = null;
+    }, DRAFT_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (draftSaveTimeoutRef.current !== null) {
+        window.clearTimeout(draftSaveTimeoutRef.current);
+        draftSaveTimeoutRef.current = null;
+      }
+    };
+  }, [open, formation?.id, tactics, activeTacticId, fullPitch, isDirty]);
+
+  useEffect(() => {
+    if (!open || !isDirty) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [open, isDirty]);
+
+  useEffect(() => () => {
+    clearSaveMsgTimeout();
+    if (draftSaveTimeoutRef.current !== null) {
+      window.clearTimeout(draftSaveTimeoutRef.current);
+      draftSaveTimeoutRef.current = null;
+    }
+  }, [clearSaveMsgTimeout]);
+
+  useEffect(() => {
+    if (!selectedDrawElement || selectedDrawElement.color === color) return;
+    setColorState(selectedDrawElement.color);
+  }, [selectedDrawElement, color]);
 
   // ── Delete selected element / opponent ───────────────────────────────────
   // Defined here (before the keyboard effect) to avoid TDZ reference error.
@@ -534,12 +730,11 @@ export function useTacticsBoard(
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!formation) return;
-    setSaving(true); setSaveMsg(null);
+    setSaving(true);
+    showTransientSaveMsg(null, 0);
     try {
       const now          = new Date().toISOString();
-      const boardDataArr = tactics.map(t =>
-        t.id === activeTacticId ? { ...t, savedAt: now } : t,
-      );
+      const boardDataArr = tactics.map(t => ({ ...t, savedAt: now }));
       const updatedFormationData = {
         ...formation.formationData,
         tacticsBoardDataArr: boardDataArr,
@@ -548,16 +743,17 @@ export function useTacticsBoard(
         method: 'POST',
         body: { name: formationName, formationData: updatedFormationData },
       });
-      setSaveMsg({ ok: true, text: 'Taktik gespeichert ✓' });
+      setTactics(boardDataArr);
+      clearLocalDraft(formation.id);
+      showTransientSaveMsg({ ok: true, text: 'Taktik gespeichert ✓' });
       setIsDirty(false);
       if (resp?.formation) onBoardSaved?.(resp.formation);
     } catch {
-      setSaveMsg({ ok: false, text: 'Fehler beim Speichern' });
+      showTransientSaveMsg({ ok: false, text: 'Fehler beim Speichern' });
     } finally {
       setSaving(false);
-      setTimeout(() => setSaveMsg(null), 3500);
     }
-  }, [formation, tactics, activeTacticId, formationName, onBoardSaved]);
+  }, [formation, tactics, formationName, onBoardSaved, showTransientSaveMsg]);
 
   // ── SVG draw start ────────────────────────────────────────────────────────
   const handleSvgDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {

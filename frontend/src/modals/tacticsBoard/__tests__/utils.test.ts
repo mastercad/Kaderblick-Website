@@ -1,5 +1,11 @@
 import { arrowPath, halfToFull, makeMarkerId, clipLine } from '../utils';
 
+function parseQuadraticControlPoint(path: string) {
+  const match = path.match(/^M\s+[-\d.]+\s+[-\d.]+\s+Q\s+([-\d.]+)\s+([-\d.]+)\s+[-\d.]+\s+[-\d.]+$/);
+  if (!match) throw new Error(`Unexpected path format: ${path}`);
+  return { cpx: Number(match[1]), cpy: Number(match[2]) };
+}
+
 describe('arrowPath', () => {
   it('returns a straight line for very short distances (len < 0.5)', () => {
     const result = arrowPath(10, 10, 10.1, 10.1);
@@ -20,6 +26,39 @@ describe('arrowPath', () => {
   it('handles diagonal lines without throwing', () => {
     expect(() => arrowPath(5, 5, 95, 95)).not.toThrow();
   });
+
+  it('arches upper-field arrows above their endpoints', () => {
+    const result = arrowPath(10, 15, 90, 15);
+    const { cpy } = parseQuadraticControlPoint(result);
+    expect(cpy).toBeLessThan(15);
+  });
+
+  it('also arches reversed upper-field arrows above their endpoints', () => {
+    const result = arrowPath(90, 15, 10, 15);
+    const { cpy } = parseQuadraticControlPoint(result);
+    expect(cpy).toBeLessThan(15);
+  });
+
+  it('keeps arrows near midfield almost straight', () => {
+    const result = arrowPath(10, 50, 90, 50);
+    const { cpy } = parseQuadraticControlPoint(result);
+    expect(cpy).toBeCloseTo(50, 5);
+  });
+
+  it('keeps quarter-field arrows visibly curved', () => {
+    const upper = parseQuadraticControlPoint(arrowPath(10, 25, 90, 25));
+    const lower = parseQuadraticControlPoint(arrowPath(10, 75, 90, 75));
+
+    expect(upper.cpy).toBeLessThan(22);
+    expect(lower.cpy).toBeGreaterThan(78);
+  });
+
+  it('arches lower-field arrows below their endpoints', () => {
+    const result = arrowPath(10, 85, 90, 85);
+    const { cpy } = parseQuadraticControlPoint(result);
+    expect(cpy).toBeGreaterThan(85);
+  });
+
 });
 
 describe('halfToFull', () => {
