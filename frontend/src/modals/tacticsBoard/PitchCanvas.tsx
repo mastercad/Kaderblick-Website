@@ -128,7 +128,6 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
     if (sinceRelease < DBLCLICK_MS) {
       // Double-tap
       e.stopPropagation();
-      e.preventDefault();
       lastOppRelease.current.delete(id);
       onOppDblClick(id);
     } else {
@@ -153,10 +152,12 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       sx={{
         position: 'relative',
         aspectRatio: pitchAspect,
-        maxWidth:  '100%',
+        width: fullPitch ? '100%' : { xs: 'min(100%, 297px)', md: 'min(100%, 396px)' },
+        maxWidth: '100%',
         maxHeight: '100%',
-        height: '100%',
-        width: 'auto',
+        height: 'auto',
+        alignSelf: 'center',
+        touchAction: 'none',
         borderRadius: 2,
         overflow: 'hidden',
         boxShadow: '0 8px 40px rgba(0,0,0,0.85)',
@@ -168,7 +169,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         <Box sx={{
           position: 'absolute', inset: 0,
           backgroundImage: 'url(/images/formation/fussballfeld_komplett.jpg)',
-          backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
           bgcolor: '#1a5229',
         }} />
       ) : (
@@ -176,7 +177,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         <Box sx={{
           position: 'absolute', inset: 0,
           backgroundImage: 'url(/images/formation/fussballfeld_haelfte.jpg)',
-          backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
           bgcolor: '#1a5229',
         }} />
       )}
@@ -220,6 +221,7 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
               zIndex: 12,
               pointerEvents: 'auto',
               userSelect: 'none',
+              touchAction: 'none',
               cursor: isDragging ? 'grabbing' : 'grab',
             }}
           >

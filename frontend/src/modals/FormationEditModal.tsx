@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Button, Box, Typography, Alert, CircularProgress, TextField, MenuItem, Chip, Tooltip,
+  Paper, Stack,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -9,8 +10,8 @@ import { useFormationEditor } from './formation/useFormationEditor';
 import TemplatePicker from './formation/components/TemplatePicker';
 import PlayerToken from './formation/components/PlayerToken';
 import Bench from './formation/components/Bench';
-import SquadList from './formation/components/SquadList';
-import type { FormationEditModalProps } from './formation/types';
+import SquadListPanel from './formation/components/SquadListPanel';
+import type { FormationEditModalProps, Player } from './formation/types';
 
 const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formationId, onClose, onSaved }) => {
   const editor = useFormationEditor(open, formationId, onClose, onSaved);
@@ -24,6 +25,16 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
   const backgroundImage = `url(/images/formation/${
     editor.formation?.formationType?.backgroundPath ?? 'fussballfeld_haelfte.jpg'
   })`;
+  const squadCount = editor.availablePlayers.length;
+  const fieldCount = editor.players.length;
+  const benchCount = editor.benchPlayers.length;
+  const assignedRealPlayers = editor.availablePlayers.filter(player => activeIds.has(player.id)).length;
+  const remainingSquadCount = Math.max(0, squadCount - assignedRealPlayers);
+  const nextStepLabel = editor.hasPlaceholders
+    ? 'Platzhalter mit echten Spielern besetzen oder automatisch aus dem Kader füllen.'
+    : remainingSquadCount > 0
+      ? 'Verbleibende Kaderspieler auf Bank oder Feld verteilen.'
+      : 'Aufstellung prüfen, Notizen ergänzen und speichern.';
 
   // ── Template picker (first step for new formations) ──────────────────────────
   if (editor.showTemplatePicker) {
@@ -81,6 +92,78 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
         </TextField>
       </Box>
 
+      <Paper
+        variant="outlined"
+        sx={{
+          p: { xs: 1.25, sm: 1.5 },
+          mb: 2,
+          borderRadius: 3,
+          bgcolor: 'background.default',
+        }}
+      >
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          useFlexGap
+          sx={{ mb: 1.25 }}
+        >
+          {[
+            { label: 'Spielfeld', value: fieldCount, hint: 'aktuell gesetzt' },
+            { label: 'Bank', value: benchCount, hint: 'einsatzbereit' },
+            { label: 'Kader offen', value: remainingSquadCount, hint: 'noch nicht platziert' },
+          ].map(item => (
+            <Box
+              key={item.label}
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                px: 1.25,
+                py: 1,
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                {item.label}
+              </Typography>
+              <Typography variant="h6" fontWeight={800} lineHeight={1.1}>
+                {item.value}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {item.hint}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: 1,
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Nächster sinnvoller Schritt
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {nextStepLabel}
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+            <Chip size="small" color="primary" variant="outlined" label={`${assignedRealPlayers}/${squadCount || 0} Kaderspieler eingesetzt`} />
+            {editor.hasPlaceholders && (
+              <Chip size="small" color="warning" variant="outlined" label={`${editor.placeholderCount} Platzhalter offen`} />
+            )}
+          </Stack>
+        </Box>
+      </Paper>
+
       {/* ── Auto-fill banner: shown when placeholders exist and squad is loaded ───── */}
       {editor.hasPlaceholders && editor.availablePlayers.length > 0 && (
         <Box
@@ -130,12 +213,37 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
       <Box display="flex" gap={2} alignItems="flex-start" sx={{ flexDirection: { xs: 'column', md: 'row' } }}>
         {/* ── Pitch + Bench ──────────────────────────────────────────────────── */}
         <Box sx={{ flex: { xs: 'none', md: 2 }, width: '100%', minWidth: 0 }}>
+          <Paper variant="outlined" sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 3, mb: 1.25 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: 'space-between',
+                gap: 0.75,
+                mb: 1,
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={800}>
+                  Spielfeld
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Spieler verschieben, austauschen oder direkt aus dem Kader auf freie Positionen ziehen.
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                <Chip size="small" label={`${fieldCount} auf dem Feld`} />
+                <Chip size="small" label={`${benchCount} auf der Bank`} />
+              </Stack>
+            </Box>
 
-          {/* Half-pitch – outer wrapper enforces portrait 960:1357 aspect ratio */}
+          {/* Half-pitch – keep the canvas in landscape so it matches the field image */}
           <Box sx={{
             width: '100%',
-            aspectRatio: '960 / 1357',
-            maxHeight: { xs: 420, md: 560 },
+            maxWidth: { xs: 560, md: 620 },
+            aspectRatio: '1357 / 960',
+            mx: 'auto',
             borderRadius: 2,
             overflow: 'hidden',
             boxShadow: 3,
@@ -154,6 +262,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
               position: 'relative',
               cursor: editor.draggedPlayerId ? 'grabbing' : editor.squadDragPlayer ? 'copy' : 'default',
               userSelect: 'none',
+              touchAction: 'none',
               // Subtle glow overlay while squad-player is being dragged over the pitch
               outline: editor.squadDragPlayer ? '3px dashed rgba(255,255,255,0.5)' : 'none',
               outlineOffset: '-4px',
@@ -167,7 +276,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
             onDragOver={editor.handlePitchDragOver}
             onDrop={editor.handlePitchDrop}
           >
-            {/* Zone labels – portrait field: top-anchored */}
+            {/* Zone labels */}
             {[
               { label: 'ANGRIFF',    top: '5%'  },
               { label: 'MITTELFELD', top: '38%' },
@@ -200,6 +309,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
             ))}
           </Box>
           </Box>{/* end aspect-ratio wrapper */}
+          </Paper>
 
           {/* Ersatzbank */}
           <Bench
@@ -212,13 +322,13 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
         </Box>
 
         {/* ── Right panel ────────────────────────────────────────────────────── */}
-        <SquadList
+        <SquadListPanel
           availablePlayers={editor.availablePlayers}
           searchQuery={editor.searchQuery}
           onSearchChange={editor.setSearchQuery}
           activePlayerIds={activeIds}
-          onAddToField={p => editor.addPlayerToFormation(p, 'field')}
-          onAddToBench={p => editor.addPlayerToFormation(p, 'bench')}
+          onAddToField={(p: Player) => editor.addPlayerToFormation(p, 'field')}
+          onAddToBench={(p: Player) => editor.addPlayerToFormation(p, 'bench')}
           onAddGeneric={editor.addGenericPlayer}
           onSquadDragStart={editor.handleSquadDragStart}
           onSquadDragEnd={editor.handleSquadDragEnd}

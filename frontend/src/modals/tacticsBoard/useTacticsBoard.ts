@@ -422,8 +422,8 @@ export function useTacticsBoard(
   // Full pitch:  1920×1357  landscape  pitchAX = w/h of SVG pixels so handles are circular
   // Half pitch:  960×1357   portrait   pitchAX = h/w of SVG pixels (denominator flipped
   //                                    because the container is taller than wide)
-  const pitchAspect = fullPitch ? '1920 / 1357' : '1357 / 960';
-  const pitchAX     = fullPitch ? (1357 / 1920)  : (960  / 1357);
+  const pitchAspect = fullPitch ? '1920 / 1357' : '960 / 1357';
+  const pitchAX     = fullPitch ? (1357 / 1920)  : (1357 / 960);
   // Keep in a ref so the drag move handler can read it without being a dep
   const pitchAXRef  = useRef(pitchAX);
   pitchAXRef.current = pitchAX;
@@ -758,7 +758,6 @@ export function useTacticsBoard(
   // ── SVG draw start ────────────────────────────────────────────────────────
   const handleSvgDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (tool === 'pointer') return;
-    e.preventDefault();
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const src  = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
@@ -800,7 +799,6 @@ export function useTacticsBoard(
 
     const origin_own = ownPlayerDragOrigin.current;
     if (origin_own) {
-      e.preventDefault();
       const r = origin_own.svgRect;
       const px = Math.max(1, Math.min(99, origin_own.sx + ((cx - r.left) / r.width  * 100 - origin_own.mouseX)));
       const py = Math.max(1, Math.min(99, origin_own.sy + ((cy - r.top)  / r.height * 100 - origin_own.mouseY)));
@@ -817,7 +815,6 @@ export function useTacticsBoard(
 
     const origin_opp = oppDragOrigin.current;
     if (origin_opp) {
-      e.preventDefault();
       const r = origin_opp.svgRect;
       const nx = Math.max(2, Math.min(98, origin_opp.x + ((cx - r.left) / r.width  * 100 - origin_opp.mouseX)));
       const ny = Math.max(1, Math.min(99, origin_opp.y + ((cy - r.top)  / r.height * 100 - origin_opp.mouseY)));
@@ -834,7 +831,6 @@ export function useTacticsBoard(
 
     const origin_el = elDragOrigin.current;
     if (origin_el) {
-      e.preventDefault();
       const r  = origin_el.svgRect;
       const px = (cx - r.left) / r.width  * 100;
       const py = (cy - r.top)  / r.height * 100;
@@ -945,7 +941,6 @@ export function useTacticsBoard(
     }
 
     if (!drawOrigin.current || tool === 'pointer') return;
-    e.preventDefault();
     if (!svgRef.current) return;
     const svgR = svgRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((cx - svgR.left) / svgR.width)  * 100));
@@ -1082,7 +1077,6 @@ export function useTacticsBoard(
     mode: 'move' | 'start' | 'end' | 'resize' = 'move',
   ) => {
     e.stopPropagation();
-    e.preventDefault();
     if (!svgRef.current) return;
     const rect  = svgRef.current.getBoundingClientRect();
     const src   = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
@@ -1113,7 +1107,6 @@ export function useTacticsBoard(
   // ── Opponent drag start ───────────────────────────────────────────────────
   const handleOppDown = useCallback((e: React.MouseEvent | React.TouchEvent, id: string) => {
     e.stopPropagation();
-    e.preventDefault();
     if (!svgRef.current) return;
     const opp = (activeTactic?.opponents ?? []).find(o => o.id === id);
     if (!opp) return;
@@ -1135,7 +1128,6 @@ export function useTacticsBoard(
     sy: number,
   ) => {
     e.stopPropagation();
-    e.preventDefault();
     if (!svgRef.current) return;
     const rect  = svgRef.current.getBoundingClientRect();
     const src   = 'touches' in e ? (e as React.TouchEvent).touches[0] : (e as React.MouseEvent);
