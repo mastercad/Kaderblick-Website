@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\NotificationRepository;
 use App\Repository\PushSubscriptionRepository;
 use App\Service\PushNotificationService;
+use DateInterval;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -163,9 +164,19 @@ class PushController extends AbstractController
         // 3. Recent notification delivery statistics (last 7 days)
         $recentStats = $this->notificationRepository->getPushDeliveryStats($user, 7);
 
+        $statsWindowStart = (new DateTime())->sub(new DateInterval('P7D'));
+        $lastPushSuccessAt = $user->getLastPushSuccessAt();
+        $lastPushFailureAt = $user->getLastPushFailureAt();
+        $hasRecentPushSuccess = null !== $lastPushSuccessAt && $lastPushSuccessAt >= $statsWindowStart;
+        $hasRecentPushFailure = null !== $lastPushFailureAt && $lastPushFailureAt >= $statsWindowStart;
+        $hasRecoveredPushDelivery = $hasRecentPushSuccess && (!$hasRecentPushFailure || $lastPushSuccessAt >= $lastPushFailureAt);
+
         // 4. Last successfully sent notification
-        $lastSentNotification = $this->notificationRepository->findLastSentForUser($user);
-        $lastSentAt = $lastSentNotification?->getCreatedAt()?->format('c');
+        $lastSentAt = $lastPushSuccessAt?->format('c');
+        if (null === $lastSentAt) {
+            $lastSentNotification = $this->notificationRepository->findLastSentForUser($user);
+            $lastSentAt = $lastSentNotification?->getCreatedAt()?->format('c');
+        }
 
         // 5. Unsent notifications count (stuck notifications = problem indicator)
         $unsentCount = count($this->notificationRepository->findUnsentByUser($user));
@@ -179,12 +190,12 @@ class PushController extends AbstractController
             $issues[] = 'no_subscriptions';
         }
         if ($recentStats['total'] > 0 && 0 === $recentStats['sent']) {
-            $issues[] = 'all_deliveries_failed';
+            $issues[] = $hasRecoveredPushDelivery ? 'notification_queue_stuck' : 'all_deliveries_failed';
         }
         if ($unsentCount > 5) {
             $issues[] = 'many_unsent_stuck';
         }
-        if ($recentStats['total'] > 0 && $recentStats['failRate'] > 50) {
+        if ($recentStats['total'] > 0 && $recentStats['failRate'] > 50 && !$hasRecoveredPushDelivery) {
             $issues[] = 'high_failure_rate';
         }
 

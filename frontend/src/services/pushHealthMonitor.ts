@@ -183,6 +183,14 @@ class PushHealthMonitor {
                 action: 'Push-Subscription erneuern. Seite neu laden und Push erlauben.',
               });
               break;
+            case 'notification_queue_stuck':
+              issues.push({
+                code: 'notification_queue_stuck',
+                severity: 'warning',
+                message: 'Direkte Test-Pushs funktionieren, aber serverseitig erzeugte Benachrichtigungen wurden zuletzt nicht verarbeitet.',
+                action: 'Lokalen Hintergrundjob bzw. Cron für den Notification-Versand prüfen.',
+              });
+              break;
             case 'high_failure_rate':
               issues.push({
                 code: 'high_failure_rate',
@@ -194,7 +202,7 @@ class PushHealthMonitor {
               issues.push({
                 code: 'many_unsent_stuck',
                 severity: 'warning',
-                message: 'Es gibt mehrere fehlgeschlagene Benachrichtigungen.',
+                message: 'Es gibt mehrere serverseitig noch nicht verarbeitete Benachrichtigungen.',
               });
               break;
           }
@@ -452,6 +460,7 @@ class PushHealthMonitor {
   async sendTestPush(): Promise<{ success: boolean; message: string }> {
     try {
       const result = await apiJson('/api/push/test', { method: 'POST' });
+      await this.check();
       return { success: result.success, message: result.message };
     } catch (err: any) {
       return {

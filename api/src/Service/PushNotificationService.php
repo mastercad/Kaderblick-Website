@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\User;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
@@ -50,11 +51,18 @@ class PushNotificationService
         return $this->webPush;
     }
 
-    public function sendNotification(User $user, string $title, string $body, string $url = '/'): void
+    /**
+     * @return array{attempted: int, successful: int, failed: int}
+     */
+    public function sendNotification(User $user, string $title, string $body, string $url = '/'): array
     {
         $subscriptions = $user->getPushSubscriptions();
         if ($subscriptions->isEmpty()) {
-            return;
+            return [
+                'attempted' => 0,
+                'successful' => 0,
+                'failed' => 0,
+            ];
         }
 
         /** @var WebPush $webPush */
@@ -67,6 +75,9 @@ class PushNotificationService
         ]);
 
         $endpointMap = [];
+        $attempted = 0;
+        $successful = 0;
+        $failed = 0;
 
         foreach ($subscriptions as $sub) {
             $subscription = Subscription::create([
@@ -78,6 +89,7 @@ class PushNotificationService
             // Keep a map from endpoint => PushSubscription entity so we can
             // remove the DB entity when the subscription is expired.
             $endpointMap[$subscription->getEndpoint()] = $sub;
+            ++$attempted;
 
             $webPush->sendOneNotification(
                 $subscription,
@@ -116,6 +128,13 @@ class PushNotificationService
                 'response_body' => $report->getResponseContent(),
             ]);
 
+            if ($report->isSuccess()) {
+                ++$successful;
+                continue;
+            }
+
+            ++$failed;
+
             if (!$report->isSuccess()) {
                 if ($report->isSubscriptionExpired()) {
                     if (isset($endpointMap[$endpoint])) {
@@ -126,6 +145,26 @@ class PushNotificationService
             }
         }
 
+        $now = new DateTime();
+        if ($successful > 0) {
+            $user->setLastPushSuccessAt($now);
+
+            if (0 === $failed) {
+                $user->setLastPushFailureAt(null);
+            }
+        }
+
+        if (0 === $successful && $failed > 0) {
+            $user->setLastPushFailureAt($now);
+        }
+
+        $this->em->persist($user);
         $this->em->flush();
+
+        return [
+            'attempted' => $attempted,
+            'successful' => $successful,
+            'failed' => $failed,
+        ];
     }
 }
