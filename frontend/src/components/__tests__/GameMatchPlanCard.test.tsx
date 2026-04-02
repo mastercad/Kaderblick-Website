@@ -159,6 +159,254 @@ describe('GameMatchPlanCard', () => {
     });
   });
 
+  it('shows substitution and position swaps together for mixed phase changes', async () => {
+    mockFetchGameSquad.mockResolvedValue({
+      squad: [],
+      allPlayers: [
+        { id: 101, fullName: 'Spieler A', shirtNumber: 1, teamId: 1 },
+        { id: 102, fullName: 'Spieler B', shirtNumber: 2, teamId: 1 },
+        { id: 103, fullName: 'Spieler C', shirtNumber: 3, teamId: 1 },
+        { id: 112, fullName: 'Spieler D', shirtNumber: 12, teamId: 1 },
+      ],
+      hasParticipationData: true,
+    });
+
+    render(
+      <GameMatchPlanCard
+        game={makeGame({
+          matchPlan: {
+            selectedTeamId: 1,
+            published: true,
+            phases: [
+              {
+                id: 'start',
+                minute: 0,
+                label: 'Start',
+                sourceType: 'start',
+                players: [
+                  { id: 1, x: 20, y: 50, number: 1, name: 'Spieler A', playerId: 101, isRealPlayer: true },
+                  { id: 2, x: 50, y: 50, number: 2, name: 'Spieler B', playerId: 102, isRealPlayer: true },
+                  { id: 3, x: 80, y: 50, number: 3, name: 'Spieler C', playerId: 103, isRealPlayer: true },
+                ],
+                bench: [
+                  { id: 12, x: 0, y: 0, number: 12, name: 'Spieler D', playerId: 112, isRealPlayer: true },
+                ],
+              },
+              {
+                id: 'phase-1',
+                minute: 2700,
+                label: '45. Minute',
+                sourceType: 'shape_change',
+                players: [
+                  { id: 4, x: 20, y: 50, number: 12, name: 'Spieler D', playerId: 112, isRealPlayer: true },
+                  { id: 5, x: 80, y: 50, number: 2, name: 'Spieler B', playerId: 102, isRealPlayer: true },
+                  { id: 6, x: 50, y: 50, number: 3, name: 'Spieler C', playerId: 103, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('Mehrfachänderung')).toBeInTheDocument();
+    expect(screen.getByText(/Spieler A raus, Spieler D rein/i)).toBeInTheDocument();
+    expect(screen.getByText(/Positionswechsel: Spieler B tauscht mit Spieler C/i)).toBeInTheDocument();
+  });
+
+  it('does not truncate movement summaries with weitere markers', async () => {
+    mockFetchGameSquad.mockResolvedValue({
+      squad: [],
+      allPlayers: [
+        { id: 201, fullName: 'Spieler 1', shirtNumber: 1, teamId: 1 },
+        { id: 202, fullName: 'Spieler 2', shirtNumber: 2, teamId: 1 },
+        { id: 203, fullName: 'Spieler 3', shirtNumber: 3, teamId: 1 },
+        { id: 204, fullName: 'Spieler 4', shirtNumber: 4, teamId: 1 },
+      ],
+      hasParticipationData: true,
+    });
+
+    render(
+      <GameMatchPlanCard
+        game={makeGame({
+          matchPlan: {
+            selectedTeamId: 1,
+            published: true,
+            phases: [
+              {
+                id: 'start',
+                minute: 0,
+                label: 'Start',
+                sourceType: 'start',
+                players: [
+                  { id: 1, x: 10, y: 20, number: 1, name: 'Spieler 1', playerId: 201, isRealPlayer: true },
+                  { id: 2, x: 30, y: 20, number: 2, name: 'Spieler 2', playerId: 202, isRealPlayer: true },
+                  { id: 3, x: 50, y: 20, number: 3, name: 'Spieler 3', playerId: 203, isRealPlayer: true },
+                  { id: 4, x: 70, y: 20, number: 4, name: 'Spieler 4', playerId: 204, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+              {
+                id: 'phase-1',
+                minute: 900,
+                label: '15. Minute',
+                sourceType: 'shape_change',
+                players: [
+                  { id: 1, x: 10, y: 45, number: 1, name: 'Spieler 1', playerId: 201, isRealPlayer: true },
+                  { id: 2, x: 30, y: 45, number: 2, name: 'Spieler 2', playerId: 202, isRealPlayer: true },
+                  { id: 3, x: 50, y: 45, number: 3, name: 'Spieler 3', playerId: 203, isRealPlayer: true },
+                  { id: 4, x: 70, y: 45, number: 4, name: 'Spieler 4', playerId: 204, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('Umstellung')).toBeInTheDocument();
+    expect(screen.queryByText(/\+\d+ weitere/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Spieler 4: defensiv halbrechts -> zentral halbrechts/i)).toBeInTheDocument();
+  });
+
+  it('describes substitution and following swap as one connected action', async () => {
+    mockFetchGameSquad.mockResolvedValue({
+      squad: [],
+      allPlayers: [
+        { id: 301, fullName: 'Anton', shirtNumber: 9, teamId: 1 },
+        { id: 302, fullName: 'Tobi', shirtNumber: 10, teamId: 1 },
+        { id: 312, fullName: 'Kian', shirtNumber: 18, teamId: 1 },
+      ],
+      hasParticipationData: true,
+    });
+
+    render(
+      <GameMatchPlanCard
+        game={makeGame({
+          matchPlan: {
+            selectedTeamId: 1,
+            published: true,
+            phases: [
+              {
+                id: 'start',
+                minute: 0,
+                label: 'Start',
+                sourceType: 'start',
+                players: [
+                  { id: 1, x: 30, y: 75, number: 9, name: 'Anton', playerId: 301, isRealPlayer: true },
+                  { id: 2, x: 80, y: 75, number: 10, name: 'Tobi', playerId: 302, isRealPlayer: true },
+                ],
+                bench: [
+                  { id: 12, x: 0, y: 0, number: 18, name: 'Kian', playerId: 312, isRealPlayer: true },
+                ],
+              },
+              {
+                id: 'phase-1',
+                minute: 2700,
+                label: '45. Minute',
+                sourceType: 'shape_change',
+                players: [
+                  { id: 3, x: 80, y: 75, number: 18, name: 'Kian', playerId: 312, isRealPlayer: true },
+                  { id: 4, x: 30, y: 75, number: 10, name: 'Tobi', playerId: 302, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('Mehrfachänderung')).toBeInTheDocument();
+    expect(screen.getByText(/Anton raus, Kian rein und tauscht danach mit Tobi die Position/i)).toBeInTheDocument();
+    expect(screen.getByText(/Kian jetzt offensiv rechts, Tobi jetzt offensiv halblinks/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Verschoben: Tobi/i)).not.toBeInTheDocument();
+  });
+
+  it('preserves substitution metadata when saving a mixed phase change', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 7, isCoach: true, isPlayer: false, roles: { user: 'ROLE_USER' } },
+    });
+
+    mockFetchGameSquad.mockResolvedValue({
+      squad: [],
+      allPlayers: [
+        { id: 101, fullName: 'Spieler A', shirtNumber: 1, teamId: 1 },
+        { id: 102, fullName: 'Spieler B', shirtNumber: 2, teamId: 1 },
+        { id: 103, fullName: 'Spieler C', shirtNumber: 3, teamId: 1 },
+        { id: 112, fullName: 'Spieler D', shirtNumber: 12, teamId: 1 },
+      ],
+      hasParticipationData: true,
+    });
+
+    render(
+      <GameMatchPlanCard
+        game={makeGame({
+          matchPlan: {
+            selectedTeamId: 1,
+            published: false,
+            phases: [
+              {
+                id: 'start',
+                minute: 0,
+                label: 'Start',
+                sourceType: 'start',
+                players: [
+                  { id: 1, x: 20, y: 50, number: 1, name: 'Spieler A', playerId: 101, isRealPlayer: true },
+                  { id: 2, x: 50, y: 50, number: 2, name: 'Spieler B', playerId: 102, isRealPlayer: true },
+                  { id: 3, x: 80, y: 50, number: 3, name: 'Spieler C', playerId: 103, isRealPlayer: true },
+                ],
+                bench: [
+                  { id: 12, x: 0, y: 0, number: 12, name: 'Spieler D', playerId: 112, isRealPlayer: true },
+                ],
+              },
+              {
+                id: 'phase-1',
+                minute: 2700,
+                label: '45. Minute',
+                sourceType: 'shape_change',
+                players: [
+                  { id: 4, x: 20, y: 50, number: 12, name: 'Spieler D', playerId: 112, isRealPlayer: true },
+                  { id: 5, x: 80, y: 50, number: 2, name: 'Spieler B', playerId: 102, isRealPlayer: true },
+                  { id: 6, x: 50, y: 50, number: 3, name: 'Spieler C', playerId: 103, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+            ],
+          },
+          permissions: {
+            can_manage_match_plan: true,
+            can_publish_match_plan: true,
+            can_view_match_plan: true,
+          },
+        })}
+      />,
+    );
+
+    const publishButton = await screen.findByRole('button', { name: 'Für Spieler freigeben' });
+    fireEvent.click(publishButton);
+
+    await waitFor(() => {
+      expect(mockSaveGameMatchPlan).toHaveBeenCalledWith(42, expect.objectContaining({
+        published: true,
+        phases: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'phase-1',
+            sourceType: 'substitution',
+            substitution: expect.objectContaining({
+              playerOutId: 101,
+              playerInId: 112,
+              playerOutName: 'Spieler A',
+              playerInName: 'Spieler D',
+            }),
+          }),
+        ]),
+      }));
+    });
+  });
+
   it('derives the published team from the planned players instead of a stale team selection', async () => {
     mockUseAuth.mockReturnValue({
       user: { id: 7, isCoach: true, isPlayer: false, roles: { user: 'ROLE_USER' } },
