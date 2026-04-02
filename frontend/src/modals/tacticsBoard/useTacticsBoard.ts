@@ -420,10 +420,9 @@ export function useTacticsBoard(
   // ── Pitch layout helpers ──────────────────────────────────────────────────
   //
   // Full pitch:  1920×1357  landscape  pitchAX = w/h of SVG pixels so handles are circular
-  // Half pitch:  960×1357   portrait   pitchAX = h/w of SVG pixels (denominator flipped
-  //                                    because the container is taller than wide)
-  const pitchAspect = fullPitch ? '1920 / 1357' : '960 / 1357';
-  const pitchAX     = fullPitch ? (1357 / 1920)  : (1357 / 960);
+  // Half pitch:  1357×960   landscape  pitchAX = h/w of SVG pixels for the half-field asset
+  const pitchAspect = fullPitch ? '1920 / 1357' : '1357 / 960';
+  const pitchAX     = fullPitch ? (1357 / 1920) : (960 / 1357);
   // Keep in a ref so the drag move handler can read it without being a dep
   const pitchAXRef  = useRef(pitchAX);
   pitchAXRef.current = pitchAX;

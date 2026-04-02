@@ -31,8 +31,9 @@ function makeProps(overrides: Partial<PitchCanvasProps> = {}): PitchCanvasProps 
     pitchRef,
     svgRef,
     fullPitch: false,          // default: half-pitch so ghost logic is active
-    pitchAspect: '960 / 1357',
-    pitchAX: 1357 / 960,
+    fitPitchToHeight: true,
+    pitchAspect: '1357 / 960',
+    pitchAX: 960 / 1357,
     svgCursor: 'default',
     elements: [],
     opponents: [],

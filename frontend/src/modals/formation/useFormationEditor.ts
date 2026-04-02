@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../context/ToastContext';
 import type { DragSource, Formation, Player, PlayerData, Team } from './types';
 import type { FormationTemplate } from './templates';
@@ -22,6 +22,7 @@ export interface FormationEditorState {
   // ui state
   loading: boolean;
   error: string | null;
+  isDirty: boolean;
   searchQuery: string;
   showTemplatePicker: boolean;
   draggedPlayerId: number | null;
@@ -63,6 +64,48 @@ export interface FormationEditorState {
   handleSave: () => Promise<void>;
 }
 
+interface FormationDraftSnapshotParams {
+  name: string;
+  notes: string;
+  selectedTeam: number | '';
+  players: PlayerData[];
+  benchPlayers: PlayerData[];
+}
+
+function normalizePlayerData(player: PlayerData) {
+  return {
+    id: player.id,
+    x: player.x,
+    y: player.y,
+    number: player.number,
+    name: player.name,
+    playerId: player.playerId ?? null,
+    isRealPlayer: player.isRealPlayer ?? false,
+    position: player.position ?? null,
+    alternativePositions: [...(player.alternativePositions ?? [])],
+  };
+}
+
+export function buildFormationDraftSnapshot({
+  name,
+  notes,
+  selectedTeam,
+  players,
+  benchPlayers,
+}: FormationDraftSnapshotParams): string {
+  return JSON.stringify({
+    name,
+    notes,
+    selectedTeam,
+    players: [...players]
+      .map(normalizePlayerData)
+      .sort((a, b) => a.id - b.id),
+    benchPlayers: [...benchPlayers]
+      .map(normalizePlayerData)
+      .sort((a, b) => a.id - b.id),
+  });
+}
+
 export function useFormationEditor(
   open: boolean,
   formationId: number | null,
@@ -73,6 +116,9 @@ export function useFormationEditor(
   const pitchRef = useRef<HTMLDivElement>(null);
   /** Stable map von Spieler-ID → DOM-Element des Tokens für direktes DOM-Update während Drag. */
   const tokenRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const initialSnapshotRef = useRef<string | null>(null);
+  const dirtyTrackingReadyRef = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   // ── State + API-Calls ────────────────────────────────────────────────────
   const data = useFormationData(open, formationId);
@@ -127,6 +173,64 @@ export function useFormationEditor(
     onSaved,
   });
 
+  const currentSnapshot = useMemo(() => buildFormationDraftSnapshot({
+    name: data.name,
+    notes: data.notes,
+    selectedTeam: data.selectedTeam,
+    players: data.players,
+    benchPlayers: data.benchPlayers,
+  }), [data.name, data.notes, data.selectedTeam, data.players, data.benchPlayers]);
+
+  useEffect(() => {
+    if (!open) {
+      initialSnapshotRef.current = null;
+      dirtyTrackingReadyRef.current = false;
+      setIsDirty(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const readyForDirtyTracking = !data.loading && (
+      (formationId
+        ? Boolean(data.formation) || Boolean(data.error)
+        : data.selectedTeam !== '' || data.teams.length > 0 || Boolean(data.error))
+    );
+
+    if (!readyForDirtyTracking) return;
+
+    if (!dirtyTrackingReadyRef.current) {
+      initialSnapshotRef.current = currentSnapshot;
+      dirtyTrackingReadyRef.current = true;
+      setIsDirty(false);
+      return;
+    }
+
+    setIsDirty(currentSnapshot !== initialSnapshotRef.current);
+  }, [
+    currentSnapshot,
+    data.error,
+    data.formation,
+    data.loading,
+    data.selectedTeam,
+    data.teams.length,
+    formationId,
+    open,
+  ]);
+
+  useEffect(() => {
+    if (!open || !isDirty) return undefined;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [open, isDirty]);
+
   return {
     // ── Daten & Formularfelder ────────────────────────────────────────────
     formation:          data.formation,
@@ -139,6 +243,7 @@ export function useFormationEditor(
     selectedTeam:       data.selectedTeam,
     loading:            data.loading,
     error:              data.error,
+    isDirty,
     searchQuery:        data.searchQuery,
     showTemplatePicker: data.showTemplatePicker,
     setName:            data.setName,

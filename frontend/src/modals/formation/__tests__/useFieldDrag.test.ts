@@ -62,6 +62,17 @@ describe('startDragFromField', () => {
     act(() => { result.current.startDragFromField(1, mouseEvent(10, 10)); });
     expect(result.current.draggedPlayerId).toBe(1);
   });
+
+  it('behält die Ursprungskoordinaten wenn vor dem ersten Move bereits losgelassen wird', () => {
+    const { result } = setup([fieldPlayer(1, 32, 44)]);
+
+    act(() => { result.current.startDragFromField(1, mouseEvent(10, 10)); });
+    act(() => { result.current.handlePitchMouseUp(); });
+
+    const player = result.current.players.find(p => p.id === 1);
+    expect(player?.x).toBeCloseTo(32, 0);
+    expect(player?.y).toBeCloseTo(44, 0);
+  });
 });
 
 // ─── handlePitchMouseMove ─────────────────────────────────────────────────────
@@ -81,11 +92,24 @@ describe('handlePitchMouseMove', () => {
     expect(moved?.y).toBeCloseTo(60, 0);
   });
 
+  it('behält den Greifpunkt relativ zum Token bei', () => {
+    const { result } = setup([fieldPlayer(1, 10, 20)]);
+
+    act(() => { result.current.startDragFromField(1, mouseEvent(14, 27)); });
+    act(() => { result.current.handlePitchMouseMove(mouseEvent(40, 55)); });
+    act(() => { result.current.handlePitchMouseUp(); });
+
+    const moved = result.current.players.find(p => p.id === 1);
+    expect(moved?.x).toBeCloseTo(36, 0);
+    expect(moved?.y).toBeCloseTo(48, 0);
+  });
+
   it('tut nichts wenn kein Spieler gezogen wird', () => {
     const { result } = setup([fieldPlayer(1, 10, 10)]);
     act(() => { result.current.handlePitchMouseMove(mouseEvent(80, 80)); });
     expect(result.current.players[0].x).toBe(10); // unverändert
   });
+
 });
 
 // ─── handlePitchMouseUp / finalizeDrop ───────────────────────────────────────
@@ -179,13 +203,30 @@ describe('handlePitchTouchMove', () => {
   it('bewegt den Spieler via Touch-Event (Position nach touchEnd)', () => {
     // Wie bei mousemove: State-Update erfolgt erst in finalizeDrop (touchEnd)
     const { result } = setup([fieldPlayer(1, 10, 10)]);
-    act(() => { result.current.startDragFromField(1, mouseEvent(0, 0)); });
+    act(() => { result.current.startDragFromField(1, mouseEvent(10, 10)); });
     act(() => { result.current.handlePitchTouchMove(touchEvent(70, 20)); });
     act(() => { result.current.handlePitchTouchEnd(); }); // committet dragPosRef → State
 
     const moved = result.current.players.find(p => p.id === 1);
     expect(moved?.x).toBeCloseTo(70, 0);
     expect(moved?.y).toBeCloseTo(20, 0);
+  });
+
+  it('verfolgt den Drag auch über globale Window-Events zuverlässig', () => {
+    const { result } = setup([fieldPlayer(1, 10, 10)]);
+
+    act(() => { result.current.startDragFromField(1, mouseEvent(10, 10)); });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 64, clientY: 28 }));
+    });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const moved = result.current.players.find(p => p.id === 1);
+    expect(moved?.x).toBeCloseTo(64, 0);
+    expect(moved?.y).toBeCloseTo(28, 0);
+    expect(result.current.draggedPlayerId).toBeNull();
   });
 });
 
