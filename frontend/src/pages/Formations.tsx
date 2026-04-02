@@ -67,8 +67,8 @@ const CardPitchPreview: React.FC<{
   return (
     <Box sx={{
       width: '100%',
-      aspectRatio: '960 / 1357',
-      maxHeight: 220,
+      aspectRatio: '1357 / 960',
+      maxHeight: 180,
       borderRadius: '8px 8px 0 0',
       overflow: 'hidden',
       flexShrink: 0,
@@ -84,7 +84,7 @@ const CardPitchPreview: React.FC<{
       {/* Subtle overlay for legibility */}
       <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.08)' }} />
 
-      {/* Zone labels – portrait field: top-anchored */}
+      {/* Zone labels – landscape half-field */}
       {[
         { label: 'ANGRIFF', top: '4%'  },
         { label: 'ABWEHR',  top: '66%' },

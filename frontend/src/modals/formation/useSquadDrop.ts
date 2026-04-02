@@ -18,11 +18,15 @@
  */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getRelativePosition } from './helpers';
+import { appendBenchPlayerUnique, nextLocalPlayerId } from './playerIdentity';
+import { getBestFreeTemplateSlot, getBestFreeformGuideTarget, getDragGuideProfile } from './templateGuidance';
 import type { Player, PlayerData } from './types';
 
 const SNAP_THRESHOLD = 9;
 
 interface UseSquadDropParams {
+  autoSnapEnabled: boolean;
+  currentTemplateCode: string | null;
   players: PlayerData[];
   setPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
   benchPlayers: PlayerData[];
@@ -33,6 +37,8 @@ interface UseSquadDropParams {
 }
 
 export function useSquadDrop({
+  autoSnapEnabled,
+  currentTemplateCode,
   players,
   setPlayers,
   benchPlayers,
@@ -103,7 +109,7 @@ export function useSquadDrop({
               ? { ...p, name: player.name, number: incomingNum, playerId: player.id, isRealPlayer: true, position: player.position ?? undefined, alternativePositions: player.alternativePositions ?? [] }
               : p,
           ));
-          setBenchPlayers(prev => [...prev, displaced]);
+          setBenchPlayers(prev => appendBenchPlayerUnique(prev, displaced));
         }
       } else {
         // Platzhalter ersetzen – Position (x/y + Label) bleibt erhalten
@@ -118,10 +124,27 @@ export function useSquadDrop({
         }
       }
     } else if (!alreadyOnField && !alreadyOnBench) {
+      const finalPos = autoSnapEnabled
+        ? (() => {
+            const profile = getDragGuideProfile(player);
+            const snappedSlot = getBestFreeTemplateSlot({
+              templateCode: currentTemplateCode,
+              profile,
+              players: currentPlayers,
+              anchorPosition: pos,
+            });
+            const fallbackTarget = snappedSlot ? null : getBestFreeformGuideTarget(profile, pos);
+
+            if (snappedSlot) return { x: snappedSlot.slot.x, y: snappedSlot.slot.y };
+            if (fallbackTarget) return { x: fallbackTarget.x, y: fallbackTarget.y };
+            return pos;
+          })()
+        : pos;
+
       // Ablage auf freier Feldfläche
       setPlayers(prev => [...prev, {
-        id: Date.now() + Math.floor(Math.random() * 1e6),
-        ...pos,
+        id: nextLocalPlayerId(),
+        ...finalPos,
         number: player.shirtNumber ?? currentNextNum,
         name: player.name,
         playerId: player.id,
@@ -131,7 +154,7 @@ export function useSquadDrop({
       }]);
       setNextPlayerNumber(n => n + 1);
     }
-  }, [pitchRef, setPlayers, setBenchPlayers, setNextPlayerNumber]);
+  }, [autoSnapEnabled, currentTemplateCode, pitchRef, setPlayers, setBenchPlayers, setNextPlayerNumber]);
 
   /**
    * Globale Touch-Handler – aktiv nur wenn ein Kader-Spieler gezogen wird.

@@ -1,5 +1,5 @@
 import { apiJson } from '../utils/api';
-import { Game, GameEvent, GameEventType, Player, SubstitutionReason, GameWithScore, TournamentOverview, TournamentDetail } from '../types/games';
+import { Game, GameEvent, GameEventType, MatchPlan, Player, SubstitutionReason, GameWithScore, TournamentOverview, TournamentDetail } from '../types/games';
 
 export interface GamesOverviewData {
   running_games: Game[];
@@ -160,5 +160,26 @@ export async function updateGameTiming(gameId: number, data: GameTimingData): Pr
   return apiJson(`/api/games/${gameId}/timing`, {
     method: 'PATCH',
     body: data,
+  });
+}
+
+export async function saveGameMatchPlan(gameId: number, matchPlan: MatchPlan): Promise<{
+  success: boolean;
+  matchPlan: MatchPlan;
+}> {
+  return apiJson(`/api/games/${gameId}/match-plan`, {
+    method: 'PATCH',
+    body: matchPlan,
+  });
+}
+
+export async function confirmGameMatchPlanSubstitution(gameId: number, phaseId: string): Promise<{
+  success: boolean;
+  eventId: number | null;
+  matchPlan: MatchPlan;
+}> {
+  return apiJson(`/api/games/${gameId}/match-plan/confirm-substitution`, {
+    method: 'POST',
+    body: { phaseId },
   });
 }

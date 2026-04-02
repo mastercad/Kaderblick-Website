@@ -40,10 +40,12 @@ const setup = (
     const [players,    setPlayers]    = useState<PlayerData[]>(initialPlayers);
     const [bench,      setBench]      = useState<PlayerData[]>(initialBench);
     const [nextNum,    setNextNum]    = useState(initialNextNum);
+    const [currentTemplateCode, setCurrentTemplateCode] = useState<string | null>(null);
 
     const actions = usePlayerActions({
       players, setPlayers,
       benchPlayers: bench, setBenchPlayers: setBench,
+      setCurrentTemplateCode,
       availablePlayers,
       nextPlayerNumber: nextNum, setNextPlayerNumber: setNextNum,
       setShowTemplatePicker,
@@ -51,7 +53,7 @@ const setup = (
     });
 
     // Eigener State nach außen geben, damit Assertions darauf zugreifen können
-    return { players, bench, nextNum, ...actions };
+    return { players, bench, nextNum, currentTemplateCode, ...actions };
   });
 
   return { hook, showToast, setShowTemplatePicker };
@@ -62,7 +64,7 @@ const setup = (
 describe('applyTemplate', () => {
   it('ersetzt Feld- und Bank-Spieler durch Platzhalter aus dem Template', () => {
     const { hook, setShowTemplatePicker } = setup(
-      [fieldPlayer(1, 'Müller', 10)],
+      [],
       [fieldPlayer(2, 'Huber', 20)],
       [],
     );
@@ -85,6 +87,7 @@ describe('applyTemplate', () => {
     expect(players[1].position).toBe('IV');
     expect(players.every(p => !p.isRealPlayer)).toBe(true);
     expect(bench).toHaveLength(0);
+    expect(hook.result.current.currentTemplateCode).toBe('4-4-2');
     expect(setShowTemplatePicker).toHaveBeenCalledWith(false);
   });
 

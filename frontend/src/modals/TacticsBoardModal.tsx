@@ -10,7 +10,7 @@
  *   tacticsBoard/TacticsBar.tsx      Taktik-Tab-Leiste
  *   tacticsBoard/StatusBar.tsx       Statuszeile
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Dialog, Box, Typography,
   DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
@@ -20,6 +20,9 @@ import {
 import useMediaQuery from '@mui/material/useMediaQuery';
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import { useTacticsBoard }  from './tacticsBoard/useTacticsBoard';
 import { PitchCanvas }      from './tacticsBoard/PitchCanvas';
 import { TacticsToolbar }   from './tacticsBoard/TacticsToolbar';
@@ -50,8 +53,37 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   const [showStepNumbers, setShowStepNumbers] = useState(false);
   const [tacticToDeleteId, setTacticToDeleteId] = useState<string | null>(null);
   const [fitPitchToHeight, setFitPitchToHeight] = useState(true);
+  const [hideFullscreenChrome, setHideFullscreenChrome] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(false);
   const forceWidthMode = isMobile && isPortrait;
   const effectiveFitPitchToHeight = fitPitchToHeight && !forceWidthMode;
+  const isPresentationMode = board.isBrowserFS && hideFullscreenChrome;
+
+  useEffect(() => {
+    if (!board.isBrowserFS) {
+      setHideFullscreenChrome(false);
+      setPresentationMode(false);
+    }
+  }, [board.isBrowserFS]);
+
+  useEffect(() => {
+    if (presentationMode) {
+      board.setSelectedId?.(null);
+    }
+  }, [board, presentationMode]);
+
+  const togglePresentationMode = useCallback(() => {
+    setPresentationMode(prev => {
+      const next = !prev;
+      setHideFullscreenChrome(next);
+      return next;
+    });
+  }, []);
+
+  const handlePresentationModeOff = useCallback(() => {
+    setPresentationMode(false);
+    setHideFullscreenChrome(false);
+  }, []);
 
   // ── Opponent edit form state ──────────────────────────────────────────────
   const [oppEditForm, setOppEditForm] = useState({ number: '', name: '' });
@@ -106,6 +138,30 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     setTacticToDeleteId(null);
   }, []);
 
+  const handleSvgDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (presentationMode) return;
+    board.handleSvgDown(e);
+  }, [board, presentationMode]);
+
+  const handleElDown = useCallback((
+    e: React.MouseEvent | React.TouchEvent,
+    id: string,
+    mode?: 'move' | 'start' | 'end' | 'resize',
+  ) => {
+    if (presentationMode) return;
+    board.handleElDown(e, id, mode);
+  }, [board, presentationMode]);
+
+  const handleOppDown = useCallback((e: React.MouseEvent | React.TouchEvent, id: string) => {
+    if (presentationMode) return;
+    board.handleOppDown(e, id);
+  }, [board, presentationMode]);
+
+  const handleOwnPlayerDown = useCallback((e: React.MouseEvent | React.TouchEvent, id: number, sx: number, sy: number) => {
+    if (presentationMode) return;
+    board.handleOwnPlayerDown(e, id, sx, sy);
+  }, [board, presentationMode]);
+
   return (
     <>
     <Dialog
@@ -120,6 +176,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         ref={board.containerRef}
         sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0a0f0a' }}
       >
+        {!isPresentationMode && (
         <Box
           sx={{
             display: 'flex',
@@ -184,6 +241,30 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+            {board.isBrowserFS && (
+              <Button
+                aria-label={presentationMode ? 'Präsentation beenden' : 'Leisten ausblenden'}
+                onClick={presentationMode ? handlePresentationModeOff : () => setHideFullscreenChrome(true)}
+                startIcon={<VisibilityOffIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  minWidth: 0,
+                  px: 1.1,
+                  py: 0.55,
+                  borderRadius: 1.5,
+                  color: 'rgba(255,255,255,0.85)',
+                  border: '1px solid rgba(255,255,255,0.16)',
+                  bgcolor: 'rgba(255,255,255,0.06)',
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                }}
+              >
+                {presentationMode ? 'Präsentation beenden' : 'Leisten ausblenden'}
+              </Button>
+            )}
+
             {formation && isMobile && (
               <Box
                 onClick={board.saving ? undefined : board.handleSave}
@@ -228,7 +309,9 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             </IconButton>
           </Box>
         </Box>
+        )}
 
+        {!isPresentationMode && (
         <TacticsToolbar
           notes={board.notes}
           tool={board.tool}            setTool={board.setTool}
@@ -257,8 +340,12 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           onRedo={board.handleRedo}
           showStepNumbers={showStepNumbers}
           onToggleStepNumbers={() => setShowStepNumbers(v => !v)}
+          presentationMode={presentationMode}
+          onTogglePresentationMode={togglePresentationMode}
         />
+        )}
 
+        {!isPresentationMode && (
         <TacticsBar
           tactics={board.tactics}
           activeTacticId={board.activeTacticId}
@@ -272,9 +359,88 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           onConfirmRename={board.confirmRename}
           onCancelRename={() => board.setRenamingId(null)}
         />
+        )}
 
         {/* ═══ PITCH + NOTES ═══════════════════════════════════════════════ */}
-        <Box sx={{ flex: 1, display: 'flex', alignItems: effectiveFitPitchToHeight ? 'center' : 'flex-start', justifyContent: 'center', gap: 2, p: { xs: 1, md: 2 }, overflow: effectiveFitPitchToHeight ? 'hidden' : 'auto', minHeight: 0 }}>
+        <Box sx={{ position: 'relative', flex: 1, display: 'flex', alignItems: effectiveFitPitchToHeight ? 'center' : 'flex-start', justifyContent: 'center', gap: 2, p: { xs: 1, md: 2 }, overflow: effectiveFitPitchToHeight ? 'hidden' : 'auto', minHeight: 0 }}>
+          {board.isBrowserFS && isPresentationMode && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: { xs: 10, md: 16 },
+                right: { xs: 10, md: 16 },
+                zIndex: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 0.75,
+                borderRadius: 2,
+                bgcolor: 'rgba(10,15,10,0.72)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 14px 32px rgba(0,0,0,0.32)',
+              }}
+            >
+              <Button
+                aria-label="Leisten einblenden"
+                onClick={() => setHideFullscreenChrome(false)}
+                startIcon={<VisibilityIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  minWidth: 0,
+                  px: 1.2,
+                  py: 0.55,
+                  borderRadius: 1.5,
+                  color: 'white',
+                  bgcolor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.16)' },
+                }}
+              >
+                Leisten einblenden
+              </Button>
+
+              {presentationMode && (
+                <Button
+                  aria-label="Präsentation beenden"
+                  onClick={handlePresentationModeOff}
+                  sx={{
+                    minWidth: 0,
+                    px: 1.2,
+                    py: 0.55,
+                    borderRadius: 1.5,
+                    color: 'rgba(255,255,255,0.9)',
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                  }}
+                >
+                  Präsentation beenden
+                </Button>
+              )}
+
+              <IconButton
+                aria-label="Vollbild beenden"
+                onClick={board.toggleFullscreen}
+                sx={{
+                  color: 'rgba(255,255,255,0.86)',
+                  bgcolor: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' },
+                }}
+              >
+                <FullscreenExitIcon />
+              </IconButton>
+            </Box>
+          )}
+
           <PitchCanvas
             pitchRef={board.pitchRef}
             svgRef={board.svgRef}
@@ -291,14 +457,14 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             elDrag={board.elDrag}
             oppDrag={board.oppDrag}
             ownPlayerDrag={board.ownPlayerDrag}
-            onSvgDown={board.handleSvgDown}
+            onSvgDown={handleSvgDown}
             onSvgMove={board.handleSvgMove}
             onSvgUp={board.handleSvgUp}
             onSvgLeave={board.handleSvgLeave}
-            onElDown={board.handleElDown}
-            onOppDown={board.handleOppDown}
-            onOppDblClick={handleOppDblClick}
-            onOwnPlayerDown={board.handleOwnPlayerDown}
+            onElDown={handleElDown}
+            onOppDown={handleOppDown}
+            onOppDblClick={presentationMode ? () => undefined : handleOppDblClick}
+            onOwnPlayerDown={handleOwnPlayerDown}
             markerId={board.markerId}
             selectedId={board.selectedId}
             registerElRef={board.registerElRef}
@@ -307,6 +473,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
             registerPreviewPathRef={board.registerPreviewPathRef}
             registerPreviewEllipseRef={board.registerPreviewEllipseRef}
             showStepNumbers={showStepNumbers}
+            presentationMode={presentationMode}
           />
           {board.showNotes && board.notes && (
             <Box sx={{ maxWidth: 248, width: '100%', bgcolor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, p: 2, alignSelf: 'flex-start', mt: 1, backdropFilter: 'blur(4px)' }}>
@@ -320,12 +487,14 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           )}
         </Box>
 
+        {!isPresentationMode && (
         <StatusBar
           tool={board.tool}
           elements={board.elements}
           opponents={board.opponents}
           isBrowserFS={board.isBrowserFS}
         />
+        )}
       </Box>
     </Dialog>
 

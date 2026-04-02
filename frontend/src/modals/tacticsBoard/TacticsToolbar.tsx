@@ -17,6 +17,7 @@ import PersonAddIcon   from '@mui/icons-material/PersonAdd';
 import SaveIcon        from '@mui/icons-material/Save';
 import BookmarksIcon            from '@mui/icons-material/BookmarksOutlined';
 import FormatListNumberedIcon   from '@mui/icons-material/FormatListNumbered';
+import PresentToAllIcon         from '@mui/icons-material/PresentToAll';
 
 import { ToolBtn, ArrowToolIcon } from './ToolBtn';
 import { PALETTE } from './constants';
@@ -76,6 +77,8 @@ export interface TacticsToolbarProps {
   /** Whether step-order numbers are shown on arrows and zones */
   showStepNumbers: boolean;
   onToggleStepNumbers: () => void;
+  presentationMode: boolean;
+  onTogglePresentationMode: () => void;
 
 }
 
@@ -95,6 +98,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
   selectedId, onDeleteSelected,
   canUndo, showStepNumbers, onToggleStepNumbers,
   canRedo, onRedo,
+  presentationMode, onTogglePresentationMode,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -149,6 +153,12 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
         label="Zone" tooltip="Bereich / Zone auf dem Feld markieren (Kreis ziehen)" compact={isMobile}>
         <RadioButtonUncheckedIcon sx={{ fontSize: 18 }} />
       </LabeledToolBtn>
+      {isBrowserFS && (
+        <LabeledToolBtn active={presentationMode} onClick={onTogglePresentationMode}
+          label="Präsent." tooltip="Präsentationsmodus: nur zeigen, nichts verschieben oder anlegen" compact={isMobile}>
+          <PresentToAllIcon sx={{ fontSize: 18 }} />
+        </LabeledToolBtn>
+      )}
     </Box>
 
     {!isMobile && (

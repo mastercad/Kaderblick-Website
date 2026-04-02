@@ -73,6 +73,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import { getAvatarFrameUrl } from '../utils/avatarFrame';
 import { calculateCumulativeOffset } from '../utils/videoTimeline';
 import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
+import GameMatchPlanCard from '../components/GameMatchPlanCard';
 
 /** Helper: format date to "Sa, 15. Mär 2025" style */
 const formatDateNice = (dateString: string) => {
@@ -426,8 +427,15 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
     return now >= start && now <= end;
   };
 
+  const hasStaffMatchAccess = Boolean(
+    user?.isCoach
+    || Object.values(user?.roles ?? {}).includes('ROLE_SUPPORTER')
+    || Object.values(user?.roles ?? {}).includes('ROLE_ADMIN')
+    || Object.values(user?.roles ?? {}).includes('ROLE_SUPERADMIN')
+  );
+
   const canCreateEvents = () => {
-    return game?.permissions?.can_create_game_events ?? false;
+    return hasStaffMatchAccess && (game?.permissions?.can_create_game_events ?? false);
   };
 
   const handleFinishGame = async () => {
@@ -459,7 +467,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   };
 
   const canCreateVideos = () => {
-    return game?.permissions?.can_create_videos ?? false;
+    return hasStaffMatchAccess && (game?.permissions?.can_create_videos ?? false);
   }
 
   const handleProtectedEventAction = () => {
@@ -758,6 +766,13 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         </CardContent>
       </Card>
 
+      <GameMatchPlanCard
+        game={game}
+        onUpdated={async () => {
+          await loadGameDetails();
+        }}
+      />
+
       {/* ══════════════════════════════════════════════════
           GAME EVENTS
          ══════════════════════════════════════════════════ */}
@@ -793,15 +808,17 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
               />
             )}
           </Box>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={handleProtectedEventAction}
-            sx={{ fontSize: '0.8rem' }}
-          >
-            Event hinzufügen
-          </Button>
+          {canCreateEvents() && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleProtectedEventAction}
+              sx={{ fontSize: '0.8rem' }}
+            >
+              Event hinzufügen
+            </Button>
+          )}
         </Box>
 
         <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>

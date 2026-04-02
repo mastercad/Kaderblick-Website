@@ -10,19 +10,16 @@
  * - Automatisches Befüllen der Platzhalter mit Teamspielern (4-Pass-Algorithmus)
  */
 import { findFreePosition, positionCategory } from './helpers';
+import { appendBenchPlayerUnique, nextLocalPlayerId } from './playerIdentity';
 import type { FormationTemplate } from './templates';
 import type { DragSource, Player, PlayerData } from './types';
-
-// Monotonically increasing counter – guarantees unique numeric IDs even when
-// multiple players are created within the same millisecond.
-let _idCounter = Date.now();
-const nextId = () => ++_idCounter;
 
 interface UsePlayerActionsParams {
   players: PlayerData[];
   setPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
   benchPlayers: PlayerData[];
   setBenchPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
+  setCurrentTemplateCode: React.Dispatch<React.SetStateAction<string | null>>;
   availablePlayers: Player[];
   nextPlayerNumber: number;
   setNextPlayerNumber: React.Dispatch<React.SetStateAction<number>>;
@@ -35,6 +32,7 @@ export function usePlayerActions({
   setPlayers,
   benchPlayers,
   setBenchPlayers,
+  setCurrentTemplateCode,
   availablePlayers,
   nextPlayerNumber,
   setNextPlayerNumber,
@@ -45,10 +43,127 @@ export function usePlayerActions({
   const placeholderCount = players.filter(p => !p.isRealPlayer).length;
   const hasPlaceholders  = placeholderCount > 0;
 
+  const assignCurrentFieldPlayersToTemplate = (template: FormationTemplate): PlayerData[] | null => {
+    const currentFieldPlayers = players.filter(player => player.isRealPlayer && player.playerId != null);
+    if (currentFieldPlayers.length === 0) {
+      return null;
+    }
+
+    const orderedCurrentPlayers = [...currentFieldPlayers].sort((left, right) => {
+      const leftNumber = typeof left.number === 'number' ? left.number : parseInt(String(left.number), 10) || 999;
+      const rightNumber = typeof right.number === 'number' ? right.number : parseInt(String(right.number), 10) || 999;
+      return leftNumber - rightNumber;
+    });
+    const remainingIds = new Set(orderedCurrentPlayers.map(player => player.id));
+    const playerById = new Map(orderedCurrentPlayers.map(player => [player.id, player]));
+    const assigned = new Map<number, PlayerData>();
+
+    const pickWhere = (predicate: (player: PlayerData) => boolean): PlayerData | null => {
+      const hit = orderedCurrentPlayers.find(player => remainingIds.has(player.id) && predicate(player));
+      if (hit) {
+        remainingIds.delete(hit.id);
+        return hit;
+      }
+      return null;
+    };
+
+    for (const slot of template.players) {
+      const exact = pickWhere(player => (player.position ?? '').toUpperCase() === slot.position.toUpperCase());
+      if (exact) assigned.set(template.players.indexOf(slot), exact);
+    }
+
+    for (const slot of template.players) {
+      const slotIndex = template.players.indexOf(slot);
+      if (assigned.has(slotIndex)) continue;
+      const slotCategory = positionCategory(slot.position);
+      if (!slotCategory) continue;
+      const categoryMatch = pickWhere(player => positionCategory(player.position) === slotCategory);
+      if (categoryMatch) assigned.set(slotIndex, categoryMatch);
+    }
+
+    for (const slot of template.players) {
+      const slotIndex = template.players.indexOf(slot);
+      if (assigned.has(slotIndex)) continue;
+      const exactAlternative = pickWhere(player =>
+        (player.alternativePositions ?? []).some(position => position.toUpperCase() === slot.position.toUpperCase()),
+      );
+      if (exactAlternative) assigned.set(slotIndex, exactAlternative);
+    }
+
+    for (const slot of template.players) {
+      const slotIndex = template.players.indexOf(slot);
+      if (assigned.has(slotIndex)) continue;
+      const slotCategory = positionCategory(slot.position);
+      if (!slotCategory) continue;
+      const alternativeCategory = pickWhere(player =>
+        (player.alternativePositions ?? []).some(position => positionCategory(position) === slotCategory),
+      );
+      if (alternativeCategory) assigned.set(slotIndex, alternativeCategory);
+    }
+
+    for (const slot of template.players) {
+      const slotIndex = template.players.indexOf(slot);
+      if (assigned.has(slotIndex)) continue;
+      const fallback = pickWhere(() => true);
+      if (fallback) assigned.set(slotIndex, fallback);
+    }
+
+    const mappedPlayers = template.players.map((slot, index) => {
+      const assignedPlayer = assigned.get(index);
+      if (!assignedPlayer) {
+        return {
+          id: nextLocalPlayerId(),
+          x: slot.x,
+          y: slot.y,
+          number: index + 1,
+          name: slot.position,
+          position: slot.position,
+          playerId: null,
+          isRealPlayer: false,
+        } satisfies PlayerData;
+      }
+
+      return {
+        ...assignedPlayer,
+        x: slot.x,
+        y: slot.y,
+      };
+    });
+
+    const unassignedPlayers = [...remainingIds]
+      .map(id => playerById.get(id))
+      .filter((player): player is PlayerData => Boolean(player));
+
+    if (unassignedPlayers.length > 0) {
+      setBenchPlayers(previousBench => {
+        const existingBenchIds = new Set(previousBench.map(player => player.playerId).filter((id): id is number => id != null));
+        const additions = unassignedPlayers
+          .filter(player => player.playerId != null && !existingBenchIds.has(player.playerId))
+          .map(player => ({
+            ...player,
+            x: 0,
+            y: 0,
+          }));
+        return additions.length > 0 ? [...previousBench, ...additions] : previousBench;
+      });
+    }
+
+    return mappedPlayers;
+  };
+
   // ─── Template anwenden ────────────────────────────────────────────────────
   const applyTemplate = (template: FormationTemplate) => {
+    const mappedCurrentPlayers = assignCurrentFieldPlayersToTemplate(template);
+    if (mappedCurrentPlayers) {
+      setPlayers(mappedCurrentPlayers);
+      setCurrentTemplateCode(template.code);
+      setShowTemplatePicker(false);
+      showToast('Vorlage angewendet und aktuelle Feldspieler passend umsortiert.', 'success');
+      return;
+    }
+
     const templatePlayers: PlayerData[] = template.players.map((tp, idx) => ({
-      id: nextId(),
+      id: nextLocalPlayerId(),
       x: tp.x,
       y: tp.y,
       number: idx + 1,
@@ -60,7 +175,9 @@ export function usePlayerActions({
     setPlayers(templatePlayers);
     setBenchPlayers([]);
     setNextPlayerNumber(templatePlayers.length + 1);
+    setCurrentTemplateCode(template.code);
     setShowTemplatePicker(false);
+    showToast('Vorlage angewendet.', 'success');
   };
 
   // ─── Spieler aus Kader hinzufügen ─────────────────────────────────────────
@@ -70,7 +187,7 @@ export function usePlayerActions({
     if (alreadyIn) return;
 
     const newPlayer: PlayerData = {
-      id: nextId(),
+      id: nextLocalPlayerId(),
       x: 0,
       y: 0,
       number: player.shirtNumber ?? nextPlayerNumber,
@@ -94,7 +211,7 @@ export function usePlayerActions({
   const addGenericPlayer = () => {
     const pos = findFreePosition(players);
     setPlayers(prev => [...prev, {
-      id: nextId(),
+      id: nextLocalPlayerId(),
       ...pos,
       number: nextPlayerNumber,
       name: `Spieler ${nextPlayerNumber}`,
@@ -113,7 +230,7 @@ export function usePlayerActions({
     const p = players.find(pl => pl.id === id);
     if (!p) return;
     setPlayers(prev => prev.filter(pl => pl.id !== id));
-    setBenchPlayers(prev => [...prev, p]);
+    setBenchPlayers(prev => appendBenchPlayerUnique(prev, p));
   };
 
   const sendToField = (id: number) => {
@@ -228,7 +345,7 @@ export function usePlayerActions({
     const benchAdditions: PlayerData[] = remaining
       .filter(p => !existingBenchIds.has(p.id))
       .map((p) => ({
-        id: nextId(),
+        id: nextLocalPlayerId(),
         x: 0,
         y: 0,
         number: p.shirtNumber ?? 0,

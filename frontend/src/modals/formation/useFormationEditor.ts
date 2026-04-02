@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../context/ToastContext';
-import type { DragSource, Formation, Player, PlayerData, Team } from './types';
+import type { DragSource, Formation, FormationEditorDraft, Player, PlayerData, Team } from './types';
 import type { FormationTemplate } from './templates';
 import { useFormationData } from './useFormationData';
 import { useFieldDrag } from './useFieldDrag';
@@ -8,9 +8,17 @@ import { useSquadDrop } from './useSquadDrop';
 import { usePlayerActions } from './usePlayerActions';
 import { useFormationSave } from './useFormationSave';
 
+const AUTO_SNAP_STORAGE_KEY = 'formation-editor:auto-snap';
+
+const loadAutoSnapPreference = () => {
+  if (typeof window === 'undefined') return false;
+  return window.sessionStorage.getItem(AUTO_SNAP_STORAGE_KEY) === '1';
+};
+
 export interface FormationEditorState {
   // data
   formation: Formation | null;
+  currentTemplateCode: string | null;
   players: PlayerData[];
   benchPlayers: PlayerData[];
   availablePlayers: Player[];
@@ -25,6 +33,7 @@ export interface FormationEditorState {
   isDirty: boolean;
   searchQuery: string;
   showTemplatePicker: boolean;
+  autoSnapEnabled: boolean;
   draggedPlayerId: number | null;
   pitchRef: React.RefObject<HTMLDivElement | null>;
   /** Map von Spieler-ID → DOM-Element des Tokens – übergeben an PlayerToken.domRef */
@@ -35,6 +44,8 @@ export interface FormationEditorState {
   setSelectedTeam: (v: number | '') => void;
   setSearchQuery: (v: string) => void;
   setShowTemplatePicker: (v: boolean) => void;
+  setCurrentTemplateCode: (v: string | null) => void;
+  setAutoSnapEnabled: (v: boolean) => void;
   // derived ui helpers
   hasPlaceholders: boolean;
   placeholderCount: number;
@@ -68,6 +79,7 @@ interface FormationDraftSnapshotParams {
   name: string;
   notes: string;
   selectedTeam: number | '';
+  currentTemplateCode: string | null;
   players: PlayerData[];
   benchPlayers: PlayerData[];
 }
@@ -90,6 +102,7 @@ export function buildFormationDraftSnapshot({
   name,
   notes,
   selectedTeam,
+  currentTemplateCode,
   players,
   benchPlayers,
 }: FormationDraftSnapshotParams): string {
@@ -97,6 +110,7 @@ export function buildFormationDraftSnapshot({
     name,
     notes,
     selectedTeam,
+    currentTemplateCode,
     players: [...players]
       .map(normalizePlayerData)
       .sort((a, b) => a.id - b.id),
@@ -111,6 +125,10 @@ export function useFormationEditor(
   formationId: number | null,
   onClose: () => void,
   onSaved?: (f: Formation) => void,
+  initialDraft?: FormationEditorDraft,
+  onSaveDraft?: (draft: FormationEditorDraft) => Promise<void> | void,
+  saveSuccessMessage?: string,
+  initialShowTemplatePicker?: boolean,
 ): FormationEditorState {
   const { showToast } = useToast();
   const pitchRef = useRef<HTMLDivElement>(null);
@@ -119,12 +137,15 @@ export function useFormationEditor(
   const initialSnapshotRef = useRef<string | null>(null);
   const dirtyTrackingReadyRef = useRef(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [autoSnapEnabled, setAutoSnapEnabled] = useState(loadAutoSnapPreference);
 
   // ── State + API-Calls ────────────────────────────────────────────────────
-  const data = useFormationData(open, formationId);
+  const data = useFormationData(open, formationId, initialDraft, initialShowTemplatePicker);
 
   // ── Pointer/Touch-Drag für Feld-Tokens ──────────────────────────────────
   const fieldDrag = useFieldDrag({
+    autoSnapEnabled,
+    currentTemplateCode: data.currentTemplateCode,
     players:        data.players,
     setPlayers:     data.setPlayers,
     benchPlayers:   data.benchPlayers,
@@ -135,6 +156,8 @@ export function useFormationEditor(
 
   // ── HTML5-Drag vom Squad-Panel aufs Feld ────────────────────────────────
   const squadDrop = useSquadDrop({
+    autoSnapEnabled,
+    currentTemplateCode: data.currentTemplateCode,
     players:            data.players,
     setPlayers:         data.setPlayers,
     benchPlayers:       data.benchPlayers,
@@ -150,6 +173,7 @@ export function useFormationEditor(
     setPlayers:         data.setPlayers,
     benchPlayers:       data.benchPlayers,
     setBenchPlayers:    data.setBenchPlayers,
+    setCurrentTemplateCode: data.setCurrentTemplateCode,
     availablePlayers:   data.availablePlayers,
     nextPlayerNumber:   data.nextPlayerNumber,
     setNextPlayerNumber: data.setNextPlayerNumber,
@@ -160,6 +184,7 @@ export function useFormationEditor(
   // ── Speichern ────────────────────────────────────────────────────────────
   const { handleSave } = useFormationSave({
     formation:    data.formation,
+    currentTemplateCode: data.currentTemplateCode,
     players:      data.players,
     benchPlayers: data.benchPlayers,
     notes:        data.notes,
@@ -171,15 +196,18 @@ export function useFormationEditor(
     showToast,
     onClose,
     onSaved,
+    onSaveDraft,
+    saveSuccessMessage,
   });
 
   const currentSnapshot = useMemo(() => buildFormationDraftSnapshot({
     name: data.name,
     notes: data.notes,
     selectedTeam: data.selectedTeam,
+    currentTemplateCode: data.currentTemplateCode,
     players: data.players,
     benchPlayers: data.benchPlayers,
-  }), [data.name, data.notes, data.selectedTeam, data.players, data.benchPlayers]);
+  }), [data.name, data.notes, data.selectedTeam, data.currentTemplateCode, data.players, data.benchPlayers]);
 
   useEffect(() => {
     if (!open) {
@@ -231,9 +259,15 @@ export function useFormationEditor(
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [open, isDirty]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(AUTO_SNAP_STORAGE_KEY, autoSnapEnabled ? '1' : '0');
+  }, [autoSnapEnabled]);
+
   return {
     // ── Daten & Formularfelder ────────────────────────────────────────────
     formation:          data.formation,
+    currentTemplateCode: data.currentTemplateCode,
     players:            data.players,
     benchPlayers:       data.benchPlayers,
     availablePlayers:   data.availablePlayers,
@@ -246,11 +280,14 @@ export function useFormationEditor(
     isDirty,
     searchQuery:        data.searchQuery,
     showTemplatePicker: data.showTemplatePicker,
+    autoSnapEnabled,
     setName:            data.setName,
     setNotes:           data.setNotes,
     setSelectedTeam:    data.setSelectedTeam,
     setSearchQuery:     data.setSearchQuery,
     setShowTemplatePicker: data.setShowTemplatePicker,
+    setCurrentTemplateCode: data.setCurrentTemplateCode,
+    setAutoSnapEnabled,
     pitchRef,
     // ── Pointer/Touch-Drag (Feld-Tokens) ─────────────────────────────────
     tokenRefs,

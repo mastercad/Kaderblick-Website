@@ -144,6 +144,15 @@ class Game
     private int $halftimeBreakDuration = 15;
 
     /**
+     * Spielgebundener Matchplan mit Startformation, geplanten Phasen und Live-Status.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[Groups(['game:read', 'game:write'])]
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $matchPlan = null;
+
+    /**
      * @var Collection<int, Video>
      */
     #[ORM\OneToMany(targetEntity: Video::class, mappedBy: 'game', orphanRemoval: true)]
@@ -458,6 +467,24 @@ class Game
     public function setHalftimeBreakDuration(int $halftimeBreakDuration): self
     {
         $this->halftimeBreakDuration = $halftimeBreakDuration;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getMatchPlan(): ?array
+    {
+        return $this->matchPlan;
+    }
+
+    /**
+     * @param array<string, mixed>|null $matchPlan
+     */
+    public function setMatchPlan(?array $matchPlan): self
+    {
+        $this->matchPlan = $matchPlan;
 
         return $this;
     }

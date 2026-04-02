@@ -16,12 +16,16 @@
  */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getRelativePosition, getZoneColor } from './helpers';
+import { appendBenchPlayerUnique } from './playerIdentity';
+import { getBestFreeTemplateSlot, getBestFreeformGuideTarget, getDragGuideProfile } from './templateGuidance';
 import type { DragSource, PlayerData } from './types';
 
 /** In % der Felddimensionen – Token gilt als "Ziel" wenn Abstand kleiner. */
 const SWAP_THRESHOLD = 13;
 
 interface UseFieldDragParams {
+  autoSnapEnabled: boolean;
+  currentTemplateCode: string | null;
   players: PlayerData[];
   setPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
   benchPlayers: PlayerData[];
@@ -32,6 +36,8 @@ interface UseFieldDragParams {
 }
 
 export function useFieldDrag({
+  autoSnapEnabled,
+  currentTemplateCode,
   players,
   setPlayers,
   benchPlayers,
@@ -148,6 +154,17 @@ export function useFieldDrag({
     if (circleEl) {
       circleEl.style.backgroundColor = getZoneColor(y);
     }
+  }, [tokenRefs]);
+
+  const resetDraggedTokenPreview = useCallback((id: number) => {
+    const tokenEl = tokenRefs.current.get(id);
+    if (!tokenEl) return;
+
+    tokenEl.style.removeProperty('left');
+    tokenEl.style.removeProperty('top');
+
+    const circleEl = tokenEl.querySelector<HTMLElement>('[data-token-circle="true"]');
+    circleEl?.style.removeProperty('background-color');
   }, [tokenRefs]);
 
   const readPreviewPosition = useCallback((id: number, fallback: { x: number; y: number }) => {
@@ -290,7 +307,35 @@ export function useFieldDrag({
             ? withFinal.find(p => p.id === currentSwapTargetId) ?? null
             : findNearestSwapTarget(withFinal, id, dragged.x, dragged.y);
 
-          if (!nearest) return withFinal; // kein Ziel → Token bleibt wo er ist
+          if (!nearest) {
+            if (!autoSnapEnabled) return withFinal;
+
+            const dragProfile = getDragGuideProfile(dragged);
+            const snappedSlot = getBestFreeTemplateSlot({
+              templateCode: currentTemplateCode,
+              profile: dragProfile,
+              players: withFinal,
+              movingPlayerId: id,
+              anchorPosition: actualPos,
+            });
+
+            if (!snappedSlot) {
+              const fallbackTarget = getBestFreeformGuideTarget(dragProfile, actualPos);
+              if (!fallbackTarget) return withFinal;
+
+              return withFinal.map(player => (
+                player.id === id
+                  ? { ...player, x: fallbackTarget.x, y: fallbackTarget.y }
+                  : player
+              ));
+            }
+
+            return withFinal.map(player => (
+              player.id === id
+                ? { ...player, x: snappedSlot.slot.x, y: snappedSlot.slot.y }
+                : player
+            ));
+          }
 
           // Swap: gezogener Token → Position des Ziel-Tokens, Ziel-Token → Ursprung
           const targetPos = { x: nearest.x, y: nearest.y };
@@ -321,11 +366,39 @@ export function useFieldDrag({
             if (d < minDist) { minDist = d; nearest = p; }
           }
 
-          if (!nearest) return withFinal; // kein Ziel → Bank-Spieler bleibt wo er ist
+          if (!nearest) {
+            if (!autoSnapEnabled) return withFinal;
+
+            const dragProfile = getDragGuideProfile(dragged);
+            const snappedSlot = getBestFreeTemplateSlot({
+              templateCode: currentTemplateCode,
+              profile: dragProfile,
+              players: withFinal,
+              movingPlayerId: id,
+              anchorPosition: actualPos,
+            });
+
+            if (!snappedSlot) {
+              const fallbackTarget = getBestFreeformGuideTarget(dragProfile, actualPos);
+              if (!fallbackTarget) return withFinal;
+
+              return withFinal.map(player => (
+                player.id === id
+                  ? { ...player, x: fallbackTarget.x, y: fallbackTarget.y }
+                  : player
+              ));
+            }
+
+            return withFinal.map(player => (
+              player.id === id
+                ? { ...player, x: snappedSlot.slot.x, y: snappedSlot.slot.y }
+                : player
+            ));
+          }
 
           // Feldspieler geht auf die Bank, Bank-Spieler übernimmt seine Position
           const targetPos = { x: nearest.x, y: nearest.y };
-          setBenchPlayers(b => [...b, { ...nearest! }]);
+          setBenchPlayers(previousBench => appendBenchPlayerUnique(previousBench, { ...nearest! }));
           return withFinal
             .filter(p => p.id !== nearest!.id)
             .map(p => p.id === id ? { ...p, ...targetPos } : p);
@@ -341,9 +414,13 @@ export function useFieldDrag({
     dragOffsetRef.current = { x: 0, y: 0 };
     updateSwapTarget(null);
 
+    if (id !== null) {
+      resetDraggedTokenPreview(id);
+    }
+
     setDraggedPlayerId(null);
     setDraggedFrom(null);
-  }, [findNearestSwapTarget, readPreviewPosition, setPlayers, setBenchPlayers]);
+  }, [autoSnapEnabled, currentTemplateCode, findNearestSwapTarget, readPreviewPosition, resetDraggedTokenPreview, setPlayers, setBenchPlayers]);
 
   const handlePitchMouseMove = useCallback((e: React.MouseEvent) => applyDragMove(e.clientX, e.clientY), [applyDragMove]);
 

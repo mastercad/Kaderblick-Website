@@ -163,8 +163,8 @@ class PlayersController extends AbstractController
                         ]
                     ],
                     'type' => [
-                        'id' => $assignment->getPlayerTeamAssignmentType()->getId(),
-                        'name' => $assignment->getPlayerTeamAssignmentType()->getName()
+                        'id' => $assignment->getPlayerTeamAssignmentType()?->getId(),
+                        'name' => $assignment->getPlayerTeamAssignmentType()?->getName()
                     ]
                 ], $player->getPlayerTeamAssignments()->toArray()),
                 'fussballDeUrl' => $player->getFussballDeUrl(),
@@ -252,8 +252,8 @@ class PlayersController extends AbstractController
                         ]
                     ],
                     'type' => [
-                        'id' => $assignment->getPlayerTeamAssignmentType()->getId(),
-                        'name' => $assignment->getPlayerTeamAssignmentType()->getName()
+                        'id' => $assignment->getPlayerTeamAssignmentType()?->getId(),
+                        'name' => $assignment->getPlayerTeamAssignmentType()?->getName()
                     ]
                 ], $player->getPlayerTeamAssignments()->toArray()),
                 'fussballDeUrl' => $player->getFussballDeUrl(),

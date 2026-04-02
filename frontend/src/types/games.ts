@@ -3,6 +3,49 @@ export interface Team {
   name: string;
 }
 
+export interface MatchPlanPlayer {
+  id: number;
+  x: number;
+  y: number;
+  number: string | number;
+  name: string;
+  playerId?: number | null;
+  isRealPlayer?: boolean;
+  position?: string | null;
+  alternativePositions?: string[];
+}
+
+export interface MatchPlanSubstitution {
+  playerOutId: number | null;
+  playerOutName?: string;
+  playerInId: number | null;
+  playerInName?: string;
+  reasonId?: number | null;
+  note?: string | null;
+}
+
+export interface MatchPlanPhase {
+  id: string;
+  minute: number;
+  label: string;
+  sourceType: 'start' | 'substitution' | 'shape_change';
+  templateCode?: string | null;
+  players: MatchPlanPlayer[];
+  bench: MatchPlanPlayer[];
+  substitution?: MatchPlanSubstitution | null;
+  confirmedEventId?: number | null;
+  confirmedAt?: string | null;
+}
+
+export interface MatchPlan {
+  selectedTeamId?: number | null;
+  sourceFormationId?: number | null;
+  phases: MatchPlanPhase[];
+  published?: boolean;
+  publishedAt?: string | null;
+  updatedAt?: string;
+}
+
 export interface Location {
   id: number;
   name: string;
@@ -36,6 +79,7 @@ export interface Game {
   id: number;
   homeTeam: Team;
   awayTeam: Team;
+  userTeamIds?: number[];
   location?: Location;
   gameType?: GameType;
   league?: League;
@@ -56,6 +100,7 @@ export interface Game {
   firstHalfExtraTime?: number | null;
   /** Nachspielzeit der 2. Halbzeit in Minuten (null = nicht erfasst). */
   secondHalfExtraTime?: number | null;
+  matchPlan?: MatchPlan | null;
   permissions?: {
     can_create_videos?: boolean;
     can_view_videos?: boolean;
@@ -66,6 +111,9 @@ export interface Game {
     can_edit_game_events?: boolean;
     can_delete_game_events?: boolean;
     can_edit_timing?: boolean;
+    can_manage_match_plan?: boolean;
+    can_publish_match_plan?: boolean;
+    can_view_match_plan?: boolean;
   };
 }
 

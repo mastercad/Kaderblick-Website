@@ -18,7 +18,7 @@ export interface FormationTemplate {
 }
 
 // ─── Football formation presets ────────────────────────────────────────────────
-// PORTRAIT half-pitch (matches fussballfeld_haelfte_vertical.jpg, 960×1357 px):
+// LANDSCAPE half-pitch (matches fussballfeld_haelfte.jpg, 1357×960 px):
 //   x = 0  → LEFT touchline
 //   x = 100 → RIGHT touchline  (x=50 = lateral center / middle of field width)
 //   y = 0  → TOP of image = centre line (Mittellinie) — attackers live here
@@ -83,7 +83,7 @@ export const FOOTBALL_TEMPLATES: FormationTemplate[] = [
   },
 ];
 
-// ─── MiniField: portrait half-pitch preview ────────────────────────────────────
+// ─── MiniField: landscape half-pitch preview ──────────────────────────────────
 // Matches image orientation: goal at BOTTOM, centre line at TOP.
 
 interface MiniFieldProps {
@@ -93,7 +93,7 @@ interface MiniFieldProps {
 export const MiniField: React.FC<MiniFieldProps> = ({ players }) => (
   <Box sx={{
     width: '100%',
-    aspectRatio: '960 / 1357',
+    aspectRatio: '1357 / 960',
     maxHeight: 150,
     backgroundImage: 'url(/images/formation/fussballfeld_haelfte.jpg)',
     backgroundSize: 'cover',

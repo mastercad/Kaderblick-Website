@@ -42,7 +42,7 @@ const makeDragEvent = (clientX: number, clientY: number) =>
     dataTransfer: { dropEffect: '' },
   } as unknown as React.DragEvent);
 
-const setup = (initialPlayers: PlayerData[], initialBench: PlayerData[] = []) => {
+const setup = (initialPlayers: PlayerData[], initialBench: PlayerData[] = [], autoSnapEnabled = false) => {
   return renderHook(() => {
     const [players,  setPlayers]  = useState<PlayerData[]>(initialPlayers);
     const [bench,    setBench]    = useState<PlayerData[]>(initialBench);
@@ -50,6 +50,8 @@ const setup = (initialPlayers: PlayerData[], initialBench: PlayerData[] = []) =>
     const pitchRef = useRef<HTMLDivElement>(mockPitchEl);
 
     const drop = useSquadDrop({
+      autoSnapEnabled,
+      currentTemplateCode: null,
       players, setPlayers,
       benchPlayers: bench, setBenchPlayers: setBench,
       nextPlayerNumber: nextNum, setNextPlayerNumber: setNextNum,
@@ -144,14 +146,25 @@ describe('handlePitchDrop – auf echten Feldspieler', () => {
     expect(onField?.playerId).toBe(10);
     expect(result.current.bench.some(p => p.id === 1)).toBe(true);
   });
+
+  it('legt den verdrängten Spieler nicht doppelt auf die Bank', () => {
+    const fp = fieldPlayer(1, 20, 20, 5);
+    const { result } = setup([fp], [{ ...fp, x: 0, y: 0 }]);
+    const sp = squadPlayer(10, 'Reus');
+
+    act(() => { result.current.handleSquadDragStart(sp); });
+    act(() => { result.current.handlePitchDrop(makeDragEvent(20, 20)); });
+
+    expect(result.current.bench.filter(p => p.playerId === 5)).toHaveLength(1);
+  });
 });
 
 // ─── handlePitchDrop – freie Fläche ──────────────────────────────────────────
 
 describe('handlePitchDrop – freie Feldfläche', () => {
-  it('fügt Spieler an den Drop-Koordinaten ein wenn kein Token in der Nähe', () => {
+  it('fügt Spieler an den Drop-Koordinaten ein wenn kein Token und keine Rollenempfehlung vorliegt', () => {
     const { result } = setup([placeholder(1, 10, 10)]); // weit weg vom Drop-Punkt
-    const sp = squadPlayer(10, 'Reus');
+    const sp: Player = { id: 10, name: 'Reus', shirtNumber: 10, position: null, alternativePositions: [] };
 
     act(() => { result.current.handleSquadDragStart(sp); });
     act(() => { result.current.handlePitchDrop(makeDragEvent(90, 90)); });
@@ -160,6 +173,44 @@ describe('handlePitchDrop – freie Feldfläche', () => {
     expect(newPlayer).toBeTruthy();
     expect(newPlayer?.x).toBeCloseTo(90, 0);
     expect(newPlayer?.y).toBeCloseTo(90, 0);
+  });
+
+  it('snappt ohne aktive Vorlage zumindest in die passende Rollen-Zone', () => {
+    const { result } = setup([], [], true);
+    const sp: Player = {
+      id: 10,
+      name: 'Sechser',
+      shirtNumber: 10,
+      position: 'DM',
+      alternativePositions: [],
+    };
+
+    act(() => { result.current.handleSquadDragStart(sp); });
+    act(() => { result.current.handlePitchDrop(makeDragEvent(82, 88)); });
+
+    const newPlayer = result.current.players.find(p => p.playerId === 10);
+    expect(newPlayer).toBeTruthy();
+    expect(newPlayer?.x).toBeCloseTo(50, 0);
+    expect(newPlayer?.y).toBeCloseTo(56, 0);
+  });
+
+  it('erzwingt ohne Auto-Snap keine freie Rollen-Ankerung', () => {
+    const { result } = setup([], [], false);
+    const sp: Player = {
+      id: 10,
+      name: 'Sechser',
+      shirtNumber: 10,
+      position: 'DM',
+      alternativePositions: [],
+    };
+
+    act(() => { result.current.handleSquadDragStart(sp); });
+    act(() => { result.current.handlePitchDrop(makeDragEvent(82, 88)); });
+
+    const newPlayer = result.current.players.find(p => p.playerId === 10);
+    expect(newPlayer).toBeTruthy();
+    expect(newPlayer?.x).toBeCloseTo(82, 0);
+    expect(newPlayer?.y).toBeCloseTo(88, 0);
   });
 });
 

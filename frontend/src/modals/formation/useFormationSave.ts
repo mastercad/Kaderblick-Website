@@ -7,10 +7,11 @@
  * - Erfolgsmeldung anzeigen und Modal schließen
  */
 import { apiJson } from '../../utils/api';
-import type { Formation, FormationData, PlayerData } from './types';
+import type { Formation, FormationData, FormationEditorDraft, PlayerData } from './types';
 
 interface UseFormationSaveParams {
   formation: Formation | null;
+  currentTemplateCode: string | null;
   players: PlayerData[];
   benchPlayers: PlayerData[];
   notes: string;
@@ -22,10 +23,13 @@ interface UseFormationSaveParams {
   showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   onClose: () => void;
   onSaved?: (formation: Formation) => void;
+  onSaveDraft?: (draft: FormationEditorDraft) => Promise<void> | void;
+  saveSuccessMessage?: string;
 }
 
 export function useFormationSave({
   formation,
+  currentTemplateCode,
   players,
   benchPlayers,
   notes,
@@ -37,6 +41,8 @@ export function useFormationSave({
   showToast,
   onClose,
   onSaved,
+  onSaveDraft,
+  saveSuccessMessage,
 }: UseFormationSaveParams) {
   const handleSave = async () => {
     setLoading(true);
@@ -44,10 +50,25 @@ export function useFormationSave({
     try {
       const formationData: FormationData = {
         ...(formation?.formationData ?? {}),
+        code: currentTemplateCode ?? undefined,
         players,
         bench: benchPlayers,
         notes,
       };
+
+      const draftPayload: FormationEditorDraft = {
+        name,
+        selectedTeam,
+        formationData,
+      };
+
+      if (onSaveDraft) {
+        await onSaveDraft(draftPayload);
+        showToast(saveSuccessMessage ?? 'Aufstellung übernommen.', 'success');
+        onClose();
+        return;
+      }
+
       const url = formationId ? `/formation/${formationId}/edit` : '/formation/new';
       const response = await apiJson(url, {
         method: 'POST',
@@ -57,7 +78,7 @@ export function useFormationSave({
         setError(response.error);
         return;
       }
-      showToast('Formation erfolgreich gespeichert!', 'success');
+      showToast(saveSuccessMessage ?? 'Formation erfolgreich gespeichert!', 'success');
       const saved: Formation = response?.formation ?? {
         id: response?.id ?? Date.now(),
         name,

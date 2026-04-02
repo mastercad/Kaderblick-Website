@@ -6,6 +6,7 @@ use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\GameEventType;
 use App\Entity\Player;
+use App\Entity\SubstitutionReason;
 use App\Entity\Team;
 use App\Entity\Tournament;
 use App\Entity\User;
@@ -13,9 +14,12 @@ use App\Repository\CameraRepository;
 use App\Repository\GameEventRepository;
 use App\Repository\GameRepository;
 use App\Repository\ParticipationRepository;
+use App\Repository\PlayerRepository;
+use App\Repository\SubstitutionReasonRepository;
 use App\Repository\TeamRepository;
 use App\Security\Voter\GameEventVoter;
 use App\Security\Voter\GameVoter;
+use App\Security\Voter\MatchPlanVoter;
 use App\Security\Voter\VideoVoter;
 use App\Service\CoachTeamPlayerService;
 use App\Service\TournamentAdvancementService;
@@ -23,6 +27,7 @@ use App\Service\UserTitleService;
 use App\Service\VideoTimelineService;
 use DateTime;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -175,6 +180,143 @@ class GamesController extends ApiController
         ]);
     }
 
+    #[Route('/{id}/match-plan', name: 'match_plan_save', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    public function saveMatchPlan(Game $game, Request $request): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(MatchPlanVoter::MANAGE, $game);
+
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            return $this->json(['error' => 'Ungültige Matchplan-Daten.'], 400);
+        }
+
+        $game->setMatchPlan($data);
+        $this->entityManager->persist($game);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'matchPlan' => $game->getMatchPlan(),
+        ]);
+    }
+
+    #[Route('/{id}/match-plan/confirm-substitution', name: 'match_plan_confirm_substitution', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function confirmPlannedSubstitution(
+        Game $game,
+        Request $request,
+        PlayerRepository $playerRepository,
+        SubstitutionReasonRepository $substitutionReasonRepository,
+        GameEventRepository $gameEventRepository,
+    ): JsonResponse {
+        $this->denyAccessUnlessGranted(MatchPlanVoter::MANAGE, $game);
+
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $phaseId = isset($payload['phaseId']) ? (string) $payload['phaseId'] : '';
+        if ('' === $phaseId) {
+            return $this->json(['error' => 'phaseId fehlt.'], 400);
+        }
+
+        $matchPlan = $game->getMatchPlan();
+        if (!is_array($matchPlan) || !isset($matchPlan['phases']) || !is_array($matchPlan['phases'])) {
+            return $this->json(['error' => 'Für dieses Spiel ist kein Matchplan vorhanden.'], 400);
+        }
+
+        $phaseIndex = null;
+        $phase = null;
+        foreach ($matchPlan['phases'] as $index => $candidate) {
+            if (is_array($candidate) && (string) ($candidate['id'] ?? '') === $phaseId) {
+                $phaseIndex = $index;
+                $phase = $candidate;
+                break;
+            }
+        }
+
+        if (null === $phaseIndex || !is_array($phase)) {
+            return $this->json(['error' => 'Geplante Phase wurde nicht gefunden.'], 404);
+        }
+
+        if (($phase['sourceType'] ?? null) !== 'substitution') {
+            return $this->json(['error' => 'Nur Wechsel-Phasen können bestätigt werden.'], 400);
+        }
+
+        if (!empty($phase['confirmedEventId'])) {
+            $existingEvent = $gameEventRepository->find((int) $phase['confirmedEventId']);
+
+            return $this->json([
+                'success' => true,
+                'eventId' => $existingEvent?->getId(),
+                'matchPlan' => $matchPlan,
+            ]);
+        }
+
+        $substitution = is_array($phase['substitution'] ?? null) ? $phase['substitution'] : null;
+        if (!is_array($substitution)) {
+            return $this->json(['error' => 'Der geplante Wechsel enthält keine Wechseldaten.'], 400);
+        }
+
+        $playerOutId = isset($substitution['playerOutId']) ? (int) $substitution['playerOutId'] : 0;
+        $playerInId = isset($substitution['playerInId']) ? (int) $substitution['playerInId'] : 0;
+        $minute = isset($phase['minute']) ? (int) $phase['minute'] : 0;
+
+        if ($playerOutId <= 0 || $playerInId <= 0 || $minute < 0) {
+            return $this->json(['error' => 'Der geplante Wechsel ist unvollständig.'], 400);
+        }
+
+        $playerOut = $playerRepository->find($playerOutId);
+        $playerIn = $playerRepository->find($playerInId);
+        if (!$playerOut instanceof Player || !$playerIn instanceof Player) {
+            return $this->json(['error' => 'Spieler für den Wechsel konnten nicht geladen werden.'], 400);
+        }
+
+        $eventType = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['code' => 'substitution']);
+        if (!$eventType instanceof GameEventType) {
+            return $this->json(['error' => 'Spielereignistyp substitution fehlt.'], 500);
+        }
+
+        $reason = null;
+        if (!empty($substitution['reasonId'])) {
+            $reason = $substitutionReasonRepository->find((int) $substitution['reasonId']);
+        }
+
+        $event = new GameEvent();
+        $event
+            ->setGame($game)
+            ->setGameEventType($eventType)
+            ->setPlayer($playerOut)
+            ->setRelatedPlayer($playerIn)
+            ->setSubstitutionReason($reason instanceof SubstitutionReason ? $reason : null)
+            ->setDescription($this->buildSubstitutionDescription($substitution, $reason));
+
+        $team = $this->resolvePlayerTeamForGame($playerOut, $game);
+        if (!$team instanceof Team) {
+            return $this->json(['error' => 'Das Team des auszuwechselnden Spielers konnte nicht bestimmt werden.'], 400);
+        }
+
+        $startDate = $game->getCalendarEvent()?->getStartDate();
+        if (!$startDate instanceof DateTimeInterface) {
+            return $this->json(['error' => 'Dem Spiel fehlt ein Kalenderstart.'], 400);
+        }
+
+        $event->setTeam($team);
+        $eventTimestamp = (new DateTimeImmutable($startDate->format(DATE_ATOM)))->modify('+' . $minute . ' seconds');
+        $event->setTimestamp($eventTimestamp);
+
+        $this->entityManager->persist($event);
+        $this->entityManager->flush();
+
+        $matchPlan['phases'][$phaseIndex]['confirmedEventId'] = $event->getId();
+        $matchPlan['phases'][$phaseIndex]['confirmedAt'] = (new DateTimeImmutable())->format(DATE_ATOM);
+        $game->setMatchPlan($matchPlan);
+        $this->entityManager->persist($game);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'eventId' => $event->getId(),
+            'matchPlan' => $game->getMatchPlan(),
+        ]);
+    }
+
     #[Route('/{id}/details', name: 'details', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function details(
         Game $game,
@@ -197,7 +339,22 @@ class GamesController extends ApiController
 
         $scores = $this->collectScores($gameEvents, $game);
         $location = $game->getCalendarEvent()->getLocation();
-        $serializeGame = function ($game) use ($calendarEvent, $location) {
+        /** @var User|null $currentUser */
+        $currentUser = $this->getUser();
+        $matchPlan = $game->getMatchPlan();
+        $canManageMatchPlan = $this->isGranted(MatchPlanVoter::MANAGE, $game);
+        $canViewMatchPlan = $this->isGranted(MatchPlanVoter::VIEW, $game);
+        $userTeamIds = [];
+        if ($currentUser instanceof User) {
+            foreach ($this->coachTeamPlayerService->collectPlayerTeams($currentUser) as $team) {
+                $userTeamIds[$team->getId()] = $team->getId();
+            }
+            foreach ($this->coachTeamPlayerService->collectCoachTeams($currentUser) as $team) {
+                $userTeamIds[$team->getId()] = $team->getId();
+            }
+        }
+
+        $serializeGame = function ($game) use ($calendarEvent, $location, $matchPlan, $canManageMatchPlan, $canViewMatchPlan, $userTeamIds) {
             return [
                 'id' => $game->getId(),
                 'homeTeam' => $game->getHomeTeam() ? [
@@ -208,6 +365,7 @@ class GamesController extends ApiController
                     'id' => $game->getAwayTeam()->getId(),
                     'name' => $game->getAwayTeam()->getName(),
                 ] : null,
+                'userTeamIds' => array_values($userTeamIds),
                 'location' => $location ? [
                     'id' => $location->getId(),
                     'name' => $location->getName(),
@@ -231,10 +389,14 @@ class GamesController extends ApiController
                 'halftimeBreakDuration' => $game->getHalftimeBreakDuration(),
                 'firstHalfExtraTime' => $game->getFirstHalfExtraTime(),
                 'secondHalfExtraTime' => $game->getSecondHalfExtraTime(),
+                'matchPlan' => $canViewMatchPlan ? $matchPlan : null,
                 'permissions' => [
                     'can_create_videos' => $this->isGranted(VideoVoter::CREATE, $game->getHomeTeam()) || $this->isGranted(VideoVoter::CREATE, $game->getAwayTeam()),
                     'can_create_game_events' => $this->isGranted(GameEventVoter::CREATE, $game),
                     'can_edit_timing' => $this->isGranted('ROLE_ADMIN'),
+                    'can_manage_match_plan' => $canManageMatchPlan,
+                    'can_publish_match_plan' => $this->isGranted(MatchPlanVoter::PUBLISH, $game),
+                    'can_view_match_plan' => $canViewMatchPlan,
                 ]
             ];
         };
@@ -335,6 +497,48 @@ class GamesController extends ApiController
                 && 'self_player' === $userRelation->getRelationType()->getIdentifier()
             ) {
                 return $userRelation->getUser();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $substitution
+     */
+    private function buildSubstitutionDescription(array $substitution, ?SubstitutionReason $reason): ?string
+    {
+        $parts = [];
+
+        if ($reason instanceof SubstitutionReason) {
+            $parts[] = $reason->getName();
+        }
+
+        $note = trim((string) ($substitution['note'] ?? ''));
+        if ('' !== $note) {
+            $parts[] = $note;
+        }
+
+        if ([] === $parts) {
+            return null;
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    private function resolvePlayerTeamForGame(Player $player, Game $game): ?Team
+    {
+        $currentDate = new DateTime();
+        foreach ($player->getPlayerTeamAssignments() as $assignment) {
+            $team = $assignment->getTeam();
+            $endDate = $assignment->getEndDate();
+            $isActive = (null === $endDate) || ($endDate >= $currentDate);
+            if (!$isActive) {
+                continue;
+            }
+
+            if ($team === $game->getHomeTeam() || $team === $game->getAwayTeam()) {
+                return $team;
             }
         }
 

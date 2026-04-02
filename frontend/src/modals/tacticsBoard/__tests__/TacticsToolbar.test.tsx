@@ -41,6 +41,8 @@ const baseProps: TacticsToolbarProps = {
   onRedo: jest.fn(),
   showStepNumbers: false,
   onToggleStepNumbers: jest.fn(),
+  presentationMode: false,
+  onTogglePresentationMode: jest.fn(),
 };
 
 beforeEach(() => jest.clearAllMocks());
@@ -110,6 +112,14 @@ describe('TacticsToolbar', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     // The asterisk text is still rendered
     expect(screen.getByText('Speichern *')).toBeInTheDocument();
+  });
+
+  it('renders the presentation toggle only in browser fullscreen', () => {
+    const { rerender } = render(<TacticsToolbar {...baseProps} isBrowserFS={false} />);
+    expect(screen.queryByText('Präsent.')).not.toBeInTheDocument();
+
+    rerender(<TacticsToolbar {...baseProps} isBrowserFS={true} />);
+    expect(screen.getByText('Präsent.')).toBeInTheDocument();
   });
 });
 

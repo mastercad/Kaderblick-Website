@@ -22,7 +22,12 @@ const mockPitchEl = {
   getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
 } as unknown as HTMLDivElement;
 
-const setup = (initialPlayers: PlayerData[], initialBench: PlayerData[] = []) => {
+const setup = (
+  initialPlayers: PlayerData[],
+  initialBench: PlayerData[] = [],
+  currentTemplateCode: string | null = null,
+  autoSnapEnabled = false,
+) => {
   return renderHook(() => {
     const [players,    setPlayers]    = useState<PlayerData[]>(initialPlayers);
     const [bench,      setBench]      = useState<PlayerData[]>(initialBench);
@@ -30,7 +35,7 @@ const setup = (initialPlayers: PlayerData[], initialBench: PlayerData[] = []) =>
     // Empty tokenRefs map – finalizeDrop falls back to dragPosRef (correct fallback path)
     const tokenRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-    const drag = useFieldDrag({ players, setPlayers, benchPlayers: bench, setBenchPlayers: setBench, pitchRef, tokenRefs });
+    const drag = useFieldDrag({ autoSnapEnabled, currentTemplateCode, players, setPlayers, benchPlayers: bench, setBenchPlayers: setBench, pitchRef, tokenRefs });
     return { players, bench, ...drag };
   });
 };
@@ -139,6 +144,52 @@ describe('handlePitchMouseUp', () => {
     expect(p2?.y).toBeCloseTo(70, 0);
   });
 
+  it('rastet bei aktiver Vorlage auf den besten freien Positions-Slot ein', () => {
+    const striker: PlayerData = {
+      id: 1,
+      x: 50,
+      y: 40,
+      number: 9,
+      name: 'Stürmer',
+      playerId: 9,
+      isRealPlayer: true,
+      position: 'ST',
+      alternativePositions: [],
+    };
+    const { result } = setup([striker], [], '4-4-2', true);
+
+    act(() => { result.current.startDragFromField(1, mouseEvent(50, 40)); });
+    act(() => { result.current.handlePitchMouseMove(mouseEvent(18, 18)); });
+    act(() => { result.current.handlePitchMouseUp(); });
+
+    const moved = result.current.players.find(player => player.id === 1);
+    expect(moved?.x).toBeCloseTo(38, 0);
+    expect(moved?.y).toBeCloseTo(14, 0);
+  });
+
+  it('erzwingt ohne Auto-Snap kein Einrasten trotz aktiver Vorlage', () => {
+    const striker: PlayerData = {
+      id: 1,
+      x: 50,
+      y: 40,
+      number: 9,
+      name: 'Stürmer',
+      playerId: 9,
+      isRealPlayer: true,
+      position: 'ST',
+      alternativePositions: [],
+    };
+    const { result } = setup([striker], [], '4-4-2', false);
+
+    act(() => { result.current.startDragFromField(1, mouseEvent(50, 40)); });
+    act(() => { result.current.handlePitchMouseMove(mouseEvent(18, 18)); });
+    act(() => { result.current.handlePitchMouseUp(); });
+
+    const moved = result.current.players.find(player => player.id === 1);
+    expect(moved?.x).toBeCloseTo(18, 0);
+    expect(moved?.y).toBeCloseTo(18, 0);
+  });
+
   it('tauscht zwei Feld-Tokens wenn der gezogene auf dem anderen abgelegt wird', () => {
     // Player 1 startet bei (10,20), Player 2 bei (60,70)
     // Player 1 wird auf (62,68) gezogen, Abstand zu Player 2 ≈ 2.8 < 9 → Swap
@@ -244,6 +295,22 @@ describe('startDragFromBench', () => {
     expect(result.current.players.some(p => p.id === 5)).toBe(true);
     expect(result.current.bench.some(p => p.id === 5)).toBe(false);
     expect(result.current.players.find(p => p.id === 5)?.x).toBeCloseTo(30, 0);
+  });
+
+  it('legt den verdrängten Feldspieler beim Tausch nur einmal auf die Bank', () => {
+    const benchPlayer: PlayerData = { id: 5, x: 0, y: 0, number: 7, name: 'Müller', playerId: 7, isRealPlayer: true };
+    const displacedFieldPlayer = fieldPlayer(1, 40, 40);
+    const { result } = setup([displacedFieldPlayer], [benchPlayer]);
+
+    act(() => { result.current.startDragFromBench(5, mouseEvent(0, 0)); });
+    act(() => { result.current.handlePitchMouseMove(mouseEvent(41, 41)); });
+    act(() => { result.current.handlePitchMouseUp(); });
+
+    expect(result.current.players.some(p => p.id === 5)).toBe(true);
+    expect(result.current.players.some(p => p.id === 1)).toBe(false);
+    expect(result.current.bench.filter(p => p.id === 1)).toHaveLength(1);
+    expect(result.current.bench.filter(p => p.playerId === 1)).toHaveLength(1);
+    expect(result.current.bench.some(p => p.id === 5)).toBe(false);
   });
 });
 

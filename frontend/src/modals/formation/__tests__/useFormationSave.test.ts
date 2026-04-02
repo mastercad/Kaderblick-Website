@@ -40,6 +40,7 @@ const setup = (overrides: Partial<Parameters<typeof useFormationSave>[0]> = {}) 
 
   const defaults = {
     formation:    null,
+    currentTemplateCode: null,
     players,
     benchPlayers: [],
     notes:        '',

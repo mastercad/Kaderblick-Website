@@ -4,11 +4,18 @@ import TacticsBoardModal from '../TacticsBoardModal';
 
 // ── Mock child components ──────────────────────────────────────────────────────
 jest.mock('../tacticsBoard/TacticsToolbar', () => ({
-  TacticsToolbar: () => null,
+  TacticsToolbar: (props: any) => (
+    <div>
+      <div>Tactics Toolbar</div>
+      {props.isBrowserFS && (
+        <button type="button" onClick={props.onTogglePresentationMode}>Präsent.</button>
+      )}
+    </div>
+  ),
 }));
-jest.mock('../tacticsBoard/TacticsBar',   () => ({ TacticsBar:   () => null }));
+jest.mock('../tacticsBoard/TacticsBar',   () => ({ TacticsBar:   () => <div>Tactics Bar</div> }));
 jest.mock('../tacticsBoard/PitchCanvas',  () => ({ PitchCanvas:  () => null }));
-jest.mock('../tacticsBoard/StatusBar',    () => ({ StatusBar:    () => null }));
+jest.mock('../tacticsBoard/StatusBar',    () => ({ StatusBar:    () => <div>Status Bar</div> }));
 
 // ── Mock useTacticsBoard ───────────────────────────────────────────────────────
 const mockHandleSave = jest.fn();
@@ -81,6 +88,33 @@ describe('TacticsBoardModal – close when isDirty=false', () => {
     render(<TacticsBoardModal {...defaultProps} />);
     clickClose();
     expect(mockHandleSave).not.toHaveBeenCalled();
+  });
+});
+
+describe('TacticsBoardModal – fullscreen presentation mode', () => {
+  it('can enable presentation mode and restore the chrome while browser fullscreen is active', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({ isBrowserFS: true }));
+
+    render(<TacticsBoardModal {...defaultProps} />);
+
+    expect(screen.getByText('Tactics Toolbar')).toBeInTheDocument();
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
+    expect(screen.getByText('Status Bar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Präsentation beenden')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Präsent.'));
+
+    expect(screen.queryByText('Tactics Toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tactics Bar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Status Bar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Leisten einblenden')).toBeInTheDocument();
+    expect(screen.getByLabelText('Präsentation beenden')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Präsentation beenden'));
+
+    expect(screen.getByText('Tactics Toolbar')).toBeInTheDocument();
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
+    expect(screen.getByText('Status Bar')).toBeInTheDocument();
   });
 });
 

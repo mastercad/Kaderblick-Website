@@ -1,21 +1,80 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button, Box, Typography, Alert, CircularProgress, TextField, MenuItem, Chip, Tooltip,
-  Paper, Stack,
+  Paper, Stack, Switch, FormControlLabel,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import ViewKanbanOutlinedIcon from '@mui/icons-material/ViewKanbanOutlined';
 import BaseModal from './BaseModal';
 import { useFormationEditor } from './formation/useFormationEditor';
 import TemplatePicker from './formation/components/TemplatePicker';
 import PlayerToken from './formation/components/PlayerToken';
 import Bench from './formation/components/Bench';
 import SquadListPanel from './formation/components/SquadListPanel';
+import { getBestFreeTemplateSlot, getBestFreeformGuideTarget, getDragGuideProfile, getFreeformGuideTargets, getSlotHintLabel, getSlotMatchLevel, getTemplateByCode } from './formation/templateGuidance';
 import type { FormationEditModalProps, Player } from './formation/types';
+import type { SlotMatchLevel } from './formation/templateGuidance';
 
-const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formationId, onClose, onSaved }) => {
-  const editor = useFormationEditor(open, formationId, onClose, onSaved);
+const getGuideTone = (level: SlotMatchLevel) => {
+  switch (level) {
+    case 'exact':
+      return {
+        borderColor: 'rgba(16,185,129,0.95)',
+        backgroundColor: 'rgba(16,185,129,0.22)',
+        labelBackground: 'rgba(6,95,70,0.92)',
+        opacity: 1,
+        scale: 1.06,
+      };
+    case 'alternative':
+      return {
+        borderColor: 'rgba(59,130,246,0.92)',
+        backgroundColor: 'rgba(59,130,246,0.18)',
+        labelBackground: 'rgba(30,64,175,0.9)',
+        opacity: 0.96,
+        scale: 1.02,
+      };
+    case 'category':
+      return {
+        borderColor: 'rgba(245,158,11,0.92)',
+        backgroundColor: 'rgba(245,158,11,0.16)',
+        labelBackground: 'rgba(146,64,14,0.88)',
+        opacity: 0.88,
+        scale: 1,
+      };
+    default:
+      return {
+        borderColor: 'rgba(255,255,255,0.32)',
+        backgroundColor: 'rgba(15,23,42,0.16)',
+        labelBackground: 'rgba(15,23,42,0.66)',
+        opacity: 0.52,
+        scale: 0.98,
+      };
+  }
+};
+
+const FormationEditModal: React.FC<FormationEditModalProps> = ({
+  open,
+  formationId,
+  onClose,
+  onSaved,
+  initialDraft,
+  title,
+  saveButtonLabel,
+  onSaveDraft,
+  initialShowTemplatePicker,
+}) => {
+  const editor = useFormationEditor(
+    open,
+    formationId,
+    onClose,
+    onSaved,
+    initialDraft,
+    onSaveDraft,
+    onSaveDraft ? 'Aufstellung übernommen.' : undefined,
+    initialShowTemplatePicker,
+  );
   const [showCloseWarning, setShowCloseWarning] = useState(false);
 
   useEffect(() => {
@@ -54,6 +113,28 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
     : remainingSquadCount > 0
       ? 'Verbleibende Kaderspieler auf Bank oder Feld verteilen.'
       : 'Aufstellung prüfen, Notizen ergänzen und speichern.';
+  const activeTemplate = getTemplateByCode(editor.currentTemplateCode);
+  const isDraggingPlayer = editor.draggedPlayerId != null || Boolean(editor.squadDragPlayer);
+  const draggedEditorPlayer = editor.draggedPlayerId != null
+    ? editor.players.find(player => player.id === editor.draggedPlayerId)
+      ?? editor.benchPlayers.find(player => player.id === editor.draggedPlayerId)
+    : null;
+  const dragGuideProfile = getDragGuideProfile(draggedEditorPlayer ?? editor.squadDragPlayer);
+  const freeformGuideTargets = getFreeformGuideTargets(dragGuideProfile);
+  const bestFreeformTarget = getBestFreeformGuideTarget(
+    dragGuideProfile,
+    draggedEditorPlayer ? { x: draggedEditorPlayer.x, y: draggedEditorPlayer.y } : null,
+  );
+  const freeformTargetSummary = freeformGuideTargets.map(target => target.position).join(' / ');
+  const bestFreeTemplateSlot = isDraggingPlayer && dragGuideProfile
+    ? getBestFreeTemplateSlot({
+        templateCode: editor.currentTemplateCode,
+        profile: dragGuideProfile,
+        players: editor.players,
+        movingPlayerId: draggedEditorPlayer?.id,
+        anchorPosition: draggedEditorPlayer ? { x: draggedEditorPlayer.x, y: draggedEditorPlayer.y } : null,
+      })
+    : null;
 
   // ── Template picker (first step for new formations) ──────────────────────────
   if (editor.showTemplatePicker) {
@@ -72,13 +153,13 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
     <BaseModal
       open={open}
       onClose={handleCloseRequest}
-      title={formationId ? 'Aufstellung bearbeiten' : 'Neue Aufstellung'}
+      title={title ?? (formationId ? 'Aufstellung bearbeiten' : 'Neue Aufstellung')}
       maxWidth="lg"
       actions={
         <>
           <Button onClick={handleCloseRequest} variant="outlined" color="secondary">Abbrechen</Button>
           <Button onClick={editor.handleSave} variant="contained" color="primary" disabled={editor.loading}>
-            {editor.loading ? 'Speichern…' : `Speichern${editor.isDirty ? ' *' : ''}`}
+            {editor.loading ? 'Speichern…' : `${saveButtonLabel ?? 'Speichern'}${editor.isDirty ? ' *' : ''}`}
           </Button>
         </>
       }
@@ -173,14 +254,54 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
             <Typography variant="body2" color="text.secondary">
               {nextStepLabel}
             </Typography>
+            {isDraggingPlayer && dragGuideProfile && (
+              <Typography variant="caption" color="primary.main" sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
+                {activeTemplate && bestFreeTemplateSlot
+                  ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${dragGuideProfile.name} passt am besten auf ${bestFreeTemplateSlot.slot.position}.`
+                  : freeformGuideTargets.length > 0
+                    ? `${dragGuideProfile.name}: mögliche Anker ${freeformTargetSummary}. Beim Loslassen wird der nächstpassende Anker gewählt.`
+                    : `${dragGuideProfile.name}: frei positionieren.`}
+              </Typography>
+            )}
           </Box>
           <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
             <Chip size="small" color="primary" variant="outlined" label={`${assignedRealPlayers}/${squadCount || 0} Kaderspieler eingesetzt`} />
             {editor.hasPlaceholders && (
               <Chip size="small" color="warning" variant="outlined" label={`${editor.placeholderCount} Platzhalter offen`} />
             )}
+            {activeTemplate && (
+              <Chip size="small" color="success" variant="outlined" label={`Vorlage ${activeTemplate.label}`} />
+            )}
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ViewKanbanOutlinedIcon />}
+              onClick={() => editor.setShowTemplatePicker(true)}
+            >
+              Vorlage wählen
+            </Button>
           </Stack>
         </Box>
+        <FormControlLabel
+          control={(
+            <Switch
+              size="small"
+              checked={editor.autoSnapEnabled}
+              onChange={(_, checked) => editor.setAutoSnapEnabled(checked)}
+            />
+          )}
+          label={(
+            <Box>
+              <Typography variant="body2" fontWeight={700}>Auto-Snap</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {editor.autoSnapEnabled
+                  ? 'Spieler rasten beim Loslassen auf passende Anker oder Vorlagen-Slots ein.'
+                  : 'Nur Hinweise anzeigen. Spieler bleiben genau dort liegen, wo du sie ablegst.'}
+              </Typography>
+            </Box>
+          )}
+          sx={{ mt: 1, ml: 0, alignItems: 'flex-start' }}
+        />
       </Paper>
 
       {/* ── Auto-fill banner: shown when placeholders exist and squad is loaded ───── */}
@@ -261,6 +382,15 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
                 <Typography variant="body2" color="text.secondary">
                   Spieler verschieben, austauschen oder direkt aus dem Kader auf freie Positionen ziehen.
                 </Typography>
+                {isDraggingPlayer && dragGuideProfile && (
+                  <Typography variant="caption" color="common.white" sx={{ display: 'block', mt: 0.55, px: 0.75, py: 0.35, borderRadius: 999, bgcolor: 'rgba(15,23,42,0.52)', width: 'fit-content' }}>
+                    {activeTemplate && bestFreeTemplateSlot
+                      ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${bestFreeTemplateSlot.slot.position} in Vorlage ${activeTemplate.label}`
+                      : freeformGuideTargets.length > 0
+                        ? `Mögliche Anker: ${freeformTargetSummary}`
+                        : 'Frei verschieben'}
+                  </Typography>
+                )}
               </Box>
               <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
                 <Chip size="small" label={`${fieldCount} auf dem Feld`} />
@@ -316,6 +446,164 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
                 {z.label}
               </Typography>
             ))}
+
+            {isDraggingPlayer && dragGuideProfile && activeTemplate && (
+              <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+                {activeTemplate.players.map((slot, index) => {
+                  const matchLevel = getSlotMatchLevel(dragGuideProfile, slot.position);
+                  const tone = getGuideTone(matchLevel);
+                  const isBestSlot = bestFreeTemplateSlot?.slotIndex === index;
+                  const slotHint = isBestSlot ? getSlotHintLabel(bestFreeTemplateSlot.matchLevel) : null;
+
+                  return (
+                    <Box
+                      key={`${slot.position}-${index}`}
+                      sx={{
+                        position: 'absolute',
+                        left: `${slot.x}%`,
+                        top: `${slot.y}%`,
+                        transform: `translate(-50%, -50%) scale(${tone.scale})`,
+                        width: { xs: 30, sm: 36 },
+                        height: { xs: 30, sm: 36 },
+                        borderRadius: '50%',
+                        border: '2px dashed',
+                        borderColor: tone.borderColor,
+                        bgcolor: tone.backgroundColor,
+                        opacity: tone.opacity,
+                        boxShadow: matchLevel === 'exact'
+                          ? '0 0 0 5px rgba(16,185,129,0.14), 0 6px 18px rgba(0,0,0,0.22)'
+                          : '0 4px 10px rgba(0,0,0,0.16)',
+                        transition: 'transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          px: 0.55,
+                          py: 0.15,
+                          minWidth: { xs: 22, sm: 26 },
+                          borderRadius: 1.25,
+                          bgcolor: tone.labelBackground,
+                          color: 'common.white',
+                          fontSize: { xs: '0.52rem', sm: '0.58rem' },
+                          fontWeight: 800,
+                          letterSpacing: 0.2,
+                          textAlign: 'center',
+                          lineHeight: 1.1,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.22)',
+                        }}
+                      >
+                        {slot.position}
+                      </Box>
+                      {slotHint && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: { xs: 'calc(100% + 3px)', sm: 'calc(100% + 5px)' },
+                            transform: 'translateX(-50%)',
+                            px: 0.65,
+                            py: 0.15,
+                            borderRadius: 999,
+                            bgcolor: tone.labelBackground,
+                            color: 'common.white',
+                            fontSize: { xs: '0.48rem', sm: '0.54rem' },
+                            fontWeight: 800,
+                            letterSpacing: 0.2,
+                            lineHeight: 1.1,
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.22)',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {slotHint}
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+
+            {isDraggingPlayer && dragGuideProfile && !activeTemplate && (
+              <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+                {freeformGuideTargets.map(target => {
+                  const isRecommended = bestFreeformTarget?.position === target.position;
+                  const tone = isRecommended
+                    ? {
+                        borderColor: 'rgba(59,130,246,0.95)',
+                        backgroundColor: 'rgba(59,130,246,0.2)',
+                        labelBackground: 'rgba(30,64,175,0.95)',
+                      }
+                    : {
+                        borderColor: 'rgba(255,255,255,0.35)',
+                        backgroundColor: 'rgba(15,23,42,0.14)',
+                        labelBackground: 'rgba(15,23,42,0.76)',
+                      };
+
+                  return (
+                    <Box
+                      key={target.position}
+                      sx={{
+                        position: 'absolute',
+                        left: `${target.x}%`,
+                        top: `${target.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: { xs: 34, sm: 40 },
+                        height: { xs: 34, sm: 40 },
+                        borderRadius: '50%',
+                        border: '2px dashed',
+                        borderColor: tone.borderColor,
+                        bgcolor: tone.backgroundColor,
+                        boxShadow: isRecommended ? '0 0 0 5px rgba(59,130,246,0.14), 0 6px 16px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.14)',
+                        transition: 'background-color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          px: 0.65,
+                          py: 0.2,
+                          borderRadius: 999,
+                          bgcolor: tone.labelBackground,
+                          color: 'common.white',
+                          fontSize: { xs: '0.52rem', sm: '0.58rem' },
+                          fontWeight: 800,
+                          letterSpacing: 0.2,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {target.position}
+                      </Box>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: { xs: 'calc(100% + 4px)', sm: 'calc(100% + 6px)' },
+                          transform: 'translateX(-50%)',
+                          px: 0.65,
+                          py: 0.15,
+                          borderRadius: 999,
+                          bgcolor: tone.labelBackground,
+                          color: 'common.white',
+                          fontSize: { xs: '0.48rem', sm: '0.54rem' },
+                          fontWeight: 700,
+                          lineHeight: 1.1,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {isRecommended ? target.label : target.label}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
 
             {/* Player tokens */}
             {editor.players.map(player => (

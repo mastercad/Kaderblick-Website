@@ -2,11 +2,21 @@
 
 namespace Tests\Feature\Controller;
 
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\ApiWebTestCase;
 
 class TeamsControllerTest extends ApiWebTestCase
 {
+    private function fetchAllTeamCountForAdmin(KernelBrowser $client): int
+    {
+        $this->authenticateUser($client, 'user16@example.com');
+        $client->request('GET', '/api/teams/list');
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        return count($data['teams'] ?? []);
+    }
+
     // ────────────────────────────── Paginated Index ──────────────────────────────
 
     public function testIndexReturnsPaginatedStructure(): void
@@ -308,6 +318,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListWithContextMatchReturnsAllTeamsForCoach(): void
     {
         $client = static::createClient();
+        $allTeamCount = $this->fetchAllTeamCountForAdmin($client);
         $this->authenticateUser($client, 'user3@example.com'); // ROLE_GUEST but has a Mentor (coach-category) relation
 
         $client->request('GET', '/api/teams/list?context=match');
@@ -316,8 +327,7 @@ class TeamsControllerTest extends ApiWebTestCase
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('teams', $data);
 
-        // All 16 fixture teams must be visible
-        $this->assertCount(16, $data['teams']);
+        $this->assertCount($allTeamCount, $data['teams']);
     }
 
     /**
@@ -326,6 +336,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListWithContextTournamentReturnsAllTeamsForCoach(): void
     {
         $client = static::createClient();
+        $allTeamCount = $this->fetchAllTeamCountForAdmin($client);
         $this->authenticateUser($client, 'user3@example.com'); // coach-category relation (Mentor)
 
         $client->request('GET', '/api/teams/list?context=tournament');
@@ -334,7 +345,7 @@ class TeamsControllerTest extends ApiWebTestCase
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('teams', $data);
 
-        $this->assertCount(16, $data['teams']);
+        $this->assertCount($allTeamCount, $data['teams']);
     }
 
     /**
@@ -371,8 +382,8 @@ class TeamsControllerTest extends ApiWebTestCase
         $client->request('GET', '/api/teams/list?context=match');
         $dataWithMatch = json_decode($client->getResponse()->getContent(), true);
 
-        $this->assertCount(16, $dataWithout['teams']);
-        $this->assertCount(16, $dataWithMatch['teams']);
+        $this->assertCount(count($dataWithout['teams']), $dataWithMatch['teams']);
+        $this->assertGreaterThan(0, count($dataWithout['teams']));
     }
 
     /**

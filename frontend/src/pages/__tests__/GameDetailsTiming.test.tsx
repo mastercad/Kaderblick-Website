@@ -62,8 +62,9 @@ jest.mock('../../utils/api', () => ({
 }));
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
+const mockUseAuth = jest.fn();
 jest.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 1, name: 'Admin' } }),
+  useAuth: () => mockUseAuth(),
 }));
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -74,15 +75,16 @@ jest.mock('../../context/ToastContext', () => ({
 }));
 
 // ── Modals & Components (stub them out) ──────────────────────────────────────
-jest.mock('../../modals/VideoModal', () => () => null);
+jest.mock('../../modals/VideoModal', () => ({ open }: any) => (open ? <div>VideoModalOpen</div> : null));
 jest.mock('../../modals/VideoPlayModal', () =>
   // eslint-disable-next-line react/display-name
   React.forwardRef(() => null)
 );
 jest.mock('../../modals/VideoSegmentModal', () => ({ VideoSegmentModal: () => null }));
 jest.mock('../../modals/ConfirmationModal', () => ({ ConfirmationModal: () => null }));
-jest.mock('../../modals/GameEventModal', () => ({ GameEventModal: () => null }));
+jest.mock('../../modals/GameEventModal', () => ({ GameEventModal: ({ open }: any) => (open ? <div>GameEventModalOpen</div> : null) }));
 jest.mock('../../modals/WeatherModal', () => () => null);
+jest.mock('../../modals/SupporterApplicationModal', () => ({ SupporterApplicationModal: ({ open }: any) => (open ? <div>SupporterApplicationModalOpen</div> : null) }));
 jest.mock('../../components/Location', () => () => null);
 jest.mock('../../components/WeatherIcons', () => ({ WeatherDisplay: () => null }));
 jest.mock('../../components/UserAvatar', () => ({ UserAvatar: () => null }));
@@ -150,6 +152,9 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseAuth.mockReturnValue({
+    user: { id: 1, name: 'Admin', isCoach: true, roles: { admin: 'ROLE_ADMIN' } },
+  });
   mockFetchGameDetails.mockResolvedValue(makeDetailsResponse());
   mockFetchVideos.mockResolvedValue({ videos: [], youtubeLinks: [], videoTypes: [], cameras: [] });
   mockFetchGameEvents.mockResolvedValue([]);
@@ -187,6 +192,69 @@ describe('GameDetails – Spielzeiten section', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('timing-section-header')).not.toBeInTheDocument();
     });
+  });
+
+  it('hides trainer tools for normal players even when raw event permissions are set', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, name: 'Spieler', isCoach: false, isPlayer: true, roles: { user: 'ROLE_USER' } },
+    });
+
+    mockFetchGameDetails.mockResolvedValueOnce(
+      makeDetailsResponse({
+        permissions: {
+          can_create_game_events: true,
+          can_create_videos: true,
+          can_edit_timing: false,
+        },
+      })
+    );
+
+    await act(async () => {
+      renderWithRouter(<GameDetails gameId={42} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Event hinzufügen/i })).not.toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: /Spiel beenden/i })).not.toBeInTheDocument();
+  });
+
+  it('allows supporters with granted permissions to open event and video modals', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 3, name: 'Supporter', isCoach: false, isPlayer: false, roles: { supporter: 'ROLE_SUPPORTER' } },
+    });
+
+    mockFetchGameDetails.mockResolvedValueOnce(
+      makeDetailsResponse({
+        permissions: {
+          can_create_game_events: true,
+          can_create_videos: true,
+          can_edit_timing: false,
+        },
+      })
+    );
+
+    await act(async () => {
+      renderWithRouter(<GameDetails gameId={42} />);
+    });
+
+    const eventButton = await screen.findByRole('button', { name: /Event hinzufügen/i });
+    const videoButton = screen.getByRole('button', { name: /Video hinzufügen/i });
+
+    await act(async () => {
+      fireEvent.click(eventButton);
+    });
+
+    expect(screen.getByText('GameEventModalOpen')).toBeInTheDocument();
+    expect(screen.queryByText('SupporterApplicationModalOpen')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(videoButton);
+    });
+
+    expect(screen.getByText('VideoModalOpen')).toBeInTheDocument();
+    expect(screen.queryByText('SupporterApplicationModalOpen')).not.toBeInTheDocument();
   });
 
   it('shows edit form when can_edit_timing is true and section is expanded', async () => {

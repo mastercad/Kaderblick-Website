@@ -49,6 +49,12 @@ export interface FormationData {
   tacticsBoardDataArr?: unknown;
 }
 
+export interface FormationEditorDraft {
+  name: string;
+  selectedTeam: number | '';
+  formationData: FormationData;
+}
+
 export interface Formation {
   id: number;
   name: string;
@@ -61,4 +67,9 @@ export interface FormationEditModalProps {
   formationId: number | null;
   onClose: () => void;
   onSaved?: (formation: Formation) => void;
+  initialDraft?: FormationEditorDraft;
+  title?: string;
+  saveButtonLabel?: string;
+  onSaveDraft?: (draft: FormationEditorDraft) => Promise<void> | void;
+  initialShowTemplatePicker?: boolean;
 }

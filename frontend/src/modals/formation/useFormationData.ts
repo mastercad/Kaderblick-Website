@@ -9,12 +9,15 @@
  */
 import { useEffect, useState } from 'react';
 import { apiJson } from '../../utils/api';
-import type { Formation, Player, PlayerData, Team } from './types';
+import { normalizeLocalPlayerIds } from './playerIdentity';
+import type { Formation, FormationEditorDraft, Player, PlayerData, Team } from './types';
 
 /** Alle State-Werte + Setter, die von den spezialisierten Hooks benötigt werden. */
 export interface FormationDataState {
   formation: Formation | null;
   setFormation: React.Dispatch<React.SetStateAction<Formation | null>>;
+  currentTemplateCode: string | null;
+  setCurrentTemplateCode: React.Dispatch<React.SetStateAction<string | null>>;
   players: PlayerData[];
   setPlayers: React.Dispatch<React.SetStateAction<PlayerData[]>>;
   benchPlayers: PlayerData[];
@@ -74,8 +77,9 @@ export function refreshShirtNumbers(playerList: PlayerData[], available: Player[
   });
 }
 
-export function useFormationData(open: boolean, formationId: number | null): FormationDataState {
+export function useFormationData(open: boolean, formationId: number | null, initialDraft?: FormationEditorDraft, initialShowTemplatePicker?: boolean): FormationDataState {
   const [formation, setFormation] = useState<Formation | null>(null);
+  const [currentTemplateCode, setCurrentTemplateCode] = useState<string | null>(null);
   const [players, setPlayers] = useState<PlayerData[]>([]);
   const [benchPlayers, setBenchPlayers] = useState<PlayerData[]>([]);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
@@ -88,6 +92,13 @@ export function useFormationData(open: boolean, formationId: number | null): For
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const hasDraftPlayers = Boolean(
+    initialDraft
+    && (
+      (initialDraft.formationData?.players?.length ?? 0) > 0
+      || (initialDraft.formationData?.bench?.length ?? 0) > 0
+    ),
+  );
 
   const resetEditorState = () => {
     setFormation(null);
@@ -95,6 +106,7 @@ export function useFormationData(open: boolean, formationId: number | null): For
     setBenchPlayers([]);
     setAvailablePlayers([]);
     setTeams([]);
+    setCurrentTemplateCode(null);
     setName('');
     setNotes('');
     setSelectedTeam('');
@@ -113,8 +125,8 @@ export function useFormationData(open: boolean, formationId: number | null): For
 
   // ── Template-Picker für neue Formationen anzeigen ─────────────────────────
   useEffect(() => {
-    setShowTemplatePicker(open && !formationId);
-  }, [open, formationId]);
+    setShowTemplatePicker(open && !formationId && (Boolean(initialShowTemplatePicker) || !hasDraftPlayers));
+  }, [open, formationId, hasDraftPlayers, initialShowTemplatePicker]);
 
   // ── Teams des Trainers laden ───────────────────────────────────────────────
   useEffect(() => {
@@ -128,7 +140,12 @@ export function useFormationData(open: boolean, formationId: number | null): For
         if (loaded.length === 0) {
           setError('Du bist aktuell keinem Team als Trainer zugeordnet. Bitte wende dich an einen Administrator.');
         } else {
-          setSelectedTeam(loaded[0].id);
+          const preferredTeamId = initialDraft?.selectedTeam;
+          const hasPreferredTeam = preferredTeamId !== '' && loaded.some(team => team.id === preferredTeamId);
+          const nextSelectedTeam: number | '' = hasPreferredTeam && typeof preferredTeamId === 'number'
+            ? preferredTeamId
+            : (loaded[0]?.id ?? '');
+          setSelectedTeam(nextSelectedTeam);
         }
       })
       .catch(() => {
@@ -137,7 +154,7 @@ export function useFormationData(open: boolean, formationId: number | null): For
         setError('Teams konnten nicht geladen werden.');
       });
     return () => { cancelled = true; };
-  }, [open]);
+  }, [initialDraft?.selectedTeam, open]);
 
   // ── Bestehende Formation laden (Bearbeitungsmodus) ────────────────────────
   useEffect(() => {
@@ -150,20 +167,15 @@ export function useFormationData(open: boolean, formationId: number | null): For
           if (cancelled) return;
           const f = data.formation;
           setFormation(f);
+          setCurrentTemplateCode(typeof f.formationData?.code === 'string' ? f.formationData.code : null);
           setName(f.name);
 
-          let _loadId = Date.now();
+          const usedIds = new Set<number>();
           const fieldPlayers: PlayerData[] = Array.isArray(f.formationData?.players)
-            ? f.formationData.players.map((p: any) => ({
-                ...p,
-                id: p.id ?? ++_loadId,
-              }))
+            ? normalizeLocalPlayerIds(f.formationData.players.map((p: any) => ({ ...p })), usedIds)
             : [];
           const bench: PlayerData[] = Array.isArray(f.formationData?.bench)
-            ? f.formationData.bench.map((p: any) => ({
-                ...p,
-                id: p.id ?? ++_loadId,
-              }))
+            ? normalizeLocalPlayerIds(f.formationData.bench.map((p: any) => ({ ...p })), usedIds)
             : [];
 
           setPlayers(fieldPlayers);
@@ -193,16 +205,28 @@ export function useFormationData(open: boolean, formationId: number | null): For
     } else {
       // Zurücksetzen für neue Formation
       setFormation(null);
-      setName('');
-      setNotes('');
-      setPlayers([]);
-      setBenchPlayers([]);
-      setNextPlayerNumber(1);
+      setCurrentTemplateCode(typeof initialDraft?.formationData?.code === 'string' ? initialDraft.formationData.code : null);
+      const usedIds = new Set<number>();
+      const draftPlayers: PlayerData[] = Array.isArray(initialDraft?.formationData?.players)
+        ? normalizeLocalPlayerIds(initialDraft!.formationData.players.map(player => ({ ...player })), usedIds)
+        : [];
+      const draftBench: PlayerData[] = Array.isArray(initialDraft?.formationData?.bench)
+        ? normalizeLocalPlayerIds(initialDraft!.formationData.bench.map(player => ({ ...player })), usedIds)
+        : [];
+
+      setName(initialDraft?.name ?? '');
+      setNotes(initialDraft?.formationData?.notes ?? '');
+      setPlayers(draftPlayers);
+      setBenchPlayers(draftBench);
+      const allNums = [...draftPlayers, ...draftBench].map(player =>
+        typeof player.number === 'number' ? player.number : parseInt(String(player.number), 10) || 0,
+      );
+      setNextPlayerNumber(allNums.length > 0 ? Math.max(...allNums) + 1 : 1);
       setAvailablePlayers([]);
       setSearchQuery('');
       setError(null);
     }
-  }, [open, formationId]);
+  }, [formationId, initialDraft, open]);
 
   // ── Kader laden wenn Team gewechselt wird ─────────────────────────────────
   useEffect(() => {
@@ -234,6 +258,7 @@ export function useFormationData(open: boolean, formationId: number | null): For
 
   return {
     formation, setFormation,
+    currentTemplateCode, setCurrentTemplateCode,
     players, setPlayers,
     benchPlayers, setBenchPlayers,
     availablePlayers, setAvailablePlayers,
