@@ -30,12 +30,15 @@ export class NotificationService {
         this.serviceWorkerRegistration = await navigator.serviceWorker.ready;
       }
 
-      // Push-Berechtigung anfragen (non-blocking)
-      this.requestPushPermission().catch(error => {
-        if (!isAuthenticationError(error)) {
-          console.warn('Push setup failed, continuing with polling only:', error);
-        }
-      });
+      // Eine bestehende Permission darf still weiterverwendet werden.
+      // Einen Browser-Prompt dürfen wir hier aber nicht beim Mount auslösen.
+      if ('Notification' in window && Notification.permission === 'granted') {
+        this.requestPushPermission().catch(error => {
+          if (!isAuthenticationError(error)) {
+            console.warn('Push setup failed, continuing with polling only:', error);
+          }
+        });
+      }
       
       // Polling immer starten (als Fallback)
       this.startPolling();
@@ -65,8 +68,7 @@ export class NotificationService {
     }
 
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
+      if (Notification.permission !== 'granted') {
         return false;
       }
 

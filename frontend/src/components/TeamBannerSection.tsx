@@ -1,11 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Cropper from 'react-easy-crop';
-import type { Area } from 'react-easy-crop';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
-import Slider from '@mui/material/Slider';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import IconButton from '@mui/material/IconButton';
@@ -18,8 +15,7 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTheme, alpha } from '@mui/material/styles';
-import getCroppedImg from '../utils/cropImage';
-import BaseModal from '../modals/BaseModal';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { BACKEND_URL } from '../../config';
 import { apiRequest } from '../utils/api';
 
@@ -31,6 +27,7 @@ interface TeamBannerSectionProps {
 }
 
 const BANNER_ASPECT = 16 / 5;
+const PARALLAX_PAD_RATIO = 0.38;
 
 export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
   teamId,
@@ -39,20 +36,18 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
   onBannerChange,
 }) => {
   const theme = useTheme();
+  const isCompactViewport = useMediaQuery(theme.breakpoints.down('md'));
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgWrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const parallaxOriginTopRef = useRef<number | null>(null);
+  const parallaxOriginScrollRef = useRef<number | null>(null);
 
   // Respect user's OS-level animation preference
   const prefersReducedMotion =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -65,40 +60,35 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
 
   const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-  const openCropForFile = (file: File) => {
+  const uploadBannerFile = useCallback(async (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError('Ungültiger Dateityp. Erlaubt: JPG, PNG, WebP');
       return;
     }
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const MAX_SRC_PX = 4000;
-      if (img.naturalWidth > MAX_SRC_PX || img.naturalHeight > MAX_SRC_PX) {
-        const scale = MAX_SRC_PX / Math.max(img.naturalWidth, img.naturalHeight);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.naturalWidth * scale);
-        canvas.height = Math.round(img.naturalHeight * scale);
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        URL.revokeObjectURL(objectUrl);
-        setRawImageSrc(canvas.toDataURL('image/jpeg', 0.92));
-      } else {
-        setRawImageSrc(objectUrl);
-      }
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
-      setCropModalOpen(true);
-    };
-    img.onerror = () => URL.revokeObjectURL(objectUrl);
-    img.src = objectUrl;
-  };
+    setSaving(true);
+    setError(null);
+
+    try {
+      const fd = new FormData();
+      fd.append('banner', file, file.name || 'banner');
+
+      const resp = await apiRequest(`/api/teams/${teamId}/banner`, { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
+
+      onBannerChange?.(data.bannerImage);
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Hochladen');
+    } finally {
+      setSaving(false);
+    }
+  }, [teamId, onBannerChange]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    openCropForFile(file);
+    void uploadBannerFile(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -120,43 +110,8 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
     setIsDragOver(false);
     if (!canEditBanner) return;
     const file = e.dataTransfer.files?.[0];
-    if (file) openCropForFile(file);
-  };
-
-  const onCropComplete = useCallback((_: Area, pixels: Area) => {
-    setCroppedAreaPixels(pixels);
-  }, []);
-
-  const handleSave = async () => {
-    if (!rawImageSrc || !croppedAreaPixels) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const dataUrl = await getCroppedImg(rawImageSrc, croppedAreaPixels);
-      // Convert data URL to Blob
-      const arr = dataUrl.split(',');
-      const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8 = new Uint8Array(n);
-      while (n--) u8[n] = bstr.charCodeAt(n);
-      const blob = new Blob([u8], { type: mime });
-
-      const fd = new FormData();
-      fd.append('banner', blob, 'banner.jpg');
-
-      const resp = await apiRequest(`/api/teams/${teamId}/banner`, { method: 'POST', body: fd });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
-
-      onBannerChange?.(data.bannerImage);
-      setCropModalOpen(false);
-      setRawImageSrc(null);
-    } catch (err: any) {
-      setError(err.message || 'Fehler beim Hochladen');
-    } finally {
-      setSaving(false);
+    if (file) {
+      void uploadBannerFile(file);
     }
   };
 
@@ -201,7 +156,12 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
     imgRef.current.style.transition = '';
     imgRef.current.style.opacity = '0';
     imgRef.current.style.transform = 'scale(1.05)';
-  }, [bannerSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bannerSrc, isCompactViewport]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    parallaxOriginTopRef.current = null;
+    parallaxOriginScrollRef.current = null;
+  }, [bannerSrc]);
 
   // ── Parallax scroll ───────────────────────────────────────────────────────
   // The wrapper extends 80 px beyond the clipped container on each side.
@@ -212,7 +172,7 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
     if (!bannerSrc || prefersReducedMotion) return;
 
     const FACTOR = 0.22;
-    const MAX_TY = 80;
+    const COMPACT_FACTOR = 0.42;
     let rafId: number;
     let cancelled = false;
 
@@ -220,8 +180,23 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
       if (cancelled) return;
       if (containerRef.current && imgWrapRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const raw = rect.top * FACTOR;
-        const ty = Math.max(-MAX_TY, Math.min(MAX_TY, raw));
+        const containerHeight = containerRef.current.clientHeight || 1;
+        const maxTy = containerHeight * PARALLAX_PAD_RATIO;
+
+        if (!isCompactViewport) {
+          const raw = rect.top * FACTOR;
+          const ty = Math.max(-maxTy, Math.min(maxTy, raw));
+          imgWrapRef.current.style.transform = `translateY(${ty.toFixed(1)}px)`;
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+
+        if (parallaxOriginScrollRef.current === null) {
+          parallaxOriginScrollRef.current = window.scrollY;
+        }
+
+        const raw = (parallaxOriginScrollRef.current - window.scrollY) * COMPACT_FACTOR;
+        const ty = Math.max(-maxTy, Math.min(maxTy, raw));
         imgWrapRef.current.style.transform = `translateY(${ty.toFixed(1)}px)`;
       }
       rafId = requestAnimationFrame(tick);
@@ -233,7 +208,7 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
       cancelled = true;
       cancelAnimationFrame(rafId);
     };
-  }, [bannerSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bannerSrc, isCompactViewport]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── No banner, no edit permission → render nothing ────────────────────────
   if (!bannerSrc && !canEditBanner) {
@@ -273,10 +248,10 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
               ref={imgWrapRef}
               sx={{
                 position: 'absolute',
-                top: -80,
+                top: `-${PARALLAX_PAD_RATIO * 100}%`,
                 left: 0,
                 right: 0,
-                bottom: -80,
+                bottom: `-${PARALLAX_PAD_RATIO * 100}%`,
                 display: 'flex',
                 alignItems: 'center',
                 willChange: 'transform',
@@ -291,9 +266,11 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
                   width: '100%',
                   height: 'auto',
                   display: 'block',
+                  transformOrigin: 'center center',
                   // Initial state – Ken Burns reveal animates these to 1 / scale(1)
                   opacity: 0,
                   transform: prefersReducedMotion ? 'none' : 'scale(1.05)',
+                  willChange: 'opacity, transform',
                 }}
               />
             </Box>
@@ -367,13 +344,14 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
               <IconButton
                 size="small"
                 onClick={() => inputRef.current?.click()}
+                disabled={saving}
                 sx={{
                   bgcolor: alpha(theme.palette.background.paper, 0.85),
                   backdropFilter: 'blur(4px)',
                   '&:hover': { bgcolor: theme.palette.background.paper },
                 }}
               >
-                <EditIcon fontSize="small" />
+                {saving ? <CircularProgress size={14} /> : <EditIcon fontSize="small" />}
               </IconButton>
             </Tooltip>
             {bannerSrc && (
@@ -415,70 +393,6 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
-
-      {/* Crop dialog */}
-      <BaseModal
-        open={cropModalOpen}
-        onClose={() => { setCropModalOpen(false); setRawImageSrc(null); }}
-        title="Banner zuschneiden"
-        maxWidth="md"
-        actions={
-          <>
-            <Button
-              variant="outlined"
-              onClick={() => { setCropModalOpen(false); setRawImageSrc(null); }}
-              disabled={saving}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saving || !croppedAreaPixels}
-              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
-            >
-              {saving ? 'Wird gespeichert…' : 'Speichern'}
-            </Button>
-          </>
-        }
-      >
-        <Box sx={{ width: '100%' }}>
-          {/* Crop area – container uses EXACT banner aspect ratio so the crop frame
-              fills the entire dark box. No black bars above/below = no visual confusion. */}
-          <Box sx={{ position: 'relative', width: '100%', aspectRatio: `${BANNER_ASPECT}`, minHeight: 120, bgcolor: '#111' }}>
-            {rawImageSrc && (
-              <Cropper
-                image={rawImageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={BANNER_ASPECT}
-                objectFit="horizontal-cover"
-                cropShape="rect"
-                showGrid
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            )}
-          </Box>
-
-          {/* Zoom slider */}
-          <Box sx={{ px: 3, pt: 2, pb: 1 }}>
-            <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-              Zoom
-            </Typography>
-            <Slider
-              min={1}
-              max={3}
-              step={0.05}
-              value={zoom}
-              onChange={(_, v) => setZoom(v as number)}
-              aria-label="Zoom"
-              size="small"
-            />
-          </Box>
-        </Box>
-      </BaseModal>
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>

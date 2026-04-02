@@ -482,6 +482,7 @@ export default function MyTeam() {
                               )}
                             </Stack>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                         />
                       </ListItem>
                     ))}
