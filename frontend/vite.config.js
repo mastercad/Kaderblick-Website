@@ -82,7 +82,7 @@ export default defineConfig({
             return 'calendar-vendor';
           }
 
-          if (id.includes('@tiptap')) {
+          if (id.includes('@tiptap') || id.includes('/prosemirror-') || id.includes('/orderedmap/') || id.includes('/rope-sequence/') || id.includes('/w3c-keyname/')) {
             return 'editor-vendor';
           }
 
@@ -104,6 +104,26 @@ export default defineConfig({
 
           if (id.includes('workbox')) {
             return 'pwa-vendor';
+          }
+
+          if (id.includes('/lodash/') || id.includes('/lodash-es/')) {
+            return 'lodash-vendor';
+          }
+
+          if (id.includes('/react-icons/')) {
+            return 'icons-vendor';
+          }
+
+          if (id.includes('/linkifyjs/')) {
+            return 'linkify-vendor';
+          }
+
+          if (id.includes('/react-youtube/') || id.includes('/youtube-player/')) {
+            return 'youtube-vendor';
+          }
+
+          if (id.includes('/@popperjs/core/')) {
+            return 'popper-vendor';
           }
 
           if (id.includes('@mui') || id.includes('@emotion')) {

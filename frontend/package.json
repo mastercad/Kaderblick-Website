@@ -75,6 +75,9 @@
     "typescript": "^5.9.3",
     "vite": "^7.1.7"
   },
+  "overrides": {
+    "@rollup/plugin-terser": "1.0.0"
+  },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "jsdom",
