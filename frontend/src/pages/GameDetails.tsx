@@ -23,7 +23,6 @@ import {
   useTheme,
   TextField,
   Collapse,
-  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -99,6 +98,96 @@ interface GameDetailsProps {
   gameId?: number;
   onBack?: () => void;
 }
+
+type DetailSectionKey = 'matchPlan' | 'events' | 'videos' | 'timing';
+
+interface DetailSectionHeaderProps {
+  icon: React.ReactNode;
+  label: string;
+  count?: React.ReactNode;
+  color: string;
+  open: boolean;
+  onToggle: () => void;
+  action?: React.ReactNode;
+  testId?: string;
+}
+
+const DetailSectionHeader = ({
+  icon,
+  label,
+  count,
+  color,
+  open,
+  onToggle,
+  action,
+  testId,
+}: DetailSectionHeaderProps) => (
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      mb: 1.25,
+      mt: 1,
+      p: 0.75,
+      borderRadius: 2,
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        bgcolor: alpha(color, 0.06),
+      },
+    }}
+    onClick={onToggle}
+    data-testid={testId}
+  >
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        flex: 1,
+        minWidth: 0,
+      }}
+    >
+      {icon}
+      <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: '1rem', sm: '1.15rem' } }}>
+        {label}
+      </Typography>
+      {count !== undefined && count !== null && (
+        <Chip
+          label={count}
+          size="small"
+          sx={{
+            bgcolor: alpha(color, 0.12),
+            color,
+            fontWeight: 700,
+            fontSize: '0.75rem',
+            height: 22,
+            minWidth: 22,
+          }}
+        />
+      )}
+    </Box>
+    {action && (
+      <Box
+        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {action}
+      </Box>
+    )}
+    <IconButton
+      size="small"
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+      aria-label={`${label} ${open ? 'zuklappen' : 'aufklappen'}`}
+    >
+      {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+    </IconButton>
+  </Box>
+);
 
 function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   // Ref für Video-Player-API
@@ -199,7 +288,12 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const [firstHalfExtraTime, setFirstHalfExtraTime] = useState<string>('');
   const [secondHalfExtraTime, setSecondHalfExtraTime] = useState<string>('');
   const [timingSaving, setTimingSaving] = useState(false);
-  const [timingExpanded, setTimingExpanded] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState<Record<DetailSectionKey, boolean>>({
+    matchPlan: true,
+    events: true,
+    videos: true,
+    timing: false,
+  });
 
   useEffect(() => {
     if (!gameId) {
@@ -417,6 +511,10 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const openWeatherModal = (eventId: number | null) => {
     setSelectedEventId(eventId);
     setWeatherModalOpen(true);
+  };
+
+  const toggleSection = (section: DetailSectionKey) => {
+    setSectionsOpen((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const isGameRunning = () => {
@@ -766,49 +864,39 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         </CardContent>
       </Card>
 
-      <GameMatchPlanCard
-        game={game}
-        onUpdated={async () => {
-          await loadGameDetails();
-        }}
-      />
+      <Box sx={{ mb: 3 }}>
+        <DetailSectionHeader
+          icon={<SoccerIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
+          label="Match-Plan"
+          count={game.matchPlan?.phases?.length ?? 0}
+          color={theme.palette.primary.main}
+          open={sectionsOpen.matchPlan}
+          onToggle={() => toggleSection('matchPlan')}
+          testId="match-plan-section-header"
+        />
+        <Collapse in={sectionsOpen.matchPlan} timeout="auto" unmountOnExit>
+          <GameMatchPlanCard
+            game={game}
+            onUpdated={async () => {
+              await loadGameDetails();
+            }}
+          />
+        </Collapse>
+      </Box>
 
       {/* ══════════════════════════════════════════════════
           GAME EVENTS
          ══════════════════════════════════════════════════ */}
-      <Card className="gameevents-mobile-card" sx={{ mb: 3, overflow: 'hidden' }}>
-        {/* Section Header */}
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: { xs: 2, sm: 3 },
-          py: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: alpha(theme.palette.primary.main, 0.03),
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <SoccerIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-            <Typography sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' } }}>
-              Spielereignisse
-            </Typography>
-            {gameEvents.length > 0 && (
-              <Chip
-                label={gameEvents.length}
-                size="small"
-                sx={{
-                  height: 22,
-                  minWidth: 22,
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  color: 'primary.main',
-                }}
-              />
-            )}
-          </Box>
-          {canCreateEvents() && (
+      <Box sx={{ mb: 3 }}>
+        <DetailSectionHeader
+          icon={<SoccerIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
+          label="Spielereignisse"
+          count={gameEvents.length}
+          color={theme.palette.primary.main}
+          open={sectionsOpen.events}
+          onToggle={() => toggleSection('events')}
+          testId="events-section-header"
+          action={canCreateEvents() ? (
             <Button
               variant="contained"
               size="small"
@@ -818,10 +906,11 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
             >
               Event hinzufügen
             </Button>
-          )}
-        </Box>
-
-        <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>
+          ) : undefined}
+        />
+        <Collapse in={sectionsOpen.events} timeout="auto" unmountOnExit>
+          <Card className="gameevents-mobile-card" sx={{ overflow: 'hidden' }}>
+            <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>
           {gameEvents.length > 0 ? (
             <Stack spacing={0} divider={<Divider sx={{ mx: -1.5 }} />}>
               {gameEvents.map((event) => {
@@ -1035,71 +1124,51 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
               </Typography>
             </Box>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </Collapse>
+      </Box>
 
       {/* ══════════════════════════════════════════════════
           VIDEOS
          ══════════════════════════════════════════════════ */}
-      <Card className="gamevideos-mobile-card" sx={{ mb: 3, overflow: 'hidden' }}>
-        {/* Section Header */}
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: { xs: 2, sm: 3 },
-          py: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: alpha(theme.palette.primary.main, 0.03),
-          flexWrap: 'wrap',
-          gap: 1,
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-            <VideoIcon sx={{ fontSize: 20, color: 'primary.main', flexShrink: 0 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' } }} noWrap>
-              Videos
-            </Typography>
-            {videos.length > 0 && (
-              <Chip
-                label={videos.length}
-                size="small"
-                sx={{
-                  height: 22,
-                  minWidth: 22,
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  color: 'primary.main',
-                }}
-              />
-            )}
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {videos.length > 0 && (
+      <Box sx={{ mb: 3 }}>
+        <DetailSectionHeader
+          icon={<VideoIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
+          label="Videos"
+          count={videos.length}
+          color={theme.palette.primary.main}
+          open={sectionsOpen.videos}
+          onToggle={() => toggleSection('videos')}
+          testId="videos-section-header"
+          action={(
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {videos.length > 0 && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ContentCutIcon />}
+                  size="small"
+                  onClick={() => setVideoSegmentModalOpen(true)}
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  Schnittliste
+                </Button>
+              )}
               <Button
-                variant="outlined"
-                startIcon={<ContentCutIcon />}
+                variant="contained"
+                startIcon={<VideoIcon />}
                 size="small"
-                onClick={() => setVideoSegmentModalOpen(true)}
+                onClick={handleProtectedVideoAction}
                 sx={{ fontSize: '0.8rem' }}
               >
-                Schnittliste
+                Video hinzufügen
               </Button>
-            )}
-            <Button
-              variant="contained"
-              startIcon={<VideoIcon />}
-              size="small"
-              onClick={handleProtectedVideoAction}
-              sx={{ fontSize: '0.8rem' }}
-            >
-              Video hinzufügen
-            </Button>
-          </Box>
-        </Box>
-
-        <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>
+            </Box>
+          )}
+        />
+        <Collapse in={sectionsOpen.videos} timeout="auto" unmountOnExit>
+          <Card className="gamevideos-mobile-card" sx={{ overflow: 'hidden' }}>
+            <CardContent sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 1, sm: 2 } }}>
           {videos.length > 0 ? (
             <Stack spacing={0} divider={<Divider sx={{ mx: -1.5 }} />}>
               {videos.map((video) => (
@@ -1233,57 +1302,29 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
               </Typography>
             </Box>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </Collapse>
+      </Box>
 
       {/* ══════════════════════════════════════════════════
           SPIELZEITEN
          ══════════════════════════════════════════════════ */}
       {(game.permissions?.can_edit_timing || game.halfDuration != null) && (
-        <Card sx={{ mb: 3, overflow: 'hidden' }}>
-          {/* Section Header */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: { xs: 2, sm: 3 },
-              py: 1.5,
-              borderBottom: timingExpanded ? '1px solid' : 'none',
-              borderColor: 'divider',
-              bgcolor: alpha(theme.palette.primary.main, 0.03),
-              cursor: 'pointer',
-              userSelect: 'none',
-            }}
-            onClick={() => setTimingExpanded((v) => !v)}
-            data-testid="timing-section-header"
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <TimerIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-              <Typography sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' } }}>
-                Spielzeiten
-              </Typography>
-              <Tooltip title="Halbzeitdauer, Pause und Nachspielzeiten für die Video-Timeline">
-                <Chip
-                  label={`${game.halfDuration ?? 45} min`}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: 'primary.main',
-                  }}
-                />
-              </Tooltip>
-            </Box>
-            <IconButton size="small" sx={{ p: 0.5 }}>
-              {timingExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Box>
+        <Box sx={{ mb: 3 }}>
+          <DetailSectionHeader
+            icon={<TimerIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
+            label="Spielzeiten"
+            count={`${game.halfDuration ?? 45} min`}
+            color={theme.palette.primary.main}
+            open={sectionsOpen.timing}
+            onToggle={() => toggleSection('timing')}
+            testId="timing-section-header"
+          />
 
-          <Collapse in={timingExpanded}>
-            <CardContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 } }}>
+          <Collapse in={sectionsOpen.timing} timeout="auto" unmountOnExit>
+            <Card sx={{ overflow: 'hidden' }}>
+              <CardContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 } }}>
               {game.permissions?.can_edit_timing ? (
                 <Box
                   component="form"
@@ -1376,9 +1417,10 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                   )}
                 </Box>
               )}
-            </CardContent>
+              </CardContent>
+            </Card>
           </Collapse>
-        </Card>
+        </Box>
       )}
 
       {/* Video Play Modal */}      <VideoPlayModal

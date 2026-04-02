@@ -215,7 +215,6 @@ const setsEqual = (left: Set<number>, right: Set<number>) => {
 
 const POSITION_CHANGE_THRESHOLD = 0.5;
 const POSITION_SWAP_THRESHOLD = 3;
-const MAX_ANALYSIS_ITEMS = 3;
 
 const getPlayerName = (
   playerId: number | null | undefined,
@@ -260,11 +259,50 @@ const formatFieldZone = (player: MatchPlanPlayer) => `${getVerticalZoneLabel(pla
 
 const formatCompactList = (items: string[]) => {
   if (items.length === 0) return '';
-  if (items.length <= MAX_ANALYSIS_ITEMS) return items.join('; ');
-
-  const visibleItems = items.slice(0, MAX_ANALYSIS_ITEMS).join('; ');
-  return `${visibleItems}; +${items.length - MAX_ANALYSIS_ITEMS} weitere`;
+  return items.join('; ');
 };
+
+const getRealPlayersById = (phase: MatchPlanPhase) => new Map(
+  phase.players
+    .filter(player => player.isRealPlayer && player.playerId != null)
+    .map(player => [player.playerId as number, player]),
+);
+
+interface MovedPlayerAnalysis {
+  playerId: number;
+  playerName: string;
+  previousPlayer: MatchPlanPlayer;
+  nextPlayer: MatchPlanPlayer;
+}
+
+const collectMovedPlayers = (
+  previousByPlayerId: Map<number, MatchPlanPlayer>,
+  nextByPlayerId: Map<number, MatchPlanPlayer>,
+  playerLookup: Map<number, SquadOptionRow>,
+) => [...nextByPlayerId.entries()]
+  .map(([playerId, nextPlayer]) => {
+    const previousPlayer = previousByPlayerId.get(playerId);
+    if (!previousPlayer || !hasRelevantMovement(previousPlayer, nextPlayer)) return null;
+
+    return {
+      playerId,
+      playerName: getPlayerName(playerId, playerLookup, nextPlayer, previousPlayer.name),
+      previousPlayer,
+      nextPlayer,
+    } satisfies MovedPlayerAnalysis;
+  })
+  .filter((entry): entry is MovedPlayerAnalysis => Boolean(entry));
+
+const findSwapPartner = (
+  current: MovedPlayerAnalysis,
+  movedPlayers: MovedPlayerAnalysis[],
+  handledPlayerIds: Set<number>,
+) => movedPlayers.find(candidate => (
+  candidate.playerId !== current.playerId
+  && !handledPlayerIds.has(candidate.playerId)
+  && getDistance(current.nextPlayer, candidate.previousPlayer) <= POSITION_SWAP_THRESHOLD
+  && getDistance(candidate.nextPlayer, current.previousPlayer) <= POSITION_SWAP_THRESHOLD
+));
 
 const mapIncomingToOutgoingPlayers = (outgoing: MatchPlanPlayer[], incoming: MatchPlanPlayer[]) => {
   const remainingOutgoing = [...outgoing];
@@ -342,52 +380,22 @@ const describePositionChanges = (
   previousPhase: MatchPlanPhase,
   nextPhase: MatchPlanPhase,
   playerLookup: Map<number, SquadOptionRow>,
+  initialHandledPlayerIds?: Set<number>,
 ) => {
-  const previousByPlayerId = new Map(
-    previousPhase.players
-      .filter(player => player.isRealPlayer && player.playerId != null)
-      .map(player => [player.playerId as number, player]),
-  );
-  const nextByPlayerId = new Map(
-    nextPhase.players
-      .filter(player => player.isRealPlayer && player.playerId != null)
-      .map(player => [player.playerId as number, player]),
-  );
-
-  const movedPlayers = [...nextByPlayerId.entries()]
-    .map(([playerId, nextPlayer]) => {
-      const previousPlayer = previousByPlayerId.get(playerId);
-      if (!previousPlayer || !hasRelevantMovement(previousPlayer, nextPlayer)) return null;
-
-      return {
-        playerId,
-        playerName: getPlayerName(playerId, playerLookup, nextPlayer, previousPlayer.name),
-        previousPlayer,
-        nextPlayer,
-      };
-    })
-    .filter((entry): entry is {
-      playerId: number;
-      playerName: string;
-      previousPlayer: MatchPlanPlayer;
-      nextPlayer: MatchPlanPlayer;
-    } => Boolean(entry));
+  const previousByPlayerId = getRealPlayersById(previousPhase);
+  const nextByPlayerId = getRealPlayersById(nextPhase);
+  const movedPlayers = collectMovedPlayers(previousByPlayerId, nextByPlayerId, playerLookup);
 
   if (movedPlayers.length === 0) return '';
 
-  const handledPlayerIds = new Set<number>();
+  const handledPlayerIds = new Set(initialHandledPlayerIds ?? []);
   const swapDescriptions: string[] = [];
   const moveDescriptions: string[] = [];
 
   for (const current of movedPlayers) {
     if (handledPlayerIds.has(current.playerId)) continue;
 
-    const swapPartner = movedPlayers.find(candidate => (
-      candidate.playerId !== current.playerId
-      && !handledPlayerIds.has(candidate.playerId)
-      && getDistance(current.nextPlayer, candidate.previousPlayer) <= POSITION_SWAP_THRESHOLD
-      && getDistance(candidate.nextPlayer, current.previousPlayer) <= POSITION_SWAP_THRESHOLD
-    ));
+    const swapPartner = findSwapPartner(current, movedPlayers, handledPlayerIds);
 
     if (swapPartner) {
       handledPlayerIds.add(current.playerId);
@@ -423,24 +431,58 @@ const analyzePhaseChange = (
   const playerOutIds = [...previousIds].filter(id => !currentIds.has(id));
   const playerInIds = [...currentIds].filter(id => !previousIds.has(id));
   const substitutionSummary = describeSubstitutionChanges(previousPhase, nextPhase, playerLookup, playerOutIds, playerInIds);
-  const positionSummary = describePositionChanges(previousPhase, nextPhase, playerLookup);
+  const previousByPlayerId = getRealPlayersById(previousPhase);
+  const nextByPlayerId = getRealPlayersById(nextPhase);
+  const movedPlayers = collectMovedPlayers(previousByPlayerId, nextByPlayerId, playerLookup);
+  const handledMovementPlayerIds = new Set<number>();
+  let positionSummary = '';
 
   if (playerOutIds.length === 1 && playerInIds.length === 1) {
     const playerOutId = playerOutIds[0];
     const playerInId = playerInIds[0];
+    const outPlayer = previousByPlayerId.get(playerOutId) ?? null;
+    const inPlayer = nextByPlayerId.get(playerInId) ?? null;
+    const substitution = {
+      playerOutId,
+      playerOutName: playerLookup.get(playerOutId)?.fullName ?? nextPhase.substitution?.playerOutName ?? 'Spieler raus',
+      playerInId,
+      playerInName: playerLookup.get(playerInId)?.fullName ?? nextPhase.substitution?.playerInName ?? 'Spieler rein',
+      note: nextPhase.substitution?.note ?? null,
+      reasonId: nextPhase.substitution?.reasonId ?? null,
+    };
+
+    const linkedSwap = outPlayer && inPlayer
+      ? movedPlayers.find(candidate => (
+          getDistance(inPlayer, candidate.previousPlayer) <= POSITION_SWAP_THRESHOLD
+          && getDistance(candidate.nextPlayer, outPlayer) <= POSITION_SWAP_THRESHOLD
+        ))
+      : null;
+
+    if (linkedSwap && inPlayer) {
+      handledMovementPlayerIds.add(linkedSwap.playerId);
+    }
+
+    positionSummary = describePositionChanges(previousPhase, nextPhase, playerLookup, handledMovementPlayerIds);
+
+    const linkedSubstitutionSummary = linkedSwap && inPlayer
+      ? `${substitution.playerOutName ?? 'Spieler raus'} raus, ${substitution.playerInName ?? 'Spieler rein'} rein und tauscht danach mit ${linkedSwap.playerName} die Position (${substitution.playerInName ?? 'Spieler rein'} jetzt ${formatFieldZone(inPlayer)}, ${linkedSwap.playerName} jetzt ${formatFieldZone(linkedSwap.nextPlayer)})`
+      : null;
+
+    const finalSubstitutionSummary = linkedSubstitutionSummary
+      ?? substitutionSummary
+      ?? `${playerLookup.get(playerOutId)?.fullName ?? 'Spieler raus'} raus, ${playerLookup.get(playerInId)?.fullName ?? 'Spieler rein'} rein.`;
+
     return {
-      kind: 'substitution',
-      substitution: {
-        playerOutId,
-        playerOutName: playerLookup.get(playerOutId)?.fullName ?? nextPhase.substitution?.playerOutName ?? 'Spieler raus',
-        playerInId,
-        playerInName: playerLookup.get(playerInId)?.fullName ?? nextPhase.substitution?.playerInName ?? 'Spieler rein',
-        note: nextPhase.substitution?.note ?? null,
-        reasonId: nextPhase.substitution?.reasonId ?? null,
-      },
-      summary: substitutionSummary || `${playerLookup.get(playerOutId)?.fullName ?? 'Spieler raus'} raus, ${playerLookup.get(playerInId)?.fullName ?? 'Spieler rein'} rein.`,
+      kind: linkedSubstitutionSummary || positionSummary ? 'mixed' : 'substitution',
+      substitution,
+      summary: [
+        finalSubstitutionSummary,
+        positionSummary,
+      ].filter(Boolean).join(' | '),
     };
   }
+
+  positionSummary = describePositionChanges(previousPhase, nextPhase, playerLookup);
 
   if (setsEqual(previousIds, currentIds)) {
     if (positionSummary) {
@@ -780,7 +822,7 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
       }
 
       const analysis = analyzePhaseChange(preparedPhases[index - 1], normalizedPhase, playerLookup);
-      if (analysis.kind === 'substitution') {
+      if (analysis.substitution) {
         normalizedPhase.sourceType = 'substitution';
         normalizedPhase.substitution = analysis.substitution;
       } else {

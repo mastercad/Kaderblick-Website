@@ -168,6 +168,28 @@ beforeEach(() => {
 });
 
 describe('GameDetails – Spielzeiten section', () => {
+  it('collapses and expands the event section from the detail view header', async () => {
+    await act(async () => {
+      renderWithRouter(<GameDetails gameId={42} />);
+    });
+
+    expect(await screen.findByText('Keine Ereignisse für dieses Spiel.')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('events-section-header'));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Keine Ereignisse für dieses Spiel.')).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('events-section-header'));
+    });
+
+    expect(await screen.findByText('Keine Ereignisse für dieses Spiel.')).toBeInTheDocument();
+  });
+
   it('renders timing section header when can_edit_timing is true', async () => {
     await act(async () => {
       renderWithRouter(<GameDetails gameId={42} />);
