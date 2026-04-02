@@ -45,6 +45,7 @@ function makeProps(overrides: Partial<PitchCanvasProps> = {}): PitchCanvasProps 
     ownPlayerDrag:  null,
     selectedId:     null,
     showStepNumbers: false,
+    presentationMode: false,
     onSvgDown:  noopHandler,
     onSvgMove:  noopHandler,
     onSvgUp:    noopHandler,
