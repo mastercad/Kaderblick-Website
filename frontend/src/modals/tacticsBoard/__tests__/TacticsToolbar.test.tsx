@@ -15,6 +15,8 @@ const baseProps: TacticsToolbarProps = {
   setColor: jest.fn(),
   fullPitch: true,
   setFullPitch: jest.fn(),
+  fitPitchToHeight: true,
+  setFitPitchToHeight: jest.fn(),
   elements: [],
   opponents: [],
   saving: false,

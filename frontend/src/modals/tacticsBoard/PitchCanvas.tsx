@@ -18,6 +18,7 @@ export interface PitchCanvasProps {
 
   // Layout
   fullPitch: boolean;
+  fitPitchToHeight: boolean;
   pitchAspect: string;
   pitchAX: number;
   svgCursor: string;
@@ -78,7 +79,7 @@ const HALF_ZONE_LABELS = [
 
 export const PitchCanvas: React.FC<PitchCanvasProps> = ({
   pitchRef, svgRef,
-  fullPitch, pitchAspect, pitchAX, svgCursor,
+  fullPitch, fitPitchToHeight, pitchAspect, pitchAX, svgCursor,
   elements, opponents, ownPlayers,
   tool, color,
   elDrag, oppDrag, ownPlayerDrag,
@@ -152,11 +153,11 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
       sx={{
         position: 'relative',
         aspectRatio: pitchAspect,
-        width: fullPitch ? '100%' : { xs: 'min(100%, 297px)', md: 'min(100%, 396px)' },
+        width: fitPitchToHeight ? 'auto' : '100%',
         maxWidth: '100%',
-        maxHeight: '100%',
-        height: 'auto',
-        alignSelf: 'center',
+        maxHeight: fitPitchToHeight ? '100%' : undefined,
+        height: fitPitchToHeight ? '100%' : 'auto',
+        alignSelf: fitPitchToHeight ? 'center' : 'flex-start',
         touchAction: 'none',
         borderRadius: 2,
         overflow: 'hidden',

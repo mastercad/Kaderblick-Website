@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Button, Box, Typography, Alert, CircularProgress, TextField, MenuItem, Chip, Tooltip,
   Paper, Stack,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -15,6 +16,24 @@ import type { FormationEditModalProps, Player } from './formation/types';
 
 const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formationId, onClose, onSaved }) => {
   const editor = useFormationEditor(open, formationId, onClose, onSaved);
+  const [showCloseWarning, setShowCloseWarning] = useState(false);
+
+  useEffect(() => {
+    if (!open) setShowCloseWarning(false);
+  }, [open]);
+
+  const handleCloseRequest = useCallback(() => {
+    if (editor.isDirty) {
+      setShowCloseWarning(true);
+      return;
+    }
+    onClose();
+  }, [editor.isDirty, onClose]);
+
+  const handleSaveAndClose = useCallback(async () => {
+    setShowCloseWarning(false);
+    await editor.handleSave();
+  }, [editor]);
 
   // ── Active player IDs (on field + bench) for greying out in squad list ──────
   const activeIds = new Set([
@@ -41,7 +60,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
     return (
       <TemplatePicker
         open={open}
-        onClose={onClose}
+        onClose={handleCloseRequest}
         onSelectTemplate={editor.applyTemplate}
         onSkip={() => editor.setShowTemplatePicker(false)}
       />
@@ -52,14 +71,14 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
   return (
     <BaseModal
       open={open}
-      onClose={onClose}
+      onClose={handleCloseRequest}
       title={formationId ? 'Aufstellung bearbeiten' : 'Neue Aufstellung'}
       maxWidth="lg"
       actions={
         <>
-          <Button onClick={onClose} variant="outlined" color="secondary">Abbrechen</Button>
+          <Button onClick={handleCloseRequest} variant="outlined" color="secondary">Abbrechen</Button>
           <Button onClick={editor.handleSave} variant="contained" color="primary" disabled={editor.loading}>
-            {editor.loading ? 'Speichern…' : 'Speichern'}
+            {editor.loading ? 'Speichern…' : `Speichern${editor.isDirty ? ' *' : ''}`}
           </Button>
         </>
       }
@@ -225,9 +244,20 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
               }}
             >
               <Box>
-                <Typography variant="subtitle1" fontWeight={800}>
-                  Spielfeld
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                  <Typography variant="subtitle1" fontWeight={800}>
+                    Spielfeld
+                  </Typography>
+                  {editor.isDirty && (
+                    <Chip
+                      size="small"
+                      color="warning"
+                      variant="filled"
+                      label="Ungespeichert"
+                      sx={{ fontWeight: 700 }}
+                    />
+                  )}
+                </Box>
                 <Typography variant="body2" color="text.secondary">
                   Spieler verschieben, austauschen oder direkt aus dem Kader auf freie Positionen ziehen.
                 </Typography>
@@ -268,11 +298,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
               outlineOffset: '-4px',
               transition: 'outline 0.15s',
             }}
-            onMouseMove={editor.handlePitchMouseMove}
-            onMouseUp={editor.handlePitchMouseUp}
-            onMouseLeave={editor.handlePitchMouseUp}
-            onTouchMove={editor.handlePitchTouchMove}
-            onTouchEnd={editor.handlePitchTouchEnd}
             onDragOver={editor.handlePitchDragOver}
             onDrop={editor.handlePitchDrop}
           >
@@ -296,11 +321,11 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
             {editor.players.map(player => (
               <PlayerToken
                 key={player.id}
+                playerId={player.id}
                 player={player}
                 isDragging={editor.draggedPlayerId === player.id}
                 isHighlighted={editor.highlightedTokenId === player.id}
-                onMouseDown={e => editor.startDragFromField(player.id, e)}
-                onTouchStart={e => editor.startDragFromField(player.id, e)}
+                onStartDrag={editor.startDragFromField}
                 domRef={el => {
                   if (el) editor.tokenRefs.current.set(player.id, el);
                   else    editor.tokenRefs.current.delete(player.id);
@@ -339,6 +364,31 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({ open, formation
           onNotesChange={editor.setNotes}
         />
       </Box>
+
+      <Dialog
+        open={showCloseWarning}
+        onClose={() => setShowCloseWarning(false)}
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle>Ungespeicherte Änderungen</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Wenn du diese Aufstellung jetzt ohne Speichern verlässt, gehen deine ungespeicherten
+            Änderungen verloren.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowCloseWarning(false)}>
+            Weiter bearbeiten
+          </Button>
+          <Button color="error" variant="outlined" onClick={() => { setShowCloseWarning(false); onClose(); }}>
+            Änderungen verwerfen
+          </Button>
+          <Button variant="contained" onClick={handleSaveAndClose} disabled={editor.loading}>
+            Speichern & Schließen
+          </Button>
+        </DialogActions>
+      </Dialog>
     </BaseModal>
   );
 };

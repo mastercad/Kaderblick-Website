@@ -1,15 +1,16 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { getZoneColor, truncateName } from '../helpers';
 import type { PlayerData } from '../types';
 
 interface PlayerTokenProps {
+  playerId: number;
   player: PlayerData;
   isDragging: boolean;
   /** Highlighted when a squad-list player is being dragged over this token */
   isHighlighted?: boolean;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onTouchStart: (e: React.TouchEvent) => void;
+  onStartDrag: (id: number, e: React.MouseEvent | React.TouchEvent) => void;
   /** Forwarded ref to the root DOM element – used for direct style mutation during drag */
   domRef?: React.Ref<HTMLDivElement>;
 }
@@ -46,7 +47,7 @@ const buildTooltip = (player: PlayerData): React.ReactNode => {
  * `domRef` is passed by the formation editor to directly mutate `left`/`top`
  * during drag without triggering React re-renders.
  */
-const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ player, isDragging, isHighlighted, onMouseDown, onTouchStart, domRef }) => (
+const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ playerId, player, isDragging, isHighlighted, onStartDrag, domRef }) => (
   <Tooltip title={buildTooltip(player)} placement="top" disableInteractive>
     <Box
       ref={domRef}
@@ -64,40 +65,92 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ player, isDragging
         alignItems: 'center',
         cursor: isDragging ? 'grabbing' : 'grab',
         zIndex: isDragging ? 100 : isHighlighted ? 50 : 1,
+        pointerEvents: isDragging ? 'none' : 'auto',
         touchAction: 'none',
         userSelect: 'none',
+        willChange: isDragging ? 'left, top, transform, filter' : 'auto',
+        transition: 'filter 0.16s ease, z-index 0.16s ease',
+        filter: isDragging
+          ? 'drop-shadow(0 10px 18px rgba(0,0,0,0.42))'
+          : isHighlighted
+            ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.28))'
+            : 'none',
+        '&[data-swap-target="true"]': {
+          filter: 'drop-shadow(0 0 20px rgba(255,193,7,0.5))',
+        },
+        '&[data-swap-target="true"] [data-token-circle="true"]': {
+          border: '3px solid #facc15',
+          boxShadow: '0 0 0 4px rgba(250,204,21,0.38), 0 6px 18px rgba(0,0,0,0.65)',
+          transform: isDragging ? 'scale(1.14)' : 'scale(1.16)',
+        },
+        '&[data-swap-target="true"] [data-swap-icon="true"]': {
+          opacity: 1,
+          transform: 'scale(1)',
+        },
       }}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
+      onMouseDown={e => onStartDrag(playerId, e)}
+      onTouchStart={e => onStartDrag(playerId, e)}
     >
       {/* Numbered circle */}
-      <Box sx={{
-        width: 'var(--token-size)',
-        height: 'var(--token-size)',
-        bgcolor: getZoneColor(player.y),
-        color: 'white',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 800,
-        fontSize: 'var(--token-number-size)',
-        border: isHighlighted
-          ? '3px solid #fff'
-          : player.isRealPlayer
-            ? '2px solid rgba(255,255,255,0.85)'
-            : '2px dashed rgba(255,255,255,0.6)',
-        boxShadow: isHighlighted
-          ? '0 0 0 3px rgba(255,255,255,0.9), 0 4px 16px rgba(0,0,0,0.7)'
-          : '0 2px 8px rgba(0,0,0,0.55)',
-        transition: 'box-shadow 0.15s, border 0.15s',
-        transform: isHighlighted ? 'scale(1.2)' : 'scale(1)',
-        flexShrink: 0,
-        opacity: player.isRealPlayer ? 1 : 0.75,
-      }}
-      data-token-circle="true"
-      >
-        {player.number}
+      <Box sx={{ position: 'relative', flexShrink: 0 }}>
+        <Box sx={{
+          width: 'var(--token-size)',
+          height: 'var(--token-size)',
+          bgcolor: getZoneColor(player.y),
+          color: 'white',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 800,
+          fontSize: 'var(--token-number-size)',
+          border: isHighlighted
+              ? '3px solid #fff'
+              : player.isRealPlayer
+                ? '2px solid rgba(255,255,255,0.85)'
+                : '2px dashed rgba(255,255,255,0.6)',
+          boxShadow: isHighlighted
+              ? '0 0 0 3px rgba(255,255,255,0.9), 0 4px 16px rgba(0,0,0,0.7)'
+              : '0 2px 8px rgba(0,0,0,0.55)',
+          transition: 'box-shadow 0.15s, border 0.15s, transform 0.15s ease',
+          transform: isDragging ? 'scale(1.14)' : isHighlighted ? 'scale(1.2)' : 'scale(1)',
+          opacity: player.isRealPlayer ? 1 : 0.75,
+        }}
+        data-token-circle="true"
+        >
+          {player.number}
+        </Box>
+
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            opacity: 0,
+            transform: 'scale(0.82)',
+            transition: 'opacity 0.12s ease, transform 0.12s ease',
+          }}
+          data-swap-icon="true"
+        >
+          <Box
+            sx={{
+              width: 'clamp(18px, 5vw, 22px)',
+              height: 'clamp(18px, 5vw, 22px)',
+              borderRadius: '50%',
+              bgcolor: '#facc15',
+              color: '#111827',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+            }}
+          >
+            <SwapHorizIcon sx={{ fontSize: '0.95rem' }} />
+          </Box>
+        </Box>
       </Box>
 
       {/* Name label */}

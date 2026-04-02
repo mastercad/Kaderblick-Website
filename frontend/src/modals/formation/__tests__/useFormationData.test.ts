@@ -178,6 +178,39 @@ describe('useFormationData – Kader laden', () => {
   });
 });
 
+describe('useFormationData – Zustand beim Schließen', () => {
+  it('setzt lokale Änderungen beim Schließen zurück', async () => {
+    const { result, rerender } = renderHook(
+      ({ open, formationId }) => useFormationData(open, formationId),
+      { initialProps: { open: true, formationId: null as number | null } },
+    );
+
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.selectedTeam).toBe(1); });
+
+    await act(async () => {
+      result.current.setName('Verworfen');
+      result.current.setNotes('Nicht speichern');
+      result.current.setPlayers([mkPD({ id: 99, name: 'Testspieler' })]);
+      result.current.setBenchPlayers([mkPD({ id: 100, name: 'Bankspieler' })]);
+      result.current.setSearchQuery('Suche');
+    });
+
+    rerender({ open: false, formationId: null });
+
+    await waitFor(() => {
+      expect(result.current.name).toBe('');
+      expect(result.current.notes).toBe('');
+      expect(result.current.players).toEqual([]);
+      expect(result.current.benchPlayers).toEqual([]);
+      expect(result.current.selectedTeam).toBe('');
+      expect(result.current.availablePlayers).toEqual([]);
+      expect(result.current.teams).toEqual([]);
+      expect(result.current.searchQuery).toBe('');
+    });
+  });
+});
+
 describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
   /**
    * Fährt Hook hoch, wartet bis Team 1 geladen ist, setzt Spieler mit veralteten

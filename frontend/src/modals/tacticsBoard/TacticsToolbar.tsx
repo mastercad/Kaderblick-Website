@@ -37,6 +37,8 @@ export interface TacticsToolbarProps {
 
   fullPitch: boolean;
   setFullPitch: React.Dispatch<React.SetStateAction<boolean>>;
+  fitPitchToHeight: boolean;
+  setFitPitchToHeight: React.Dispatch<React.SetStateAction<boolean>>;
 
   elements: DrawElement[];
   opponents: OpponentToken[];
@@ -84,6 +86,7 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
   tool, setTool,
   color, setColor,
   fullPitch, setFullPitch,
+  fitPitchToHeight, setFitPitchToHeight,
   elements, opponents,
   saving, saveMsg, isBrowserFS, isDirty, showNotes, setShowNotes,
   formation,
@@ -95,6 +98,8 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isPortrait = useMediaQuery('(orientation: portrait)');
+  const showFitPitchToggle = !(isMobile && isPortrait);
   const [presetAnchor, setPresetAnchor] = useState<Element | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const mobileGroupSx = {
@@ -412,6 +417,33 @@ export const TacticsToolbar: React.FC<TacticsToolbarProps> = ({
     )}
 
     <Box sx={isMobile ? mobileGroupSx : { display: 'flex', alignItems: 'center' }}>
+      {showFitPitchToggle && (
+        <Tooltip
+          title={fitPitchToHeight
+            ? 'Aktuell an Höhe angepasst. Antippen für volle Breite.'
+            : 'Aktuell volle Breite. Antippen für komplett sichtbares Feld.'}
+          arrow
+          placement="bottom"
+        >
+          <Box
+            onClick={() => setFitPitchToHeight(v => !v)}
+            sx={{
+              display: 'flex', alignItems: 'center', gap: 0.5,
+              px: 1, py: 0.5,
+              bgcolor: fitPitchToHeight ? 'rgba(255,255,255,0.07)' : 'rgba(33,150,243,0.18)',
+              border: `1px solid ${fitPitchToHeight ? 'rgba(255,255,255,0.18)' : 'rgba(33,150,243,0.45)'}`,
+              borderRadius: 1.5, cursor: 'pointer',
+              color: fitPitchToHeight ? 'rgba(255,255,255,0.75)' : 'primary.light',
+              fontSize: '0.72rem', fontWeight: 700, userSelect: 'none', whiteSpace: 'nowrap',
+              '&:hover': { bgcolor: fitPitchToHeight ? 'rgba(255,255,255,0.14)' : 'rgba(33,150,243,0.3)' },
+              transition: 'background 0.15s',
+            }}
+          >
+            <span>{fitPitchToHeight ? 'Volle Breite' : 'An Hoehe anpassen'}</span>
+          </Box>
+        </Tooltip>
+      )}
+
       <ToolBtn
         title={isBrowserFS ? 'Vollbild beenden' : 'Vollbild (ideal für Bildschirm / Beamer)'}
         onClick={onToggleFullscreen}>

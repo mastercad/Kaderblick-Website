@@ -43,11 +43,15 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   const board = useTacticsBoard(open, formation, onBoardSaved);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isPortrait = useMediaQuery('(orientation: portrait)');
   const getDialogContainer = useCallback(() => board.containerRef.current ?? document.body, [board.containerRef]);
 
   const [showCloseWarning, setShowCloseWarning] = useState(false);
   const [showStepNumbers, setShowStepNumbers] = useState(false);
   const [tacticToDeleteId, setTacticToDeleteId] = useState<string | null>(null);
+  const [fitPitchToHeight, setFitPitchToHeight] = useState(true);
+  const forceWidthMode = isMobile && isPortrait;
+  const effectiveFitPitchToHeight = fitPitchToHeight && !forceWidthMode;
 
   // ── Opponent edit form state ──────────────────────────────────────────────
   const [oppEditForm, setOppEditForm] = useState({ number: '', name: '' });
@@ -230,6 +234,8 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           tool={board.tool}            setTool={board.setTool}
           color={board.color}          setColor={board.setColor}
           fullPitch={board.fullPitch}  setFullPitch={board.setFullPitch}
+          fitPitchToHeight={effectiveFitPitchToHeight}
+          setFitPitchToHeight={setFitPitchToHeight}
           elements={board.elements}    opponents={board.opponents}
           saving={board.saving}        saveMsg={board.saveMsg}
           isBrowserFS={board.isBrowserFS}
@@ -268,11 +274,12 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         />
 
         {/* ═══ PITCH + NOTES ═══════════════════════════════════════════════ */}
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, p: { xs: 1, md: 2 }, overflow: 'hidden' }}>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: effectiveFitPitchToHeight ? 'center' : 'flex-start', justifyContent: 'center', gap: 2, p: { xs: 1, md: 2 }, overflow: effectiveFitPitchToHeight ? 'hidden' : 'auto', minHeight: 0 }}>
           <PitchCanvas
             pitchRef={board.pitchRef}
             svgRef={board.svgRef}
             fullPitch={board.fullPitch}
+            fitPitchToHeight={effectiveFitPitchToHeight}
             pitchAspect={board.pitchAspect}
             pitchAX={board.pitchAX}
             svgCursor={board.svgCursor}

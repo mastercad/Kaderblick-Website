@@ -14,12 +14,12 @@
  * (via requestAnimationFrame) aktualisiert. setPlayers wird nur einmal
  * beim Loslassen (finalizeDrop) mit der finalen Position aufgerufen.
  */
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { getRelativePosition, getZoneColor } from './helpers';
 import type { DragSource, PlayerData } from './types';
 
 /** In % der Felddimensionen – Token gilt als "Ziel" wenn Abstand kleiner. */
-const SWAP_THRESHOLD = 9;
+const SWAP_THRESHOLD = 13;
 
 interface UseFieldDragParams {
   players: PlayerData[];
@@ -41,6 +41,8 @@ export function useFieldDrag({
 }: UseFieldDragParams) {
   const [draggedPlayerId, setDraggedPlayerId] = useState<number | null>(null);
   const [draggedFrom, setDraggedFrom] = useState<DragSource | null>(null);
+  const playersRef = useRef<PlayerData[]>(players);
+  const benchPlayersRef = useRef<PlayerData[]>(benchPlayers);
   /** Ref-Spiegel von draggedFrom – wird synchron aktualisiert, damit rapidfire
    *  mousemove-Handler stets den aktuellen Wert lesen (stale-closure-Safe). */
   const draggedFromRef = useRef<DragSource | null>(null);
@@ -50,13 +52,90 @@ export function useFieldDrag({
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
   /** Letzte berechnete Drag-Position in % – wird im rAF-Callback gelesen. */
   const dragPosRef = useRef<{ x: number; y: number } | null>(null);
+  /** Abstand zwischen Pointer und Token-Mittelpunkt in % der Pitchgröße. */
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  /** Live erkanntes Tauschziel für visuelles Feedback und konsistenten Drop. */
+  const swapTargetIdRef = useRef<number | null>(null);
+  /** Dynamischer Swap-Radius, abgeleitet aus der tatsächlichen Token-Größe. */
+  const swapThresholdRef = useRef<number>(8);
   /** Pending requestAnimationFrame-ID – verhindert mehrfach-Scheduling. */
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
+
+  useEffect(() => {
+    benchPlayersRef.current = benchPlayers;
+  }, [benchPlayers]);
+
+  const clampPercent = (value: number) => Math.max(2, Math.min(98, value));
+
+  const getClientPoint = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
+    if ('touches' in e) {
+      const touch = e.touches[0] ?? e.changedTouches[0];
+      return touch ? { clientX: touch.clientX, clientY: touch.clientY } : null;
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  };
 
   const updateDraggedFrom = (val: DragSource | null) => {
     draggedFromRef.current = val;
     setDraggedFrom(val);
   };
+
+  const updateSwapTarget = (id: number | null) => {
+    if (swapTargetIdRef.current === id) return;
+
+    const previousId = swapTargetIdRef.current;
+    if (previousId != null) {
+      const previousEl = tokenRefs.current.get(previousId);
+      previousEl?.removeAttribute('data-swap-target');
+    }
+
+    swapTargetIdRef.current = id;
+
+    if (id != null) {
+      const targetEl = tokenRefs.current.get(id);
+      targetEl?.setAttribute('data-swap-target', 'true');
+    }
+  };
+
+  const calibrateSwapThreshold = useCallback((id: number) => {
+    const pitchEl = pitchRef.current;
+    const tokenEl = tokenRefs.current.get(id);
+    if (!pitchEl || !tokenEl) {
+      swapThresholdRef.current = 8;
+      return;
+    }
+
+    const pitchRect = pitchEl.getBoundingClientRect();
+    const tokenRect = tokenEl.getBoundingClientRect();
+    const widthPercent = (tokenRect.width / pitchRect.width) * 100;
+    const heightPercent = (tokenRect.height / pitchRect.height) * 100;
+    swapThresholdRef.current = Math.max(6, Math.max(widthPercent, heightPercent) * 0.95);
+  }, [pitchRef, tokenRefs]);
+
+  const findNearestSwapTarget = useCallback((list: PlayerData[], draggedId: number, x: number, y: number) => {
+    let nearest: PlayerData | null = null;
+    let minDist = swapThresholdRef.current;
+    for (const player of list) {
+      if (player.id === draggedId) continue;
+      const distance = Math.hypot(player.x - x, player.y - y);
+      if (distance < minDist) {
+        minDist = distance;
+        nearest = player;
+      }
+    }
+    return nearest;
+  }, []);
+
+  const isStillWithinSwapHysteresis = useCallback((targetId: number, draggedId: number, x: number, y: number) => {
+    const target = playersRef.current.find(player => player.id === targetId && player.id !== draggedId);
+    if (!target) return false;
+    const distance = Math.hypot(target.x - x, target.y - y);
+    return distance <= swapThresholdRef.current * 1.35;
+  }, []);
 
   const updateDraggedTokenPreview = useCallback((id: number, x: number, y: number) => {
     const tokenEl = tokenRefs.current.get(id);
@@ -71,47 +150,95 @@ export function useFieldDrag({
     }
   }, [tokenRefs]);
 
-  const startDragFromField = (id: number, e: React.MouseEvent | React.TouchEvent) => {
-    const origin = players.find(p => p.id === id);
+  const readPreviewPosition = useCallback((id: number, fallback: { x: number; y: number }) => {
+    const tokenEl = tokenRefs.current.get(id);
+    const rawLeft = tokenEl?.style.left?.trim();
+    const rawTop = tokenEl?.style.top?.trim();
+    const parsedLeft = rawLeft ? parseFloat(rawLeft) : Number.NaN;
+    const parsedTop = rawTop ? parseFloat(rawTop) : Number.NaN;
+
+    return {
+      x: Number.isFinite(parsedLeft) ? parsedLeft : fallback.x,
+      y: Number.isFinite(parsedTop) ? parsedTop : fallback.y,
+    };
+  }, [tokenRefs]);
+
+  const startDragFromField = useCallback((id: number, e: React.MouseEvent | React.TouchEvent) => {
+    const origin = playersRef.current.find(p => p.id === id);
+    const initialPos = origin ? { x: origin.x, y: origin.y } : null;
+    const pointer = pitchRef.current ? getClientPoint(e) : null;
+    const pointerPos = pointer && pitchRef.current
+      ? getRelativePosition(pointer.clientX, pointer.clientY, pitchRef.current)
+      : null;
+
     draggedPlayerIdRef.current = id;
-    dragOriginRef.current = origin ? { x: origin.x, y: origin.y } : null;
+    dragOriginRef.current = initialPos;
+    dragPosRef.current = initialPos;
+    dragOffsetRef.current = initialPos && pointerPos
+      ? { x: pointerPos.x - initialPos.x, y: pointerPos.y - initialPos.y }
+      : { x: 0, y: 0 };
+    if (initialPos) {
+      updateDraggedTokenPreview(id, initialPos.x, initialPos.y);
+    }
+    calibrateSwapThreshold(id);
+    updateSwapTarget(null);
     setDraggedPlayerId(id);
     updateDraggedFrom('field');
+    e.preventDefault();
     e.stopPropagation();
-  };
+  }, [calibrateSwapThreshold, pitchRef, updateDraggedTokenPreview]);
 
-  const startDragFromBench = (id: number, e: React.MouseEvent | React.TouchEvent) => {
+  const startDragFromBench = useCallback((id: number, e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault(); // Verhindert Textmarkierung beim Ziehen
     draggedPlayerIdRef.current = id;
     dragOriginRef.current = null;
+    dragPosRef.current = null;
+    dragOffsetRef.current = { x: 0, y: 0 };
+    updateSwapTarget(null);
     setDraggedPlayerId(id);
     updateDraggedFrom('bench');
     e.stopPropagation();
-  };
+  }, []);
 
   const applyDragMove = useCallback((clientX: number, clientY: number) => {
     const id = draggedPlayerIdRef.current;
     if (id === null || !pitchRef.current) return;
 
-    const pos = getRelativePosition(clientX, clientY, pitchRef.current);
+    const pointerPos = getRelativePosition(clientX, clientY, pitchRef.current);
     const currentFrom = draggedFromRef.current;
 
     if (currentFrom === 'bench') {
       // Bank→Feld: erst den Spieler von der Bank nehmen (einmalig via React),
       // dann normal als Feld-Token behandeln
-      const benched = benchPlayers.find(p => p.id === id);
+      const benched = benchPlayersRef.current.find(p => p.id === id);
       if (benched) {
         draggedFromRef.current = 'field';
         setDraggedFrom('field');
         dragOriginRef.current = null;
+        dragPosRef.current = pointerPos;
         setBenchPlayers(prev => prev.filter(p => p.id !== id));
-        setPlayers(prev => [...prev, { ...benched, ...pos }]);
+        setPlayers(prev => [...prev, { ...benched, ...pointerPos }]);
         // DOM-Element ist jetzt neu gemountet – nächster Move-Event setzt es direkt
       }
       return;
     }
 
     if (currentFrom !== 'field') return;
+
+    const pos = {
+      x: clampPercent(pointerPos.x - dragOffsetRef.current.x),
+      y: clampPercent(pointerPos.y - dragOffsetRef.current.y),
+    };
+
+    const nearest = findNearestSwapTarget(playersRef.current, id, pos.x, pos.y);
+    if (nearest) {
+      updateSwapTarget(nearest.id);
+    } else if (
+      swapTargetIdRef.current != null
+      && !isStillWithinSwapHysteresis(swapTargetIdRef.current, id, pos.x, pos.y)
+    ) {
+      updateSwapTarget(null);
+    }
 
     // Drag-Position im Ref speichern (kein setState!)
     dragPosRef.current = pos;
@@ -126,7 +253,7 @@ export function useFieldDrag({
         updateDraggedTokenPreview(currentId, currentPos.x, currentPos.y);
       });
     }
-  }, [benchPlayers, setBenchPlayers, setPlayers, pitchRef, updateDraggedTokenPreview]);
+  }, [findNearestSwapTarget, isStillWithinSwapHysteresis, setBenchPlayers, setPlayers, pitchRef, updateDraggedTokenPreview]);
 
   /**
    * Beim Loslassen:
@@ -145,34 +272,23 @@ export function useFieldDrag({
     const id = draggedPlayerIdRef.current;
     const currentFrom = draggedFromRef.current;
     const finalPos = dragPosRef.current;
+    const currentSwapTargetId = swapTargetIdRef.current;
 
     if (id !== null && currentFrom === 'field') {
       const origin = dragOriginRef.current;
       if (origin) {
         // Field-to-field: Positionen tauschen
         setPlayers(prev => {
-          // Hole finale Position aus DOM (falls rAF noch nicht gefeuert hat)
-          const el = tokenRefs.current.get(id);
-          const actualPos: { x: number; y: number } = el
-            ? {
-                x: parseFloat(el.style.left || String(finalPos?.x ?? 0)),
-                y: parseFloat(el.style.top  || String(finalPos?.y ?? 0)),
-              }
-            : (finalPos ?? { x: origin.x, y: origin.y });
+          const actualPos = readPreviewPosition(id, finalPos ?? origin);
 
           // State auf finale DOM-Position bringen
           const withFinal = prev.map(p => p.id === id ? { ...p, ...actualPos } : p);
           const dragged = withFinal.find(p => p.id === id);
           if (!dragged) return prev;
 
-          // Nächsten anderen Token in SWAP_THRESHOLD-Nähe suchen
-          let nearest: PlayerData | null = null;
-          let minDist = SWAP_THRESHOLD;
-          for (const p of withFinal) {
-            if (p.id === id) continue;
-            const d = Math.hypot(p.x - dragged.x, p.y - dragged.y);
-            if (d < minDist) { minDist = d; nearest = p; }
-          }
+          const nearest = currentSwapTargetId != null
+            ? withFinal.find(p => p.id === currentSwapTargetId) ?? null
+            : findNearestSwapTarget(withFinal, id, dragged.x, dragged.y);
 
           if (!nearest) return withFinal; // kein Ziel → Token bleibt wo er ist
 
@@ -187,13 +303,11 @@ export function useFieldDrag({
       } else {
         // Bank→Feld: verdränge Feldspieler auf die Bank
         setPlayers(prev => {
-          const el = tokenRefs.current.get(id);
-          const actualPos: { x: number; y: number } = el
-            ? {
-                x: parseFloat(el.style.left || String(finalPos?.x ?? 50)),
-                y: parseFloat(el.style.top  || String(finalPos?.y ?? 50)),
-              }
-            : (finalPos ?? { x: 50, y: 50 });
+          const draggedPlayer = prev.find(p => p.id === id);
+          const actualPos = readPreviewPosition(id, finalPos ?? {
+            x: draggedPlayer?.x ?? 50,
+            y: draggedPlayer?.y ?? 50,
+          });
 
           const withFinal = prev.map(p => p.id === id ? { ...p, ...actualPos } : p);
           const dragged = withFinal.find(p => p.id === id);
@@ -224,16 +338,59 @@ export function useFieldDrag({
     dragPosRef.current = null;
     dragOriginRef.current = null;
     draggedFromRef.current = null;
+    dragOffsetRef.current = { x: 0, y: 0 };
+    updateSwapTarget(null);
 
     setDraggedPlayerId(null);
     setDraggedFrom(null);
-  }, [setPlayers, setBenchPlayers, tokenRefs]);
+  }, [findNearestSwapTarget, readPreviewPosition, setPlayers, setBenchPlayers]);
 
   const handlePitchMouseMove = useCallback((e: React.MouseEvent) => applyDragMove(e.clientX, e.clientY), [applyDragMove]);
 
   const handlePitchTouchMove = useCallback((e: React.TouchEvent) => {
     applyDragMove(e.touches[0].clientX, e.touches[0].clientY);
   }, [applyDragMove]);
+
+  useEffect(() => {
+    if (draggedPlayerId === null) return undefined;
+
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      applyDragMove(e.clientX, e.clientY);
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      e.preventDefault();
+      applyDragMove(touch.clientX, touch.clientY);
+    };
+    const handleMouseUp = () => {
+      finalizeDrop();
+    };
+    const handleTouchEnd = () => {
+      finalizeDrop();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [applyDragMove, draggedPlayerId, finalizeDrop]);
 
   return {
     draggedPlayerId,

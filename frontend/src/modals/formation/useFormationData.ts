@@ -89,6 +89,28 @@ export function useFormationData(open: boolean, formationId: number | null): For
   const [searchQuery, setSearchQuery] = useState('');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
+  const resetEditorState = () => {
+    setFormation(null);
+    setPlayers([]);
+    setBenchPlayers([]);
+    setAvailablePlayers([]);
+    setTeams([]);
+    setName('');
+    setNotes('');
+    setSelectedTeam('');
+    setNextPlayerNumber(1);
+    setLoading(false);
+    setError(null);
+    setSearchQuery('');
+    setShowTemplatePicker(false);
+  };
+
+  useEffect(() => {
+    if (!open) {
+      resetEditorState();
+    }
+  }, [open]);
+
   // ── Template-Picker für neue Formationen anzeigen ─────────────────────────
   useEffect(() => {
     setShowTemplatePicker(open && !formationId);
