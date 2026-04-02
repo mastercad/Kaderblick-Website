@@ -271,6 +271,52 @@ describe('GameMatchPlanCard', () => {
     expect(screen.getByText(/Spieler 4: defensiv halbrechts -> zentral halbrechts/i)).toBeInTheDocument();
   });
 
+  it('does not describe slight movement within the same field zone as a position change', async () => {
+    mockFetchGameSquad.mockResolvedValue({
+      squad: [],
+      allPlayers: [
+        { id: 401, fullName: 'Spieler 1', shirtNumber: 1, teamId: 1 },
+      ],
+      hasParticipationData: true,
+    });
+
+    render(
+      <GameMatchPlanCard
+        game={makeGame({
+          matchPlan: {
+            selectedTeamId: 1,
+            published: true,
+            phases: [
+              {
+                id: 'start',
+                minute: 0,
+                label: 'Start',
+                sourceType: 'start',
+                players: [
+                  { id: 1, x: 60, y: 50, number: 1, name: 'Spieler 1', playerId: 401, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+              {
+                id: 'phase-1',
+                minute: 900,
+                label: '15. Minute',
+                sourceType: 'shape_change',
+                players: [
+                  { id: 2, x: 61, y: 51, number: 1, name: 'Spieler 1', playerId: 401, isRealPlayer: true },
+                ],
+                bench: [],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('Ohne Änderung')).toBeInTheDocument();
+    expect(screen.queryByText(/Spieler 1: zentral halbrechts -> zentral halbrechts/i)).not.toBeInTheDocument();
+  });
+
   it('describes substitution and following swap as one connected action', async () => {
     mockFetchGameSquad.mockResolvedValue({
       squad: [],

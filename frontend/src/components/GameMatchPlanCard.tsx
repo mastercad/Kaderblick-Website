@@ -255,7 +255,22 @@ const getVerticalZoneLabel = (y: number) => {
   return 'hoch';
 };
 
-const formatFieldZone = (player: MatchPlanPlayer) => `${getVerticalZoneLabel(player.y)} ${getHorizontalZoneLabel(player.x)}`;
+const getFieldZone = (player: MatchPlanPlayer) => ({
+  vertical: getVerticalZoneLabel(player.y),
+  horizontal: getHorizontalZoneLabel(player.x),
+});
+
+const formatFieldZone = (player: MatchPlanPlayer) => {
+  const zone = getFieldZone(player);
+  return `${zone.vertical} ${zone.horizontal}`;
+};
+
+const hasZoneChange = (previous: MatchPlanPlayer, next: MatchPlanPlayer) => {
+  const previousZone = getFieldZone(previous);
+  const nextZone = getFieldZone(next);
+
+  return previousZone.vertical !== nextZone.vertical || previousZone.horizontal !== nextZone.horizontal;
+};
 
 const formatCompactList = (items: string[]) => {
   if (items.length === 0) return '';
@@ -405,6 +420,7 @@ const describePositionChanges = (
     }
 
     handledPlayerIds.add(current.playerId);
+    if (!hasZoneChange(current.previousPlayer, current.nextPlayer)) continue;
     moveDescriptions.push(`${current.playerName}: ${formatFieldZone(current.previousPlayer)} -> ${formatFieldZone(current.nextPlayer)}`);
   }
 

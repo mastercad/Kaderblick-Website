@@ -7,7 +7,10 @@ import '@testing-library/jest-dom';
 
 jest.mock('@mui/material/styles', () => ({
   alpha: (_color: string, _opacity: number) => 'rgba(0,0,0,0.1)',
-  useTheme: () => ({ palette: { primary: { main: '#1976d2' }, background: { default: '#fff', paper: '#fff' } } }),
+  useTheme: () => ({
+    palette: { primary: { main: '#1976d2' }, background: { default: '#fff', paper: '#fff' } },
+    breakpoints: { down: (key: string) => `(max-width:${key})` },
+  }),
 }));
 
 jest.mock('@mui/material/Box', () => ({
@@ -245,31 +248,55 @@ describe('TeamBannerSection', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/ungültiger dateityp/i);
     });
 
-    it('accepts image/jpeg and opens the crop modal', async () => {
-      render(<TeamBannerSection {...baseProps} canEditBanner />);
+    it('accepts image/jpeg and starts a direct upload', async () => {
+      const onBannerChange = jest.fn();
+      mockApiRequest.mockResolvedValue(makeResponse({ success: true, bannerImage: 'photo.jpg' }));
+      render(<TeamBannerSection {...baseProps} canEditBanner onBannerChange={onBannerChange} />);
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       const file = new File(['jpeg data'], 'photo.jpg', { type: 'image/jpeg' });
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
       fireEvent.change(input);
-      await waitFor(() => expect(screen.getByTestId('crop-modal')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(mockApiRequest).toHaveBeenCalledWith(
+          '/api/teams/1/banner',
+          expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+        ),
+      );
+      await waitFor(() => expect(onBannerChange).toHaveBeenCalledWith('photo.jpg'));
     });
 
-    it('accepts image/png and opens the crop modal', async () => {
-      render(<TeamBannerSection {...baseProps} canEditBanner />);
+    it('accepts image/png and starts a direct upload', async () => {
+      const onBannerChange = jest.fn();
+      mockApiRequest.mockResolvedValue(makeResponse({ success: true, bannerImage: 'photo.png' }));
+      render(<TeamBannerSection {...baseProps} canEditBanner onBannerChange={onBannerChange} />);
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       const file = new File(['png data'], 'photo.png', { type: 'image/png' });
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
       fireEvent.change(input);
-      await waitFor(() => expect(screen.getByTestId('crop-modal')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(mockApiRequest).toHaveBeenCalledWith(
+          '/api/teams/1/banner',
+          expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+        ),
+      );
+      await waitFor(() => expect(onBannerChange).toHaveBeenCalledWith('photo.png'));
     });
 
-    it('accepts image/webp and opens the crop modal', async () => {
-      render(<TeamBannerSection {...baseProps} canEditBanner />);
+    it('accepts image/webp and starts a direct upload', async () => {
+      const onBannerChange = jest.fn();
+      mockApiRequest.mockResolvedValue(makeResponse({ success: true, bannerImage: 'photo.webp' }));
+      render(<TeamBannerSection {...baseProps} canEditBanner onBannerChange={onBannerChange} />);
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       const file = new File(['webp data'], 'photo.webp', { type: 'image/webp' });
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
       fireEvent.change(input);
-      await waitFor(() => expect(screen.getByTestId('crop-modal')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(mockApiRequest).toHaveBeenCalledWith(
+          '/api/teams/1/banner',
+          expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+        ),
+      );
+      await waitFor(() => expect(onBannerChange).toHaveBeenCalledWith('photo.webp'));
     });
   });
 
@@ -353,24 +380,18 @@ describe('TeamBannerSection', () => {
   // ── Upload / Save flow ────────────────────────────────────────────────────────
 
   describe('Upload / Save flow', () => {
-    /** Opens the crop modal by selecting a JPEG file via the hidden input. */
-    async function openCropModal() {
+    async function selectJpegFile() {
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
       const file = new File(['jpeg data'], 'photo.jpg', { type: 'image/jpeg' });
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
       fireEvent.change(input);
-      // Wait for crop modal to appear
-      await waitFor(() => expect(screen.getByTestId('crop-modal')).toBeInTheDocument());
-      // Wait for the Cropper mock's useEffect to fire onCropComplete, enabling the Save button
-      await waitFor(() => expect(screen.getByRole('button', { name: /speichern/i })).not.toBeDisabled());
     }
 
     it('calls POST endpoint with FormData and invokes onBannerChange on success', async () => {
       const onBannerChange = jest.fn();
       mockApiRequest.mockResolvedValue(makeResponse({ success: true, bannerImage: 'team_1_new.jpg' }));
       render(<TeamBannerSection {...baseProps} canEditBanner onBannerChange={onBannerChange} />);
-      await openCropModal();
-      fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
+      await selectJpegFile();
       await waitFor(() =>
         expect(mockApiRequest).toHaveBeenCalledWith(
           '/api/teams/1/banner',
@@ -380,35 +401,36 @@ describe('TeamBannerSection', () => {
       expect(onBannerChange).toHaveBeenCalledWith('team_1_new.jpg');
     });
 
-    it('closes crop modal after successful upload', async () => {
+    it('does not open a crop modal during successful upload', async () => {
+      const onBannerChange = jest.fn();
       mockApiRequest.mockResolvedValue(makeResponse({ success: true, bannerImage: 'team_1_new.jpg' }));
-      render(<TeamBannerSection {...baseProps} canEditBanner />);
-      await openCropModal();
-      fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
-      await waitFor(() => expect(screen.queryByTestId('crop-modal')).not.toBeInTheDocument());
+      render(<TeamBannerSection {...baseProps} canEditBanner onBannerChange={onBannerChange} />);
+      await selectJpegFile();
+      await waitFor(() => expect(onBannerChange).toHaveBeenCalledWith('team_1_new.jpg'));
+      expect(screen.queryByTestId('crop-modal')).not.toBeInTheDocument();
     });
 
     it('shows error alert when POST endpoint returns an error response', async () => {
       mockApiRequest.mockResolvedValue(makeResponse({ error: 'Datei zu groß' }, false, 422));
       render(<TeamBannerSection {...baseProps} canEditBanner />);
-      await openCropModal();
-      fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
+      await selectJpegFile();
       await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Datei zu groß'));
     });
 
     it('shows error alert when POST throws a network error', async () => {
       mockApiRequest.mockRejectedValue(new Error('Timeout'));
       render(<TeamBannerSection {...baseProps} canEditBanner />);
-      await openCropModal();
-      fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
+      await selectJpegFile();
       await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Timeout'));
     });
 
-    it('closes crop modal without calling API when Abbrechen is clicked', async () => {
+    it('does not call the API when no file is selected', () => {
       render(<TeamBannerSection {...baseProps} canEditBanner />);
-      await openCropModal();
-      fireEvent.click(screen.getByRole('button', { name: /abbrechen/i }));
-      await waitFor(() => expect(screen.queryByTestId('crop-modal')).not.toBeInTheDocument());
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      Object.defineProperty(input, 'files', { value: [], configurable: true });
+
+      fireEvent.change(input);
+
       expect(mockApiRequest).not.toHaveBeenCalled();
     });
   });
