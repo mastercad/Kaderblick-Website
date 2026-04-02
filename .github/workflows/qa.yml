@@ -223,7 +223,7 @@ jobs:
             --coverage-text 2>&1 | tee phpunit-output.txt
 
           # Extract line coverage percentage
-          COVERAGE=$(grep "Lines:" phpunit-output.txt | head -1 | awk '{print $2}' | tr -d '%')
+            COVERAGE=$(awk '/^  Lines:/ {gsub("%", "", $2); print $2; exit}' phpunit-output.txt)
           echo "coverage=${COVERAGE:-0}" >> $GITHUB_OUTPUT
 
           # Coverage-Datei aus Container auf den Runner kopieren
