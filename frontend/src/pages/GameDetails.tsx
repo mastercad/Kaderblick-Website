@@ -525,15 +525,26 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
     return now >= start && now <= end;
   };
 
+  // Nur Trainer und Superadmins dürfen Spielaufstellungen sehen/bearbeiten.
+  // Admins und Supporter sind bewusst ausgeschlossen, da Spieler diese Rollen
+  // innehaben können und damit Aufstellungen vorzeitig einsehen würden.
   const hasStaffMatchAccess = Boolean(
     user?.isCoach
-    || Object.values(user?.roles ?? {}).includes('ROLE_SUPPORTER')
-    || Object.values(user?.roles ?? {}).includes('ROLE_ADMIN')
     || Object.values(user?.roles ?? {}).includes('ROLE_SUPERADMIN')
   );
 
+  // GameEvents dürfen Admins, Superadmins und Supporter anlegen.
+  // Die Team-Zugehörigkeit wird durch den Backend-Voter geprüft (can_create_game_events).
+  // Einfache Spieler (ROLE_USER) dürfen keine GameEvents anlegen.
+  const hasGameEventAccess = Boolean(
+    user?.isCoach
+    || Object.values(user?.roles ?? {}).includes('ROLE_ADMIN')
+    || Object.values(user?.roles ?? {}).includes('ROLE_SUPERADMIN')
+    || Object.values(user?.roles ?? {}).includes('ROLE_SUPPORTER')
+  );
+
   const canCreateEvents = () => {
-    return hasStaffMatchAccess && (game?.permissions?.can_create_game_events ?? false);
+    return hasGameEventAccess && (game?.permissions?.can_create_game_events ?? false);
   };
 
   const handleFinishGame = async () => {
@@ -565,7 +576,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   };
 
   const canCreateVideos = () => {
-    return hasStaffMatchAccess && (game?.permissions?.can_create_videos ?? false);
+    return hasGameEventAccess && (game?.permissions?.can_create_videos ?? false);
   }
 
   const handleProtectedEventAction = () => {
@@ -896,7 +907,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           open={sectionsOpen.events}
           onToggle={() => toggleSection('events')}
           testId="events-section-header"
-          action={hasStaffMatchAccess ? (
+          action={canCreateEvents() ? (
             <Button
               variant="contained"
               size="small"
