@@ -506,8 +506,7 @@ class TwoFactorServiceTest extends TestCase
     {
         $user = new User();
 
-        $this->assertIsArray($user->getTotpBackupCodes(), 'totpBackupCodes must be an array, not null or string');
-        $this->assertSame([], $user->getTotpBackupCodes(), 'totpBackupCodes must default to []');
+        $this->assertSame([], $user->getTotpBackupCodes(), 'totpBackupCodes must default to [], not null or empty string');
     }
 
     public function testNewUserBackupCodesSerialiseToValidJson(): void
@@ -531,9 +530,8 @@ class TwoFactorServiceTest extends TestCase
         $this->service->disable($user);
 
         $codes = $user->getTotpBackupCodes();
-        $this->assertIsArray($codes);
         $encoded = json_encode($codes);
-        $this->assertIsString($encoded);
+        $this->assertNotFalse($encoded, 'json_encode must not fail — column would get invalid JSON');
         $this->assertJson($encoded, 'After disable(), totpBackupCodes must still be valid JSON');
     }
 
@@ -546,9 +544,9 @@ class TwoFactorServiceTest extends TestCase
         $this->service->verifyAndEnable($user, $totp->now());
 
         $stored = $user->getTotpBackupCodes();
-        $this->assertIsArray($stored);
+        $this->assertNotEmpty($stored, 'verifyAndEnable must store hashed backup codes');
         $encoded = json_encode($stored);
-        $this->assertIsString($encoded);
+        $this->assertNotFalse($encoded, 'json_encode must not fail — column would get invalid JSON');
         $this->assertJson($encoded, 'Stored hashed backup codes must be a JSON-serializable array');
     }
 
