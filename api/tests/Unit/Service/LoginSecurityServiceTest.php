@@ -107,12 +107,64 @@ class LoginSecurityServiceTest extends TestCase
         $this->service->handleSuccessfulLogin($user, $ip);
     }
 
-    // ── handleSuccessfulLogin() – unknown IP ─────────────────────────────────
+    // ── handleSuccessfulLogin() – very first login (empty list) ────────────
 
-    public function testHandleSuccessfulLoginUnknownIpSendsWarningEmail(): void
+    public function testHandleSuccessfulLoginFirstEverLoginDoesNotSendEmail(): void
     {
+        // No known IPs yet → silent registration, no warning.
         $user = $this->makeUser('target@example.com');
         $user->setKnownLoginIps([]);
+
+        $this->mailer->expects($this->never())->method('send');
+        $this->em->method('flush');
+
+        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+    }
+
+    public function testHandleSuccessfulLoginFirstEverLoginStoresIpHash(): void
+    {
+        $ip = '8.8.8.8';
+        $user = $this->makeUser();
+        $user->setKnownLoginIps([]);
+
+        $this->em->method('flush');
+
+        $this->service->handleSuccessfulLogin($user, $ip);
+
+        $this->assertContains(hash('sha256', $ip), $user->getKnownLoginIps());
+    }
+
+    public function testHandleSuccessfulLoginFirstEverLoginFlushesOnce(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownLoginIps([]);
+
+        $this->em->expects($this->once())->method('flush');
+
+        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+    }
+
+    public function testHandleSuccessfulLoginFirstEverLoginDoesNotSetLockToken(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownLoginIps([]);
+
+        $this->em->method('flush');
+
+        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+
+        // No warning email issued → no lock token should be generated.
+        $this->assertNull($user->getAccountLockToken());
+        $this->assertNull($user->getAccountLockTokenExpiresAt());
+    }
+
+    // ── handleSuccessfulLogin() – unknown IP (has prior known IPs) ───────────
+
+    public function testHandleSuccessfulLoginNewIpSendsWarningEmail(): void
+    {
+        $user = $this->makeUser('target@example.com');
+        // User already logged in once before from a different IP.
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $sentEmail = null;
         $this->mailer->expects($this->once())
@@ -128,10 +180,10 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertSame('target@example.com', $sentEmail->getTo()[0]->getAddress());
     }
 
-    public function testHandleSuccessfulLoginUnknownIpEmailHasSecuritySubject(): void
+    public function testHandleSuccessfulLoginNewIpEmailHasSecuritySubject(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -145,10 +197,10 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertStringContainsString('Sicherheitswarnung', $sentEmail->getSubject());
     }
 
-    public function testHandleSuccessfulLoginUnknownIpEmailContainsLockUrl(): void
+    public function testHandleSuccessfulLoginNewIpEmailContainsLockUrl(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -162,11 +214,11 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertStringContainsString('/api/security/lock-account?token=', $sentEmail->getHtmlBody());
     }
 
-    public function testHandleSuccessfulLoginUnknownIpEmailContainsIpAddress(): void
+    public function testHandleSuccessfulLoginNewIpEmailContainsIpAddress(): void
     {
         $ip = '203.0.113.42';
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -180,11 +232,11 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertStringContainsString($ip, $sentEmail->getHtmlBody());
     }
 
-    public function testHandleSuccessfulLoginUnknownIpStoresIpHash(): void
+    public function testHandleSuccessfulLoginNewIpStoresIpHash(): void
     {
         $ip = '10.0.0.1';
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $this->mailer->method('send');
         $this->em->method('flush');
@@ -194,10 +246,10 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertContains(hash('sha256', $ip), $user->getKnownLoginIps());
     }
 
-    public function testHandleSuccessfulLoginUnknownIpSetsLockTokenOnUser(): void
+    public function testHandleSuccessfulLoginNewIpSetsLockTokenOnUser(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $this->mailer->method('send');
         $this->em->method('flush');
@@ -208,13 +260,13 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertNotNull($user->getAccountLockTokenExpiresAt());
     }
 
-    public function testHandleSuccessfulLoginFlushesAtLeastTwiceForUnknownIp(): void
+    public function testHandleSuccessfulLoginNewIpFlushesAtLeastTwice(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
 
         $this->mailer->method('send');
-        // issueLockToken flushes once; handleSuccessfulLogin itself flushes once more
+        // issueLockToken flushes once; handleSuccessfulLogin itself flushes once more.
         $this->em->expects($this->atLeast(2))->method('flush');
 
         $this->service->handleSuccessfulLogin($user, '5.6.7.8');

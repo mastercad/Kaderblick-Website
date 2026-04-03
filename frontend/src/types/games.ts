@@ -110,6 +110,7 @@ export interface Game {
     can_view_game_events?: boolean;
     can_edit_game_events?: boolean;
     can_delete_game_events?: boolean;
+    can_finish_game?: boolean;
     can_edit_timing?: boolean;
     can_manage_match_plan?: boolean;
     can_publish_match_plan?: boolean;

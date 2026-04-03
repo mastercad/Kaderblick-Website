@@ -31,7 +31,7 @@ use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route(path: '/api/games', name: 'api_games_')]
 class GamesController extends ApiController
@@ -392,7 +392,10 @@ class GamesController extends ApiController
                 'matchPlan' => $canViewMatchPlan ? $matchPlan : null,
                 'permissions' => [
                     'can_create_videos' => $this->isGranted(VideoVoter::CREATE, $game->getHomeTeam()) || $this->isGranted(VideoVoter::CREATE, $game->getAwayTeam()),
+                    'can_edit_videos' => $this->isGranted(VideoVoter::EDIT, $game->getHomeTeam()) || $this->isGranted(VideoVoter::EDIT, $game->getAwayTeam()),
+                    'can_delete_videos' => $this->isGranted(VideoVoter::DELETE, $game->getHomeTeam()) || $this->isGranted(VideoVoter::DELETE, $game->getAwayTeam()),
                     'can_create_game_events' => $this->isGranted(GameEventVoter::CREATE, $game),
+                    'can_finish_game' => $this->isGranted('ROLE_ADMIN'),
                     'can_edit_timing' => $this->isGranted('ROLE_ADMIN'),
                     'can_manage_match_plan' => $canManageMatchPlan,
                     'can_publish_match_plan' => $this->isGranted(MatchPlanVoter::PUBLISH, $game),

@@ -118,6 +118,7 @@ const makeGame = (overrides: any = {}) => ({
   permissions: {
     can_create_game_events: false,
     can_create_videos: false,
+    can_finish_game: false,
     can_edit_timing: true,
   },
   ...overrides,
@@ -216,16 +217,18 @@ describe('GameDetails – Spielzeiten section', () => {
     });
   });
 
-  it('hides trainer tools for normal players even when raw event permissions are set', async () => {
+  it('shows supporter application dialog for normal players when clicking event button (no backend permission)', async () => {
     mockUseAuth.mockReturnValue({
       user: { id: 2, name: 'Spieler', isCoach: false, isPlayer: true, roles: { user: 'ROLE_USER' } },
     });
 
+    // Backend Voter erteilt ROLE_USER keine Erstell-Rechte (realistisches Szenario)
     mockFetchGameDetails.mockResolvedValueOnce(
       makeDetailsResponse({
         permissions: {
-          can_create_game_events: true,
-          can_create_videos: true,
+          can_create_game_events: false,
+          can_create_videos: false,
+          can_finish_game: false,
           can_edit_timing: false,
         },
       })
@@ -235,11 +238,20 @@ describe('GameDetails – Spielzeiten section', () => {
       renderWithRouter(<GameDetails gameId={42} />);
     });
 
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /Event hinzufügen/i })).not.toBeInTheDocument();
+    // Button ist für alle eingeloggten User sichtbar (öffnet SupporterApplicationModal)
+    const eventButton = await screen.findByRole('button', { name: /Event hinzufügen/i });
+    expect(eventButton).toBeInTheDocument();
+
+    // "Spiel beenden" ist nicht sichtbar – can_finish_game: false
+    expect(screen.queryByRole('button', { name: /Spiel beenden/i })).not.toBeInTheDocument();
+
+    // Klick öffnet SupporterApplicationModal, nicht das Event-Formular
+    await act(async () => {
+      fireEvent.click(eventButton);
     });
 
-    expect(screen.queryByRole('button', { name: /Spiel beenden/i })).not.toBeInTheDocument();
+    expect(screen.getByText('SupporterApplicationModalOpen')).toBeInTheDocument();
+    expect(screen.queryByText('GameEventModalOpen')).not.toBeInTheDocument();
   });
 
   it('allows supporters with granted permissions to open event and video modals', async () => {

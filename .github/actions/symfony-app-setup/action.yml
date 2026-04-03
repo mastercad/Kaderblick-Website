@@ -58,7 +58,7 @@ runs:
             echo "FEHLER: secrets:decrypt-to-local schlug fehl – Berechtigungsproblem!"
             exit 1
           fi
-          $DC exec -T --user www-data api bin/console cache:clear --env=${{ inputs.env }}
+          $DC exec -T --user www-data api bin/console cache:clear --no-warmup --env=${{ inputs.env }}
           $DC exec -T --user www-data api bin/console cache:warmup --env=${{ inputs.env }}
           $DC exec -T --user www-data api bin/console doctrine:migrations:migrate \
             --no-interaction --env=${{ inputs.env }}

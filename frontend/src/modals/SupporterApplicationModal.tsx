@@ -97,17 +97,17 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
         </Box>
       ) : (
         <Box sx={{ display: 'grid', gap: 2 }}>
-          <Alert severity="info">
-            Wenn du Supporter bist, kannst du auf der Spielseite Events und Videos verwalten. Die Freigabe erfolgt durch einen Administrator.
-          </Alert>
-
-          {error && <Alert severity="error">{error}</Alert>}
-
-          {hasSupporterRole && (
-            <Alert severity="success">
-              Du hast bereits Supporter-Rechte.
+          {hasSupporterRole ? (
+            <Alert severity="warning">
+              Du hast bereits Supporter-Rechte, bist aber kein Mitglied dieses Teams. Events und Videos können nur von Mitgliedern des zugehörigen Teams verwaltet werden.
+            </Alert>
+          ) : (
+            <Alert severity="info">
+              Wenn du Supporter bist, kannst du auf der Spielseite Events und Videos verwalten. Die Freigabe erfolgt durch einen Administrator.
             </Alert>
           )}
+
+          {error && <Alert severity="error">{error}</Alert>}
 
           {!hasSupporterRole && request && (
             <Alert severity="warning">
