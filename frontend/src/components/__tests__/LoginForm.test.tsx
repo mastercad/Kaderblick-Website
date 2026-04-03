@@ -15,9 +15,14 @@ import '@testing-library/jest-dom';
 jest.mock('@mui/icons-material/EmailOutlined', () => () => null);
 jest.mock('@mui/icons-material/LockOutlined',  () => () => null);
 
-// ─── AuthContext mock ─────────────────────────────────────────────────────────
+// ─── API mock ─────────────────────────────────────────────────────────────────
+const mockApiJson = jest.fn();
+jest.mock('../../utils/api', () => ({
+  apiJson: (...args: any[]) => mockApiJson(...args),
+}));
 
-const mockLogin   = jest.fn();
+// ─── AuthContext mock ─────────────────────────────────────────────────────────
+const mockCheckAuthStatus = jest.fn();
 const mockUseAuth = jest.fn();
 
 jest.mock('../../context/AuthContext', () => ({
@@ -25,23 +30,27 @@ jest.mock('../../context/AuthContext', () => ({
 }));
 
 // ─── react-router-dom mock ───────────────────────────────────────────────────
-
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// ─── GoogleLoginButton mock ───────────────────────────────────────────────────
+// ─── GoogleLoginButton mock ──────────────────────────────────────────────────
 jest.mock('../GoogleLoginButton', () => () => <button>Google</button>);
+
+// ─── TwoFactorChallengeForm mock ─────────────────────────────────────────────
+jest.mock('../TwoFactorChallengeForm', () => () => <div>2FA-Challenge</div>);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 import LoginForm from '../LoginForm';
 
 beforeEach(() => {
-  mockLogin.mockReset();
+  mockApiJson.mockReset();
   mockNavigate.mockReset();
-  mockUseAuth.mockReturnValue({ user: null, login: mockLogin });
+  mockCheckAuthStatus.mockReset();
+  mockCheckAuthStatus.mockResolvedValue(undefined);
+  mockUseAuth.mockReturnValue({ user: null, checkAuthStatus: mockCheckAuthStatus });
 });
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -60,9 +69,8 @@ describe('LoginForm', () => {
     expect(screen.getByText(/Passwort vergessen/i)).toBeInTheDocument();
   });
 
-  it('calls login with email and password on submit', async () => {
-    mockLogin.mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: { id: 1 }, login: mockLogin });
+  it('calls apiJson with email and password on submit', async () => {
+    mockApiJson.mockResolvedValue({});
 
     render(<LoginForm />);
 
@@ -71,14 +79,16 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Einloggen/i }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({ email: 'user@example.com', password: 'Password1!' });
+      expect(mockApiJson).toHaveBeenCalledWith('/api/login', {
+        method: 'POST',
+        body: { email: 'user@example.com', password: 'Password1!' },
+      });
     });
   });
 
   it('calls onSuccess after a successful login', async () => {
     const onSuccess = jest.fn();
-    mockLogin.mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: { id: 1 }, login: mockLogin });
+    mockApiJson.mockResolvedValue({});
 
     render(<LoginForm onSuccess={onSuccess} />);
 
@@ -90,7 +100,7 @@ describe('LoginForm', () => {
   });
 
   it('shows an Alert with error text on "Invalid credentials"', async () => {
-    mockLogin.mockRejectedValue({ error: 'Invalid credentials' });
+    mockApiJson.mockRejectedValue({ error: 'Invalid credentials' });
 
     render(<LoginForm />);
 
@@ -104,7 +114,7 @@ describe('LoginForm', () => {
   });
 
   it('shows a generic error Alert for unexpected login failures', async () => {
-    mockLogin.mockRejectedValue(new Error('Network error'));
+    mockApiJson.mockRejectedValue(new Error('Network error'));
 
     render(<LoginForm />);
 
@@ -114,6 +124,34 @@ describe('LoginForm', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/fehlgeschlagen/i);
+    });
+  });
+
+  it('shows rate-limit Alert on HTTP 429', async () => {
+    mockApiJson.mockRejectedValue({ status: 429, message: 'Zu viele Fehlversuche. Bitte versuche es in 10 Minuten erneut.' });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Passwort/i),        { target: { value: 'Password1!'      } });
+    fireEvent.click(screen.getByRole('button', { name: /Einloggen/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/Zu viele Fehlversuche/i);
+    });
+  });
+
+  it('shows account-locked Alert on HTTP 403', async () => {
+    mockApiJson.mockRejectedValue({ status: 403, message: 'Dein Konto wurde gesperrt. Bitte kontaktiere den Support.' });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Passwort/i),        { target: { value: 'Password1!'      } });
+    fireEvent.click(screen.getByRole('button', { name: /Einloggen/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/Dein Konto wurde gesperrt/i);
     });
   });
 

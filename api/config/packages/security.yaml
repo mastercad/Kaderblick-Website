@@ -74,6 +74,11 @@ security:
     - { path: ^/admin,        roles: ROLE_ADMIN }
     - { path: ^/news,         roles: ROLE_USER }
     - { path: ^/api/public/platform-news, roles: PUBLIC_ACCESS }
+    # 2FA verify is public — the pending token acts as the credential
+    - { path: ^/api/2fa/verify, roles: PUBLIC_ACCESS }
+    # Email OTP send-login-code is public — pending token acts as the credential
+    - { path: ^/api/2fa/email/send-login-code, roles: PUBLIC_ACCESS }
+    - { path: ^/api/2fa,      roles: ROLE_USER }
     - { path: ^/api/users,    roles: ROLE_USER }
     - { path: ^/api/messages/unread-count, roles: ROLE_USER }
     - { path: ^/api/messages, roles: ROLE_USER }
@@ -87,3 +92,4 @@ security:
     - { path: ^/api/register, roles: PUBLIC_ACCESS }
     - { path: ^/api/login,    roles: PUBLIC_ACCESS }
     - { path: ^/api/verify,   roles: PUBLIC_ACCESS }
+    - { path: ^/api/security/lock-account, roles: PUBLIC_ACCESS }

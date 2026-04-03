@@ -24,6 +24,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import { PullToRefresh } from './components/PullToRefresh';
 import { PushWarningBanner } from './components/PushWarningBanner';
+import { TwoFactorWarningBanner } from './components/TwoFactorWarningBanner';
 import RegistrationContextDialog from './modals/RegistrationContextDialog';
 import QRCodeShareModal from './modals/QRCodeShareModal';
 import ContactModal from './modals/ContactModal';
@@ -124,6 +125,7 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [showProfile, setShowProfile] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState(0);
   const [showMessages, setShowMessages] = useState(false);
   const [messagesInitialId, setMessagesInitialId] = useState<string | undefined>();
   const [showContact, setShowContact] = useState(false);
@@ -266,6 +268,7 @@ function App() {
                   onOpenQRShare={() => setShowQRShare(true)}
                 />
                 {!isHome && <PushWarningBanner />}
+                {!isHome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
               <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
@@ -332,7 +335,11 @@ function App() {
                 </Suspense>
               </Box>
               <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialTab={authInitialTab} />
-              <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} />
+              <ProfileModal
+                open={showProfile}
+                onClose={() => { setShowProfile(false); setProfileInitialTab(0); }}
+                initialTab={profileInitialTab}
+              />
               <MessagesModal
                 open={showMessages}
                 onClose={() => { setShowMessages(false); setMessagesInitialId(undefined); }}

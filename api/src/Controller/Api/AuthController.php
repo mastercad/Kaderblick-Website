@@ -6,7 +6,9 @@ use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Entity\UserRelation;
 use App\Service\AdminAlertService;
+use App\Service\LoginSecurityService;
 use App\Service\RefreshTokenService;
+use App\Service\TwoFactorService;
 use App\Service\UserTitleService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,10 +30,20 @@ class AuthController extends AbstractController
         EntityManagerInterface $entityManager,
         RefreshTokenService $refreshTokenService,
         AdminAlertService $adminAlertService,
+        TwoFactorService $twoFactorService,
+        LoginSecurityService $loginSecurityService,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
         $email = (string) ($data['email'] ?? '');
         $clientIp = $request->getClientIp() ?? 'unbekannt';
+
+        // ── Rate limiting: block IPs that exceeded the failure threshold ──────
+        if ($loginSecurityService->isRateLimited($clientIp)) {
+            return new JsonResponse([
+                'error' => 'Zu viele Fehlversuche. Bitte versuche es in 10 Minuten erneut.',
+            ], 429);
+        }
+
         $user = $entityManager->getRepository(User::class)
             ->findOneBy(['email' => $email]);
 
@@ -55,12 +67,35 @@ class AuthController extends AbstractController
             return new JsonResponse(['error' => 'User not verified'], 401);
         }
 
+        // ── Account-lock check ────────────────────────────────────────────────
+        if ($loginSecurityService->isAccountLocked($user)) {
+            return new JsonResponse([
+                'error' => 'Dein Konto wurde gesperrt. Bitte kontaktiere den Support.',
+            ], 403);
+        }
+
+        // ── Two-Factor Authentication check ──────────────────────────────
+        if ($user->hasAnyTwoFactorEnabled()) {
+            $pendingToken = $twoFactorService->issuePendingToken($user);
+            $method = $user->isTotpEnabled() ? 'totp' : 'email';
+
+            return new JsonResponse([
+                'twoFactorRequired' => true,
+                'pendingToken' => $pendingToken,
+                'method' => $method,
+            ], 200);
+        }
+
+        // ── Issue JWT (no 2FA) ────────────────────────────────────────────────
         $accessToken = $JWTManager->create($user);
         $refreshToken = $refreshTokenService->createRefreshToken($user);
 
         $ttl = $this->getParameter('lexik_jwt_authentication.token_ttl');
         $expireDate = (new DateTime())->modify("+{$ttl} seconds");
         $expireTimestamp = $expireDate->getTimestamp();
+
+        // Unknown-IP check: notify user if this IP has never been seen before.
+        $loginSecurityService->handleSuccessfulLogin($user, $clientIp);
 
         $response = new JsonResponse(['token' => $accessToken]);
         $response->headers->setCookie(

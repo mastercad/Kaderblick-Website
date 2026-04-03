@@ -11,6 +11,8 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../context/AuthContext';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useNavigate } from 'react-router-dom';
+import TwoFactorChallengeForm from './TwoFactorChallengeForm';
+import { apiJson } from '../utils/api';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -18,11 +20,13 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
-  const { login, user } = useAuth();
+  const { checkAuthStatus, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [twoFactorMethod, setTwoFactorMethod] = useState<'totp' | 'email'>('totp');
 
   useEffect(() => {
     if (user && onSuccess) {
@@ -34,20 +38,53 @@ export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
     e.preventDefault();
     setError('');
     try {
-      await login({ email, password });
-      if (!user) {
-        setError('Ungültige Zugangsdaten');
+      const result = await apiJson('/api/login', {
+        method: 'POST',
+        body: { email, password },
+      }) as any;
+
+      if (result?.twoFactorRequired && result?.pendingToken) {
+        // Show 2FA challenge screen
+        setPendingToken(result.pendingToken);
+        setTwoFactorMethod(result.method ?? 'totp');
         return;
       }
+
+      if (result?.error) {
+        if (result.error === 'Invalid credentials') {
+          setError('Ungültige Zugangsdaten');
+        } else {
+          setError('Login fehlgeschlagen');
+        }
+        return;
+      }
+
+      await checkAuthStatus();
       if (onSuccess) onSuccess();
     } catch (err: any) {
       if (err && typeof err === 'object' && 'error' in err && err.error === 'Invalid credentials') {
         setError('Ungültige Zugangsdaten');
+      } else if (err?.status === 429) {
+        setError('Zu viele Fehlversuche. Bitte versuche es in 10 Minuten erneut.');
+      } else if (err?.status === 403) {
+        setError('Dein Konto wurde gesperrt. Bitte kontaktiere den Support.');
       } else {
         setError('Login fehlgeschlagen');
       }
     }
   };
+
+  // ── 2FA challenge screen ──────────────────────────────────────────────
+  if (pendingToken) {
+    return (
+      <TwoFactorChallengeForm
+        pendingToken={pendingToken}
+        method={twoFactorMethod}
+        onSuccess={onSuccess}
+        onBackToLogin={() => { setPendingToken(null); setPassword(''); }}
+      />
+    );
+  }
 
   return (
     <Box component="form"

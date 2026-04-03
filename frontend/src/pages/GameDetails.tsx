@@ -896,7 +896,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           open={sectionsOpen.events}
           onToggle={() => toggleSection('events')}
           testId="events-section-header"
-          action={canCreateEvents() ? (
+          action={(
             <Button
               variant="contained"
               size="small"
@@ -906,7 +906,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
             >
               Event hinzufügen
             </Button>
-          ) : undefined}
+          )}
         />
         <Collapse in={sectionsOpen.events} timeout="auto" unmountOnExit>
           <Card className="gameevents-mobile-card" sx={{ overflow: 'hidden' }}>

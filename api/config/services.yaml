@@ -30,6 +30,7 @@ services:
             $githubRepoName: '%env(resolve:GITHUB_REPO_NAME)%'
             $weatherApiUrl: '%env(resolve:WEATHER_API_URL)%'
             $frontendUrl: '%env(resolve:FRONTEND_URL)%'
+            $appBaseUrl: '%env(resolve:WEBSITE)%'
             $mailerFrom: '%env(resolve:MAILER_FROM)%'
             $adminAlertEmail: '%env(resolve:ADMIN_ALERT_EMAIL)%'
 

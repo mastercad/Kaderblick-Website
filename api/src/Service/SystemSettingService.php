@@ -22,6 +22,13 @@ class SystemSettingService
      */
     public const KEY_REGISTRATION_CONTEXT_ENABLED = 'registration_context_enabled';
 
+    /**
+     * When true, all users MUST have 2FA enabled to use the platform.
+     * Set by ROLE_SUPERADMIN in administration. Users without 2FA will see a
+     * persistent warning banner with a link to the profile settings.
+     */
+    public const KEY_2FA_REQUIRED = '2fa_required';
+
     public function __construct(
         private SystemSettingRepository $repository,
         private EntityManagerInterface $em,
@@ -89,5 +96,11 @@ class SystemSettingService
     public function isRegistrationContextEnabled(): bool
     {
         return $this->getBool(self::KEY_REGISTRATION_CONTEXT_ENABLED, true);
+    }
+
+    /** Returns true when platform-wide mandatory 2FA is enforced by a superadmin. */
+    public function is2faRequired(): bool
+    {
+        return $this->getBool(self::KEY_2FA_REQUIRED, false);
     }
 }

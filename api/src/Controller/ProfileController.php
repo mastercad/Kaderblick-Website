@@ -83,7 +83,9 @@ class ProfileController extends AbstractController
             'useGoogleAvatar' => $user->isUseGoogleAvatar(),
             'title' => $titleData,
             'level' => $levelData,
-            'needsRegistrationContext' => $needsRegistrationContext
+            'needsRegistrationContext' => $needsRegistrationContext,
+            'twoFactorEnabled' => $user->hasAnyTwoFactorEnabled(),
+            'twoFactorRequired' => $this->systemSettingService->is2faRequired(),
         ]);
     }
 

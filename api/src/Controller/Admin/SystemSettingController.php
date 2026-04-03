@@ -29,6 +29,7 @@ class SystemSettingController extends AbstractController
             'settings' => $this->settingService->getAll(),
             'defaults' => [
                 SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED => 'true',
+                SystemSettingService::KEY_2FA_REQUIRED => 'false',
             ],
         ]);
     }
@@ -50,6 +51,7 @@ class SystemSettingController extends AbstractController
 
         $allowedKeys = [
             SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
+            SystemSettingService::KEY_2FA_REQUIRED,
         ];
 
         if (!in_array($key, $allowedKeys, true)) {

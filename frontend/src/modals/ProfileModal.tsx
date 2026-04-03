@@ -63,8 +63,11 @@ import { pushHealthMonitor, type PushHealthReport, type PushHealthStatus } from 
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AddIcon from '@mui/icons-material/Add';
+import SecurityIcon from '@mui/icons-material/Security';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import RegistrationContextDialog from './RegistrationContextDialog';
 import CalendarIntegrationsTab from '../components/CalendarIntegrationsTab';
+import TwoFactorSetupModal from './TwoFactorSetupModal';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -243,11 +246,13 @@ export interface ProfileModalProps {
   open: boolean;
   onClose: () => void;
   onSave?: (data: ProfileData) => void;
+  /** Optional tab index to open to (0=Profil, 2=Einstellungen, …). Defaults to 0. */
+  initialTab?: number;
 }
 
 // ─── ProfileModal ─────────────────────────────────────────────────────────────
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) => {
+const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, initialTab = 0 }) => {
   const { checkAuthStatus, user } = useAuth();
   const { mode, toggleTheme } = useTheme();
   const muiTheme = useMuiTheme();
@@ -296,6 +301,30 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
   const [prefsSaving, setPrefsSaving] = React.useState(false);
   const [prefsMessage, setPrefsMessage] = React.useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // 2FA
+  const [twoFactorEnabled, setTwoFactorEnabled] = React.useState(false);
+  const [twoFactorRequired, setTwoFactorRequired] = React.useState(false);
+  const [twoFactorBackupCount, setTwoFactorBackupCount] = React.useState(0);
+  const [twoFactorSetupOpen, setTwoFactorSetupOpen] = React.useState(false);
+  const [twoFactorDisableOpen, setTwoFactorDisableOpen] = React.useState(false);
+  const [twoFactorDisableCode, setTwoFactorDisableCode] = React.useState('');
+  const [twoFactorDisableLoading, setTwoFactorDisableLoading] = React.useState(false);
+  const [twoFactorDisableError, setTwoFactorDisableError] = React.useState<string | null>(null);
+  const [twoFactorBackupOpen, setTwoFactorBackupOpen] = React.useState(false);
+  const [twoFactorBackupCode, setTwoFactorBackupCode] = React.useState('');
+  const [twoFactorBackupLoading, setTwoFactorBackupLoading] = React.useState(false);
+  const [twoFactorBackupError, setTwoFactorBackupError] = React.useState<string | null>(null);
+  const [twoFactorNewBackupCodes, setTwoFactorNewBackupCodes] = React.useState<string[]>([]);
+  const [twoFactorBackupCopied, setTwoFactorBackupCopied] = React.useState(false);
+
+  // Email OTP
+  const [emailOtpEnabled, setEmailOtpEnabled] = React.useState(false);
+  const [emailOtpDisableOpen, setEmailOtpDisableOpen] = React.useState(false);
+  const [emailOtpDisableCode, setEmailOtpDisableCode] = React.useState('');
+  const [emailOtpDisableLoading, setEmailOtpDisableLoading] = React.useState(false);
+  const [emailOtpDisableError, setEmailOtpDisableError] = React.useState<string | null>(null);
+  const [emailOtpDisableCodeSent, setEmailOtpDisableCodeSent] = React.useState(false);
+
   // API Token
   const [apiTokenStatus, setApiTokenStatus] = React.useState<{ hasToken: boolean; createdAt: string | null } | null>(null);
   const [apiTokenLoading, setApiTokenLoading] = React.useState(false);
@@ -310,7 +339,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
       checkPushHealth();
       loadNotifPrefs();
       loadApiTokenStatus();
-      setActiveTab(0);
+      loadTwoFactorStatus();
+      setActiveTab(initialTab);
       setMessage(null);
       setNewlyGeneratedToken(null);
       setApiTokenMessage(null);
@@ -318,6 +348,88 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
   }, [open]);
 
   // ── Data loading ──
+
+  const loadTwoFactorStatus = async () => {
+    try {
+      const data = await apiJson('/api/2fa/status') as any;
+      setTwoFactorEnabled(data.enabled ?? false);
+      setTwoFactorBackupCount(data.backupCodesRemaining ?? 0);
+      setEmailOtpEnabled(data.emailOtpEnabled ?? false);
+    } catch { /* not authenticated yet or 2FA not set up — ignore */ }
+    // twoFactorRequired comes from user context
+    // (set after user context refresh, or from profile API)
+  };
+
+  const handleTwoFactorDisable = async () => {
+    if (!twoFactorDisableCode.trim()) {
+      setTwoFactorDisableError('Bitte gib deinen aktuellen Authenticator-Code ein.');
+      return;
+    }
+    setTwoFactorDisableLoading(true);
+    setTwoFactorDisableError(null);
+    try {
+      await apiJson('/api/2fa/disable', { method: 'POST', body: { code: twoFactorDisableCode.trim() } });
+      setTwoFactorEnabled(false);
+      setTwoFactorBackupCount(0);
+      setTwoFactorDisableOpen(false);
+      setTwoFactorDisableCode('');
+      await checkAuthStatus();
+    } catch (e: any) {
+      setTwoFactorDisableError(e?.error || 'Ungültiger Code. Bitte versuche es erneut.');
+    } finally {
+      setTwoFactorDisableLoading(false);
+    }
+  };
+
+  const handleEmailOtpSendDisableCode = async () => {
+    setEmailOtpDisableError(null);
+    try {
+      await apiJson('/api/2fa/email/send-code', { method: 'POST' });
+      setEmailOtpDisableCodeSent(true);
+    } catch (e: any) {
+      setEmailOtpDisableError(e?.error || 'Code konnte nicht gesendet werden.');
+    }
+  };
+
+  const handleEmailOtpDisable = async () => {
+    if (!emailOtpDisableCode.trim()) {
+      setEmailOtpDisableError('Bitte gib den Code aus deiner E-Mail ein.');
+      return;
+    }
+    setEmailOtpDisableLoading(true);
+    setEmailOtpDisableError(null);
+    try {
+      await apiJson('/api/2fa/email/disable', { method: 'POST', body: { code: emailOtpDisableCode.trim() } });
+      setEmailOtpEnabled(false);
+      setEmailOtpDisableOpen(false);
+      setEmailOtpDisableCode('');
+      setEmailOtpDisableCodeSent(false);
+      await checkAuthStatus();
+    } catch (e: any) {
+      setEmailOtpDisableError(e?.error || 'Ungültiger Code. Bitte versuche es erneut.');
+    } finally {
+      setEmailOtpDisableLoading(false);
+    }
+  };
+
+  const handleTwoFactorRegenerateBackupCodes = async () => {
+    if (!twoFactorBackupCode.trim()) {
+      setTwoFactorBackupError('Bitte gib deinen aktuellen Authenticator-Code ein.');
+      return;
+    }
+    setTwoFactorBackupLoading(true);
+    setTwoFactorBackupError(null);
+    try {
+      const data = await apiJson('/api/2fa/backup-codes', { method: 'POST', body: { code: twoFactorBackupCode.trim() } }) as any;
+      setTwoFactorNewBackupCodes(data.backupCodes ?? []);
+      setTwoFactorBackupCount(data.backupCodes?.length ?? 0);
+      setTwoFactorBackupCode('');
+    } catch (e: any) {
+      setTwoFactorBackupError(e?.error || 'Ungültiger Code. Bitte versuche es erneut.');
+    } finally {
+      setTwoFactorBackupLoading(false);
+    }
+  };
 
   const loadApiTokenStatus = async () => {
     try {
@@ -850,6 +962,112 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
                 )}
               </Stack>
             </SectionCard>
+
+            {/* ── 2FA section ──────────────────────────────────────────── */}
+            <SectionCard title="Zwei-Faktor-Authentifizierung" icon={<SecurityIcon fontSize="small" />}>
+              <Stack spacing={1.5}>
+                {/* Status row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                  {twoFactorEnabled && (
+                    <Chip
+                      label="Authenticator-App aktiv"
+                      color="success"
+                      size="small"
+                      variant="filled"
+                      icon={<CheckCircleOutlineIcon />}
+                    />
+                  )}
+                  {emailOtpEnabled && (
+                    <Chip
+                      label="E-Mail-Code aktiv"
+                      color="success"
+                      size="small"
+                      variant="filled"
+                      icon={<CheckCircleOutlineIcon />}
+                    />
+                  )}
+                  {!twoFactorEnabled && !emailOtpEnabled && (
+                    <Chip
+                      label="Nicht aktiviert"
+                      color="default"
+                      size="small"
+                      variant="outlined"
+                      icon={<SecurityIcon />}
+                    />
+                  )}
+                  {twoFactorEnabled && (
+                    <Typography variant="caption" color="text.secondary">
+                      {twoFactorBackupCount} Backup-{twoFactorBackupCount === 1 ? 'Code' : 'Codes'} verbleibend
+                    </Typography>
+                  )}
+                  {!twoFactorEnabled && !emailOtpEnabled && twoFactorRequired && (
+                    <Chip label="Pflicht" color="warning" size="small" variant="outlined" icon={<WarningAmberIcon />} />
+                  )}
+                </Box>
+
+                {!twoFactorEnabled && !emailOtpEnabled && (
+                  <Typography variant="body2" color="text.secondary">
+                    Schütze dein Konto mit einem zweiten Faktor – wähle zwischen Authenticator-App (höchste Sicherheit) oder E-Mail-Code (einfach für alle).
+                  </Typography>
+                )}
+
+                {twoFactorEnabled && twoFactorBackupCount <= 2 && (
+                  <Alert severity="warning" sx={{ borderRadius: 2, py: 0.5 }}>
+                    <Typography variant="body2">
+                      {twoFactorBackupCount === 0
+                        ? 'Alle Backup-Codes verbraucht! Generiere jetzt neue, damit du dich im Notfall anmelden kannst.'
+                        : `Nur noch ${twoFactorBackupCount} Backup-${twoFactorBackupCount === 1 ? 'Code' : 'Codes'} übrig. Empfehlung: Jetzt neue Codes generieren.`}
+                    </Typography>
+                  </Alert>
+                )}
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
+                  {!twoFactorEnabled && !emailOtpEnabled ? (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<SecurityIcon />}
+                      onClick={() => setTwoFactorSetupOpen(true)}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      2FA aktivieren
+                    </Button>
+                  ) : twoFactorEnabled ? (
+                    <>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="error"
+                        onClick={() => { setTwoFactorDisableOpen(true); setTwoFactorDisableCode(''); setTwoFactorDisableError(null); }}
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                      >
+                        2FA deaktivieren
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => { setTwoFactorBackupOpen(true); setTwoFactorBackupCode(''); setTwoFactorBackupError(null); setTwoFactorNewBackupCodes([]); setTwoFactorBackupCopied(false); }}
+                        sx={{ textTransform: 'none', borderRadius: 2 }}
+                      >
+                        Backup-Codes neu generieren
+                      </Button>
+                    </>
+                  ) : (
+                    /* emailOtpEnabled */
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      startIcon={<EmailOutlinedIcon />}
+                      onClick={() => { setEmailOtpDisableOpen(true); setEmailOtpDisableCode(''); setEmailOtpDisableError(null); setEmailOtpDisableCodeSent(false); }}
+                      sx={{ textTransform: 'none', borderRadius: 2 }}
+                    >
+                      2FA deaktivieren
+                    </Button>
+                  )}
+                </Box>
+              </Stack>
+            </SectionCard>
           </TabPanel>
 
           {/* ── Tab 3: Benachrichtigungen ─────────────────────────────────── */}
@@ -992,6 +1210,186 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave }) =>
             <CalendarIntegrationsTab />
           </TabPanel>
         </Box>
+      </BaseModal>
+
+      {/* ── 2FA Setup Wizard ─────────────────────────────────────────────── */}
+      <TwoFactorSetupModal
+        open={twoFactorSetupOpen}
+        onClose={() => setTwoFactorSetupOpen(false)}
+        onEnabled={async () => {
+          setTwoFactorSetupOpen(false);
+          await loadTwoFactorStatus();
+          await checkAuthStatus();
+        }}
+      />
+
+      {/* ── 2FA Disable dialog ───────────────────────────────────────────── */}
+      <BaseModal
+        open={twoFactorDisableOpen}
+        onClose={() => setTwoFactorDisableOpen(false)}
+        title="2FA deaktivieren"
+        maxWidth="xs"
+        actions={
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+            <Button onClick={() => setTwoFactorDisableOpen(false)} variant="outlined">Abbrechen</Button>
+            <Button
+              onClick={handleTwoFactorDisable}
+              variant="contained"
+              color="error"
+              disabled={twoFactorDisableLoading || twoFactorDisableCode.length !== 6}
+              startIcon={twoFactorDisableLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {twoFactorDisableLoading ? 'Deaktiviere...' : '2FA deaktivieren'}
+            </Button>
+          </Box>
+        }
+      >
+        <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            Wenn du 2FA deaktivierst, ist dein Konto weniger gut geschützt. Bist du sicher?
+          </Alert>
+          <TextField
+            label="Aktueller Authenticator-Code"
+            value={twoFactorDisableCode}
+            onChange={(e) => { setTwoFactorDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTwoFactorDisableError(null); }}
+            inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+            autoComplete="one-time-code"
+            size="small"
+            fullWidth
+            helperText="Gib den 6-stelligen Code aus deiner Authenticator-App ein."
+          />
+          {twoFactorDisableError && <Alert severity="error">{twoFactorDisableError}</Alert>}
+        </Stack>
+      </BaseModal>
+
+      {/* ── Email OTP Disable dialog ──────────────────────────────────── */}
+      <BaseModal
+        open={emailOtpDisableOpen}
+        onClose={() => { setEmailOtpDisableOpen(false); setEmailOtpDisableCodeSent(false); }}
+        title="E-Mail-Code 2FA deaktivieren"
+        maxWidth="xs"
+        actions={
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+            <Button onClick={() => { setEmailOtpDisableOpen(false); setEmailOtpDisableCodeSent(false); }} variant="outlined">Abbrechen</Button>
+            {!emailOtpDisableCodeSent ? (
+              <Button
+                onClick={handleEmailOtpSendDisableCode}
+                variant="contained"
+                startIcon={<EmailOutlinedIcon />}
+              >
+                Code senden
+              </Button>
+            ) : (
+              <Button
+                onClick={handleEmailOtpDisable}
+                variant="contained"
+                color="error"
+                disabled={emailOtpDisableLoading || emailOtpDisableCode.length !== 6}
+                startIcon={emailOtpDisableLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+              >
+                {emailOtpDisableLoading ? 'Deaktiviere...' : '2FA deaktivieren'}
+              </Button>
+            )}
+          </Box>
+        }
+      >
+        <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            Wenn du 2FA deaktivierst, ist dein Konto weniger gut geschützt. Wir senden dir einen Bestätigungscode per E-Mail.
+          </Alert>
+          {emailOtpDisableCodeSent && (
+            <TextField
+              label="Code aus deiner E-Mail"
+              value={emailOtpDisableCode}
+              onChange={(e) => { setEmailOtpDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setEmailOtpDisableError(null); }}
+              inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+              autoComplete="one-time-code"
+              size="small"
+              fullWidth
+              helperText="Gib den 6-stelligen Code aus deiner E-Mail ein."
+            />
+          )}
+          {emailOtpDisableError && <Alert severity="error">{emailOtpDisableError}</Alert>}
+        </Stack>
+      </BaseModal>
+
+      {/* ── 2FA Backup-Codes regenerate dialog ───────────────────────────── */}
+      <BaseModal
+        open={twoFactorBackupOpen}
+        onClose={() => setTwoFactorBackupOpen(false)}
+        title="Neue Backup-Codes generieren"
+        maxWidth="xs"
+        actions={
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', width: '100%' }}>
+            {twoFactorNewBackupCodes.length === 0 ? (
+              <>
+                <Button onClick={() => setTwoFactorBackupOpen(false)} variant="outlined">Abbrechen</Button>
+                <Button
+                  onClick={handleTwoFactorRegenerateBackupCodes}
+                  variant="contained"
+                  disabled={twoFactorBackupLoading || twoFactorBackupCode.length !== 6}
+                  startIcon={twoFactorBackupLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+                >
+                  {twoFactorBackupLoading ? 'Generiere...' : 'Neue Codes generieren'}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setTwoFactorBackupOpen(false)} variant="contained">Schließen</Button>
+            )}
+          </Box>
+        }
+      >
+        <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 } }}>
+          {twoFactorNewBackupCodes.length === 0 ? (
+            <>
+              <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                <Typography variant="body2">
+                  Bestehende Backup-Codes werden <strong>unwiderruflich gelöscht</strong> und durch neue ersetzt.
+                  Bitte stelle sicher, dass du die neuen Codes sicherst.
+                </Typography>
+              </Alert>
+              <TextField
+                label="Aktueller Authenticator-Code"
+                value={twoFactorBackupCode}
+                onChange={(e) => { setTwoFactorBackupCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setTwoFactorBackupError(null); }}
+                inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+                autoComplete="one-time-code"
+                size="small"
+                fullWidth
+                helperText="Zur Sicherheit: aktuellen Code aus der App eingeben."
+              />
+              {twoFactorBackupError && <Alert severity="error">{twoFactorBackupError}</Alert>}
+            </>
+          ) : (
+            <>
+              <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ borderRadius: 2 }}>
+                <Typography variant="body2" fontWeight={700}>Jetzt sichern!</Typography>
+                <Typography variant="body2">Diese Codes werden nur einmal angezeigt. Speichere sie sicher.</Typography>
+              </Alert>
+              <Box sx={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1,
+                p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.default',
+              }}>
+                {twoFactorNewBackupCodes.map((c) => (
+                  <Typography key={c} fontFamily="monospace" fontWeight={700} fontSize="0.9rem" textAlign="center">{c}</Typography>
+                ))}
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<ContentCopyIcon />}
+                onClick={async () => {
+                  await navigator.clipboard.writeText(twoFactorNewBackupCodes.join('\n'));
+                  setTwoFactorBackupCopied(true);
+                  setTimeout(() => setTwoFactorBackupCopied(false), 2500);
+                }}
+                color={twoFactorBackupCopied ? 'success' : 'primary'}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
+              >
+                {twoFactorBackupCopied ? 'Kopiert!' : 'Alle Codes kopieren'}
+              </Button>
+            </>
+          )}
+        </Stack>
       </BaseModal>
 
       {/* ── XP Breakdown ─────────────────────────────────────────────────── */}

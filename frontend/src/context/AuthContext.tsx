@@ -17,6 +17,8 @@ interface User {
   isCoach?: boolean;
   isPlayer?: boolean;
   needsRegistrationContext?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorRequired?: boolean;
   roles: { [key: string]: string };
   avatarFile?: string;
   googleAvatarUrl?: string;

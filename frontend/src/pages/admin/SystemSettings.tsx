@@ -12,9 +12,11 @@ import {
   Paper,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SecurityIcon from '@mui/icons-material/Security';
 import { apiJson } from '../../utils/api';
 
 const REGISTRATION_CONTEXT_KEY = 'registration_context_enabled';
+const TWO_FA_REQUIRED_KEY = '2fa_required';
 
 interface Settings {
   [key: string]: { value: string; updatedAt: string };
@@ -129,6 +131,57 @@ export default function SystemSettings() {
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', ml: '52px' }}>
                 Zuletzt geändert:{' '}
                 {new Date(settings[REGISTRATION_CONTEXT_KEY].updatedAt).toLocaleString('de-DE')}
+              </Typography>
+            )}
+          </Box>
+        </CardContent>
+      </Paper>
+
+      {/* ── 2FA Enforcement ─────────────────────────────────────────────── */}
+      <Paper variant="outlined" sx={{ mt: 3 }}>
+        <CardContent>
+          <Box display="flex" alignItems="center" gap={1} mb={1}>
+            <SecurityIcon color="action" fontSize="small" />
+            <Typography variant="overline" color="text.secondary">
+              Sicherheit
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={getBool(TWO_FA_REQUIRED_KEY)}
+                  disabled={saving}
+                  onChange={() =>
+                    handleToggle(
+                      TWO_FA_REQUIRED_KEY,
+                      settings[TWO_FA_REQUIRED_KEY]?.value ?? 'false'
+                    )
+                  }
+                />
+              }
+              label={
+                <Box>
+                  <Typography fontWeight={500}>
+                    Zwei-Faktor-Authentifizierung verpflichtend
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Wenn aktiv, werden alle Benutzer die noch keine 2FA aktiviert haben mit einem
+                    Hinweis-Banner darauf aufmerksam gemacht. Benutzer mit aktivierter 2FA sind
+                    davon nicht betroffen. Dies deaktiviert keinen bestehenden Zugang – es ist
+                    eine Erinnerung mit Verlinkung zu den Einstellungen.
+                  </Typography>
+                </Box>
+              }
+              sx={{ alignItems: 'flex-start', mt: 1 }}
+            />
+
+            {settings[TWO_FA_REQUIRED_KEY]?.updatedAt && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', ml: '52px' }}>
+                Zuletzt geändert:{' '}
+                {new Date(settings[TWO_FA_REQUIRED_KEY].updatedAt).toLocaleString('de-DE')}
               </Typography>
             )}
           </Box>

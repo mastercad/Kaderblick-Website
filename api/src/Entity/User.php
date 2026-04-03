@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use DateTime;
+use DateTimeImmutable;
 use Deprecated;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -127,6 +128,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?DateTime $lastPushFailureAt = null;
+
+    // ── Two-Factor Authentication ─────────────────────────────────────────
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $totpSecret = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $totpEnabled = false;
+
+    /** @var array<int, string> One-time backup codes (stored as bcrypt hashes) */
+    #[ORM\Column(type: 'json')]
+    private array $totpBackupCodes = [];
+
+    /** Short-lived token issued after credential verification when 2FA is pending */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $twoFactorPendingToken = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $twoFactorPendingTokenExpiresAt = null;
+
+    /** Email OTP: 2FA via one-time code sent to the user's email address */
+    #[ORM\Column(type: 'boolean')]
+    private bool $emailOtpEnabled = false;
+
+    /** Hashed 6-digit code sent via email; valid for a short time */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $emailOtpCode = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $emailOtpExpiresAt = null;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: UserLevel::class, cascade: ['persist', 'remove'])]
     private ?UserLevel $userLevel = null;
@@ -978,5 +1009,199 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __toString(): string
     {
         return $this->getFullName();
+    }
+
+    // ── Two-Factor Authentication ─────────────────────────────────────────
+
+    public function getTotpSecret(): ?string
+    {
+        return $this->totpSecret;
+    }
+
+    public function setTotpSecret(?string $totpSecret): static
+    {
+        $this->totpSecret = $totpSecret;
+
+        return $this;
+    }
+
+    public function isTotpEnabled(): bool
+    {
+        return $this->totpEnabled;
+    }
+
+    public function setTotpEnabled(bool $totpEnabled): static
+    {
+        $this->totpEnabled = $totpEnabled;
+
+        return $this;
+    }
+
+    /** @return array<int, string> */
+    public function getTotpBackupCodes(): array
+    {
+        return $this->totpBackupCodes;
+    }
+
+    /** @param array<int, string> $totpBackupCodes */
+    public function setTotpBackupCodes(array $totpBackupCodes): static
+    {
+        $this->totpBackupCodes = $totpBackupCodes;
+
+        return $this;
+    }
+
+    public function getTwoFactorPendingToken(): ?string
+    {
+        return $this->twoFactorPendingToken;
+    }
+
+    public function setTwoFactorPendingToken(?string $twoFactorPendingToken): static
+    {
+        $this->twoFactorPendingToken = $twoFactorPendingToken;
+
+        return $this;
+    }
+
+    public function getTwoFactorPendingTokenExpiresAt(): ?DateTimeImmutable
+    {
+        return $this->twoFactorPendingTokenExpiresAt;
+    }
+
+    public function setTwoFactorPendingTokenExpiresAt(?DateTimeImmutable $twoFactorPendingTokenExpiresAt): static
+    {
+        $this->twoFactorPendingTokenExpiresAt = $twoFactorPendingTokenExpiresAt;
+
+        return $this;
+    }
+
+    public function isEmailOtpEnabled(): bool
+    {
+        return $this->emailOtpEnabled;
+    }
+
+    public function setEmailOtpEnabled(bool $emailOtpEnabled): static
+    {
+        $this->emailOtpEnabled = $emailOtpEnabled;
+
+        return $this;
+    }
+
+    public function getEmailOtpCode(): ?string
+    {
+        return $this->emailOtpCode;
+    }
+
+    public function setEmailOtpCode(?string $emailOtpCode): static
+    {
+        $this->emailOtpCode = $emailOtpCode;
+
+        return $this;
+    }
+
+    public function getEmailOtpExpiresAt(): ?DateTimeImmutable
+    {
+        return $this->emailOtpExpiresAt;
+    }
+
+    public function setEmailOtpExpiresAt(?DateTimeImmutable $emailOtpExpiresAt): static
+    {
+        $this->emailOtpExpiresAt = $emailOtpExpiresAt;
+
+        return $this;
+    }
+
+    /** Returns true if the user has ANY 2FA method enabled. */
+    public function hasAnyTwoFactorEnabled(): bool
+    {
+        return $this->totpEnabled || $this->emailOtpEnabled;
+    }
+
+    // ── Security: known IPs & account lock ───────────────────────────────────
+
+    /** @var array<int, string> SHA-256 hashes of IP addresses that have successfully logged in. */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private array $knownLoginIps = [];
+
+    /** When the account was locked (null = not locked). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $lockedAt = null;
+
+    /** Human-readable reason for the account lock. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lockReason = null;
+
+    /** Short-lived token sent in the "suspicious login" email so the user can lock their account. */
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $accountLockToken = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $accountLockTokenExpiresAt = null;
+
+    /** @return array<int, string> */
+    public function getKnownLoginIps(): array
+    {
+        return $this->knownLoginIps;
+    }
+
+    /** @param array<int, string> $knownLoginIps */
+    public function setKnownLoginIps(array $knownLoginIps): static
+    {
+        $this->knownLoginIps = $knownLoginIps;
+
+        return $this;
+    }
+
+    public function getLockedAt(): ?DateTimeImmutable
+    {
+        return $this->lockedAt;
+    }
+
+    public function setLockedAt(?DateTimeImmutable $lockedAt): static
+    {
+        $this->lockedAt = $lockedAt;
+
+        return $this;
+    }
+
+    public function getLockReason(): ?string
+    {
+        return $this->lockReason;
+    }
+
+    public function setLockReason(?string $lockReason): static
+    {
+        $this->lockReason = $lockReason;
+
+        return $this;
+    }
+
+    public function getAccountLockToken(): ?string
+    {
+        return $this->accountLockToken;
+    }
+
+    public function setAccountLockToken(?string $accountLockToken): static
+    {
+        $this->accountLockToken = $accountLockToken;
+
+        return $this;
+    }
+
+    public function getAccountLockTokenExpiresAt(): ?DateTimeImmutable
+    {
+        return $this->accountLockTokenExpiresAt;
+    }
+
+    public function setAccountLockTokenExpiresAt(?DateTimeImmutable $accountLockTokenExpiresAt): static
+    {
+        $this->accountLockTokenExpiresAt = $accountLockTokenExpiresAt;
+
+        return $this;
+    }
+
+    public function isLocked(): bool
+    {
+        return null !== $this->lockedAt;
     }
 }

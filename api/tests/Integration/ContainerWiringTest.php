@@ -9,6 +9,7 @@ use App\Controller\Api\PlayersController;
 use App\Controller\Api\SurveyController;
 use App\Controller\Api\TaskController;
 use App\Controller\Api\TeamsController;
+use App\Controller\Api\TwoFactorController;
 use App\Controller\CalendarController;
 use App\Controller\ParticipationController;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -70,6 +71,7 @@ class ContainerWiringTest extends KernelTestCase
             'TaskController' => [TaskController::class],
             'CalendarController' => [CalendarController::class],
             'ParticipationController' => [ParticipationController::class],
+            'TwoFactorController' => [TwoFactorController::class],
         ];
     }
 }
