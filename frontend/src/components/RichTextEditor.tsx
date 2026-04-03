@@ -14,6 +14,7 @@ import {
   Box, IconButton, Tooltip, Divider, Dialog, DialogTitle,
   DialogContent, DialogActions, Button, TextField, Stack,
   Paper, CircularProgress, useTheme, alpha, Typography, Chip,
+  Popover,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -51,6 +52,34 @@ const CustomImage = ImageExtension.extend({
     };
   },
 });
+
+// ── Emoji Picker data ─────────────────────────────────────────────────────────
+const EMOJI_CATEGORIES: Array<{ label: string; emojis: string[] }> = [
+  {
+    label: 'Vorlagen-Icons',
+    emojis: ['🚀', '✨', '⚡', '🐛', '💬', '🎉', '🎯', '👉', '⚽', '📅', '🕐', '📍', '💪', '🥅', '📣', '🥇', '🙌', '🖼️', '📸', '🆕'],
+  },
+  {
+    label: 'Fußball & Sport',
+    emojis: ['⚽', '🏆', '🥇', '🥈', '🥉', '🎯', '🏅', '🎽', '👟', '🧤', '🧢', '📣', '🔔', '📢', '🏟️', '🌟', '💪', '🏃', '🤸', '⛹️'],
+  },
+  {
+    label: 'Feier & Emotion',
+    emojis: ['🎉', '🎊', '🙌', '👏', '🥳', '🎈', '❤️', '🔥', '💥', '✨', '🌈', '😄', '😍', '🤩', '👍', '💯', '🚀', '⭐', '🌟', '💫'],
+  },
+  {
+    label: 'Info & Aktionen',
+    emojis: ['📅', '📍', '📌', '🕐', 'ℹ️', '✅', '❌', '⚠️', '🔗', '📎', '📋', '📝', '📊', '💡', '🔑', '🔒', '📲', '💬', '📩', '🗓️'],
+  },
+  {
+    label: 'Pfeile & Zeichen',
+    emojis: ['👉', '👈', '👆', '👇', '➡️', '⬅️', '⬆️', '⬇️', '↪️', '🔄', '▶️', '⏩', '🔷', '🔹', '🟢', '🔴', '🟡', '🟠', '🔵', '⚫'],
+  },
+  {
+    label: 'Natur & Wetter',
+    emojis: ['☀️', '🌤️', '⛅', '🌧️', '❄️', '🌿', '🍀', '🌸', '🌺', '🌻', '🍂', '🌊', '🏔️', '🌙', '⭐', '💧', '🌱', '🌳', '🌾', '🍃'],
+  },
+];
 
 // ── Image size options ────────────────────────────────────────────────────────
 const IMAGE_SIZE_OPTIONS: Array<{ id: string; label: string; desc: string; maxWidth: string }> = [
@@ -177,6 +206,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [imageSizeOpen, setImageSizeOpen] = useState(false);
   const [pendingImageSrc, setPendingImageSrc] = useState('');
   const [imageSize, setImageSize] = useState<string>('img-medium');
+  const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -449,6 +479,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onChange={handleImageFileChange}
         />
 
+        {/* Emoji Picker */}
+        <Tooltip title="Emoji einfügen">
+          <span>
+            <IconButton
+              size="small"
+              onMouseDown={e => {
+                e.preventDefault();
+                setEmojiAnchor(e.currentTarget as HTMLElement);
+              }}
+              sx={{ borderRadius: 1, p: '4px', fontSize: '1rem', lineHeight: 1 }}
+            >
+              😊
+            </IconButton>
+          </span>
+        </Tooltip>
+
         {/* Blockquote context indicator */}
         {is('blockquote') && (
           <>
@@ -577,6 +623,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       >
         <EditorContent editor={editor} />
       </Paper>
+
+      {/* ── Emoji Popover ─────────────────────────────────────────────────── */}
+      <Popover
+        open={Boolean(emojiAnchor)}
+        anchorEl={emojiAnchor}
+        onClose={() => setEmojiAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ sx: { p: 1.5, maxWidth: 340, maxHeight: 380, overflowY: 'auto' } }}
+      >
+        {EMOJI_CATEGORIES.map(cat => (
+          <Box key={cat.label} sx={{ mb: 1.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5, px: 0.5 }}>
+              {cat.label}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
+              {cat.emojis.map(emoji => (
+                <IconButton
+                  key={emoji}
+                  size="small"
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    editor.chain().focus().insertContent(emoji).run();
+                    setEmojiAnchor(null);
+                  }}
+                  sx={{ fontSize: '1.25rem', width: 34, height: 34, borderRadius: 1, lineHeight: 1 }}
+                >
+                  {emoji}
+                </IconButton>
+              ))}
+            </Box>
+          </Box>
+        ))}
+      </Popover>
 
       {/* ── Link Dialog ───────────────────────────────────────────────────── */}
       <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="xs" fullWidth>

@@ -321,6 +321,100 @@ describe('RichTextEditor – "Im Zitat"-Chip', () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  Emoji Picker
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('RichTextEditor – Emoji Picker', () => {
+  it('rendert den Emoji-Button in der Toolbar', () => {
+    render(<RichTextEditor {...defaultProps} />);
+    const emojiBtn = screen.getAllByRole('button').find(b => b.textContent === '😊');
+    expect(emojiBtn).toBeInTheDocument();
+  });
+
+  it('Emoji-Popover ist initial geschlossen', () => {
+    render(<RichTextEditor {...defaultProps} />);
+    expect(screen.queryByText('Vorlagen-Icons')).not.toBeInTheDocument();
+  });
+
+  it('Emoji-Popover öffnet sich nach mouseDown auf den Emoji-Button', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+
+    const emojiBtn = screen.getAllByRole('button').find(b => b.textContent === '😊') as HTMLElement;
+    fireEvent.mouseDown(emojiBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Vorlagen-Icons')).toBeInTheDocument();
+    });
+  });
+
+  it('zeigt alle 6 Kategorien im Popover', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+
+    const emojiBtn = screen.getAllByRole('button').find(b => b.textContent === '😊') as HTMLElement;
+    fireEvent.mouseDown(emojiBtn);
+
+    await waitFor(() => screen.getByText('Vorlagen-Icons'));
+
+    expect(screen.getByText('Vorlagen-Icons')).toBeInTheDocument();
+    expect(screen.getByText('Fußball & Sport')).toBeInTheDocument();
+    expect(screen.getByText('Feier & Emotion')).toBeInTheDocument();
+    expect(screen.getByText('Info & Aktionen')).toBeInTheDocument();
+    expect(screen.getByText('Pfeile & Zeichen')).toBeInTheDocument();
+    expect(screen.getByText('Natur & Wetter')).toBeInTheDocument();
+  });
+
+  it('enthält alle Vorlagen-Icons in der ersten Kategorie', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+
+    const emojiBtn = screen.getAllByRole('button').find(b => b.textContent === '😊') as HTMLElement;
+    fireEvent.mouseDown(emojiBtn);
+
+    await waitFor(() => screen.getByText('Vorlagen-Icons'));
+
+    // Spot-check a few template emojis that are unique to the templates
+    const emojiButtons = screen.getAllByRole('button');
+    const buttonTexts = emojiButtons.map(b => b.textContent ?? '');
+
+    expect(buttonTexts).toContain('🚀');
+    expect(buttonTexts).toContain('🎉');
+    expect(buttonTexts).toContain('⚽');
+    expect(buttonTexts).toContain('🥅');
+    expect(buttonTexts).toContain('🆕');
+    expect(buttonTexts).toContain('🖼️');
+    expect(buttonTexts).toContain('📸');
+  });
+
+  it('klicken eines Emojis ruft insertContent auf und schließt den Popover', async () => {
+    const runMock = jest.fn();
+    const insertContentMock = jest.fn().mockReturnValue({ run: runMock });
+    const focusMock = jest.fn().mockReturnValue({ insertContent: insertContentMock });
+    const chainMock = jest.fn().mockReturnValue({ focus: focusMock });
+
+    mockEditorInstance = { ...createMockEditor(), chain: chainMock };
+    (require('@tiptap/react').useEditor as jest.Mock).mockReturnValue(mockEditorInstance);
+
+    render(<RichTextEditor {...defaultProps} />);
+
+    const emojiBtn = screen.getAllByRole('button').find(b => b.textContent === '😊') as HTMLElement;
+    fireEvent.mouseDown(emojiBtn);
+
+    await waitFor(() => screen.getByText('Vorlagen-Icons'));
+
+    // Find the 🚀 emoji button and click it
+    const rocketBtn = screen.getAllByRole('button').find(b => b.textContent === '🚀')!;
+    fireEvent.mouseDown(rocketBtn);
+
+    expect(chainMock).toHaveBeenCalled();
+    expect(insertContentMock).toHaveBeenCalledWith('🚀');
+    expect(runMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Vorlagen-Icons')).not.toBeInTheDocument();
+    });
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  Sticky Toolbar
 // ──────────────────────────────────────────────────────────────────────────────
 
