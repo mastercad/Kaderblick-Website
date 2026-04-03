@@ -525,16 +525,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
     return now >= start && now <= end;
   };
 
-  const hasStaffMatchAccess = Boolean(
-    user?.isCoach
-    || Object.values(user?.roles ?? {}).includes('ROLE_SUPPORTER')
-    || Object.values(user?.roles ?? {}).includes('ROLE_ADMIN')
-    || Object.values(user?.roles ?? {}).includes('ROLE_SUPERADMIN')
-  );
-
-  const canCreateEvents = () => {
-    return hasStaffMatchAccess && (game?.permissions?.can_create_game_events ?? false);
-  };
+  const canCreateEvents = () => game?.permissions?.can_create_game_events ?? false;
 
   const handleFinishGame = async () => {
     if (!gameId) return;
@@ -564,9 +555,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
     }
   };
 
-  const canCreateVideos = () => {
-    return hasStaffMatchAccess && (game?.permissions?.can_create_videos ?? false);
-  }
+  const canCreateVideos = () => game?.permissions?.can_create_videos ?? false;
 
   const handleProtectedEventAction = () => {
     if (canCreateEvents()) {
@@ -839,7 +828,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           )}
 
           {/* Spiel beenden Button */}
-          {canCreateEvents() && !isFinished && (
+          {(game?.permissions?.can_finish_game ?? false) && !isFinished && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
               <Button
                 variant="contained"
@@ -864,25 +853,27 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         </CardContent>
       </Card>
 
-      <Box sx={{ mb: 3 }}>
-        <DetailSectionHeader
-          icon={<SoccerIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
-          label="Match-Plan"
-          count={game.matchPlan?.phases?.length ?? 0}
-          color={theme.palette.primary.main}
-          open={sectionsOpen.matchPlan}
-          onToggle={() => toggleSection('matchPlan')}
-          testId="match-plan-section-header"
-        />
-        <Collapse in={sectionsOpen.matchPlan} timeout="auto" unmountOnExit>
-          <GameMatchPlanCard
-            game={game}
-            onUpdated={async () => {
-              await loadGameDetails();
-            }}
+      {(game.permissions?.can_manage_match_plan || game.permissions?.can_view_match_plan) && (
+        <Box sx={{ mb: 3 }}>
+          <DetailSectionHeader
+            icon={<SoccerIcon sx={{ color: 'primary.main', fontSize: 22 }} />}
+            label="Match-Plan"
+            count={game.matchPlan?.phases?.length ?? 0}
+            color={theme.palette.primary.main}
+            open={sectionsOpen.matchPlan}
+            onToggle={() => toggleSection('matchPlan')}
+            testId="match-plan-section-header"
           />
-        </Collapse>
-      </Box>
+          <Collapse in={sectionsOpen.matchPlan} timeout="auto" unmountOnExit>
+            <GameMatchPlanCard
+              game={game}
+              onUpdated={async () => {
+                await loadGameDetails();
+              }}
+            />
+          </Collapse>
+        </Box>
+      )}
 
       {/* ══════════════════════════════════════════════════
           GAME EVENTS
@@ -896,7 +887,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           open={sectionsOpen.events}
           onToggle={() => toggleSection('events')}
           testId="events-section-header"
-          action={hasStaffMatchAccess ? (
+          action={(
             <Button
               variant="contained"
               size="small"
@@ -906,7 +897,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
             >
               Event hinzufügen
             </Button>
-          ) : undefined}
+          )}
         />
         <Collapse in={sectionsOpen.events} timeout="auto" unmountOnExit>
           <Card className="gameevents-mobile-card" sx={{ overflow: 'hidden' }}>
@@ -1095,6 +1086,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                       }}>
                         <IconButton
                           size="small"
+                          aria-label="Ereignis bearbeiten"
                           onClick={() => {
                             setEventToEdit(event);
                             setEventFormOpen(true);
@@ -1105,6 +1097,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                         </IconButton>
                         <IconButton
                           size="small"
+                          aria-label="Ereignis löschen"
                           onClick={() => setEventToDelete(event)}
                           sx={{ p: 0.5 }}
                         >
