@@ -489,4 +489,77 @@ class TwoFactorServiceTest extends TestCase
         $this->assertNull($user->getEmailOtpCode());
         $this->assertNull($user->getEmailOtpExpiresAt());
     }
+
+    // ── Regression: totp_backup_codes JSON NOT NULL without DEFAULT (MariaDB error 4025) ──
+
+    /**
+     * Regression: User entity must initialise totpBackupCodes as an empty *array*
+     * (not null, not empty string). Doctrine serialises this to '[]', satisfying
+     * MariaDB's implicit json_valid() CHECK constraint on the JSON column.
+     *
+     * The production outage was caused by Version20260403100000 adding the column
+     * WITHOUT a DEFAULT, which caused MariaDB to populate existing rows with ''
+     * (empty string). json_valid('') = false → SQLSTATE[23000] / error 4025 on
+     * every subsequent flush() of any User entity.
+     */
+    public function testNewUserHasTotpBackupCodesInitialisedAsEmptyArray(): void
+    {
+        $user = new User();
+
+        $this->assertSame([], $user->getTotpBackupCodes(), 'totpBackupCodes must default to [], not null or empty string');
+    }
+
+    public function testNewUserBackupCodesSerialiseToValidJson(): void
+    {
+        $user = new User();
+
+        $encoded = json_encode($user->getTotpBackupCodes());
+
+        $this->assertIsString($encoded);
+        $this->assertJson($encoded, 'Serialised totpBackupCodes must be valid JSON');
+        $this->assertSame('[]', $encoded, "Empty backup codes must serialise to '[]', not '' or 'null'");
+    }
+
+    public function testDisableLeavesBackupCodesAsValidJsonArray(): void
+    {
+        $user = $this->makeUser();
+        $user->setTotpEnabled(true);
+        $user->setTotpSecret('JBSWY3DPEHPK3PXP');
+        $user->setTotpBackupCodes(['hash1']);
+
+        $this->service->disable($user);
+
+        $codes = $user->getTotpBackupCodes();
+        $encoded = json_encode($codes);
+        $this->assertNotFalse($encoded, 'json_encode must not fail — column would get invalid JSON');
+        $this->assertJson($encoded, 'After disable(), totpBackupCodes must still be valid JSON');
+    }
+
+    public function testVerifyAndEnableBackupCodesAreJsonSerializable(): void
+    {
+        $user = $this->makeUser();
+        $this->service->generateSecret($user);
+
+        $totp = TOTP::createFromSecret($user->getTotpSecret());
+        $this->service->verifyAndEnable($user, $totp->now());
+
+        $stored = $user->getTotpBackupCodes();
+        $this->assertNotEmpty($stored, 'verifyAndEnable must store hashed backup codes');
+        $encoded = json_encode($stored);
+        $this->assertNotFalse($encoded, 'json_encode must not fail — column would get invalid JSON');
+        $this->assertJson($encoded, 'Stored hashed backup codes must be a JSON-serializable array');
+    }
+
+    public function testVerifyBackupCodeAfterLastCodeLeavesEmptyJsonArray(): void
+    {
+        $user = $this->makeUser();
+        $user->setTotpBackupCodes([password_hash('ABCD1234', PASSWORD_BCRYPT)]);
+
+        $this->service->verifyBackupCode($user, 'ABCD-1234');
+
+        $remaining = $user->getTotpBackupCodes();
+        $this->assertSame([], $remaining, 'After consuming the last backup code, result must be [] not null');
+        $this->assertIsString(json_encode($remaining));
+        $this->assertJson(json_encode($remaining));
+    }
 }
