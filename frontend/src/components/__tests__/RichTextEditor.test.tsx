@@ -80,7 +80,9 @@ jest.mock('@mui/material', () => {
         text: { secondary: 'rgba(0,0,0,0.6)', primary: 'rgba(0,0,0,0.87)', disabled: 'rgba(0,0,0,0.38)' },
         mode: 'light',
         common: { white: '#fff', black: '#000' },
-        background: { default: '#fff' },
+        background: { default: '#fff', paper: '#fff' },
+        grey: { 50: '#fafafa', 100: '#f5f5f5', 200: '#eeeeee', 300: '#e0e0e0', 400: '#bdbdbd', 500: '#9e9e9e' },
+        action: { hover: 'rgba(0,0,0,0.04)', selected: 'rgba(0,0,0,0.08)', disabled: 'rgba(0,0,0,0.26)' },
       },
     }),
     alpha: (_color: string, _value: number) => 'rgba(0,0,0,0.1)',
@@ -155,7 +157,7 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
     // Open image dialog via the toolbar button
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => {
       expect(screen.getByText('Bild einfügen')).toBeInTheDocument();
@@ -167,7 +169,7 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => {
       expect(screen.getByText('Bild hier ablegen')).toBeInTheDocument();
@@ -180,7 +182,7 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => {
       expect(screen.getByText('oder URL')).toBeInTheDocument();
@@ -192,13 +194,13 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => screen.getByText('Bild hier ablegen'));
 
     // Trigger drag-over on the drop zone (identified by the text it contains)
     const dropZoneText = screen.getByText('Bild hier ablegen');
-    const dropZone = dropZoneText.closest('div')!.parentElement!; // Box > Typography
+    const dropZone = dropZoneText.closest('div')!; // Box > Typography
 
     fireEvent.dragOver(dropZone, { preventDefault: () => {} });
 
@@ -212,12 +214,12 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => screen.getByText('Bild hier ablegen'));
 
     const dropZoneText = screen.getByText('Bild hier ablegen');
-    const dropZone = dropZoneText.closest('div')!.parentElement!;
+    const dropZone = dropZoneText.closest('div')!;
 
     fireEvent.dragOver(dropZone);
     await waitFor(() => screen.getByText('Bild loslassen …'));
@@ -234,12 +236,12 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => screen.getByText('Bild hier ablegen'));
 
     const dropZoneText = screen.getByText('Bild hier ablegen');
-    const dropZone = dropZoneText.closest('div')!.parentElement!;
+    const dropZone = dropZoneText.closest('div')!;
 
     const imageFile = new File(['(binary)'], 'foto.jpg', { type: 'image/jpeg' });
     fireEvent.drop(dropZone, {
@@ -259,12 +261,12 @@ describe('RichTextEditor – Drag & Drop Bilddialog', () => {
 
     const imageBtn = document.querySelector('[data-testid="ImageIcon"]')
       ?.closest('button') as HTMLElement;
-    if (imageBtn) fireEvent.click(imageBtn);
+    if (imageBtn) fireEvent.mouseDown(imageBtn);
 
     await waitFor(() => screen.getByText('Bild hier ablegen'));
 
     const dropZoneText = screen.getByText('Bild hier ablegen');
-    const dropZone = dropZoneText.closest('div')!.parentElement!;
+    const dropZone = dropZoneText.closest('div')!;
 
     const txtFile = new File(['hello'], 'readme.txt', { type: 'text/plain' });
     fireEvent.drop(dropZone, {

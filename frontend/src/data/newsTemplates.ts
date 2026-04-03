@@ -43,7 +43,7 @@ export const NEWS_TEMPLATES: NewsTemplate[] = [
     description: 'Spielergebnis, Torschützen, Stimmen und Ausblick festhalten',
     icon: '🏆',
     color: '#e65100',
-    html: `<h1>⚽ Spielbericht: [Heim] 3:1 [Gast]</h1><p>Spieltag X · Liga · TT.MM.JJJJ</p><hr><h2>Spielverlauf</h2><p>Beschreibt hier den Verlauf der Partie. Was war der Schlüsselmoment? Wie entwickelte sich das Spiel? Welche Phasen gab es?</p><h2>🥅 Torschützen</h2><ul><li><p><strong>Name</strong> – Minute' (Torvorlage: Name)</p></li><li><p><strong>Name</strong> – Minute'</p></li><li><p><strong>Name</strong> – Minute' (Elfmeter)</p></li></ul><h2>Stimmen zum Spiel</h2><blockquote><p>„Zitat des Trainers oder Spielers zum Spiel." – <strong>Name</strong>, Trainer/Spieler</p></blockquote><h2>Ausblick</h2><p>Nächstes Spiel: <strong>[Gegner]</strong> am TT.MM. um HH:MM Uhr in/bei [Location].</p>`,
+    html: `<h1>⚽ Spielbericht: [Heim] 3:1 [Gast]</h1><p>Spieltag X · Liga · TT.MM.JJJJ</p><hr><h2>Spielverlauf</h2><p>Beschreibt hier den Verlauf der Partie. Was war der Schlüsselmoment? Wie entwickelte sich das Spiel? Welche Phasen gab es?</p><h2>🥅 Torschützen</h2><ul><li><p><strong>Name</strong> – Minute' (Torvorlage: Name)</p></li><li><p><strong>Name</strong> – Minute'</p></li><li><p><strong>Name</strong> – Minute' (Elfmeter)</p></li></ul><h2>Stimmen zum Spiel</h2><blockquote><p>„Zitat des Trainers oder Spielers zum Spiel." – <strong>Name</strong>, Trainer/Spieler</p></blockquote><p></p><h2>Ausblick</h2><p>Nächstes Spiel: <strong>[Gegner]</strong> am TT.MM. um HH:MM Uhr in/bei [Location].</p>`,
   },
   {
     id: 'announcement',
