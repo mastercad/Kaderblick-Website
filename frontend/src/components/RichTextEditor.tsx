@@ -13,7 +13,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import {
   Box, IconButton, Tooltip, Divider, Dialog, DialogTitle,
   DialogContent, DialogActions, Button, TextField, Stack,
-  Paper, CircularProgress, useTheme, alpha, Typography,
+  Paper, CircularProgress, useTheme, alpha, Typography, Chip,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
@@ -168,6 +168,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
@@ -268,10 +269,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [editor, pendingImageSrc, imageSize]);
 
   // ── Image file upload ───────────────────────────────────────────────────────
-  const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editor) return;
-    e.target.value = '';
+  const uploadImageFile = useCallback(async (file: File) => {
+    if (!editor) return;
+    setImageDialogOpen(false);
     setUploading(true);
     try {
       const formData = new FormData();
@@ -291,6 +291,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   }, [editor]);
 
+  const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await uploadImageFile(file);
+  }, [uploadImageFile]);
+
   if (!editor) return null;
 
   // ── Toolbar State ───────────────────────────────────────────────────────────
@@ -308,11 +315,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           alignItems: 'center',
           gap: 0.25,
           p: '4px 6px',
-          borderBottom: 'none',
+          borderBottom: `1px solid ${theme.palette.divider}`,
           borderRadius: '8px 8px 0 0',
           bgcolor: theme.palette.mode === 'dark'
-            ? alpha(theme.palette.background.paper, 0.6)
-            : alpha(theme.palette.grey[50], 1),
+            ? alpha(theme.palette.background.paper, 0.95)
+            : alpha(theme.palette.grey[50], 0.98),
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          backdropFilter: 'blur(4px)',
         }}
       >
         {/* History */}
@@ -390,7 +401,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           onClick={() => editor.chain().focus().toggleOrderedList().run()}>
           <FormatListNumberedIcon fontSize="small" />
         </ToolBtn>
-        <ToolBtn title="Zitat" active={is('blockquote')}
+        <ToolBtn title="Zitat / grüner Balken (Strg+Shift+B zum Beenden)" active={is('blockquote')}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}>
           <FormatQuoteIcon fontSize="small" />
         </ToolBtn>
@@ -437,6 +448,34 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           style={{ display: 'none' }}
           onChange={handleImageFileChange}
         />
+
+        {/* Blockquote context indicator */}
+        {is('blockquote') && (
+          <>
+            <ToolDivider />
+            <Tooltip title="Klicken um Zitat-Format zu beenden">
+              <Chip
+                label="Im Zitat"
+                size="small"
+                onMouseDown={e => {
+                  e.preventDefault();
+                  editor.chain().focus().toggleBlockquote().run();
+                }}
+                sx={{
+                  height: 22,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  color: theme.palette.primary.main,
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.4)}`,
+                  '& .MuiChip-label': { px: 1 },
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                }}
+              />
+            </Tooltip>
+          </>
+        )}
       </Paper>
 
       {/* ── Editor Area ───────────────────────────────────────────────────── */}
@@ -573,22 +612,56 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       </Dialog>
 
       {/* ── Image Dialog ──────────────────────────────────────────────────── */}
-      <Dialog open={imageDialogOpen} onClose={() => setImageDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={imageDialogOpen} onClose={() => { setImageDialogOpen(false); setDragOver(false); }} maxWidth="xs" fullWidth>
         <DialogTitle>Bild einfügen</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<ImageIcon />}
-              onClick={() => {
-                setImageDialogOpen(false);
-                fileInputRef.current?.click();
+            {/* Drag & Drop Zone */}
+            <Box
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragEnter={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault();
+                setDragOver(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith('image/')) {
+                  uploadImageFile(file);
+                }
               }}
-              fullWidth
+              onClick={() => fileInputRef.current?.click()}
+              sx={{
+                border: `2px dashed ${dragOver ? theme.palette.primary.main : theme.palette.divider}`,
+                borderRadius: 2,
+                p: 3,
+                textAlign: 'center',
+                cursor: 'pointer',
+                bgcolor: dragOver
+                  ? alpha(theme.palette.primary.main, 0.07)
+                  : theme.palette.mode === 'dark'
+                    ? alpha(theme.palette.common.white, 0.02)
+                    : alpha(theme.palette.common.black, 0.01),
+                transition: 'all 0.15s',
+                userSelect: 'none',
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
+                },
+              }}
             >
-              Bild vom Computer hochladen
-            </Button>
-            <Divider>oder</Divider>
+              {uploading ? (
+                <CircularProgress size={32} sx={{ mb: 1 }} />
+              ) : (
+                <ImageIcon sx={{ fontSize: 36, color: dragOver ? 'primary.main' : 'text.disabled', mb: 0.75, display: 'block', mx: 'auto' }} />
+              )}
+              <Typography variant="body2" fontWeight={600} color={dragOver ? 'primary.main' : 'text.primary'} sx={{ mb: 0.25 }}>
+                {dragOver ? 'Bild loslassen …' : 'Bild hier ablegen'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                oder klicken zum Durchsuchen
+              </Typography>
+            </Box>
+            <Divider>oder URL</Divider>
             <TextField
               label="Bild-URL"
               value={imageUrl}

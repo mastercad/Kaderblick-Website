@@ -211,24 +211,38 @@ const News: React.FC = () => {
   useEffect(() => { fetchNews(); }, []);
 
   return (
-    <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <ArticleIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Neuigkeiten</Typography>
+    <Box maxWidth={900} mx="auto">
+      {/* Sticky Header */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: { xs: 1, sm: 2, md: 3 },
+          pb: 1,
+          px: { xs: 1, sm: 2, md: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <ArticleIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Neuigkeiten</Typography>
+          </Stack>
+          {canCreate && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setModalOpen(true)} size="medium">
+              Neue Neuigkeit
+            </Button>
+          )}
         </Stack>
-        {canCreate && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setModalOpen(true)} size="medium">
-            Neue Neuigkeit
-          </Button>
-        )}
-      </Stack>
+        <Typography variant="body2" color="text.secondary">
+          {news.length} {news.length === 1 ? 'Neuigkeit' : 'Neuigkeiten'} verfügbar
+        </Typography>
+      </Box>
 
-      {/* Statsline */}
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {news.length} {news.length === 1 ? 'Neuigkeit' : 'Neuigkeiten'} verfügbar
-      </Typography>
+      <Box p={{ xs: 1, sm: 2, md: 3 }}>
 
       {/* Loading */}
       {loading && (
@@ -305,6 +319,7 @@ const News: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      </Box>
     </Box>
   );
 };

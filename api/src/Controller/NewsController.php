@@ -256,11 +256,13 @@ class NewsController extends AbstractController
         });
 
         if (!empty($filteredUsers)) {
+            $preview = self::buildNotificationPreview((string) $news->getContent());
+
             $this->notificationService->createNotificationForUsers(
                 $filteredUsers,
                 'news',
                 'Neue Nachricht: ' . $news->getTitle(),
-                substr($news->getContent(), 0, 100) . (strlen($news->getContent()) > 100 ? '...' : ''),
+                $preview,
                 ['newsId' => $news->getId(), 'url' => '/news/' . $news->getId()]
             );
         }
@@ -405,5 +407,33 @@ class NewsController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true]);
+    }
+
+    /**
+     * Convert HTML news content to a clean plain-text preview for push notifications.
+     *
+     * Block-level closing tags are replaced with a space before stripping HTML,
+     * preventing words from concatenating across element boundaries.
+     * The result is truncated at a word boundary around 120 characters.
+     */
+    public static function buildNotificationPreview(string $html): string
+    {
+        // Block-closing tags → space so adjacent words don't concatenate
+        $html = (string) preg_replace('/<\/(p|h[1-6]|li|blockquote|div|td|th|tr)>/i', ' ', $html);
+        $html = (string) preg_replace('/<br\s*\/?>/i', ' ', $html);
+        $plainContent = trim((string) preg_replace('/\s+/', ' ', strip_tags($html)));
+
+        if (mb_strlen($plainContent) > 120) {
+            $truncated = mb_substr($plainContent, 0, 120);
+            // Step back to last space to avoid cutting mid-word
+            $lastSpace = mb_strrpos($truncated, ' ');
+            if (false !== $lastSpace && $lastSpace > 80) {
+                $truncated = mb_substr($truncated, 0, $lastSpace);
+            }
+
+            return $truncated . '…';
+        }
+
+        return $plainContent;
     }
 }
