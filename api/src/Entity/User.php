@@ -1121,7 +1121,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /** @var array<int, string> SHA-256 hashes of IP addresses that have successfully logged in. */
     #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $knownLoginIps = [];
+    private array $knownLoginIps = [];
 
     /** When the account was locked (null = not locked). */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
@@ -1141,7 +1141,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /** @return array<int, string> */
     public function getKnownLoginIps(): array
     {
-        return $this->knownLoginIps ?? [];
+        return $this->knownLoginIps;
     }
 
     /** @param array<int, string> $knownLoginIps */
