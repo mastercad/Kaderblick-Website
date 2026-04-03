@@ -110,8 +110,12 @@ class LoginSecurityService
             return;
         }
 
-        // First login from this IP: warn the user.
-        $this->sendNewIpWarning($user, $ip);
+        // First login from this IP: warn the user (but only if they already
+        // have at least one known IP – on the very first login ever the list
+        // is empty and there is no point in sending a warning).
+        if ([] !== $knownIps) {
+            $this->sendNewIpWarning($user, $ip);
+        }
 
         // Record the IP (evict oldest entry when the list is full).
         $knownIps[] = $ipHash;
