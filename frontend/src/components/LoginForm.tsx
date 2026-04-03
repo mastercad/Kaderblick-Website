@@ -67,7 +67,7 @@ export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
       } else if (err?.status === 429) {
         setError('Zu viele Fehlversuche. Bitte versuche es in 10 Minuten erneut.');
       } else if (err?.status === 403) {
-        setError('Dein Konto wurde gesperrt. Bitte kontaktiere den Support.');
+        setError('locked');
       } else {
         setError('Login fehlgeschlagen');
       }
@@ -120,7 +120,26 @@ export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
         InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" color="action" /></InputAdornment> }}
       />
       {error && (
-        <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>
+        <Alert severity="error" sx={{ borderRadius: 2 }}>
+          {error === 'locked' ? (
+            <>
+              Dein Konto wurde gesperrt.{' '}
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onClose) onClose();
+                  navigate('/request-unlock');
+                }}
+                sx={{ cursor: 'pointer', verticalAlign: 'baseline' }}
+              >
+                Konto entsperren anfordern
+              </Link>
+            </>
+          ) : error}
+        </Alert>
       )}
       <Box sx={{ textAlign: 'right', mt: -1 }}>
         <Link

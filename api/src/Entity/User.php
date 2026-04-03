@@ -228,6 +228,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Camera::class, mappedBy: 'updated_from')]
     private Collection $camerasUpdated;
 
+    /** @var array<int, string> SHA-256 hashes of known device tokens (set via HttpOnly cookie). */
+    #[ORM\Column(type: 'json')]
+    private array $knownDeviceTokens = [];
+
+    /** When the account was locked (null = not locked). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $lockedAt = null;
+
+    /** Human-readable reason for the account lock. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lockReason = null;
+
+    /** Short-lived token sent in the "suspicious login" email so the user can lock their account. */
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $accountLockToken = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $accountLockTokenExpiresAt = null;
+
+    /** Short-lived token sent via email so the user can unlock their own locked account. */
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $accountUnlockToken = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?DateTimeImmutable $accountUnlockTokenExpiresAt = null;
+
     public function __construct()
     {
         $this->widgets = new ArrayCollection();
@@ -1117,37 +1143,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->totpEnabled || $this->emailOtpEnabled;
     }
 
-    // ── Security: known IPs & account lock ───────────────────────────────────
-
-    /** @var array<int, string> SHA-256 hashes of IP addresses that have successfully logged in. */
-    #[ORM\Column(type: 'json', nullable: true)]
-    private array $knownLoginIps = [];
-
-    /** When the account was locked (null = not locked). */
-    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    private ?DateTimeImmutable $lockedAt = null;
-
-    /** Human-readable reason for the account lock. */
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $lockReason = null;
-
-    /** Short-lived token sent in the "suspicious login" email so the user can lock their account. */
-    #[ORM\Column(length: 64, nullable: true, unique: true)]
-    private ?string $accountLockToken = null;
-
-    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    private ?DateTimeImmutable $accountLockTokenExpiresAt = null;
-
     /** @return array<int, string> */
-    public function getKnownLoginIps(): array
+    public function getKnownDeviceTokens(): array
     {
-        return $this->knownLoginIps;
+        return $this->knownDeviceTokens;
     }
 
-    /** @param array<int, string> $knownLoginIps */
-    public function setKnownLoginIps(array $knownLoginIps): static
+    /** @param array<int, string> $knownDeviceTokens */
+    public function setKnownDeviceTokens(array $knownDeviceTokens): static
     {
-        $this->knownLoginIps = $knownLoginIps;
+        $this->knownDeviceTokens = $knownDeviceTokens;
 
         return $this;
     }
@@ -1196,6 +1201,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAccountLockTokenExpiresAt(?DateTimeImmutable $accountLockTokenExpiresAt): static
     {
         $this->accountLockTokenExpiresAt = $accountLockTokenExpiresAt;
+
+        return $this;
+    }
+
+    public function getAccountUnlockToken(): ?string
+    {
+        return $this->accountUnlockToken;
+    }
+
+    public function setAccountUnlockToken(?string $accountUnlockToken): static
+    {
+        $this->accountUnlockToken = $accountUnlockToken;
+
+        return $this;
+    }
+
+    public function getAccountUnlockTokenExpiresAt(): ?DateTimeImmutable
+    {
+        return $this->accountUnlockTokenExpiresAt;
+    }
+
+    public function setAccountUnlockTokenExpiresAt(?DateTimeImmutable $accountUnlockTokenExpiresAt): static
+    {
+        $this->accountUnlockTokenExpiresAt = $accountUnlockTokenExpiresAt;
 
         return $this;
     }

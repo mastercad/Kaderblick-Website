@@ -16,8 +16,10 @@ use Symfony\Contracts\Cache\ItemInterface;
  *
  *  - Rate-limiting: blocks IPs that exceeded the failure threshold (shares the
  *    same cache key as AdminAlertService so both systems stay in sync).
- *  - Unknown-IP detection: on the first successful login from a new IP the
- *    user receives a warning email with a one-click "Konto sperren" link.
+ *  - Unknown-device detection: on the first successful login from a new device
+ *    the user receives a warning email with a one-click "Konto sperren" link.
+ *    Device recognition is based on a long-lived HttpOnly cookie, not the IP
+ *    address (IPs change constantly for mobile users).
  *  - Account locking: the user (or an admin) can lock an account via a
  *    short-lived token; locked accounts cannot log in.
  */
@@ -33,11 +35,17 @@ class LoginSecurityService
     /** Cache window in seconds – kept in sync with AdminAlertService. */
     private const BRUTE_FORCE_WINDOW_SECONDS = 600; // 10 minutes
 
-    /** How many distinct IPs a user may accumulate before old entries are evicted. */
-    private const MAX_KNOWN_IPS = 20;
+    /** How many distinct devices a user may accumulate before old entries are evicted. */
+    private const MAX_KNOWN_DEVICES = 20;
+
+    /** Name of the HttpOnly cookie that carries the device token. */
+    public const DEVICE_COOKIE_NAME = 'device_token';
 
     /** How long the "lock my account" token is valid after it is issued. */
     private const LOCK_TOKEN_TTL_SECONDS = 86400; // 24 hours
+
+    /** How long the "unlock my account" token is valid after it is issued. */
+    private const UNLOCK_TOKEN_TTL_SECONDS = 86400; // 24 hours
 
     public function __construct(
         private readonly CacheInterface $cache,
@@ -96,34 +104,49 @@ class LoginSecurityService
     /**
      * Called after every fully successful login (password ✓ + 2FA ✓ if required).
      *
-     * - Checks whether the IP is known for this user.
-     * - If not: sends a warning email and adds the IP to the known list.
-     * - Always persists the new known-IP list when changed.
+     * Reads the device token supplied by the caller (from the request cookie) and
+     * checks whether this device is already known for the user.
+     *
+     * - Known device  → no email, returns null (caller keeps existing cookie as-is).
+     * - Unknown/new device → sends warning email, stores the new token hash, returns
+     *   the new plain token so the caller can set it as a long-lived cookie.
+     *
+     * @param string|null $deviceToken plain token read from the cookie (null = no cookie present)
+     *
+     * @return string|null new plain token to set as cookie, or null if device was known
      */
-    public function handleSuccessfulLogin(User $user, string $ip): void
+    public function handleSuccessfulLogin(User $user, ?string $deviceToken): ?string
     {
-        $ipHash = hash('sha256', $ip);
-        $knownIps = $user->getKnownLoginIps();
+        if (null !== $deviceToken && '' !== $deviceToken) {
+            $tokenHash = hash('sha256', $deviceToken);
+            $knownTokens = $user->getKnownDeviceTokens();
 
-        if (in_array($ipHash, $knownIps, true)) {
-            // Known IP – nothing to do.
-            return;
+            if (in_array($tokenHash, $knownTokens, true)) {
+                // Known device – nothing to do.
+                return null;
+            }
         }
 
-        // First login from this IP: warn the user (but only if they already
-        // have at least one known IP – on the very first login ever the list
-        // is empty and there is no point in sending a warning).
-        if ([] !== $knownIps) {
-            $this->sendNewIpWarning($user, $ip);
+        // New or missing device token: generate a fresh one.
+        $newToken = bin2hex(random_bytes(32));
+        $newHash = hash('sha256', $newToken);
+        $knownTokens = $user->getKnownDeviceTokens();
+
+        // Warn the user only if they already have at least one known device
+        // (on the very first login ever the list is empty → no point warning).
+        if ([] !== $knownTokens) {
+            $this->sendNewDeviceWarning($user);
         }
 
-        // Record the IP (evict oldest entry when the list is full).
-        $knownIps[] = $ipHash;
-        if (count($knownIps) > self::MAX_KNOWN_IPS) {
-            array_shift($knownIps);
+        // Record the new device hash (evict oldest entry when the list is full).
+        $knownTokens[] = $newHash;
+        if (count($knownTokens) > self::MAX_KNOWN_DEVICES) {
+            array_shift($knownTokens);
         }
-        $user->setKnownLoginIps($knownIps);
+        $user->setKnownDeviceTokens($knownTokens);
         $this->em->flush();
+
+        return $newToken;
     }
 
     // ── Lock-account token ────────────────────────────────────────────────────
@@ -159,29 +182,81 @@ class LoginSecurityService
         return true;
     }
 
+    // ── Unlock-account token ──────────────────────────────────────────────────
+
+    /**
+     * Sends an unlock email to the given address if a locked account with that
+     * address exists.  Always returns true (even when no matching account is
+     * found) to prevent user enumeration.
+     */
+    public function requestUnlockEmail(string $email): bool
+    {
+        /** @var User|null $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
+
+        // No user found or account is not locked → return silently.
+        if (!$user || !$user->isLocked()) {
+            return true;
+        }
+
+        $this->sendUnlockEmail($user);
+
+        return true;
+    }
+
+    /**
+     * Unlocks the account identified by the given token.
+     * Returns true on success, false if the token is missing, unknown or expired.
+     */
+    public function unlockAccountByToken(string $token): bool
+    {
+        if ('' === $token) {
+            return false;
+        }
+
+        /** @var User|null $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['accountUnlockToken' => $token]);
+
+        if (!$user) {
+            return false;
+        }
+
+        $expires = $user->getAccountUnlockTokenExpiresAt();
+        if (!$expires || $expires < new DateTimeImmutable()) {
+            return false;
+        }
+
+        $user->setLockedAt(null);
+        $user->setLockReason(null);
+        $user->setAccountUnlockToken(null);
+        $user->setAccountUnlockTokenExpiresAt(null);
+        $this->em->flush();
+
+        return true;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
      * Issues a short-lived one-time token, stores it on the user and sends
      * a warning email containing a "Konto sperren" link.
      */
-    private function sendNewIpWarning(User $user, string $ip): void
+    private function sendNewDeviceWarning(User $user): void
     {
         $lockToken = $this->issueLockToken($user);
 
         $lockUrl = rtrim($this->appBaseUrl, '/') . '/api/security/lock-account?token=' . urlencode($lockToken);
         $name = htmlspecialchars($user->getFirstName() ?? $user->getEmail(), ENT_QUOTES, 'UTF-8');
-        $ipSafe = htmlspecialchars($ip, ENT_QUOTES, 'UTF-8');
         $time = (new DateTime())->format('d.m.Y H:i:s');
 
         $html = <<<HTML
             <p>Hallo {$name},</p>
-            <p>wir haben einen Login in dein Konto von einer <strong>bisher unbekannten IP-Adresse</strong> festgestellt:</p>
+            <p>wir haben einen Login in dein Konto von einem <strong>bisher unbekannten Gerät oder Browser</strong> festgestellt:</p>
             <table style="border-collapse:collapse;margin:16px 0;">
-                <tr><td style="padding:4px 12px 4px 0;color:#555;">IP-Adresse</td><td><strong>{$ipSafe}</strong></td></tr>
                 <tr><td style="padding:4px 12px 4px 0;color:#555;">Zeitpunkt</td><td><strong>{$time} UTC</strong></td></tr>
             </table>
-            <p>Wenn <strong>du das warst</strong>, kannst du diese E-Mail ignorieren. Beim nächsten Login von dieser IP erscheint keine Warnung mehr.</p>
+            <p>Wenn <strong>du das warst</strong> (z.&thinsp;B. neuer Browser, neues Gerät oder gelöschte Cookies),
+            kannst du diese E-Mail ignorieren. Beim nächsten Login von diesem Gerät erscheint keine Warnung mehr.</p>
             <p>Wenn <strong>du das nicht warst</strong>, klicke bitte sofort auf den folgenden Link, um dein Konto zu sperren:</p>
             <p style="margin:24px 0;">
                 <a href="{$lockUrl}" style="background:#c0392b;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:bold;">
@@ -194,7 +269,7 @@ class LoginSecurityService
         $email = (new Email())
             ->from($this->mailerFrom)
             ->to($user->getEmail())
-            ->subject('Sicherheitswarnung: Neuer Login von unbekannter IP erkannt')
+            ->subject('Sicherheitshinweis: Neuer Login von unbekanntem Gerät')
             ->html($html);
 
         $this->mailer->send($email);
@@ -213,5 +288,51 @@ class LoginSecurityService
         $this->em->flush();
 
         return $token;
+    }
+
+    /**
+     * Generates and persists a new account-unlock token on the user entity.
+     */
+    private function issueUnlockToken(User $user): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $user->setAccountUnlockToken($token);
+        $user->setAccountUnlockTokenExpiresAt(
+            new DateTimeImmutable('+' . self::UNLOCK_TOKEN_TTL_SECONDS . ' seconds')
+        );
+        $this->em->flush();
+
+        return $token;
+    }
+
+    /**
+     * Sends an email containing a one-time unlock link to the user.
+     */
+    private function sendUnlockEmail(User $user): void
+    {
+        $unlockToken = $this->issueUnlockToken($user);
+
+        $unlockUrl = rtrim($this->appBaseUrl, '/') . '/unlock-account?token=' . urlencode($unlockToken);
+        $name = htmlspecialchars($user->getFirstName() ?? $user->getEmail(), ENT_QUOTES, 'UTF-8');
+
+        $html = <<<HTML
+            <p>Hallo {$name},</p>
+            <p>du hast angefragt, dein gesperrtes Konto wieder freizuschalten.</p>
+            <p>Klicke auf den folgenden Link, um dein Konto zu entsperren:</p>
+            <p style="margin:24px 0;">
+                <a href="{$unlockUrl}" style="background:#1976d2;color:#fff;padding:12px 24px;border-radius:4px;text-decoration:none;font-weight:bold;">
+                    Konto jetzt entsperren
+                </a>
+            </p>
+            <p style="color:#888;font-size:0.85em;">Dieser Link ist 24 Stunden gültig. Falls du diese E-Mail nicht angefragt hast, kannst du sie ignorieren.</p>
+            HTML;
+
+        $email = (new Email())
+            ->from($this->mailerFrom)
+            ->to($user->getEmail())
+            ->subject('Konto entsperren: Dein Entsperr-Link')
+            ->html($html);
+
+        $this->mailer->send($email);
     }
 }

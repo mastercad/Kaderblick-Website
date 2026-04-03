@@ -36,6 +36,7 @@ class AuthController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $email = (string) ($data['email'] ?? '');
         $clientIp = $request->getClientIp() ?? 'unbekannt';
+        $deviceToken = $request->cookies->get(LoginSecurityService::DEVICE_COOKIE_NAME);
 
         // ── Rate limiting: block IPs that exceeded the failure threshold ──────
         if ($loginSecurityService->isRateLimited($clientIp)) {
@@ -94,10 +95,26 @@ class AuthController extends AbstractController
         $expireDate = (new DateTime())->modify("+{$ttl} seconds");
         $expireTimestamp = $expireDate->getTimestamp();
 
-        // Unknown-IP check: notify user if this IP has never been seen before.
-        $loginSecurityService->handleSuccessfulLogin($user, $clientIp);
+        // Unknown-device check: notify user and set long-lived device cookie if new device.
+        $newDeviceToken = $loginSecurityService->handleSuccessfulLogin($user, $deviceToken);
 
         $response = new JsonResponse(['token' => $accessToken]);
+        if (null !== $newDeviceToken) {
+            $response->headers->setCookie(
+                new Cookie(
+                    LoginSecurityService::DEVICE_COOKIE_NAME,
+                    $newDeviceToken,
+                    new DateTime('+180 days'),
+                    '/',
+                    null,
+                    true,
+                    true,
+                    false,
+                    'lax'
+                )
+            );
+        }
+
         $response->headers->setCookie(
             new Cookie(
                 'jwt_token',

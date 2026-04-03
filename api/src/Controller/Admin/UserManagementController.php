@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Entity\UserRelation;
 use App\Service\DefaultDashboardService;
 use App\Service\NotificationService;
+use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
@@ -60,6 +61,7 @@ class UserManagementController extends AbstractController
                         'roles' => $user->getRoles(),
                         'isVerified' => $user->isVerified(),
                         'isEnabled' => $user->isEnabled(),
+                        'lockedAt' => $user->getLockedAt()?->format(DateTimeInterface::ATOM),
                         'userRelations' => array_map(fn (UserRelation $relation) => [
                             'id' => $relation->getId(),
                             'type' => $relation->getRelationType()->getName(),
@@ -347,6 +349,25 @@ class UserManagementController extends AbstractController
             $user->getEmail(),
             $user->isEnabled() ? 'aktiviert' : 'deaktiviert'
         )]);
+    }
+
+    #[Route('/{id}/unlock', name: 'unlock', methods: ['POST'])]
+    public function unlock(User $user): Response
+    {
+        if (!$user->isLocked()) {
+            return $this->json(['success' => false, 'message' => 'Konto ist nicht gesperrt.'], 400);
+        }
+
+        $user->setLockedAt(null);
+        $user->setLockReason(null);
+        $user->setAccountUnlockToken(null);
+        $user->setAccountUnlockTokenExpiresAt(null);
+        $this->em->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => sprintf('Konto von %s wurde entsperrt.', $user->getEmail()),
+        ]);
     }
 
     #[Route('/search/{type}', name: 'search', methods: ['GET'])]

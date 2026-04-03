@@ -240,8 +240,9 @@ class TwoFactorController extends AbstractController
         // Clear pending token
         $this->twoFactorService->clearPendingToken($user);
 
-        // Unknown-IP check: notify user if this IP has never been seen before.
-        $loginSecurityService->handleSuccessfulLogin($user, $request->getClientIp() ?? 'unbekannt');
+        // Unknown-device check: notify user and set long-lived device cookie if new device.
+        $deviceToken = $request->cookies->get(\App\Service\LoginSecurityService::DEVICE_COOKIE_NAME);
+        $newDeviceToken = $loginSecurityService->handleSuccessfulLogin($user, $deviceToken);
 
         // Issue JWT + refresh token (same as normal login)
         $accessToken = $jwtManager->create($user);
@@ -251,6 +252,22 @@ class TwoFactorController extends AbstractController
         $expireDate = (new DateTime())->modify("+{$ttl} seconds");
 
         $response = new JsonResponse(['token' => $accessToken]);
+        if (null !== $newDeviceToken) {
+            $response->headers->setCookie(
+                new \Symfony\Component\HttpFoundation\Cookie(
+                    \App\Service\LoginSecurityService::DEVICE_COOKIE_NAME,
+                    $newDeviceToken,
+                    new DateTime('+180 days'),
+                    '/',
+                    null,
+                    true,
+                    true,
+                    false,
+                    'lax'
+                )
+            );
+        }
+
         $response->headers->setCookie(
             new \Symfony\Component\HttpFoundation\Cookie(
                 'jwt_token',

@@ -22,6 +22,8 @@ import Footer from './components/Footer';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import RequestUnlock from './pages/RequestUnlock';
+import UnlockAccount from './pages/UnlockAccount';
 import { PullToRefresh } from './components/PullToRefresh';
 import { PushWarningBanner } from './components/PushWarningBanner';
 import { TwoFactorWarningBanner } from './components/TwoFactorWarningBanner';
@@ -284,6 +286,8 @@ function App() {
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
+                    <Route path="/request-unlock" element={<RequestUnlock />} />
+                    <Route path="/unlock-account" element={<UnlockAccount />} />
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route path="/my-team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
                     <Route path="/surveys" element={<ProtectedRoute><SurveyList /></ProtectedRoute>} />

@@ -93,78 +93,92 @@ class LoginSecurityServiceTest extends TestCase
         $this->assertTrue($this->service->isAccountLocked($user));
     }
 
-    // ── handleSuccessfulLogin() – known IP ───────────────────────────────────
+    // ── handleSuccessfulLogin() – known device ─────────────────────────────
 
-    public function testHandleSuccessfulLoginKnownIpDoesNotSendEmail(): void
+    public function testHandleSuccessfulLoginKnownDeviceDoesNotSendEmail(): void
     {
-        $ip = '127.0.0.1';
+        $plainToken = 'my-known-device-token';
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', $ip)]);
+        $user->setKnownDeviceTokens([hash('sha256', $plainToken)]);
 
         $this->mailer->expects($this->never())->method('send');
         $this->em->expects($this->never())->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, $ip);
+        $result = $this->service->handleSuccessfulLogin($user, $plainToken);
+        $this->assertNull($result, 'Known device must return null (no new cookie needed)');
     }
 
-    // ── handleSuccessfulLogin() – very first login (empty list) ────────────
+    // ── handleSuccessfulLogin() – very first login (empty list) ─────────────
 
     public function testHandleSuccessfulLoginFirstEverLoginDoesNotSendEmail(): void
     {
-        // No known IPs yet → silent registration, no warning.
+        // No known devices yet → silent registration, no warning.
         $user = $this->makeUser('target@example.com');
-        $user->setKnownLoginIps([]);
+        $user->setKnownDeviceTokens([]);
 
         $this->mailer->expects($this->never())->method('send');
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+        $this->service->handleSuccessfulLogin($user, null);
     }
 
-    public function testHandleSuccessfulLoginFirstEverLoginStoresIpHash(): void
+    public function testHandleSuccessfulLoginFirstEverLoginStoresDeviceTokenHash(): void
     {
-        $ip = '8.8.8.8';
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownDeviceTokens([]);
 
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, $ip);
+        $newToken = $this->service->handleSuccessfulLogin($user, null);
 
-        $this->assertContains(hash('sha256', $ip), $user->getKnownLoginIps());
+        $this->assertNotNull($newToken);
+        $this->assertContains(hash('sha256', $newToken), $user->getKnownDeviceTokens());
     }
 
     public function testHandleSuccessfulLoginFirstEverLoginFlushesOnce(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownDeviceTokens([]);
 
         $this->em->expects($this->once())->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+        $this->service->handleSuccessfulLogin($user, null);
     }
 
     public function testHandleSuccessfulLoginFirstEverLoginDoesNotSetLockToken(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([]);
+        $user->setKnownDeviceTokens([]);
 
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+        $this->service->handleSuccessfulLogin($user, null);
 
         // No warning email issued → no lock token should be generated.
         $this->assertNull($user->getAccountLockToken());
         $this->assertNull($user->getAccountLockTokenExpiresAt());
     }
 
-    // ── handleSuccessfulLogin() – unknown IP (has prior known IPs) ───────────
+    public function testHandleSuccessfulLoginFirstEverLoginReturnsNewToken(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownDeviceTokens([]);
 
-    public function testHandleSuccessfulLoginNewIpSendsWarningEmail(): void
+        $this->em->method('flush');
+
+        $result = $this->service->handleSuccessfulLogin($user, null);
+
+        $this->assertNotNull($result);
+        $this->assertNotEmpty($result);
+    }
+
+    // ── handleSuccessfulLogin() – unknown device (has prior known devices) ───
+
+    public function testHandleSuccessfulLoginNewDeviceSendsWarningEmail(): void
     {
         $user = $this->makeUser('target@example.com');
-        // User already logged in once before from a different IP.
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        // User already logged in once before from a different device.
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $sentEmail = null;
         $this->mailer->expects($this->once())
@@ -174,16 +188,16 @@ class LoginSecurityServiceTest extends TestCase
             });
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+        $this->service->handleSuccessfulLogin($user, null);
 
         $this->assertNotNull($sentEmail);
         $this->assertSame('target@example.com', $sentEmail->getTo()[0]->getAddress());
     }
 
-    public function testHandleSuccessfulLoginNewIpEmailHasSecuritySubject(): void
+    public function testHandleSuccessfulLoginNewDeviceEmailHasSecuritySubject(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -192,15 +206,15 @@ class LoginSecurityServiceTest extends TestCase
             });
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '8.8.8.8');
+        $this->service->handleSuccessfulLogin($user, null);
 
-        $this->assertStringContainsString('Sicherheitswarnung', $sentEmail->getSubject());
+        $this->assertStringContainsString('Sicherheitshinweis', $sentEmail->getSubject());
     }
 
-    public function testHandleSuccessfulLoginNewIpEmailContainsLockUrl(): void
+    public function testHandleSuccessfulLoginNewDeviceEmailContainsLockUrl(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -209,16 +223,16 @@ class LoginSecurityServiceTest extends TestCase
             });
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '10.0.0.1');
+        $this->service->handleSuccessfulLogin($user, null);
 
         $this->assertStringContainsString('/api/security/lock-account?token=', $sentEmail->getHtmlBody());
     }
 
-    public function testHandleSuccessfulLoginNewIpEmailContainsIpAddress(): void
+    public function testHandleSuccessfulLoginNewDeviceEmailDoesNotContainIpAddress(): void
     {
-        $ip = '203.0.113.42';
+        // The new email must NOT expose any IP address (there is none to show).
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $sentEmail = null;
         $this->mailer->method('send')
@@ -227,72 +241,85 @@ class LoginSecurityServiceTest extends TestCase
             });
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, $ip);
+        $this->service->handleSuccessfulLogin($user, null);
 
-        $this->assertStringContainsString($ip, $sentEmail->getHtmlBody());
+        $this->assertStringNotContainsString('IP-Adresse', $sentEmail->getHtmlBody());
     }
 
-    public function testHandleSuccessfulLoginNewIpStoresIpHash(): void
+    public function testHandleSuccessfulLoginNewDeviceStoresTokenHash(): void
     {
-        $ip = '10.0.0.1';
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $this->mailer->method('send');
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, $ip);
+        $newToken = $this->service->handleSuccessfulLogin($user, null);
 
-        $this->assertContains(hash('sha256', $ip), $user->getKnownLoginIps());
+        $this->assertNotNull($newToken);
+        $this->assertContains(hash('sha256', $newToken), $user->getKnownDeviceTokens());
     }
 
-    public function testHandleSuccessfulLoginNewIpSetsLockTokenOnUser(): void
+    public function testHandleSuccessfulLoginNewDeviceSetsLockTokenOnUser(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $this->mailer->method('send');
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '10.0.0.1');
+        $this->service->handleSuccessfulLogin($user, null);
 
         $this->assertNotNull($user->getAccountLockToken());
         $this->assertNotNull($user->getAccountLockTokenExpiresAt());
     }
 
-    public function testHandleSuccessfulLoginNewIpFlushesAtLeastTwice(): void
+    public function testHandleSuccessfulLoginNewDeviceFlushesAtLeastTwice(): void
     {
         $user = $this->makeUser();
-        $user->setKnownLoginIps([hash('sha256', '1.2.3.4')]);
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
 
         $this->mailer->method('send');
         // issueLockToken flushes once; handleSuccessfulLogin itself flushes once more.
         $this->em->expects($this->atLeast(2))->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, '5.6.7.8');
+        $this->service->handleSuccessfulLogin($user, null);
     }
 
-    public function testHandleSuccessfulLoginEvictsOldestIpWhenCapacityFull(): void
+    public function testHandleSuccessfulLoginUnknownCookieTokenTreatedAsNewDevice(): void
     {
-        $newIp = '192.168.100.1';
+        // Cookie present but hash not in known list → treat as new device.
+        $user = $this->makeUser();
+        $user->setKnownDeviceTokens([hash('sha256', 'other-existing-token')]);
+
+        $this->mailer->expects($this->once())->method('send');
+        $this->em->method('flush');
+
+        $newToken = $this->service->handleSuccessfulLogin($user, 'untrusted-cookie-value');
+        $this->assertNotNull($newToken);
+    }
+
+    public function testHandleSuccessfulLoginEvictsOldestTokenWhenCapacityFull(): void
+    {
         $user = $this->makeUser();
 
-        // Fill to exactly MAX_KNOWN_IPS (20)
+        // Fill to exactly MAX_KNOWN_DEVICES (20)
         $existing = [];
         for ($i = 0; $i < 20; ++$i) {
-            $existing[] = hash('sha256', "old_ip_{$i}");
+            $existing[] = hash('sha256', "old_device_{$i}");
         }
-        $user->setKnownLoginIps($existing);
+        $user->setKnownDeviceTokens($existing);
 
         $this->mailer->method('send');
         $this->em->method('flush');
 
-        $this->service->handleSuccessfulLogin($user, $newIp);
+        $newToken = $this->service->handleSuccessfulLogin($user, null);
 
-        $ips = $user->getKnownLoginIps();
-        $this->assertCount(20, $ips);
-        $this->assertNotContains(hash('sha256', 'old_ip_0'), $ips, 'Oldest IP should be evicted');
-        $this->assertContains(hash('sha256', $newIp), $ips, 'New IP hash should be stored');
+        $tokens = $user->getKnownDeviceTokens();
+        $this->assertCount(20, $tokens);
+        $this->assertNotContains(hash('sha256', 'old_device_0'), $tokens, 'Oldest device should be evicted');
+        $this->assertNotNull($newToken);
+        $this->assertContains(hash('sha256', $newToken), $tokens, 'New device token hash should be stored');
     }
 
     // ── lockAccountByToken() ─────────────────────────────────────────────────
@@ -406,5 +433,227 @@ class LoginSecurityServiceTest extends TestCase
         $this->em->expects($this->once())->method('flush');
 
         $this->service->lockAccountByToken('flushtoken');
+    }
+
+    // ── requestUnlockEmail() ─────────────────────────────────────────────────
+
+    public function testRequestUnlockEmailReturnsTrueForUnknownEmail(): void
+    {
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn(null);
+        $this->em->method('getRepository')->willReturn($repo);
+
+        $this->mailer->expects($this->never())->method('send');
+
+        $result = $this->service->requestUnlockEmail('nobody@example.com');
+
+        $this->assertTrue($result, 'Must return true even when email is unknown (prevent enumeration)');
+    }
+
+    public function testRequestUnlockEmailReturnsTrueForUnlockedUser(): void
+    {
+        $user = $this->makeUser('active@example.com');
+        // lockedAt is null → not locked
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+
+        $this->mailer->expects($this->never())->method('send');
+
+        $result = $this->service->requestUnlockEmail('active@example.com');
+
+        $this->assertTrue($result, 'Must return true even when account is not locked');
+    }
+
+    public function testRequestUnlockEmailSendsEmailForLockedUser(): void
+    {
+        $user = $this->makeUser('locked@example.com');
+        $user->setLockedAt(new DateTimeImmutable());
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $sentEmail = null;
+        $this->mailer->expects($this->once())
+            ->method('send')
+            ->willReturnCallback(static function (Email $email) use (&$sentEmail): void {
+                $sentEmail = $email;
+            });
+
+        $result = $this->service->requestUnlockEmail('locked@example.com');
+
+        $this->assertTrue($result);
+        $this->assertNotNull($sentEmail);
+        $this->assertSame('locked@example.com', $sentEmail->getTo()[0]->getAddress());
+    }
+
+    public function testRequestUnlockEmailSubjectContainsKontoEntsprerren(): void
+    {
+        $user = $this->makeUser('locked2@example.com');
+        $user->setLockedAt(new DateTimeImmutable());
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $sentEmail = null;
+        $this->mailer->method('send')
+            ->willReturnCallback(static function (Email $email) use (&$sentEmail): void {
+                $sentEmail = $email;
+            });
+
+        $this->service->requestUnlockEmail('locked2@example.com');
+
+        $this->assertStringContainsStringIgnoringCase('entsperren', $sentEmail->getSubject());
+    }
+
+    public function testRequestUnlockEmailBodyContainsUnlockUrl(): void
+    {
+        $user = $this->makeUser('locked3@example.com');
+        $user->setLockedAt(new DateTimeImmutable());
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $sentEmail = null;
+        $this->mailer->method('send')
+            ->willReturnCallback(static function (Email $email) use (&$sentEmail): void {
+                $sentEmail = $email;
+            });
+
+        $this->service->requestUnlockEmail('locked3@example.com');
+
+        $this->assertStringContainsString('/unlock-account?token=', $sentEmail->getHtmlBody());
+    }
+
+    public function testRequestUnlockEmailSetsUnlockTokenOnUser(): void
+    {
+        $user = $this->makeUser('locked4@example.com');
+        $user->setLockedAt(new DateTimeImmutable());
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+        $this->mailer->method('send');
+
+        $this->service->requestUnlockEmail('locked4@example.com');
+
+        $this->assertNotNull($user->getAccountUnlockToken());
+        $this->assertNotNull($user->getAccountUnlockTokenExpiresAt());
+    }
+
+    // ── unlockAccountByToken() ───────────────────────────────────────────────
+
+    public function testUnlockAccountByTokenReturnsFalseForEmptyToken(): void
+    {
+        $this->assertFalse($this->service->unlockAccountByToken(''));
+    }
+
+    public function testUnlockAccountByTokenReturnsFalseWhenTokenNotFound(): void
+    {
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn(null);
+        $this->em->method('getRepository')->willReturn($repo);
+
+        $this->assertFalse($this->service->unlockAccountByToken('nonexistent-token'));
+    }
+
+    public function testUnlockAccountByTokenReturnsFalseWhenTokenExpired(): void
+    {
+        $user = $this->makeUser();
+        $user->setLockedAt(new DateTimeImmutable());
+        $user->setAccountUnlockToken('expiredunlocktoken');
+        $user->setAccountUnlockTokenExpiresAt(new DateTimeImmutable('-1 hour'));
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+
+        $this->assertFalse($this->service->unlockAccountByToken('expiredunlocktoken'));
+    }
+
+    public function testUnlockAccountByTokenReturnsTrueForValidToken(): void
+    {
+        $user = $this->makeUser();
+        $user->setLockedAt(new DateTimeImmutable());
+        $user->setAccountUnlockToken('validunlocktoken');
+        $user->setAccountUnlockTokenExpiresAt(new DateTimeImmutable('+1 hour'));
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $this->assertTrue($this->service->unlockAccountByToken('validunlocktoken'));
+    }
+
+    public function testUnlockAccountByTokenClearsLockedAt(): void
+    {
+        $user = $this->makeUser();
+        $user->setLockedAt(new DateTimeImmutable());
+        $user->setAccountUnlockToken('clearlock');
+        $user->setAccountUnlockTokenExpiresAt(new DateTimeImmutable('+1 hour'));
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $this->service->unlockAccountByToken('clearlock');
+
+        $this->assertNull($user->getLockedAt());
+        $this->assertNull($user->getLockReason());
+    }
+
+    public function testUnlockAccountByTokenClearsUnlockTokenFields(): void
+    {
+        $user = $this->makeUser();
+        $user->setLockedAt(new DateTimeImmutable());
+        $user->setAccountUnlockToken('cleartoken');
+        $user->setAccountUnlockTokenExpiresAt(new DateTimeImmutable('+1 hour'));
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->method('flush');
+
+        $this->service->unlockAccountByToken('cleartoken');
+
+        $this->assertNull($user->getAccountUnlockToken());
+        $this->assertNull($user->getAccountUnlockTokenExpiresAt());
+    }
+
+    public function testUnlockAccountByTokenFlushesAfterUnlocking(): void
+    {
+        $user = $this->makeUser();
+        $user->setLockedAt(new DateTimeImmutable());
+        $user->setAccountUnlockToken('flushunlock');
+        $user->setAccountUnlockTokenExpiresAt(new DateTimeImmutable('+1 hour'));
+
+        /** @var EntityRepository<User>&MockObject $repo */
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('findOneBy')->willReturn($user);
+        $this->em->method('getRepository')->willReturn($repo);
+        $this->em->expects($this->once())->method('flush');
+
+        $this->service->unlockAccountByToken('flushunlock');
     }
 }

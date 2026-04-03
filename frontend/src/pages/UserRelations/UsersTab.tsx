@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import ManageAccountsIcon     from '@mui/icons-material/ManageAccounts';
 import LinkIcon                from '@mui/icons-material/Link';
+import LockOpenIcon            from '@mui/icons-material/LockOpen';
 import PowerSettingsNewIcon    from '@mui/icons-material/PowerSettingsNew';
 import AdminPanelSettingsIcon  from '@mui/icons-material/AdminPanelSettings';
 import MarkEmailUnreadIcon     from '@mui/icons-material/MarkEmailUnread';
@@ -122,6 +123,20 @@ const UsersTab: React.FC = () => {
     }
   };
 
+  const handleUnlockUser = async (user: UserRow) => {
+    try {
+      const res = await apiJson(`/admin/users/${user.id}/unlock`, { method: 'POST' });
+      if (res?.success) {
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, lockedAt: null } : u));
+        toast.showToast(res.message || 'Konto entsperrt', 'success');
+      } else {
+        toast.showToast(res?.message || 'Fehler beim Entsperren des Kontos', 'error');
+      }
+    } catch (e: any) {
+      toast.showToast(e?.message || 'Fehler beim Entsperren des Kontos', 'error');
+    }
+  };
+
   const handleResendVerification = async (user: UserRow) => {
     try {
       const res = await apiJson(`/api/resend-verification/${user.id}`, { method: 'POST' });
@@ -158,6 +173,7 @@ const UsersTab: React.FC = () => {
           {u.isEnabled
             ? <Chip label="Aktiv"       color="success" size="small" />
             : <Chip label="Deaktiviert" color="error"   size="small" />}
+          {u.lockedAt && <Chip label="Gesperrt" color="error" size="small" variant="filled" />}
         </Stack>
       ),
     },
@@ -218,6 +234,7 @@ const UsersTab: React.FC = () => {
               {u.isEnabled
                 ? <Chip label="Aktiv"       color="success" size="small" />
                 : <Chip label="Deaktiviert" color="error"   size="small" />}
+              {u.lockedAt && <Chip label="Gesperrt" color="error" size="small" variant="filled" />}
             </Stack>
           </Box>
         </Stack>
@@ -318,6 +335,18 @@ const UsersTab: React.FC = () => {
         >
           {u.isEnabled ? 'Deaktivieren' : 'Aktivieren'}
         </Button>
+        {u.lockedAt && (
+          <Button
+            size="small"
+            startIcon={<LockOpenIcon />}
+            variant="outlined"
+            color="success"
+            onClick={() => handleUnlockUser(u)}
+            sx={{ fontSize: '0.7rem', flex: '1 1 auto' }}
+          >
+            Entsperren
+          </Button>
+        )}
         <Tooltip title="Verifikationsmail senden">
           <IconButton size="small" onClick={() => setResendVerificationModal({ open: true, user: u })}>
             <MarkEmailUnreadIcon fontSize="small" />
@@ -404,6 +433,13 @@ const UsersTab: React.FC = () => {
                   <PowerSettingsNewIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              {u.lockedAt && (
+                <Tooltip title="Konto entsperren">
+                  <IconButton size="small" color="success" onClick={() => handleUnlockUser(u)}>
+                    <LockOpenIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
               <Tooltip title="Verifikationsmail erneut senden">
                 <IconButton size="small" onClick={() => setResendVerificationModal({ open: true, user: u })}>
                   <MarkEmailUnreadIcon fontSize="small" />

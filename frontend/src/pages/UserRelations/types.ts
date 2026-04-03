@@ -4,6 +4,7 @@ export interface UserRow {
   email: string;
   isVerified: boolean;
   isEnabled: boolean;
+  lockedAt: string | null;
   userRelations: Array<{ relationType?: { name: string }; entity: string }>;
 }
 

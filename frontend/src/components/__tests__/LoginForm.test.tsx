@@ -160,4 +160,35 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByText(/Passwort vergessen/i));
     expect(mockNavigate).toHaveBeenCalledWith('/forgot-password');
   });
+
+  it('shows "Konto entsperren anfordern" link inside the locked Alert on HTTP 403', async () => {
+    mockApiJson.mockRejectedValue({ status: 403 });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'locked@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Passwort/i),        { target: { value: 'wrongpw' } });
+    fireEvent.click(screen.getByRole('button', { name: /Einloggen/i }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/Dein Konto wurde gesperrt/i);
+      expect(alert).toHaveTextContent(/Konto entsperren anfordern/i);
+    });
+  });
+
+  it('navigates to /request-unlock when unlock link is clicked after HTTP 403', async () => {
+    mockApiJson.mockRejectedValue({ status: 403 });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText(/E-Mail-Adresse/i), { target: { value: 'locked@example.com' } });
+    fireEvent.change(screen.getByLabelText(/Passwort/i),        { target: { value: 'wrongpw' } });
+    fireEvent.click(screen.getByRole('button', { name: /Einloggen/i }));
+
+    await waitFor(() => screen.getByText(/Konto entsperren anfordern/i));
+    fireEvent.click(screen.getByText(/Konto entsperren anfordern/i));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/request-unlock');
+  });
 });

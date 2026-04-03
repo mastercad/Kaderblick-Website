@@ -92,4 +92,6 @@ security:
     - { path: ^/api/register, roles: PUBLIC_ACCESS }
     - { path: ^/api/login,    roles: PUBLIC_ACCESS }
     - { path: ^/api/verify,   roles: PUBLIC_ACCESS }
-    - { path: ^/api/security/lock-account, roles: PUBLIC_ACCESS }
+    - { path: ^/api/security/lock-account,    roles: PUBLIC_ACCESS }
+    - { path: ^/api/security/request-unlock,  roles: PUBLIC_ACCESS }
+    - { path: ^/api/security/unlock-account,  roles: PUBLIC_ACCESS }
