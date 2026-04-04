@@ -16,6 +16,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Index(name: 'idx_games_away_team_id', columns: ['away_team_id'])]
 #[ORM\Index(name: 'idx_games_game_type_id', columns: ['game_type_id'])]
 #[ORM\Index(name: 'idx_games_location_id', columns: ['location_id'])]
+#[ORM\Index(name: 'idx_games_league_id', columns: ['league_id'])]
+#[ORM\Index(name: 'idx_games_cup_id', columns: ['cup_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_games_calendar_event_id', columns: ['calendar_event_id'])]
 #[ORM\HasLifecycleCallbacks]
 #[DifferentTeams]
@@ -88,10 +90,12 @@ class Game
     #[ORM\JoinColumn(name: 'location_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?Location $location = null;
 
+    #[Groups(['game:read', 'calendar_event:read'])]
     #[ORM\ManyToOne(targetEntity: League::class)]
     #[ORM\JoinColumn(name: 'league_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?League $league = null;
 
+    #[Groups(['game:read', 'calendar_event:read'])]
     #[ORM\ManyToOne(targetEntity: Cup::class)]
     #[ORM\JoinColumn(name: 'cup_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?Cup $cup = null;

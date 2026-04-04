@@ -397,13 +397,33 @@ const Tasks: React.FC = () => {
 
   return (
     <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Aufgaben</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} size="medium">
-          Neue Aufgabe
-        </Button>
-      </Stack>
+      {/* Sticky Header + Tabs */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          mx: { xs: -1.5, sm: -3 },
+          px: { xs: 1.5, sm: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          mb: 1.5,
+        }}
+      >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 1.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>Aufgaben</Typography>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} size="medium">
+            Neue Aufgabe
+          </Button>
+        </Stack>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 0 }}>
+          <Tab label={`Meine Aufgaben (${myTasks.length})`} />
+          <Tab label={`Von mir erstellt (${createdByMe.length})`} />
+          <Tab label={`Alle (${tasks.length})`} />
+        </Tabs>
+      </Box>
 
       {/* Quick stats */}
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
@@ -429,13 +449,6 @@ const Tasks: React.FC = () => {
           </Box>
         </Paper>
       </Stack>
-
-      {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Tab label={`Meine Aufgaben (${myTasks.length})`} />
-        <Tab label={`Von mir erstellt (${createdByMe.length})`} />
-        <Tab label={`Alle (${tasks.length})`} />
-      </Tabs>
 
       {/* Loading */}
       {loading && (

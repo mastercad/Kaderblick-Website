@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Chip from '@mui/material/Chip';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { apiJson } from '../utils/api';
 import { AdminPageLayout, AdminEmptyState, AdminTable, AdminActions, AdminSnackbar, AdminTableColumn } from '../components/AdminPageLayout';
 import CupDeleteConfirmationModal from '../modals/CupDeleteConfirmationModal';
 import CupEditModal from '../modals/CupEditModal';
+import CompetitionGamesModal from '../modals/CompetitionGamesModal';
 import { Cup } from '../types/cup';
 
 const Cups = () => {
@@ -15,6 +17,7 @@ const Cups = () => {
   const [cupEditModalOpen, setCupEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteCup, setDeleteCup] = useState<Cup | null>(null);
+  const [gamesModal, setGamesModal] = useState<{ id: number; name: string } | null>(null);
   const [snackbar, setSnackbar] = useState<AdminSnackbar>({ open: false, message: '', severity: 'success' });
 
   const loadCups = async () => {
@@ -51,6 +54,20 @@ const Cups = () => {
 
   const columns: AdminTableColumn<Cup>[] = [
     { header: 'Name', render: c => c.name || '' },
+    {
+      header: 'Spiele',
+      width: 100,
+      align: 'center',
+      render: c => (
+        <Chip
+          label={c.gameCount ?? 0}
+          size="small"
+          color={(c.gameCount ?? 0) > 0 ? 'primary' : 'default'}
+          onClick={() => setGamesModal({ id: c.id, name: c.name })}
+          clickable
+        />
+      ),
+    },
   ];
 
   return (
@@ -83,6 +100,14 @@ const Cups = () => {
 
       <CupEditModal openCupEditModal={cupEditModalOpen} cupId={cupId} onCupEditModalClose={() => setCupEditModalOpen(false)} onCupSaved={() => { setCupEditModalOpen(false); loadCups(); }} />
       <CupDeleteConfirmationModal open={deleteModalOpen} cupName={deleteCup?.name} onClose={() => setDeleteModalOpen(false)} onConfirm={async () => handleDelete(deleteCup!.id)} />
+      <CompetitionGamesModal
+        open={!!gamesModal}
+        onClose={() => setGamesModal(null)}
+        competitionId={gamesModal?.id ?? null}
+        competitionName={gamesModal?.name ?? ''}
+        competitionType="cup"
+        onGamesChanged={(count) => setCups(prev => prev.map(c => c.id === gamesModal!.id ? { ...c, gameCount: count } : c))}
+      />
     </AdminPageLayout>
   );
 };

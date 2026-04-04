@@ -27,6 +27,7 @@ import TodayIcon from '@mui/icons-material/Today';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { apiJson, apiRequest, getApiErrorMessage } from '../utils/api';
+import { buildLeagueCupPayload } from '../utils/buildLeagueCupPayload';
 import { TournamentGameMode, TournamentType } from '../types/tournament';
 import moment from 'moment';
 import AddIcon from '@mui/icons-material/Add';
@@ -184,6 +185,7 @@ type EventFormData = {
   eventType?: string;
   locationId?: string;
   leagueId?: string;
+  cupId?: string;
   description?: string;
   homeTeam?: string;
   awayTeam?: string;
@@ -690,6 +692,7 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       awayTeam: event.game?.awayTeam?.id?.toString() || '',
       gameType: resolvedGameType,
       leagueId: event.game && (event.game as any).league?.id ? (event.game as any).league.id.toString() : '',
+      cupId: event.game && (event.game as any).cup?.id ? (event.game as any).cup.id.toString() : '',
       permissionType: (event as any).permissionType ?? 'public',
       trainingTeamId: event.trainingTeamId?.toString() || '',
       trainingRecurring: !!(event.trainingWeekdays && event.trainingWeekdays.length > 0),
@@ -867,6 +870,16 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
         permissionUsers: eventFormData.permissionUsers?.map(id => parseInt(id)) || []
       };
 
+      // Always send leagueId/cupId (null = clear) so the backend clears stale values.
+      // This must be outside the isMatchEvent guard: tournaments may still have a previously
+      // saved league/cup that needs to be cleared, regardless of how isMatchEvent resolves.
+      Object.assign(payload, buildLeagueCupPayload(
+        eventFormData.gameType,
+        gameTypesOptions,
+        eventFormData.leagueId,
+        eventFormData.cupId,
+      ));
+
       // Match event data
       if (isMatchEvent) {
         // Non-tournament match events: add game (home/away teams)
@@ -881,11 +894,11 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
           };
         }
 
-        // GameType & League
+        // GameType — always send when available; for isTournamentEventType the dropdown is
+        // hidden but the value may still be set from the loaded event.
         if (eventFormData.gameType) {
           payload.gameTypeId = parseInt(eventFormData.gameType);
         }
-        payload.leagueId = eventFormData.leagueId ? parseInt(eventFormData.leagueId) : undefined;
       }
 
       // Tournament data (same for both "Turnier" and "Spiel + Turnier GameType")

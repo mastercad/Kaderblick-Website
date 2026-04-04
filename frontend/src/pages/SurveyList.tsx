@@ -286,7 +286,20 @@ const SurveyList: React.FC = () => {
   return (
     <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          pb: 1.5,
+          mb: 1.5,
+          mx: { xs: -1.5, sm: -3 },
+          px: { xs: 1.5, sm: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}>
         <Stack direction="row" alignItems="center" spacing={1.5}>
           <PollIcon sx={{ fontSize: 32, color: 'primary.main' }} />
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Umfragen</Typography>

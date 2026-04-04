@@ -118,4 +118,92 @@ class GameRepository extends ServiceEntityRepository implements OptimizedReposit
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Returns a map of [cupId => gameCount] for all cups that have games.
+     *
+     * @return array<int, int>
+     */
+    public function countGroupedByCupId(): array
+    {
+        $rows = $this->createQueryBuilder('g')
+            ->select('IDENTITY(g.cup) as cup_id, COUNT(g.id) as cnt')
+            ->where('g.cup IS NOT NULL')
+            ->groupBy('g.cup')
+            ->getQuery()
+            ->getArrayResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['cup_id']] = (int) $row['cnt'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Returns a map of [leagueId => gameCount] for all leagues that have games.
+     *
+     * @return array<int, int>
+     */
+    public function countGroupedByLeagueId(): array
+    {
+        $rows = $this->createQueryBuilder('g')
+            ->select('IDENTITY(g.league) as league_id, COUNT(g.id) as cnt')
+            ->where('g.league IS NOT NULL')
+            ->groupBy('g.league')
+            ->getQuery()
+            ->getArrayResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['league_id']] = (int) $row['cnt'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * Returns a lightweight list of games for a given cup, ordered by date descending.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findForListByCup(int $cupId): array
+    {
+        return $this->createQueryBuilder('g')
+            ->select('g.id', 'g.homeScore', 'g.awayScore', 'g.isFinished')
+            ->addSelect('ht.name as homeTeamName')
+            ->addSelect('at.name as awayTeamName')
+            ->addSelect('ce.id as calendarEventId', 'ce.startDate as date')
+            ->leftJoin('g.homeTeam', 'ht')
+            ->leftJoin('g.awayTeam', 'at')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->where('g.cup = :cup')
+            ->setParameter('cup', $cupId)
+            ->orderBy('ce.startDate', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+    }
+
+    /**
+     * Returns a lightweight list of games for a given league, ordered by date descending.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findForListByLeague(int $leagueId): array
+    {
+        return $this->createQueryBuilder('g')
+            ->select('g.id', 'g.homeScore', 'g.awayScore', 'g.isFinished')
+            ->addSelect('ht.name as homeTeamName')
+            ->addSelect('at.name as awayTeamName')
+            ->addSelect('ce.id as calendarEventId', 'ce.startDate as date')
+            ->leftJoin('g.homeTeam', 'ht')
+            ->leftJoin('g.awayTeam', 'at')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->where('g.league = :league')
+            ->setParameter('league', $leagueId)
+            ->orderBy('ce.startDate', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+    }
 }
