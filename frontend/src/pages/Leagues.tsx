@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Chip from '@mui/material/Chip';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { apiJson } from '../utils/api';
 import { AdminPageLayout, AdminEmptyState, AdminTable, AdminActions, AdminSnackbar, AdminTableColumn } from '../components/AdminPageLayout';
 import LeagueDeleteConfirmationModal from '../modals/LeagueDeleteConfirmationModal';
 import LeagueEditModal from '../modals/LeagueEditModal';
+import CompetitionGamesModal from '../modals/CompetitionGamesModal';
 import { League } from '../types/league';
 
 const Leagues = () => {
@@ -15,6 +17,7 @@ const Leagues = () => {
   const [leagueEditModalOpen, setLeagueEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLeague, setDeleteLeague] = useState<League | null>(null);
+  const [gamesModal, setGamesModal] = useState<{ id: number; name: string } | null>(null);
   const [snackbar, setSnackbar] = useState<AdminSnackbar>({ open: false, message: '', severity: 'success' });
 
   const loadLeagues = async () => {
@@ -51,6 +54,20 @@ const Leagues = () => {
 
   const columns: AdminTableColumn<League>[] = [
     { header: 'Name', render: l => l.name || '' },
+    {
+      header: 'Spiele',
+      width: 100,
+      align: 'center',
+      render: l => (
+        <Chip
+          label={l.gameCount ?? 0}
+          size="small"
+          color={(l.gameCount ?? 0) > 0 ? 'primary' : 'default'}
+          onClick={() => setGamesModal({ id: l.id, name: l.name })}
+          clickable
+        />
+      ),
+    },
   ];
 
   return (
@@ -83,6 +100,14 @@ const Leagues = () => {
 
       <LeagueEditModal openLeagueEditModal={leagueEditModalOpen} leagueId={leagueId} onLeagueEditModalClose={() => setLeagueEditModalOpen(false)} onLeagueSaved={() => { setLeagueEditModalOpen(false); loadLeagues(); }} />
       <LeagueDeleteConfirmationModal open={deleteModalOpen} leagueName={deleteLeague?.name} onClose={() => setDeleteModalOpen(false)} onConfirm={async () => handleDelete(deleteLeague!.id)} />
+      <CompetitionGamesModal
+        open={!!gamesModal}
+        onClose={() => setGamesModal(null)}
+        competitionId={gamesModal?.id ?? null}
+        competitionName={gamesModal?.name ?? ''}
+        competitionType="league"
+        onGamesChanged={(count) => setLeagues(prev => prev.map(l => l.id === gamesModal!.id ? { ...l, gameCount: count } : l))}
+      />
     </AdminPageLayout>
   );
 };

@@ -232,32 +232,42 @@ const MyFeedback: React.FC = () => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 860, mx: 'auto' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'primary.main', color: 'white', display: 'flex' }}>
-          <FeedbackIcon sx={{ fontSize: 30 }} />
+      {/* Sticky Header + Controls */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          mx: { xs: -2, md: -4 },
+          px: { xs: 2, md: 4 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          mb: 2,
+        }}
+      >
+        {/* Header row */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1.5 }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'primary.main', color: 'white', display: 'flex' }}>
+            <FeedbackIcon sx={{ fontSize: 30 }} />
+          </Box>
+          <Box>
+            <Typography variant="h4" fontWeight={700}>Mein Feedback</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Übersicht deiner Rückmeldungen und Admin-Antworten
+            </Typography>
+          </Box>
+          {unreads > 0 && (
+            <Chip icon={<ChatBubbleOutlineIcon />}
+              label={`${unreads} neue Antwort${unreads > 1 ? 'en' : ''}`}
+              color="warning" sx={{ ml: 'auto', fontWeight: 700 }} />
+          )}
         </Box>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>Mein Feedback</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Übersicht deiner Rückmeldungen und Admin-Antworten
-          </Typography>
-        </Box>
-        {unreads > 0 && (
-          <Chip icon={<ChatBubbleOutlineIcon />}
-            label={`${unreads} neue Antwort${unreads > 1 ? 'en' : ''}`}
-            color="warning" sx={{ ml: 'auto', fontWeight: 700 }} />
-        )}
-      </Box>
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}><CircularProgress /></Box>
-      ) : (
-        <>
-          <StatsStrip items={items} />
-
-          {/* Controls row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
+        {/* Controls row – only visible after load */}
+        {!loading && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1, flexWrap: 'wrap' }}>
             <TextField
               size="small" placeholder="Suchen …" value={search}
               onChange={e => setSearch(e.target.value)} sx={{ minWidth: 220 }}
@@ -271,6 +281,14 @@ const MyFeedback: React.FC = () => {
               {unreads > 0 && <Tab label={`Neue Antworten (${unreads})`} value={3} />}
             </Tabs>
           </Box>
+        )}
+      </Box>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}><CircularProgress /></Box>
+      ) : (
+        <>
+          <StatsStrip items={items} />
 
           {filtered.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>

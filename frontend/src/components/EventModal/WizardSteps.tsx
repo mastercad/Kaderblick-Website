@@ -85,6 +85,18 @@ export const WizardStep1: React.FC<WizardStep1Props> = ({
   const selectedGameTypeLabel = gameTypes.find(gt => gt.value === formData.gameType)?.label?.toLowerCase() ?? '';
   const isLiga  = selectedGameTypeLabel.includes('liga');
   const isPokal = selectedGameTypeLabel.includes('pokal');
+
+  // When the game type changes, auto-clear league/cup if the new type no longer implies liga/pokal.
+  // This prevents stale league/cup values from being saved under the hidden dropdowns.
+  const handleChangeWithAutoClean = (field: string, value: any) => {
+    if (field === 'gameType') {
+      const newLabel = gameTypes.find((gt) => gt.value === value)?.label?.toLowerCase() ?? '';
+      if (!newLabel.includes('liga')) onChange('leagueId', '');
+      if (!newLabel.includes('pokal')) onChange('cupId', '');
+    }
+    onChange(field, value);
+  };
+
   return (
     <>
       {/* Match events: Location, Game fields, Tournament config */}
@@ -123,7 +135,7 @@ export const WizardStep1: React.FC<WizardStep1Props> = ({
             isTournamentEventType={isTournamentEventType}
             isLiga={isLiga}
             isPokal={isPokal}
-            handleChange={onChange}
+            handleChange={handleChangeWithAutoClean}
           />
 
           {(isTournament || formData.tournamentId) && (

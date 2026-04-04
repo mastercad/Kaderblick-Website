@@ -83,54 +83,72 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
 }) => {
   return (
     <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={maxWidth} mx="auto">
-      {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5} flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          {React.cloneElement(icon, { sx: { fontSize: 32, color: 'primary.main', ...((icon as any).props?.sx || {}) } })}
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>{title}</Typography>
-          {!loading && itemCount != null && (
-            <Chip label={itemCount} size="small" color="primary" variant="outlined" />
-          )}
+      {/* Sticky Header */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          pb: filterControls && !loading ? 0 : 1.5,
+          mx: { xs: -1, sm: -2, md: -3 },
+          px: { xs: 1, sm: 2, md: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          mb: 2,
+        }}
+      >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={filterControls && !loading ? 1 : 0} flexWrap="wrap" gap={1}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {React.cloneElement(icon, { sx: { fontSize: 32, color: 'primary.main', ...((icon as any).props?.sx || {}) } })}
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>{title}</Typography>
+            {!loading && itemCount != null && (
+              <Chip label={itemCount} size="small" color="primary" variant="outlined" />
+            )}
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {onSearchChange != null && (
+              <TextField
+                size="small"
+                placeholder={searchPlaceholder}
+                value={search || ''}
+                onChange={e => onSearchChange(e.target.value)}
+                sx={{ minWidth: 200 }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment>
+                    ),
+                    endAdornment: search ? (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => onSearchChange('')}><ClearIcon fontSize="small" /></IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }
+                }}
+              />
+            )}
+            {onCreate && createLabel && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate} size="medium">
+                {createLabel}
+              </Button>
+            )}
+          </Stack>
         </Stack>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          {onSearchChange != null && (
-            <TextField
-              size="small"
-              placeholder={searchPlaceholder}
-              value={search || ''}
-              onChange={e => onSearchChange(e.target.value)}
-              sx={{ minWidth: 200 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment>
-                  ),
-                  endAdornment: search ? (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => onSearchChange('')}><ClearIcon fontSize="small" /></IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }
-              }}
-            />
-          )}
-          {onCreate && createLabel && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate} size="medium">
-              {createLabel}
-            </Button>
-          )}
-        </Stack>
-      </Stack>
+
+        {/* Extra filter controls */}
+        {filterControls && !loading && (
+          <Box sx={{ pb: 1.5 }}>{filterControls}</Box>
+        )}
+      </Box>
 
       {/* Error */}
-      {error && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{error}</Alert>}
-
-      {/* Extra filter controls */}
-      {filterControls && !loading && <Box sx={{ mb: 2, mt: 1 }}>{filterControls}</Box>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Loading skeleton */}
       {loading && (
-        <Stack spacing={1} sx={{ mt: 2 }}>
+        <Stack spacing={1}>
           <Skeleton variant="rounded" height={48} />
           {Array.from({ length: skeletonRows }).map((_, i) => (
             <Skeleton key={i} variant="rounded" height={40} sx={{ opacity: 1 - i * 0.15 }} />

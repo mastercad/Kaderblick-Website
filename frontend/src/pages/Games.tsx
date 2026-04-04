@@ -595,7 +595,21 @@ export default function Games() {
       </Box>
 
       {/* Season + Team Filter */}
-      <Box sx={{ mb: 3 }}>
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: 56, md: 64 },
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          pb: 1.5,
+          mb: 1.5,
+          mx: { xs: -1.5, sm: -3 },
+          px: { xs: 1.5, sm: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 1.5, sm: 2 }}

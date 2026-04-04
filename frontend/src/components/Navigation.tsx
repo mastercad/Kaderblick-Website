@@ -350,10 +350,6 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
       section: 'Zuweisungen',
       items: [
         { label: 'Benutzer', page: 'admin/user-relations', icon: <ManageAccountsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-{/*        { label: 'Spieler zu Team', href: '/api/player_team_assignments', icon: <PersonAddIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} /> },
-        { label: 'Spieler zu Verein', href: '/api/player_club_assignments', icon: <HandshakeIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} /> },
-        { label: 'Coach zu Team', href: '/api/coach_team_assignments', icon: <SwapHorizIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} /> },
-        { label: 'Coach zu Verein', href: '/api/coach_club_assignments', icon: <BusinessIcon fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} /> }*/},
         { label: 'Videos', href: '/videos/upload', icon: <VideoLibraryIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
       ],
     },
@@ -649,7 +645,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
                       >
                         {adminMenuSections.map((section) => (
                           <Box key={section.section}>
-                            <MenuItem disabled>
+                            <MenuItem key={`${section.section}-header`} disabled>
                               <Typography variant="subtitle2"
                                 sx={{
                                   color: 'text.primary',
@@ -678,7 +674,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
                                 {item.label}
                               </MenuItem>
                             ))}
-                            <Divider />
+                            <Divider key={`${section.section}-divider`} />
                           </Box>
                         ))}
                       </Menu>
@@ -895,7 +891,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare }:
               <Collapse in={adminDrawerOpen} timeout="auto" unmountOnExit>
                 {adminMenuSections.map((section) => (
                   <Box key={section.section}>
-                    <ListItem disablePadding sx={{ pl: 2 }}>
+                    <ListItem key={`${section.section}-header`} disablePadding sx={{ pl: 2 }}>
                       <ListItemButton disabled>
                         <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
                           {section.section}

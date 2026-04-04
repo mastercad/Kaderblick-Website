@@ -3,7 +3,9 @@
 namespace App\Controller\Api;
 
 use App\Entity\League;
+use App\Repository\GameRepository;
 use App\Security\Voter\LeagueVoter;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -13,8 +15,10 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api/leagues', name: 'api_leagues_')]
 class LeaguesController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $entityManager)
-    {
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private GameRepository $gameRepository,
+    ) {
     }
 
     #[Route('', methods: ['GET'], name: 'index')]
@@ -25,11 +29,14 @@ class LeaguesController extends AbstractController
         // Filtere Ligen basierend auf VIEW-Berechtigung
         $leagues = array_filter($leagues, fn ($league) => $this->isGranted(LeagueVoter::VIEW, $league));
 
+        $gameCounts = $this->gameRepository->countGroupedByLeagueId();
+
         return $this->json(
             [
                 'leagues' => array_map(fn ($league) => [
                     'id' => $league->getId(),
                     'name' => $league->getName(),
+                    'gameCount' => $gameCounts[$league->getId()] ?? 0,
                     'permissions' => [
                         'canView' => $this->isGranted(LeagueVoter::VIEW, $league),
                         'canCreate' => $this->isGranted(LeagueVoter::CREATE, $league),
@@ -108,5 +115,28 @@ class LeaguesController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json(['message' => 'League deleted successfully']);
+    }
+
+    #[Route('/{id}/games', methods: ['GET'], name: 'games')]
+    public function games(League $league): JsonResponse
+    {
+        if (!$this->isGranted(LeagueVoter::VIEW, $league)) {
+            return $this->json(['error' => 'Zugriff verweigert'], 403);
+        }
+
+        $games = $this->gameRepository->findForListByLeague($league->getId());
+
+        return $this->json([
+            'games' => array_map(fn ($g) => [
+                'id' => $g['id'],
+                'homeTeamName' => $g['homeTeamName'],
+                'awayTeamName' => $g['awayTeamName'],
+                'homeScore' => $g['homeScore'],
+                'awayScore' => $g['awayScore'],
+                'isFinished' => (bool) $g['isFinished'],
+                'calendarEventId' => $g['calendarEventId'],
+                'date' => $g['date'] instanceof DateTimeInterface ? $g['date']->format(DateTimeInterface::ATOM) : $g['date'],
+            ], $games),
+        ]);
     }
 }

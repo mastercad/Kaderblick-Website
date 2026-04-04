@@ -240,12 +240,22 @@ const AdminTitleXpOverview: React.FC = () => {
           </Grid>
 
           {/* ── Titles table ── */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 4, overflow: 'hidden' }}>
-            <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{
+              position: 'sticky',
+              top: { xs: 56, md: 64 },
+              zIndex: 9,
+              px: 3, py: 2,
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              bgcolor: 'grey.50',
+              border: '1px solid', borderColor: 'divider',
+              borderRadius: '8px 8px 0 0',
+            }}>
               <EmojiEventsIcon color="primary" />
               <Typography variant="h6" fontWeight={600}>Vergebene Titel</Typography>
               <Chip label={titles.length} size="small" color="primary" sx={{ ml: 'auto' }} />
             </Box>
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderTop: 0, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -304,11 +314,22 @@ const AdminTitleXpOverview: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
+            </Paper>
+          </Box>
 
           {/* ── Users table ── */}
-          <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-            <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'grey.50', flexWrap: 'wrap', rowGap: 1 }}>
+          <Box>
+            <Box sx={{
+              position: 'sticky',
+              top: { xs: 56, md: 64 },
+              zIndex: 9,
+              px: 3, py: 2,
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              bgcolor: 'grey.50',
+              border: '1px solid', borderColor: 'divider',
+              borderRadius: '8px 8px 0 0',
+              flexWrap: 'wrap', rowGap: 1,
+            }}>
               <StarIcon color="primary" />
               <Typography variant="h6" fontWeight={600}>Spieler – Level & XP</Typography>
               <Chip label={users.length} size="small" color="primary" />
@@ -327,6 +348,7 @@ const AdminTitleXpOverview: React.FC = () => {
                 }}
               />
             </Box>
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderTop: 0, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -409,7 +431,8 @@ const AdminTitleXpOverview: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
+            </Paper>
+          </Box>
 
           {/* ── Modal ── */}
           <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
