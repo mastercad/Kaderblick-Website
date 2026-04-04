@@ -401,6 +401,7 @@ class DashboardController extends AbstractController
                         'title' => $item->getTitle(),
                         'createdAt' => $item->getCreatedAt()->format('c'),
                         'content' => $item->getContent(),
+                        'visibility' => $item->getVisibility(),
                     ];
                 }, $this->newsRepo->findForUser($user))
             ],

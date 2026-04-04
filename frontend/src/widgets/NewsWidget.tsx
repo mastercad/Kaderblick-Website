@@ -6,23 +6,28 @@ import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
 import { apiJson } from '../utils/api';
 import { useWidgetRefresh } from '../context/WidgetRefreshContext';
-import { NotificationDetailModal } from '../components/NotificationDetailModal';
-import { AppNotification } from '../types/notifications';
+import NewsDetailModal from '../modals/NewsDetailModal';
 
 type NewsItem = {
   id: number;
   title: string;
   createdAt: string;
   content: string;
+  visibility: string;
 };
 
+const VISIBILITY_BORDER: Record<string, string> = {
+  platform: '#1976d2',
+  club: '#2e7d32',
+  team: '#7b1fa2',
+};
 
 export const NewsWidget: React.FC<{ config?: any; widgetId?: string }> = ({ config, widgetId }) => {
   const { getRefreshTrigger } = useWidgetRefresh();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNews, setSelectedNews] = useState<AppNotification | null>(null);
+  const [selectedNewsId, setSelectedNewsId] = useState<number | null>(null);
 
   const refreshTrigger = widgetId ? getRefreshTrigger(widgetId) : 0;
 
@@ -49,56 +54,50 @@ export const NewsWidget: React.FC<{ config?: any; widgetId?: string }> = ({ conf
   if (!news.length) return <Typography variant="body2" color="text.secondary">Keine News vorhanden.</Typography>;
 
   const handleNewsClick = (item: NewsItem) => {
-    // Convert NewsItem to AppNotification format
-    const notification: AppNotification = {
-      id: item.id.toString(),
-      type: 'news',
-      title: item.title,
-      message: item.content,
-      timestamp: new Date(item.createdAt),
-      read: true,
-      showToast: false,
-      showPush: false,
-      data: {
-        newsId: item.id,
-        url: `/news/${item.id}`
-      }
-    };
-    setSelectedNews(notification);
+    setSelectedNewsId(item.id);
   };
 
   return (
     <>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
-        {news.map((item, idx) => (
-          <Card
-            key={item.id}
-            variant="outlined"
-            sx={{ mb: 2, boxShadow: 0, width: '100%', display: 'block', alignSelf: 'stretch', cursor: 'pointer' }}
-            onClick={() => handleNewsClick(item)}
-          >
-            <CardContent sx={{ pb: 1, pt: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <Typography variant="subtitle1" fontWeight={600} noWrap sx={{ flex: 1 }}>
-                  {item.title}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </Typography>
-              </div>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {item.content.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim()}
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+      {news.map((item, idx) => (
+        <Card
+          key={item.id}
+          elevation={1}
+          sx={{
+            mb: 2,
+            width: '100%',
+            display: 'block',
+            alignSelf: 'stretch',
+            cursor: 'pointer',
+            borderLeft: `4px solid ${VISIBILITY_BORDER[item.visibility] ?? VISIBILITY_BORDER.platform}`,
+            transition: 'box-shadow 0.2s, transform 0.15s',
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+          }}
+          onClick={() => handleNewsClick(item)}
+        >
+          <CardContent sx={{ pb: 1, pt: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <Typography variant="subtitle1" fontWeight={600} noWrap sx={{ flex: 1 }}>
+                {item.title}
               </Typography>
-            </CardContent>
-            {idx < news.length - 1 && <Divider />}
-          </Card>
-        ))}
-      </div>
-      <NotificationDetailModal
-        notification={selectedNews}
-        open={Boolean(selectedNews)}
-        onClose={() => setSelectedNews(null)}
-      />
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
+                {new Date(item.createdAt).toLocaleDateString()}
+              </Typography>
+            </div>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {item.content.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim()}
+            </Typography>
+          </CardContent>
+          {idx < news.length - 1 && <Divider />}
+        </Card>
+      ))}
+    </div>
+    <NewsDetailModal
+      newsId={selectedNewsId}
+      open={selectedNewsId !== null}
+      onClose={() => setSelectedNewsId(null)}
+    />
     </>
   );
 };
