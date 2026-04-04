@@ -282,10 +282,10 @@ class LeaguesControllerTest extends WebTestCase
     {
         $conn = $this->em->getConnection();
         $conn->executeStatement(
-            "DELETE FROM games WHERE id IN ("
-            . "SELECT g.id FROM ("
-            . "SELECT g2.id FROM games g2 "
-            . "JOIN calendar_events ce ON g2.calendar_event_id = ce.id "
+            'DELETE FROM games WHERE id IN ('
+            . 'SELECT g.id FROM ('
+            . 'SELECT g2.id FROM games g2 '
+            . 'JOIN calendar_events ce ON g2.calendar_event_id = ce.id '
             . "WHERE ce.title = 'lgtest-Game') g)",
         );
         $conn->executeStatement("DELETE FROM calendar_events WHERE title = 'lgtest-Game'");
