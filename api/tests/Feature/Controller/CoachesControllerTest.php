@@ -664,20 +664,40 @@ class CoachesControllerTest extends ApiWebTestCase
     {
         $client = static::createClient();
         $this->authenticateUser($client, 'user16@example.com');
+        $suffix = bin2hex(random_bytes(4));
 
-        // Read current data first
-        $client->request('GET', '/api/coaches/2');
-        $this->assertResponseIsSuccessful();
-        $original = json_decode($client->getResponse()->getContent(), true)['coach'];
+        // Create a temporary coach so fixture data is not modified
+        $client->request(
+            'POST',
+            '/api/coaches',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode([
+                'firstName' => 'Upd',
+                'lastName' => 'CCT-UPD-' . $suffix,
+                'email' => 'cct-upd-' . $suffix . '@test.example.com',
+                'clubAssignments' => [],
+                'teamAssignments' => [],
+                'licenseAssignments' => [],
+                'nationalityAssignments' => [],
+            ])
+        );
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        $newId = $em->getConnection()->fetchOne(
+            'SELECT id FROM coaches WHERE last_name = :ln',
+            ['ln' => 'CCT-UPD-' . $suffix]
+        );
+        $this->assertNotFalse($newId);
 
         $client->request(
             'PUT',
-            '/api/coaches/2',
+            '/api/coaches/' . $newId,
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode([
-                'firstName' => $original['firstName'],
-                'lastName' => $original['lastName'],
-                'email' => $original['email'] ?? '',
+                'firstName' => 'Updated',
+                'lastName' => 'CCT-UPD-' . $suffix,
+                'email' => 'cct-upd-' . $suffix . '@test.example.com',
                 'clubAssignments' => [],
                 'teamAssignments' => [],
                 'licenseAssignments' => [],
@@ -687,25 +707,51 @@ class CoachesControllerTest extends ApiWebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
         $data = json_decode($client->getResponse()->getContent(), true);
         $this->assertTrue($data['success']);
+
+        $em->getConnection()->executeStatement(
+            'DELETE FROM coaches WHERE last_name = :ln',
+            ['ln' => 'CCT-UPD-' . $suffix]
+        );
     }
 
     public function testUpdateWithNationalityAssignment(): void
     {
         $client = static::createClient();
         $this->authenticateUser($client, 'user16@example.com');
+        $suffix = bin2hex(random_bytes(4));
 
-        $client->request('GET', '/api/coaches/3');
-        $this->assertResponseIsSuccessful();
-        $original = json_decode($client->getResponse()->getContent(), true)['coach'];
+        // Create a temporary coach so fixture data is not modified
+        $client->request(
+            'POST',
+            '/api/coaches',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode([
+                'firstName' => 'Nat',
+                'lastName' => 'CCT-NAUPD-' . $suffix,
+                'email' => '',
+                'clubAssignments' => [],
+                'teamAssignments' => [],
+                'licenseAssignments' => [],
+                'nationalityAssignments' => [],
+            ])
+        );
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        $newId = $em->getConnection()->fetchOne(
+            'SELECT id FROM coaches WHERE last_name = :ln',
+            ['ln' => 'CCT-NAUPD-' . $suffix]
+        );
+        $this->assertNotFalse($newId);
 
         $client->request(
             'PUT',
-            '/api/coaches/3',
+            '/api/coaches/' . $newId,
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode([
-                'firstName' => $original['firstName'],
-                'lastName' => $original['lastName'],
-                'email' => $original['email'] ?? '',
+                'firstName' => 'Nat',
+                'lastName' => 'CCT-NAUPD-' . $suffix,
+                'email' => '',
                 'clubAssignments' => [],
                 'teamAssignments' => [],
                 'licenseAssignments' => [],
@@ -716,11 +762,16 @@ class CoachesControllerTest extends ApiWebTestCase
         );
         $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
 
-        // Restore: remove added nationality assignment
-        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        // Cleanup temporary coach and its assignments
         $em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=0');
         $em->getConnection()->executeStatement(
-            'DELETE cna FROM coach_nationality_assignments cna WHERE cna.coach_id = 3'
+            'DELETE cna FROM coach_nationality_assignments cna
+              JOIN coaches c ON cna.coach_id = c.id WHERE c.last_name = :ln',
+            ['ln' => 'CCT-NAUPD-' . $suffix]
+        );
+        $em->getConnection()->executeStatement(
+            'DELETE FROM coaches WHERE last_name = :ln',
+            ['ln' => 'CCT-NAUPD-' . $suffix]
         );
         $em->getConnection()->executeStatement('SET FOREIGN_KEY_CHECKS=1');
     }
