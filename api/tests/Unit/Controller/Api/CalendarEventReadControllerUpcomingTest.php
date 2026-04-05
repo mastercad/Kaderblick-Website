@@ -165,7 +165,7 @@ class CalendarEventReadControllerUpcomingTest extends TestCase
         $response = $this->controller->retrieveUpcomingEvents($this->calendarEventRepo);
         $decoded = json_decode($response->getContent(), true);
 
-        $this->assertSame([], $decoded);
+        $this->assertSame([], $decoded['events']);
     }
 
     public function testRetrieveUpcomingEventsContainsSerializedData(): void
@@ -180,8 +180,8 @@ class CalendarEventReadControllerUpcomingTest extends TestCase
         $response = $this->controller->retrieveUpcomingEvents($this->calendarEventRepo);
         $decoded = json_decode($response->getContent(), true);
 
-        $this->assertCount(1, $decoded);
-        $this->assertSame(99, $decoded[0]['id']);
-        $this->assertSame('Heimspiel', $decoded[0]['title']);
+        $this->assertCount(1, $decoded['events']);
+        $this->assertSame(99, $decoded['events'][0]['id']);
+        $this->assertSame('Heimspiel', $decoded['events'][0]['title']);
     }
 }
