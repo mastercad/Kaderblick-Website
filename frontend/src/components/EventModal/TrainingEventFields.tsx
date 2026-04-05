@@ -36,6 +36,25 @@ const WEEKDAYS = [
 ];
 
 /**
+ * Returns a Set of date strings (YYYY-MM-DD) for all matching weekdays
+ * between startDate and endDate (both inclusive).
+ */
+function getOccurrenceDateSet(startDate: string, endDate: string, weekdays: number[]): Set<string> {
+  const result = new Set<string>();
+  if (!startDate || !endDate || weekdays.length === 0) return result;
+  const end = new Date(endDate);
+  const cursor = new Date(startDate);
+  if (end < cursor) return result;
+  while (cursor <= end) {
+    if (weekdays.includes(cursor.getDay())) {
+      result.add(cursor.toISOString().slice(0, 10));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return result;
+}
+
+/**
  * Calculates number of occurrences for a recurring weekly schedule.
  */
 function countOccurrences(
@@ -116,6 +135,27 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
       selectedWeekdays,
     );
   }, [isRecurring, formData.date, formData.trainingEndDate, selectedWeekdays]);
+
+  const seriesDiff = useMemo(() => {
+    const { trainingSeriesId, trainingOriginalDate, trainingOriginalEndDate, trainingOriginalWeekdays } = formData;
+    if (!trainingSeriesId || !trainingOriginalDate || !trainingOriginalEndDate || !trainingOriginalWeekdays) {
+      return null;
+    }
+    const originalSet = getOccurrenceDateSet(trainingOriginalDate, trainingOriginalEndDate, trainingOriginalWeekdays);
+    const newSet = getOccurrenceDateSet(formData.date || '', formData.trainingEndDate || '', selectedWeekdays);
+    const added   = [...newSet].filter(d => !originalSet.has(d)).length;
+    const removed = [...originalSet].filter(d => !newSet.has(d)).length;
+    if (added === 0 && removed === 0) return null;
+    return { added, removed, total: newSet.size };
+  }, [
+    formData.trainingSeriesId,
+    formData.trainingOriginalDate,
+    formData.trainingOriginalEndDate,
+    formData.trainingOriginalWeekdays,
+    formData.date,
+    formData.trainingEndDate,
+    selectedWeekdays,
+  ]);
 
   return (
     <Box sx={{ mt: 1 }}>
@@ -262,12 +302,31 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
             }}
           />
 
-          {occurrenceCount > 0 && (
+          {occurrenceCount > 0 && !formData.trainingSeriesId && (
+            // Create mode: show how many events will be created
             <Alert severity="info" sx={{ mt: 2 }} icon={<RepeatIcon />}>
               <strong>{occurrenceCount} Trainings</strong> werden erstellt
               {formData.date && formData.trainingEndDate && (
                 <> ({formData.date} bis {formData.trainingEndDate})</>
               )}
+            </Alert>
+          )}
+
+          {seriesDiff && (
+            // Edit mode: show exact added + removed counts independently
+            <Alert
+              severity={seriesDiff.removed > 0 && seriesDiff.added === 0 ? 'warning' : 'info'}
+              sx={{ mt: 2 }}
+              icon={<RepeatIcon />}
+            >
+              {seriesDiff.added > 0 && (
+                <><strong>+{seriesDiff.added} neue Trainings</strong> werden hinzugefügt</>
+              )}
+              {seriesDiff.added > 0 && seriesDiff.removed > 0 && <br />}
+              {seriesDiff.removed > 0 && (
+                <><strong>−{seriesDiff.removed} Trainings</strong> werden entfernt</>
+              )}
+              <> (insgesamt dann: {seriesDiff.total})</>
             </Alert>
           )}
 

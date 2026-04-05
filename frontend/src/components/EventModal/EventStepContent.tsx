@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -22,8 +22,10 @@ import {
   STEP_MATCHES,
   STEP_PERMISSIONS,
   STEP_DESCRIPTION,
+  STEP_TRAINING_SCOPE,
   WizardStepKey,
 } from './eventWizardConstants';
+import { TrainingSeriesScopeStep } from './TrainingSeriesScopeStep';
 import { EventData, SelectOption, User } from '../../types/event';
 
 interface EventStepContentProps {
@@ -244,6 +246,26 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
           />
         </Box>
       );
+
+    case STEP_TRAINING_SCOPE: {
+      // True when only the series end date changed and everything else stayed the same.
+      // In that case the "Bis wann gilt die Änderung?" section is redundant / circular.
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const onlyEndDateChanged = useMemo(() => {
+        if (!event.trainingSeriesId || !event.trainingOriginalEndDate) return false;
+        if (event.trainingOriginalEndDate === event.trainingEndDate) return false;
+        const currentContentKey = [event.title, event.locationId ?? '', event.time, event.trainingTeamId ?? ''].join('|');
+        if (event.trainingOriginalContentKey && event.trainingOriginalContentKey !== currentContentKey) return false;
+        if (event.trainingOriginalDate && event.trainingOriginalDate !== event.date) return false;
+        const origWd = [...(event.trainingOriginalWeekdays ?? [])].sort().join(',');
+        const currWd = [...(event.trainingWeekdays ?? [])].sort().join(',');
+        if (origWd !== currWd) return false;
+        return true;
+      }, [event]);
+      return (
+        <TrainingSeriesScopeStep event={event} handleChange={handleChange} onlyEndDateChanged={onlyEndDateChanged} />
+      );
+    }
 
     case STEP_DESCRIPTION:
       return (

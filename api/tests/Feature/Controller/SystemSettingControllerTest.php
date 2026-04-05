@@ -224,4 +224,102 @@ class SystemSettingControllerTest extends ApiWebTestCase
         $setting->setValue('true');
         $em->flush();
     }
+
+    // ────────────────────────────── Push notification mode ──────────────────────────────
+
+    public function testListDefaultIncludesPushNotificationsMode(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user21@example.com');
+
+        $client->request('GET', '/api/superadmin/system-settings');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey(
+            SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
+            $data['defaults'],
+            'push_notifications_mode must appear in the defaults list.'
+        );
+        $this->assertSame(
+            SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL,
+            $data['defaults'][SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE]
+        );
+    }
+
+    public function testUpdatePushNotificationsModeToOnlyMe(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user21@example.com');
+
+        $client->request(
+            'PATCH',
+            '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['value' => SystemSettingService::PUSH_NOTIFICATIONS_MODE_ONLY_ME])
+        );
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_ONLY_ME, $data['value']);
+    }
+
+    public function testUpdatePushNotificationsModeToDisabled(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user21@example.com');
+
+        $client->request(
+            'PATCH',
+            '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['value' => SystemSettingService::PUSH_NOTIFICATIONS_MODE_DISABLED])
+        );
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_DISABLED, $data['value']);
+    }
+
+    public function testUpdatePushNotificationsModeToAll(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user21@example.com');
+
+        $client->request(
+            'PATCH',
+            '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['value' => SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL])
+        );
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL, $data['value']);
+    }
+
+    public function testUpdatePushNotificationsModeRejectsInvalidValue(): void
+    {
+        $client = static::createClient();
+        $this->authenticateUser($client, 'user21@example.com');
+
+        $client->request(
+            'PATCH',
+            '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['value' => 'invalid_mode'])
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('error', $data);
+    }
 }

@@ -29,6 +29,20 @@ class SystemSettingService
      */
     public const KEY_2FA_REQUIRED = '2fa_required';
 
+    /**
+     * Controls who receives push notifications.
+     *
+     * 'all'      – all eligible recipients receive notifications (default)
+     * 'only_me'  – only SuperAdmin users receive notifications (maintenance mode)
+     * 'disabled' – no push notifications are sent at all
+     */
+    public const KEY_PUSH_NOTIFICATIONS_MODE = 'push_notifications_mode';
+
+    /** Valid values for KEY_PUSH_NOTIFICATIONS_MODE. */
+    public const PUSH_NOTIFICATIONS_MODE_ALL = 'all';
+    public const PUSH_NOTIFICATIONS_MODE_ONLY_ME = 'only_me';
+    public const PUSH_NOTIFICATIONS_MODE_DISABLED = 'disabled';
+
     public function __construct(
         private SystemSettingRepository $repository,
         private EntityManagerInterface $em,
@@ -102,5 +116,21 @@ class SystemSettingService
     public function is2faRequired(): bool
     {
         return $this->getBool(self::KEY_2FA_REQUIRED, false);
+    }
+
+    /**
+     * Returns the current push-notification mode:
+     *   'all' | 'only_me' | 'disabled'
+     * Falls back to 'all' when not configured.
+     */
+    public function getPushNotificationsMode(): string
+    {
+        $value = $this->get(self::KEY_PUSH_NOTIFICATIONS_MODE, self::PUSH_NOTIFICATIONS_MODE_ALL);
+
+        return in_array($value, [
+            self::PUSH_NOTIFICATIONS_MODE_ALL,
+            self::PUSH_NOTIFICATIONS_MODE_ONLY_ME,
+            self::PUSH_NOTIFICATIONS_MODE_DISABLED,
+        ], true) ? $value : self::PUSH_NOTIFICATIONS_MODE_ALL;
     }
 }

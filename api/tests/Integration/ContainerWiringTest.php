@@ -2,6 +2,12 @@
 
 namespace Tests\Integration;
 
+use App\Controller\Api\Calendar\CalendarEventDeleteController;
+use App\Controller\Api\Calendar\CalendarEventReadController;
+use App\Controller\Api\Calendar\CalendarEventStatusController;
+use App\Controller\Api\Calendar\CalendarEventUpdateController;
+use App\Controller\Api\Calendar\CalendarEventWriteController;
+use App\Controller\Api\Calendar\CalendarLocationController;
 use App\Controller\Api\FeedbackController;
 use App\Controller\Api\GamesController;
 use App\Controller\Api\MyTeamController;
@@ -10,7 +16,6 @@ use App\Controller\Api\SurveyController;
 use App\Controller\Api\TaskController;
 use App\Controller\Api\TeamsController;
 use App\Controller\Api\TwoFactorController;
-use App\Controller\CalendarController;
 use App\Controller\ParticipationController;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -69,7 +74,12 @@ class ContainerWiringTest extends KernelTestCase
             'MyTeamController' => [MyTeamController::class],
             'SurveyController' => [SurveyController::class],
             'TaskController' => [TaskController::class],
-            'CalendarController' => [CalendarController::class],
+            'CalendarEventReadController' => [CalendarEventReadController::class],
+            'CalendarEventWriteController' => [CalendarEventWriteController::class],
+            'CalendarEventUpdateController' => [CalendarEventUpdateController::class],
+            'CalendarEventDeleteController' => [CalendarEventDeleteController::class],
+            'CalendarEventStatusController' => [CalendarEventStatusController::class],
+            'CalendarLocationController' => [CalendarLocationController::class],
             'ParticipationController' => [ParticipationController::class],
             'TwoFactorController' => [TwoFactorController::class],
         ];

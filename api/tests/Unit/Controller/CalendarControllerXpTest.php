@@ -2,15 +2,11 @@
 
 namespace App\Tests\Unit\Controller;
 
-use App\Controller\CalendarController;
+use App\Controller\Api\Calendar\CalendarEventWriteController;
 use App\Entity\CalendarEvent;
 use App\Entity\User;
 use App\Event\CalendarEventCreatedEvent;
-use App\Repository\ParticipationRepository;
 use App\Service\CalendarEventService;
-use App\Service\EmailNotificationService;
-use App\Service\NotificationService;
-use App\Service\TeamMembershipService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +25,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  */
 class CalendarControllerXpTest extends TestCase
 {
-    private CalendarController $controller;
+    private CalendarEventWriteController $controller;
     private EventDispatcherInterface&MockObject $dispatcher;
     private CalendarEventService&MockObject $calendarEventService;
     private AuthorizationCheckerInterface&MockObject $authChecker;
@@ -37,21 +33,13 @@ class CalendarControllerXpTest extends TestCase
     protected function setUp(): void
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $emailService = $this->createMock(EmailNotificationService::class);
-        $participationRepo = $this->createMock(ParticipationRepository::class);
         $this->calendarEventService = $this->createMock(CalendarEventService::class);
-        $notificationService = $this->createMock(NotificationService::class);
-        $teamMembershipService = $this->createMock(TeamMembershipService::class);
         $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
         $this->authChecker = $this->createMock(AuthorizationCheckerInterface::class);
 
-        $this->controller = new CalendarController(
+        $this->controller = new CalendarEventWriteController(
             $em,
-            $emailService,
-            $participationRepo,
             $this->calendarEventService,
-            $notificationService,
-            $teamMembershipService,
             $this->dispatcher,
         );
     }

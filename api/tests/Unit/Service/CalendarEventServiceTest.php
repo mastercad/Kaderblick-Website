@@ -685,4 +685,163 @@ class CalendarEventServiceTest extends TestCase
         $this->assertNotNull($endDate, 'EndDate should be set');
         $this->assertSame('2025-06-01 22:00:00', $endDate->format('Y-m-d H:i:s'));
     }
+
+    // =========================================================================
+    // Training series metadata — updateEventFromData
+    // =========================================================================
+
+    /** Minimal CalendarEventService sufficient for training-field tests. */
+    private function buildServiceForTrainingTests(): CalendarEventService
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $repo = $this->getMockBuilder(\Doctrine\ORM\EntityRepository::class)
+            ->disableOriginalConstructor()->onlyMethods(['findOneBy'])->getMock();
+        $repo->method('findOneBy')->willReturn(null);
+        $em->method('getRepository')->willReturn($repo);
+        $em->method('flush');
+
+        $security = $this->createMock(Security::class);
+        $security->method('getUser')->willReturn($this->createMock(User::class));
+        $validator = $this->createMock(ValidatorInterface::class);
+        $validator->method('validate')->willReturn(new ConstraintViolationList());
+
+        return new CalendarEventService(
+            $em,
+            $validator,
+            $this->createMock(EventDispatcherInterface::class),
+            $this->createMock(TaskEventGeneratorService::class),
+            $security,
+            $this->createMock(TeamMembershipService::class),
+        );
+    }
+
+    public function testUpdateEventFromDataSetsTrainingWeekdays(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Montags-Training',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingWeekdays' => [1, 3],
+        ]);
+
+        $this->assertSame([1, 3], $calendarEvent->getTrainingWeekdays());
+    }
+
+    public function testUpdateEventFromDataClearsTrainingWeekdaysWhenNull(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingWeekdays([1, 3]);
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Einzeltraining',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingWeekdays' => null,
+        ]);
+
+        $this->assertNull($calendarEvent->getTrainingWeekdays());
+    }
+
+    public function testUpdateEventFromDataPreservesTrainingWeekdaysWhenKeyAbsent(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingWeekdays([2, 4]);
+
+        // Key intentionally absent from payload
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Training unveränderlich',
+            'startDate' => '2026-04-08T18:00:00',
+        ]);
+
+        $this->assertSame([2, 4], $calendarEvent->getTrainingWeekdays());
+    }
+
+    public function testUpdateEventFromDataSetsTrainingSeriesEndDate(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Training',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingSeriesEndDate' => '2026-12-31',
+        ]);
+
+        $this->assertSame('2026-12-31', $calendarEvent->getTrainingSeriesEndDate());
+    }
+
+    public function testUpdateEventFromDataClearsTrainingSeriesEndDateWhenNull(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingSeriesEndDate('2026-06-30');
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Einzeltraining',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingSeriesEndDate' => null,
+        ]);
+
+        $this->assertNull($calendarEvent->getTrainingSeriesEndDate());
+    }
+
+    public function testUpdateEventFromDataPreservesTrainingSeriesEndDateWhenKeyAbsent(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingSeriesEndDate('2026-09-30');
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Training',
+            'startDate' => '2026-04-07T18:00:00',
+        ]);
+
+        $this->assertSame('2026-09-30', $calendarEvent->getTrainingSeriesEndDate());
+    }
+
+    public function testUpdateEventFromDataSetsTrainingSeriesId(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Training',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingSeriesId' => 'some-uuid-1234',
+        ]);
+
+        $this->assertSame('some-uuid-1234', $calendarEvent->getTrainingSeriesId());
+    }
+
+    public function testUpdateEventFromDataClearsTrainingSeriesIdWhenNull(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingSeriesId('existing-uuid');
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Einzeltraining',
+            'startDate' => '2026-04-07T18:00:00',
+            'trainingSeriesId' => null,
+        ]);
+
+        $this->assertNull($calendarEvent->getTrainingSeriesId());
+    }
+
+    public function testUpdateEventFromDataPreservesTrainingSeriesIdWhenKeyAbsent(): void
+    {
+        $service = $this->buildServiceForTrainingTests();
+        $calendarEvent = new CalendarEvent();
+        $calendarEvent->setTrainingSeriesId('preserved-uuid');
+
+        $service->updateEventFromData($calendarEvent, [
+            'title' => 'Training',
+            'startDate' => '2026-04-07T18:00:00',
+        ]);
+
+        $this->assertSame('preserved-uuid', $calendarEvent->getTrainingSeriesId());
+    }
 }

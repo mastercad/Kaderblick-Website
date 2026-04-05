@@ -30,6 +30,7 @@ class SystemSettingController extends AbstractController
             'defaults' => [
                 SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED => 'true',
                 SystemSettingService::KEY_2FA_REQUIRED => 'false',
+                SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE => SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL,
             ],
         ]);
     }
@@ -52,17 +53,39 @@ class SystemSettingController extends AbstractController
         $allowedKeys = [
             SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             SystemSettingService::KEY_2FA_REQUIRED,
+            SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
         ];
 
         if (!in_array($key, $allowedKeys, true)) {
             return $this->json(['error' => sprintf('Unknown setting key "%s".', $key)], 400);
         }
 
-        $this->settingService->set($key, (string) $data['value']);
+        $value = (string) $data['value'];
+
+        // KEY_PUSH_NOTIFICATIONS_MODE only accepts the three defined modes.
+        if (SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE === $key) {
+            $validModes = [
+                SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL,
+                SystemSettingService::PUSH_NOTIFICATIONS_MODE_ONLY_ME,
+                SystemSettingService::PUSH_NOTIFICATIONS_MODE_DISABLED,
+            ];
+            if (!in_array($value, $validModes, true)) {
+                return $this->json([
+                    'error' => sprintf(
+                        'Invalid value "%s" for key "%s". Allowed: %s.',
+                        $value,
+                        $key,
+                        implode(', ', $validModes)
+                    ),
+                ], 400);
+            }
+        }
+
+        $this->settingService->set($key, $value);
 
         return $this->json([
             'key' => $key,
-            'value' => $data['value'],
+            'value' => $value,
         ]);
     }
 }

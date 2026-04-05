@@ -130,4 +130,16 @@ class UserRepository extends ServiceEntityRepository implements OptimizedReposit
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @return User[]
+     */
+    public function findSuperAdmins(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->where('u.roles LIKE :role')
+            ->setParameter('role', '%ROLE_SUPERADMIN%')
+            ->getQuery()
+            ->getResult();
+    }
 }

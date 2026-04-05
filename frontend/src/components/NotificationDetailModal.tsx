@@ -46,6 +46,10 @@ const getNotificationIcon = (type: AppNotification['type']) => {
       return <DirectionsCarIcon />;
     case 'event_cancelled':
       return <EventBusyIcon />;
+    case 'event_created':
+    case 'event_updated':
+    case 'event_deleted':
+      return <EventIcon />;
     case 'feedback':
       return <FeedbackIcon />;
     case 'new_user_registration':
@@ -74,6 +78,12 @@ const getNotificationColor = (type: AppNotification['type']) => {
       return '#d32f2f';
     case 'event_cancelled':
       return '#e65100';
+    case 'event_created':
+      return '#2e7d32';
+    case 'event_updated':
+      return '#1565c0';
+    case 'event_deleted':
+      return '#c62828';
     case 'feedback':
       return '#7b5ea7';
     case 'new_user_registration':
@@ -102,6 +112,9 @@ const getNotificationLabel = (type: AppNotification['type']) => {
     case 'team_ride_cancel': return 'Mitfahrt storniert';
     case 'team_ride_deleted': return 'Mitfahrt gelöscht';
     case 'event_cancelled': return 'Event abgesagt';
+    case 'event_created': return 'Termin erstellt';
+    case 'event_updated': return 'Termin aktualisiert';
+    case 'event_deleted': return 'Termin abgesagt';
     case 'feedback': return 'Feedback-Antwort';
     case 'new_user_registration': return 'Neue Registrierung';
     case 'registration_request': return 'Zuordnungsantrag';
@@ -309,6 +322,41 @@ const renderNotificationData = (type: AppNotification['type'], data: any, onNavi
             </Typography>
           )}
           {renderSmartUrl(data.url, onNavigate)}
+        </Box>
+      );
+
+    case 'event_created':
+      return (
+        <Box>
+          {data.createdBy && (
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              <strong>Von:</strong> {data.createdBy}
+            </Typography>
+          )}
+          {renderSmartUrl(data.url, onNavigate)}
+        </Box>
+      );
+
+    case 'event_updated':
+      return (
+        <Box>
+          {data.updatedBy && (
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              <strong>Von:</strong> {data.updatedBy}
+            </Typography>
+          )}
+          {renderSmartUrl(data.url, onNavigate)}
+        </Box>
+      );
+
+    case 'event_deleted':
+      return (
+        <Box>
+          {data.deletedBy && (
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              <strong>Von:</strong> {data.deletedBy}
+            </Typography>
+          )}
         </Box>
       );
 

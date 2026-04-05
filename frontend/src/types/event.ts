@@ -50,7 +50,17 @@ export interface EventData {
   trainingRecurring?: boolean;
   trainingWeekdays?: number[];  // 0=So, 1=Mo, 2=Di, 3=Mi, 4=Do, 5=Fr, 6=Sa
   trainingEndDate?: string;     // YYYY-MM-DD — end of recurring series
+  trainingSeriesId?: string;    // UUID — set when event belongs to an existing series
+  // Original series params stored at edit-open time, used for diff preview
+  trainingOriginalDate?: string;
+  trainingOriginalEndDate?: string;
+  trainingOriginalWeekdays?: number[];
+  // Opaque key of content fields at edit-open time (title|locationId|time|teamId)
+  trainingOriginalContentKey?: string;
   trainingDuration?: number;    // Duration in minutes (default: 90)
+  // Scope selection stored during wizard step (only for series edits)
+  trainingEditScope?: 'single' | 'from_here' | 'same_weekday' | 'same_weekday_from_here' | 'series';
+  trainingEditScopeUntilDate?: string;
   // Game timing fields (only for Spiel events, not tournaments)
   gameHalfDuration?: number;
   gameHalftimeBreakDuration?: number;

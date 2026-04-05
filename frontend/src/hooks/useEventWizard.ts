@@ -8,6 +8,7 @@ import {
   STEP_MATCHES,
   STEP_PERMISSIONS,
   STEP_DESCRIPTION,
+  STEP_TRAINING_SCOPE,
   WizardStep,
   WizardStepKey,
 } from '../components/EventModal/eventWizardConstants';
@@ -85,6 +86,10 @@ export function useEventWizard({
       s.push({ key: STEP_DETAILS, label: 'Aufgabe' });
     } else if (isTraining) {
       s.push({ key: STEP_DETAILS, label: 'Training' });
+      // When editing an existing training series, add a scope-selection step
+      if (event.trainingSeriesId) {
+        s.push({ key: STEP_TRAINING_SCOPE, label: 'Gültigkeit' });
+      }
     } else if (isGenericEvent) {
       s.push({ key: STEP_PERMISSIONS, label: 'Berechtigungen' });
     } else {

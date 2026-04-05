@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\Controller;
 
-use App\Controller\CalendarController;
+use App\Controller\Api\Calendar\CalendarEventReadController;
 use App\Entity\CalendarEvent;
 use App\Entity\CalendarEventType;
 use App\Entity\TaskAssignment;
@@ -10,9 +10,7 @@ use App\Entity\User;
 use App\Repository\CalendarEventRepository;
 use App\Repository\ParticipationRepository;
 use App\Security\Voter\CalendarEventVoter;
-use App\Service\CalendarEventService;
-use App\Service\EmailNotificationService;
-use App\Service\NotificationService;
+use App\Service\CalendarEventSerializer;
 use App\Service\TeamMembershipService;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -20,6 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -36,40 +35,36 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  */
 class CalendarControllerPermissionsTest extends TestCase
 {
-    private CalendarController $controller;
+    private CalendarEventReadController $controller;
     private TeamMembershipService&MockObject $membershipService;
     private AuthorizationCheckerInterface&MockObject $authChecker;
     private EntityManagerInterface&MockObject $em;
+    private Security&MockObject $security;
     /** @var EntityRepository<CalendarEventType>&MockObject */
     private EntityRepository&MockObject $eventTypeRepo;
     /** @var EntityRepository<TaskAssignment>&MockObject */
     private EntityRepository&MockObject $taskAssignmentRepo;
-    /** @var EntityRepository<\App\Entity\Tournament>&MockObject */
-    private EntityRepository&MockObject $tournamentRepo;
 
     private const TOURNAMENT_TYPE_ID = 5;
 
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
-        $emailService = $this->createMock(EmailNotificationService::class);
 
         $participationRepo = $this->createMock(ParticipationRepository::class);
         $participationRepo->method('findByUserAndEvent')->willReturn(null);
 
-        $calendarEventService = $this->createMock(CalendarEventService::class);
-        $notificationService = $this->createMock(NotificationService::class);
         $this->membershipService = $this->createMock(TeamMembershipService::class);
+        $this->security = $this->createMock(Security::class);
 
-        $this->controller = new CalendarController(
+        $serializer = new CalendarEventSerializer(
             $this->em,
-            $emailService,
             $participationRepo,
-            $calendarEventService,
-            $notificationService,
             $this->membershipService,
-            $this->createMock(\Symfony\Component\EventDispatcher\EventDispatcherInterface::class),
+            $this->security,
         );
+
+        $this->controller = new CalendarEventReadController($this->em, $serializer);
 
         $this->authChecker = $this->createMock(AuthorizationCheckerInterface::class);
 
@@ -77,14 +72,15 @@ class CalendarControllerPermissionsTest extends TestCase
         $this->eventTypeRepo = $this->createMock(EntityRepository::class);
         $this->taskAssignmentRepo = $this->createMock(EntityRepository::class);
         $this->taskAssignmentRepo->method('findOneBy')->willReturn(null);
-        $this->tournamentRepo = $this->createMock(EntityRepository::class);
-        $this->tournamentRepo->method('findOneBy')->willReturn(null);
+
+        $tournamentRepo = $this->createMock(EntityRepository::class);
+        $tournamentRepo->method('findOneBy')->willReturn(null);
 
         $this->em->method('getRepository')
             ->willReturnCallback(fn (string $class) => match ($class) {
                 CalendarEventType::class => $this->eventTypeRepo,
                 TaskAssignment::class => $this->taskAssignmentRepo,
-                \App\Entity\Tournament::class => $this->tournamentRepo,
+                \App\Entity\Tournament::class => $tournamentRepo,
                 default => $this->createMock(EntityRepository::class),
             });
     }
@@ -206,7 +202,14 @@ class CalendarControllerPermissionsTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(1);
-        $user->method('getRoles')->willReturn($isSuperAdmin ? ['ROLE_SUPERADMIN'] : ['ROLE_USER']);
+
+        // Security mock used by CalendarEventSerializer
+        $this->security->method('isGranted')
+            ->willReturnCallback(fn (string $attr, mixed $subject = null) => match ($attr) {
+                'ROLE_SUPERADMIN' => $isSuperAdmin,
+                default => false,
+            });
+        $this->security->method('getUser')->willReturn($user);
 
         $token = $this->createMock(TokenInterface::class);
         $token->method('getUser')->willReturn($user);
@@ -214,13 +217,9 @@ class CalendarControllerPermissionsTest extends TestCase
         $tokenStorage = $this->createMock(TokenStorageInterface::class);
         $tokenStorage->method('getToken')->willReturn($token);
 
-        // VIEW always passes; ROLE_SUPERADMIN depends on the $isSuperAdmin flag
+        // VIEW always passes for the controller's isGranted() call
         $this->authChecker->method('isGranted')
-            ->willReturnCallback(fn (string $attr) => match ($attr) {
-                CalendarEventVoter::VIEW => true,
-                'ROLE_SUPERADMIN' => $isSuperAdmin,
-                default => false,
-            });
+            ->willReturnCallback(fn (string $attr) => CalendarEventVoter::VIEW === $attr);
 
         $container = new ContainerBuilder();
         $container->set('security.token_storage', $tokenStorage);

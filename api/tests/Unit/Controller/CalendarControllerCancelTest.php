@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\Controller;
 
-use App\Controller\CalendarController;
+use App\Controller\Api\Calendar\CalendarEventStatusController;
 use App\Entity\CalendarEvent;
 use App\Entity\User;
 use App\Repository\ParticipationRepository;
@@ -28,7 +28,7 @@ class CalendarControllerCancelTest extends TestCase
 {
     private EntityManagerInterface&MockObject $entityManager;
     private NotificationService&MockObject $notificationService;
-    private CalendarController $controller;
+    private CalendarEventStatusController $controller;
     private User&MockObject $user;
     private AuthorizationCheckerInterface&MockObject $authChecker;
     private ParticipationRepository&MockObject $participationRepo;
@@ -63,14 +63,12 @@ class CalendarControllerCancelTest extends TestCase
         $defaultRepo->method('createQueryBuilder')->willReturn($defaultQb);
         $this->entityManager->method('getRepository')->willReturn($defaultRepo);
 
-        $this->controller = new CalendarController(
+        $this->controller = new CalendarEventStatusController(
             $this->entityManager,
-            $emailService,
-            $this->participationRepo,
-            $calendarEventService,
             $this->notificationService,
             $this->teamMembershipService,
-            $this->createMock(\Symfony\Component\EventDispatcher\EventDispatcherInterface::class),
+            $emailService,
+            $calendarEventService,
         );
 
         // Set up authenticated user

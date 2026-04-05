@@ -26,14 +26,16 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import TodayIcon from '@mui/icons-material/Today';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { apiJson, apiRequest, getApiErrorMessage } from '../utils/api';
-import { buildLeagueCupPayload } from '../utils/buildLeagueCupPayload';
-import { TournamentGameMode, TournamentType } from '../types/tournament';
+import { apiRequest, getApiErrorMessage } from '../utils/api';
 import moment from 'moment';
 import AddIcon from '@mui/icons-material/Add';
 import 'moment/locale/de';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { League } from '../types/league';
+
+import { CalendarEvent, EventFormData } from '../types/calendar';
+import { useCalendarData } from '../hooks/useCalendarData';
+import { fulfillPendingTournamentMatches } from '../utils/mapApiEventToCalendarEvent';
+import { buildCalendarEventPayload } from '../utils/buildCalendarEventPayload';
 
 moment.updateLocale('de', {
   week: {
@@ -42,213 +44,6 @@ moment.updateLocale('de', {
 });
 
 const localizer = momentLocalizer(moment);
-
-class CalendarErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error: any, info: any) {
-    // eslint-disable-next-line no-console
-    console.error('Calendar.tsx ErrorBoundary:', error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ color: 'red', padding: 32 }}>
-          <h2>Fehler in Calendar.tsx</h2>
-          <pre>{String(this.state.error)}</pre>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-type CalendarEvent = {
-  id: number;
-  title: string;
-  start: Date | string;
-  end: Date | string;
-  description?: string;
-  eventType?: { id: number; name?: string; color?: string };
-  location?: { id?: number; name?: string };
-  gameType?: { id?: number; name?: string };
-  weatherData?: { weatherCode?: number };
-  game?: {
-    homeTeam?: { id: number; name: string };
-    awayTeam?: { id: number; name: string };
-  };
-  tournamentSettings?: {
-    tournamentType?: TournamentType;
-    roundDuration?: number;
-    breakTime?: number;
-    gameMode?: TournamentGameMode;
-    numberOfGroups?: number;
-  };
-  task?: {
-    id: number;
-    isRecurring: boolean;
-    recurrenceMode: string;
-    recurrenceRule: string | null;
-    rotationUsers: { id: number; fullName: string }[];
-    rotationCount: number;
-    offset: number;
-  };
-  tournament?: {
-    id?: number;
-    matches?: any[];
-    teams?: any[];
-    settings?: {
-      tournamentType?: TournamentType;
-      roundDuration?: number;
-      breakTime?: number;
-      gameMode?: TournamentGameMode;
-      numberOfGroups?: number;
-    };
-  };
-  permissionType?: string;
-  trainingTeamId?: number;
-  trainingWeekdays?: number[];
-  trainingSeriesEndDate?: string;
-  trainingSeriesId?: string;
-  pendingTournamentMatches?: any[];
-  teamIds?: any[];
-  permissions?: {
-    canCreate?: boolean;
-    canEdit?: boolean;
-    canDelete?: boolean;
-    canCancel?: boolean;
-  };
-  cancelled?: boolean;
-  cancelReason?: string;
-  cancelledBy?: string;
-  // Externe Kalender-Events (importiert via iCal)
-  isExternal?: boolean;
-  externalCalendarId?: number;
-  externalCalendarName?: string;
-  externalCalendarColor?: string;
-};
-
-type CalendarEventType = {
-  id: number;
-  name: string;
-  color: string;
-};
-
-type Team = {
-  id: number;
-  name: string;
-  defaultHalfDuration?: number | null;
-  defaultHalftimeBreakDuration?: number | null;
-};
-
-type GameType = {
-  id: number;
-  name: string;
-};
-
-type Location = {
-  id: number;
-  name: string;
-};
-
-type LocationsApiResponse = {
-  locations: Location[];
-  permissions: {
-    canCreate: boolean;
-    canEdit: boolean;
-    canView: boolean;
-    canDelete: boolean;
-  };
-};
-
-type TeamsApiResponse = {
-  teams: Team[];
-  permissions: {
-    canCreate: boolean;
-    canEdit: boolean;
-    canView: boolean;
-    canDelete: boolean;
-  };
-};
-
-type EventFormData = {
-  title: string;
-  date: string;
-  time?: string;
-  endDate?: string;
-  endTime?: string;
-  eventType?: string;
-  locationId?: string;
-  leagueId?: string;
-  cupId?: string;
-  description?: string;
-  homeTeam?: string;
-  awayTeam?: string;
-  gameType?: string;
-  permissionType?: string;
-  permissionTeams?: string[];
-  permissionClubs?: string[];
-  permissionUsers?: string[];
-  // Task-bezogene Felder
-  task?: {
-    id: number;
-    isRecurring: boolean;
-    recurrenceMode: string;
-    recurrenceRule: string | null;
-    rotationUsers: { id: number; fullName: string }[];
-    rotationCount: number;
-    offset: number;
-  };
-  taskIsRecurring?: boolean;
-  taskRecurrenceMode?: string;
-  taskFreq?: string;
-  taskInterval?: number;
-  taskByDay?: string;
-  taskByMonthDay?: number;
-  taskRecurrenceRule?: string;
-  taskRotationUsers?: string[];
-  taskRotationCount?: number;
-  taskOffset?: number;
-  // Tournament-bezogene Felder
-  tournamentId?: string;
-  tournamentMatchId?: string;
-  pendingTournamentMatches?: any[];
-  tournamentRoundDuration?: number;
-  tournamentBreakTime?: number;
-  tournamentGameMode?: TournamentGameMode;
-  tournamentType?: TournamentType;
-  tournamentNumberOfGroups?: number;
-  tournament?: {
-    id?: number;
-    matches?: any[];
-    teams?: any[];
-    settings?: {
-      tournamentType?: TournamentType;
-      tournamentRoundDuration?: number;
-      tournamentBreakTime?: number;
-      tournamentNumberOfGroups?: number;
-      tournamentGameMode?: TournamentGameMode;
-    }
-  }
-  teamIds?: any[];
-  // Training-bezogene Felder
-  trainingTeamId?: string;
-  trainingRecurring?: boolean;
-  trainingWeekdays?: number[];
-  trainingEndDate?: string;
-  trainingDuration?: number;
-  trainingSeriesId?: string;
-  // Game timing fields (only for Spiel events)
-  gameHalfDuration?: number;
-  gameHalftimeBreakDuration?: number;
-  gameFirstHalfExtraTime?: number | null;
-  gameSecondHalfExtraTime?: number | null;
-};
 
 const messages = {
   allDay: 'Ganztägig',
@@ -279,6 +74,31 @@ const formats = {
   }
 };
 
+class CalendarErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, info: any) {
+    // eslint-disable-next-line no-console
+    console.error('Calendar.tsx ErrorBoundary:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ color: 'red', padding: 32 }}>
+          <h2>Fehler in Calendar.tsx</h2>
+          <pre>{String(this.state.error)}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 type CalendarProps = {
   setCalendarFabHandler?: (handler: (() => void) | null) => void;
 };
@@ -292,10 +112,21 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
   const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [initialOpenRides, setInitialOpenRides] = useState(false);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [externalEvents, setExternalEvents] = useState<CalendarEvent[]>([]);
+  const {
+    events,
+    loading,
+    error,
+    eventTypes,
+    teams,
+    allTeams,
+    gameTypes,
+    locations,
+    users,
+    activeEventTypeIds,
+    filteredEvents,
+    toggleEventType,
+    refreshEvents,
+  } = useCalendarData(date, view);
   
   // Event Modal State
   const [eventModalOpen, setEventModalOpen] = useState(false);
@@ -314,14 +145,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
   const [editingEventPermissions, setEditingEventPermissions] = useState<{ canEdit?: boolean; canDelete?: boolean } | null>(null);
   const [eventSaving, setEventSaving] = useState(false);
   
-  // Zusätzliche Daten
-  const [eventTypes, setEventTypes] = useState<{ createAndEditAllowed: boolean; entries: CalendarEventType[] }>({ createAndEditAllowed: false, entries: [] });
-  const [teams, setTeams] = useState<Team[]>([]);  // own teams (filtered by user)
-  const [allTeams, setAllTeams] = useState<Team[]>([]);  // all teams (for match/tournament context)
-  const [gameTypes, setGameTypes] = useState<{ createAndEditAllowed: boolean; entries: GameType[] }>({ createAndEditAllowed: false, entries: [] });
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [leagues, setLeagues] = useState<League[]>([]);
-
   // CalendarFab nur anzeigen wenn der Benutzer Events erstellen darf
   React.useEffect(() => {
     if (!eventTypes.createAndEditAllowed) {
@@ -384,10 +207,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
         setSearchParams({}, { replace: true });
       });
   }, [deepLinkEventId, events]);
-  const [users, setUsers] = useState<{ id: string | number; fullName?: string; firstName?: string; lastName?: string; context?: string }[]>([]);
-
-  // Filter State - Set mit aktiven Event-Type-IDs (standardmäßig alle aktiv)
-  const [activeEventTypeIds, setActiveEventTypeIds] = useState<Set<number>>(new Set());
 
   // Modal States
   const [alertModal, setAlertModal] = useState<{
@@ -443,166 +262,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
     });
   };
 
-  // Lade Event-Types, Teams, Game-Types, Locations und Users beim ersten Laden
-  useEffect(() => {    
-    Promise.all([
-      apiJson<{ createAndEditAllowed: boolean; entries: CalendarEventType[] }>('/api/calendar-event-types').catch(() => ({ createAndEditAllowed: false, entries: [] })),
-      apiJson<TeamsApiResponse[]>('/api/teams/list').catch(() => []),
-      apiJson<TeamsApiResponse[]>('/api/teams/list?context=match').catch(() => []),
-      apiJson<{ createAndEditAllowed: boolean; entries: GameType[] }>('/api/game-types').catch(() => ({ createAndEditAllowed: false, entries: [] })),
-      apiJson<LocationsApiResponse>('/api/locations').catch(() => ({ locations: [], permissions: { canCreate: false, canEdit: false, canView: false, canDelete: false } })),
-      apiJson<{ users: { id: string; fullName: string; context?: string }[] }>('/api/users/contacts').catch(() => ({ users: [] }))
-    ]).then(([eventTypesData, teamsData, allTeamsData, gameTypesData, locationsData, usersData]) => {
-      // Defensive: handle possible error objects
-      if ('error' in eventTypesData) {
-        setEventTypes({ createAndEditAllowed: false, entries: [] });
-      } else {
-        setEventTypes(eventTypesData);
-        // Filtere GameType 'Turnier-Match' aus der Auswahl
-        setEventTypes({
-          ...eventTypesData,
-          entries: (eventTypesData.entries || []).filter(et => et.name !== 'Turnier-Match')
-        });
-      }
-      const parseTeams = (data: any): Team[] => {
-        if (Array.isArray(data)) {
-          if (data.length > 0 && 'teams' in data[0]) return (data[0] as any).teams || [];
-          return [];
-        } else if (data && typeof data === 'object' && 'teams' in data) {
-          return (data as any).teams || [];
-        }
-        return [];
-      };
-      setTeams(parseTeams(teamsData));
-      setAllTeams(parseTeams(allTeamsData));
-      if ('error' in gameTypesData) {
-        setGameTypes({ createAndEditAllowed: false, entries: [] });
-      } else {
-        // Filtere GameType 'Turnier-Match' aus der Auswahl
-        setGameTypes({
-          ...gameTypesData,
-          entries: (gameTypesData.entries || []).filter(gt => gt.name !== 'Turnier-Match')
-        });
-      }
-      if ('error' in locationsData) {
-        setLocations([]);
-      } else {
-        setLocations(locationsData.locations || []);
-      }
-      if ('error' in usersData || !usersData.users) {
-        setUsers([]);
-      } else {
-        setUsers(usersData.users || []);
-      }
-    }).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    if (eventTypes.entries.length > 0) {
-      setActiveEventTypeIds(new Set(eventTypes.entries.map(et => et.id)));
-    }
-  }, [eventTypes.entries]);
-
-  useEffect(() => {
-    const viewType = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
-    const start = moment(date).startOf(viewType as any).toISOString();
-    const end = moment(date).endOf(viewType as any).toISOString();
-    setLoading(true);
-    setError(null);
-    apiJson(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
-      .then((data) => {
-        
-        console.debug(data);
-
-        const filteredData = (data || []).filter((ev: any) => {
-          // Filtere Events basierend auf aktiven Event-Type-IDs
-          if (ev.type && activeEventTypeIds.size > 0) {
-            return activeEventTypeIds.has(ev.type.id);
-          }
-          return true;
-        });
-
-        function getUniqueValues(iterator: Iterable<any>): any[] {
-          const uniqueValues = new Set<any>();
-          for (const value of iterator) {
-            uniqueValues.add(value.homeTeamId);
-            uniqueValues.add(value.awayTeamId);
-          }
-
-          return [...uniqueValues];
-        }
-
-        setEvents((data || []).map((ev: any) => {
-          const tournamentSettings = ev.tournamentSettings || undefined;
-          const tournamentMatchesIterator = data.flatMap((event: any) => event.tournament?.matches || []);
-          const tournamentTeams = getUniqueValues(tournamentMatchesIterator);
-          
-          console.debug(tournamentTeams);
-
-          return {
-            id: ev.id || 0,
-            title: ev.title || 'Unbenannter Termin',
-            start: new Date(ev.start),
-            end: new Date(ev.end),
-            description: ev.description || '',
-            eventType: ev.type || {},
-            location: ev.location || {},
-            game: ev.game || undefined,
-            task: ev.task || undefined,
-            weatherData: ev.weatherData || undefined,
-            permissions: ev.permissions || {},
-            permissionType: ev.permissionType || undefined,
-            trainingTeamId: ev.trainingTeamId || undefined,
-            trainingWeekdays: ev.trainingWeekdays || undefined,
-            trainingSeriesEndDate: ev.trainingSeriesEndDate || undefined,
-            trainingSeriesId: ev.trainingSeriesId || undefined,
-            cancelled: ev.cancelled || false,
-            cancelReason: ev.cancelReason || undefined,
-            cancelledBy: ev.cancelledBy || undefined,
-            tournamentId: ev.tournament?.id,
-            tournamentType: tournamentSettings?.type,
-            tournamentRoundDuration: tournamentSettings?.roundDuration,
-            tournamentBreakTime: tournamentSettings?.breakTime,
-            tournamentGameMode: tournamentSettings?.gameMode,
-            tournamentNumberOfGroups: tournamentSettings?.numberOfGroups,
-            tournament: ev.tournament,
-            matches: ev.tournament?.matches,
-            pendingTournamentMatches: fullfillPendingTournamentMatches(ev.tournament?.matches || []),
-            teamIds: tournamentTeams,
-            tournamentTeams: tournamentTeams
-          };
-        }));
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(e.message);
-        setLoading(false);
-      });
-  }, [date, view]);
-
-  // Externe Kalender-Events laden (einmal beim Mounten + bei Bedarf)
-  useEffect(() => {
-    apiJson('/api/profile/calendar/external/events/all')
-      .then((data: any) => {
-        if (!Array.isArray(data)) return;
-        const mapped: CalendarEvent[] = data.map((ev: any, idx: number) => ({
-          id: -(idx + 1),  // negative IDs um Konflikte mit echten Events zu vermeiden
-          title: ev.title || 'Externer Termin',
-          start: new Date(ev.start),
-          end: new Date(ev.end),
-          description: ev.description || '',
-          isExternal: true,
-          externalCalendarId: ev.calendarId,
-          externalCalendarName: ev.calendarName,
-          externalCalendarColor: ev.calendarColor,
-        }));
-        setExternalEvents(mapped);
-      })
-      .catch(() => {
-        // Fehler beim Laden externer Kalender → still ignorieren
-      });
-  }, []);
-
   // Event-Handler für das Erstellen neuer Events
   const handleDateClick = (slotInfo: any) => {
     if (!eventTypes.createAndEditAllowed) return;
@@ -631,28 +290,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
     setSelectedEvent(info);
   };
 
-  const fullfillPendingTournamentMatches = (matches: any[]) => {
-    const pendingTournamentMatches = [];
-
-    console.log("FULLFILL PENDING TOURNAMENT MATCHES: ", matches);
-    console.log("FULLFILL PENDING TOURNAMENT MATCHES TEAMS: ", teams);
-
-    for (const match of matches) {
-      const homeTeam = teams.find(team => String(team.id) === String(match.homeTeamId));
-      const awayTeam = teams.find(team => String(team.id) === String(match.awayTeamId));
-      if (homeTeam && awayTeam) {
-        match.homeTeamName = homeTeam.name;
-        match.awayTeamName = awayTeam.name;
-
-        pendingTournamentMatches.push(match);
-      }
-    }
-
-    console.debug("CALENDAR PENDING TOURNAMENT MATCHES: ", pendingTournamentMatches);
-
-    return pendingTournamentMatches;
-  }
-
   const handleEditEvent = (event: CalendarEvent) => {
     const startDate = moment(event.start);
     const endDate = event.end ? moment(event.end) : null;
@@ -679,6 +316,18 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       ? endDate.diff(startDate, 'minutes')
       : (event as any).trainingDuration || 90;
 
+    // Store original series params so TrainingEventFields can compute an accurate date-set diff
+    const trainingOriginalDate = (event.trainingSeriesId && event.trainingWeekdays?.length)
+      ? startDate.format('YYYY-MM-DD') : undefined;
+    const trainingOriginalEndDate = (event.trainingSeriesId && event.trainingWeekdays?.length)
+      ? (event.trainingSeriesEndDate || '') : undefined;
+    const trainingOriginalWeekdays = (event.trainingSeriesId && event.trainingWeekdays?.length)
+      ? [...event.trainingWeekdays] : undefined;
+    // Content key: used at save-time to detect whether content (vs structure) changed
+    const trainingOriginalContentKey = event.trainingSeriesId
+      ? [event.title, event.location?.id ?? '', startDate.format('HH:mm'), event.trainingTeamId ?? ''].join('|')
+      : undefined;
+
     setEventFormData({
       title: event.title,
       date: startDate.format('YYYY-MM-DD'),
@@ -699,6 +348,10 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       trainingWeekdays: event.trainingWeekdays || [],
       trainingEndDate: event.trainingSeriesEndDate || '',
       trainingSeriesId: event.trainingSeriesId || undefined,
+      trainingOriginalDate,
+      trainingOriginalEndDate,
+      trainingOriginalWeekdays,
+      trainingOriginalContentKey,
       trainingDuration,
       tournamentId: event.tournament?.id?.toString() || (event as any).tournamentId?.toString() || '',
       tournamentType: event.tournament?.settings?.tournamentType || undefined,
@@ -708,7 +361,7 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       tournamentNumberOfGroups: event.tournament?.settings?.numberOfGroups || 2,
       tournament: event.tournament,
       teamIds: event.teamIds,
-      pendingTournamentMatches: event.tournament?.matches ? (console.debug("EDIT: ", event.tournament?.matches), fullfillPendingTournamentMatches(event.tournament?.matches)) : [],
+      pendingTournamentMatches: event.tournament?.matches ? (console.debug("EDIT: ", event.tournament?.matches), fulfillPendingTournamentMatches(event.tournament?.matches, teams)) : [],
       task: event.task ? {
         id: event.task.id,
         isRecurring: event.task.isRecurring,
@@ -830,120 +483,13 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
         return;
       }
 
-      // Start-DateTime zusammenbauen
-      const startDateTime = eventFormData.time 
-        ? `${eventFormData.date}T${eventFormData.time}:00`
-        : `${eventFormData.date}T00:00:00`;
-      
-      // End-DateTime zusammenbauen (falls vorhanden)
-      let endDateTime: string | undefined;
-      if (eventFormData.endDate) {
-        endDateTime = eventFormData.endTime 
-          ? `${eventFormData.endDate}T${eventFormData.endTime}:00`
-          : `${eventFormData.endDate}T23:59:59`;
-      }
-
-      // For Spiel events without explicit end time: auto-compute from timing fields
-      if (!endDateTime && isMatchEvent && !isTournament) {
-        const halfDur  = typeof eventFormData.gameHalfDuration === 'number' ? eventFormData.gameHalfDuration : 45;
-        const breakDur = typeof eventFormData.gameHalftimeBreakDuration === 'number' ? eventFormData.gameHalftimeBreakDuration : 15;
-        const totalMins = 2 * halfDur + breakDur;
-        const startDate = new Date(startDateTime);
-        startDate.setMinutes(startDate.getMinutes() + totalMins);
-        const pad = (n: number) => String(n).padStart(2, '0');
-        endDateTime = `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}T${pad(startDate.getHours())}:${pad(startDate.getMinutes())}:00`;
-      }
-
-      // Fallback: keep endDate = startDate for events without explicit end time
-      if (!endDateTime) endDateTime = startDateTime;
-
-      const payload: any = {
-        title: eventFormData.title,
-        startDate: startDateTime,
-        endDate: endDateTime,
-        eventTypeId: eventFormData.eventType ? parseInt(eventFormData.eventType) : undefined,
-        description: eventFormData.description || '',
-        locationId: eventFormData.locationId ? parseInt(eventFormData.locationId) : undefined,
-        permissionType: eventFormData.permissionType || 'public',
-        permissionTeams: eventFormData.permissionTeams?.map(id => parseInt(id)) || [],
-        permissionClubs: eventFormData.permissionClubs?.map(id => parseInt(id)) || [],
-        permissionUsers: eventFormData.permissionUsers?.map(id => parseInt(id)) || []
-      };
-
-      // Always send leagueId/cupId (null = clear) so the backend clears stale values.
-      // This must be outside the isMatchEvent guard: tournaments may still have a previously
-      // saved league/cup that needs to be cleared, regardless of how isMatchEvent resolves.
-      Object.assign(payload, buildLeagueCupPayload(
-        eventFormData.gameType,
+      const payload = buildCalendarEventPayload(
+        eventFormData,
+        { isMatchEvent, isTournament, isTask, isTraining },
+        editingEventId,
         gameTypesOptions,
-        eventFormData.leagueId,
-        eventFormData.cupId,
-      ));
-
-      // Match event data
-      if (isMatchEvent) {
-        // Non-tournament match events: add game (home/away teams)
-        if (!isTournament && eventFormData.homeTeam && eventFormData.awayTeam) {
-          payload.game = {
-            homeTeamId: parseInt(eventFormData.homeTeam),
-            awayTeamId: parseInt(eventFormData.awayTeam),
-            halfDuration: typeof eventFormData.gameHalfDuration === 'number' ? eventFormData.gameHalfDuration : undefined,
-            halftimeBreakDuration: typeof eventFormData.gameHalftimeBreakDuration === 'number' ? eventFormData.gameHalftimeBreakDuration : undefined,
-            firstHalfExtraTime: eventFormData.gameFirstHalfExtraTime ?? undefined,
-            secondHalfExtraTime: eventFormData.gameSecondHalfExtraTime ?? undefined,
-          };
-        }
-
-        // GameType — always send when available; for isTournamentEventType the dropdown is
-        // hidden but the value may still be set from the loaded event.
-        if (eventFormData.gameType) {
-          payload.gameTypeId = parseInt(eventFormData.gameType);
-        }
-      }
-
-      // Tournament data (same for both "Turnier" and "Spiel + Turnier GameType")
-      if (isTournament) {
-        const teamIds = new Set<string>();
-        (eventFormData.pendingTournamentMatches || []).forEach((m: any) => {
-          if (m.homeTeamId) teamIds.add(String(m.homeTeamId));
-          if (m.awayTeamId) teamIds.add(String(m.awayTeamId));
-        });
-        const selectedTeams = tournamentTeams.filter(t => teamIds.has(t.value));
-        payload.tournamentType = eventFormData.tournamentType || 'indoor_hall';
-        payload.tournamentRoundDuration = eventFormData.tournamentRoundDuration || 10;
-        payload.tournamentBreakTime = eventFormData.tournamentBreakTime || 2;
-        payload.tournamentGameMode = eventFormData.tournamentGameMode || 'round_robin';
-        payload.tournamentNumberOfGroups = eventFormData.tournamentNumberOfGroups || 2;
-        payload.pendingTournamentMatches = eventFormData.pendingTournamentMatches;
-        payload.teams = selectedTeams.map(t => t.value);
-      }
-
-      // Task-spezifische Daten hinzufügen
-      if (isTask) {
-        var taskRecurrenceRule = JSON.stringify({'freq': eventFormData.taskFreq, 'interval': eventFormData.taskInterval, 'byday': eventFormData.taskByDay, 'bymonthday': eventFormData.taskByMonthDay});
-        payload.task = {
-          isRecurring: eventFormData.taskIsRecurring || false,
-          recurrenceMode: eventFormData.taskRecurrenceMode || 'classic',
-          rotationUsers: eventFormData.taskRotationUsers?.map(id => parseInt(id)) || [],
-          rotationCount: eventFormData.taskRotationCount || 1,
-          recurrenceRule: taskRecurrenceRule,
-          offset: eventFormData.taskOffset || 0
-        };
-        
-        // Recurrence-Rule für classic Mode zusammenbauen
-        if (eventFormData.taskIsRecurring && eventFormData.taskRecurrenceMode === 'classic') {
-          const rule: any = { freq: eventFormData.taskFreq || 'WEEKLY', interval: eventFormData.taskInterval || 1 };
-          if (eventFormData.taskFreq === 'WEEKLY') rule.byday = [eventFormData.taskByDay || 'MO'];
-          if (eventFormData.taskFreq === 'MONTHLY') rule.bymonthday = eventFormData.taskByMonthDay || 1;
-          payload.task.recurrenceRule = JSON.stringify(rule);
-        }
-      }
-
-      // Single training: set team permission automatically
-      if (isTraining && eventFormData.trainingTeamId) {
-        payload.permissionType = 'team';
-        payload.permissionTeams = [parseInt(eventFormData.trainingTeamId)];
-      }
+        tournamentTeams,
+      );
 
       const url = editingEventId ? `/api/calendar/event/${editingEventId}` : '/api/calendar/event';
       const method = editingEventId ? 'PUT' : 'POST';
@@ -1026,7 +572,7 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
     }
   };
 
-  const performDeleteEvent = async (deletionMode: 'single' | 'series', eventId?: number) => {
+  const performDeleteEvent = async (deletionMode: 'single' | 'from_here' | 'series', eventId?: number) => {
     const id = eventId ?? editingEventId;
     if (!id) return;
     
@@ -1068,43 +614,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       setEventSaving(false);
     }
   }
-
-  // Helper-Funktion zum Neu-Laden der Events
-  const refreshEvents = async () => {
-    const viewType = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
-    const start = moment(date).startOf(viewType as any).toISOString();
-    const end = moment(date).endOf(viewType as any).toISOString();
-    const updatedEvents = await apiJson<CalendarEvent[] | { error: string }>(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
-    
-    let mappedEvents: CalendarEvent[] = [];
-    if (Array.isArray(updatedEvents)) {
-      mappedEvents = updatedEvents.map((ev: any) => ({
-        id: ev.id || 0,
-        title: ev.title || 'Unbenannter Termin',
-        start: ev.start,
-        end: ev.end,
-        description: ev.description || '',
-        eventType: ev.type || {},  // Backend sendet 'type', wir mappen es zu 'eventType'
-        location: ev.location || {},
-        game: ev.game || undefined,
-        task: ev.task || undefined,
-        weatherData: ev.weatherData || undefined,
-        permissions: ev.permissions || {},
-        permissionType: ev.permissionType || undefined,
-        trainingTeamId: ev.trainingTeamId || undefined,
-        trainingWeekdays: ev.trainingWeekdays || undefined,
-        trainingSeriesEndDate: ev.trainingSeriesEndDate || undefined,
-        trainingSeriesId: ev.trainingSeriesId || undefined,
-        cancelled: ev.cancelled || false,
-        cancelReason: ev.cancelReason || undefined,
-        cancelledBy: ev.cancelledBy || undefined,
-        tournamentId: ev.tournament?.id,
-        tournament: ev.tournament,
-        matches: ev.tournament?.matches,
-      }));
-    }
-    setEvents(mappedEvents);
-  };
 
   // Floating Action Button für neues Event
   const handleAddEvent = () => {
@@ -1268,31 +777,6 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       case 'agenda': return 'Liste';
       default: return view;
     }
-  };
-
-  // Gefilterte Events basierend auf den aktiven Event-Types
-  const filteredEvents = useMemo(() => {
-    const platformEvents = events.filter(event => {
-      // Events ohne eventType sind immer sichtbar
-      if (!event.eventType?.id) return true;
-      // Nur Events mit aktiven Event-Types anzeigen
-      return activeEventTypeIds.has(event.eventType.id);
-    });
-    // Externe Events immer anhängen (sie haben keinen eventType)
-    return [...platformEvents, ...externalEvents];
-  }, [events, activeEventTypeIds, externalEvents]);
-
-  // Toggle-Funktion für Event-Type-Filter
-  const toggleEventType = (eventTypeId: number) => {
-    setActiveEventTypeIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(eventTypeId)) {
-        newSet.delete(eventTypeId);
-      } else {
-        newSet.add(eventTypeId);
-      }
-      return newSet;
-    });
   };
 
   // Memoize mapped props to prevent unnecessary re-renders of EventModal
@@ -1539,6 +1023,31 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
             // Custom toolbar for desktop, hidden for mobile
             components={{
               toolbar: isMobile ? (() => null) as any : undefined,
+              event: (({ event }: { event: any }) => (
+                <span style={{ display: 'block', lineHeight: 1.3 }}>
+                  <span style={{
+                    fontWeight: 'bold',
+                    textDecoration: event.cancelled ? 'line-through' : undefined,
+                    opacity: event.cancelled ? 0.7 : 1,
+                  }}>
+                    {event.cancelled && '❌ '}
+                    {event.title}
+                  </span>
+                  {event.location?.name && (
+                    <span style={{
+                      display: 'block',
+                      fontSize: '0.7em',
+                      opacity: 0.85,
+                      fontWeight: 'normal',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      📍 {event.location.name}
+                    </span>
+                  )}
+                </span>
+              )) as any,
               agenda: {
                 date: (({ label }: { label: string }) => (
                   <span style={{ fontWeight: 'bold', fontSize: '14px' }}>
@@ -1568,6 +1077,11 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
                   }}>
                     {event.cancelled && '❌ '}
                     {event.title}
+                    {event.location?.name && (
+                      <span style={{ marginLeft: '6px', fontSize: '12px', opacity: 0.8 }}>
+                        📍 {event.location.name}
+                      </span>
+                    )}
                     {event.eventType?.name && (
                       <span style={{ 
                         marginLeft: '8px', 
@@ -1665,16 +1179,26 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
         title={taskDeletionModal.mode === 'training' ? 'Training löschen' : 'Task löschen'}
         message={
           taskDeletionModal.mode === 'training'
-            ? 'Möchten Sie nur diesen einzelnen Trainingstermin oder die gesamte Trainings-Serie löschen?'
+            ? 'Welche Termine möchten Sie löschen?'
             : 'Möchten Sie nur dieses Event oder die gesamte Task-Serie löschen?'
         }
         singleLabel={taskDeletionModal.mode === 'training' ? 'Nur diesen Termin' : 'Nur dieses Event'}
+        fromHereLabel={taskDeletionModal.mode === 'training' ? 'Diesen und alle folgenden' : undefined}
         seriesLabel="Gesamte Serie"
         onDeleteSingle={() => {
           const { eventId } = taskDeletionModal;
           setTaskDeletionModal({ open: false });
           performDeleteEvent('single', eventId);
         }}
+        onDeleteFromHere={
+          taskDeletionModal.mode === 'training'
+            ? () => {
+                const { eventId } = taskDeletionModal;
+                setTaskDeletionModal({ open: false });
+                performDeleteEvent('from_here', eventId);
+              }
+            : undefined
+        }
         onDeleteSeries={() => {
           const { eventId } = taskDeletionModal;
           setTaskDeletionModal({ open: false });

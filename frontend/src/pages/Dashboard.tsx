@@ -106,12 +106,13 @@ function DashboardContent() {
         enabled: widget.enabled,
         reportId: savedReport.id,
       });
-      // Reload widgets so the widget now references the copy
-      setLoading(true);
-      fetchDashboardWidgets()
-        .then(setWidgets)
-        .catch(() => setWidgets([]))
-        .finally(() => setLoading(false));
+      // Only update the affected widget in state, then refresh its chart
+      setWidgets(prev =>
+        prev.map(w =>
+          w.id === editReportWidgetId ? { ...w, reportId: savedReport.id } : w
+        )
+      );
+      triggerRefresh(widget.id);
     } else {
       // Own report updated in place — just refresh the chart
       triggerRefresh(widget.id);
@@ -166,11 +167,14 @@ function DashboardContent() {
       config: mergedConfig,
       enabled: true
     });
-    setLoading(true);
-    fetchDashboardWidgets()
-      .then(setWidgets)
-      .catch(() => setWidgets([]))
-      .finally(() => setLoading(false));
+    // Only update the affected widget in state — no full reload needed
+    setWidgets(prev =>
+      prev.map(w =>
+        w.id === settingsWidgetId
+          ? { ...w, width: typeof newWidth === 'number' ? newWidth : Number(newWidth), config: mergedConfig }
+          : w
+      )
+    );
     handleSettingsClose();
   };
 
@@ -193,12 +197,8 @@ function DashboardContent() {
         onClose={() => setAddModalOpen(false)}
         onAdd={async (widgetType) => {
           setAddModalOpen(false);
-          await createWidget({ type: widgetType });
-          setLoading(true);
-          fetchDashboardWidgets()
-            .then(setWidgets)
-            .catch(() => setWidgets([]))
-            .finally(() => setLoading(false));
+          const newWidget = await createWidget({ type: widgetType });
+          setWidgets(prev => [...prev, newWidget]);
         }}
         onReportWidgetFlow={async () => {
           setAddModalOpen(false);
@@ -220,14 +220,12 @@ function DashboardContent() {
         onClose={() => setReportModalOpen(false)}
         onAdd={async () => {
           setReportModalOpen(false);
+          const newWidgets: WidgetData[] = [];
           for (const reportId of selectedReportIds) {
-            await createWidget({ type: 'report', reportId });
+            const w = await createWidget({ type: 'report', reportId });
+            newWidgets.push(w);
           }
-          setLoading(true);
-          fetchDashboardWidgets()
-            .then(setWidgets)
-            .catch(() => setWidgets([]))
-            .finally(() => setLoading(false));
+          setWidgets(prev => [...prev, ...newWidgets]);
         }}
         loading={reportsLoading}
       >

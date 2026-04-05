@@ -15,6 +15,7 @@ import AuthModal from './modals/AuthModal';
 import ProfileModal from './modals/ProfileModal';
 import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
+import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
 import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
 import Privacy from './pages/Privacy';
@@ -133,6 +134,9 @@ function App() {
   const [showContact, setShowContact] = useState(false);
   const [showRegistrationContext, setShowRegistrationContext] = useState(false);
   const [showQRShare, setShowQRShare] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'; } catch { return false; }
+  });
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOnHeroSection } = useHomeScroll();
@@ -268,7 +272,9 @@ function App() {
                   onOpenAuth={() => { setAuthInitialTab('login'); setShowAuth(true); }}
                   onOpenProfile={() => setShowProfile(true)}
                   onOpenQRShare={() => setShowQRShare(true)}
+                  onSidebarCollapse={setSidebarCollapsed}
                 />
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', ml: { xs: 0, md: user ? `${sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px` : 0 }, transition: 'margin-left 0.22s ease' }}>
                 {!isHome && <PushWarningBanner />}
                 {!isHome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
               <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
@@ -360,6 +366,7 @@ function App() {
               ) : (
                 <Footer />
               ))}
+                </Box>{/* end sidebar content wrapper */}
             </Box>
             </PullToRefresh>
           </FabStackRoot>

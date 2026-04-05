@@ -270,7 +270,7 @@ class CalendarEventService
             $calendarEvent->setCreatedBy($currentUser);
         }
 
-        if ($data['eventTypeId']) {
+        if (!empty($data['eventTypeId'])) {
             $type = $this->entityManager->getReference(CalendarEventType::class, $data['eventTypeId']);
             $calendarEvent->setCalendarEventType($type);
         }
@@ -284,9 +284,10 @@ class CalendarEventService
             $calendarEvent->setLocation($location);
         }
         $gameCreated = false;
-        $isGameEvent = $data['eventTypeId'] && $calendarEventTypeSpiel && (int) $data['eventTypeId'] === $calendarEventTypeSpiel->getId();
+        $eventTypeId = $data['eventTypeId'] ?? null;
+        $isGameEvent = $eventTypeId && $calendarEventTypeSpiel && (int) $eventTypeId === $calendarEventTypeSpiel->getId();
         $isTournamentPayload = isset($data['pendingTournamentMatches']) && is_array($data['pendingTournamentMatches']) && count($data['pendingTournamentMatches']) > 0;
-        $isTournamentEvent = $data['eventTypeId'] && $calendarEventTypeTournament && (int) $data['eventTypeId'] === $calendarEventTypeTournament->getId();
+        $isTournamentEvent = $eventTypeId && $calendarEventTypeTournament && (int) $eventTypeId === $calendarEventTypeTournament->getId();
 
         // Tournament verarbeiten, wenn EventType "Turnier" ODER "Spiel" mit Turnier-Payload
         if ($isTournamentEvent || ($isGameEvent && $isTournamentPayload)) {
@@ -365,6 +366,17 @@ class CalendarEventService
             $endDt = DateTime::createFromInterface($calendarEvent->getStartDate());
             $endDt->modify("+{$totalMinutes} minutes");
             $calendarEvent->setEndDate($endDt);
+        }
+
+        // Training series metadata: update when explicitly provided in payload
+        if (array_key_exists('trainingWeekdays', $data)) {
+            $calendarEvent->setTrainingWeekdays($data['trainingWeekdays']);
+        }
+        if (array_key_exists('trainingSeriesEndDate', $data)) {
+            $calendarEvent->setTrainingSeriesEndDate($data['trainingSeriesEndDate']);
+        }
+        if (array_key_exists('trainingSeriesId', $data)) {
+            $calendarEvent->setTrainingSeriesId($data['trainingSeriesId']);
         }
 
         if (isset($data['task']) && is_array($data['task'])) {
@@ -766,6 +778,7 @@ class CalendarEventService
             $permission->setCalendarEvent($calendarEvent);
             $permission->setPermissionType(CalendarEventPermissionType::PUBLIC);
             $this->entityManager->persist($permission);
+            $calendarEvent->addPermission($permission);
         } elseif ('user' === $permissionType && isset($data['permissionUsers'])) {
             // User: eine Permission pro User
             $userIds = $data['permissionUsers'];
@@ -776,6 +789,7 @@ class CalendarEventService
                 $permission->setPermissionType(CalendarEventPermissionType::USER);
                 $permission->setUser($user);
                 $this->entityManager->persist($permission);
+                $calendarEvent->addPermission($permission);
             }
         } elseif ('team' === $permissionType && isset($data['permissionTeams'])) {
             // Team: eine Permission pro Team
@@ -787,6 +801,7 @@ class CalendarEventService
                 $permission->setPermissionType(CalendarEventPermissionType::TEAM);
                 $permission->setTeam($team);
                 $this->entityManager->persist($permission);
+                $calendarEvent->addPermission($permission);
             }
         } elseif ('club' === $permissionType && isset($data['permissionClubs'])) {
             // Club: eine Permission pro Club
@@ -798,6 +813,7 @@ class CalendarEventService
                 $permission->setPermissionType(CalendarEventPermissionType::CLUB);
                 $permission->setClub($club);
                 $this->entityManager->persist($permission);
+                $calendarEvent->addPermission($permission);
             }
         }
     }
@@ -819,6 +835,7 @@ class CalendarEventService
         $permission->setCalendarEvent($calendarEvent);
         $permission->setPermissionType(CalendarEventPermissionType::PUBLIC);
         $this->entityManager->persist($permission);
+        $calendarEvent->addPermission($permission);
     }
 
     /** @return User[] */
