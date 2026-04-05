@@ -29,6 +29,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import ChecklistIcon from '@mui/icons-material/Checklist';
+import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { useAuth } from '../../context/AuthContext';
 
@@ -73,6 +74,7 @@ export const navigationItems: NavItem[] = [
   { key: 'mein-feedback', label: 'Mein Feedback',  disabled: false, icon: <FeedbackIcon fontSize="small" /> },
   { key: 'tasks',         label: 'Meine Aufgaben', disabled: false, icon: <AssignmentIcon fontSize="small" /> },
   { key: 'mein-spieltag', label: 'Mein Spieltag',  disabled: false },
+  { key: 'player-tips',   label: 'Spieler-Tipps',  disabled: false, icon: <TipsAndUpdatesIcon fontSize="small" /> },
 ];
 
 export const trainerMenuItems: TrainerMenuItem[] = [
@@ -141,6 +143,7 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'mein-feedback': <FeedbackIcon fontSize="small" />,
   'tasks':         <AssignmentIcon fontSize="small" />,
   'mein-spieltag':  <ChecklistIcon fontSize="small" />,
+  'player-tips':     <TipsAndUpdatesIcon fontSize="small" />,
 };
 
 export const navItemColorMap: Record<string, string> = {
@@ -155,6 +158,7 @@ export const navItemColorMap: Record<string, string> = {
   'mein-feedback':   '#EC407A',
   'tasks':           '#F59E0B',
   'mein-spieltag':   '#EF5350',
+  'player-tips':     '#26A69A',
   'formations':      '#66BB6A',
   'players':         '#26A69A',
   'teams':           '#5C6BC0',

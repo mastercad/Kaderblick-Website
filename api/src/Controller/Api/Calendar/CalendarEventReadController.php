@@ -79,10 +79,13 @@ class CalendarEventReadController extends AbstractController
         $tournamentEventType = $this->entityManager->getRepository(CalendarEventType::class)
             ->findOneBy(['name' => 'Turnier']);
 
-        return $this->json(array_values(array_map(
-            fn (CalendarEvent $e) => $this->serializer->serialize($e, $user, $tournamentEventType),
-            $calendarEvents
-        )));
+        return $this->json([
+            'events' => array_values(array_map(
+                fn (CalendarEvent $e) => $this->serializer->serialize($e, $user, $tournamentEventType),
+                $calendarEvents
+            )),
+            'lookaheadDays' => $lookaheadDays,
+        ]);
     }
 
     #[Route('/event/{id}/weather-data', name: 'event_weather_data', methods: ['GET'])]

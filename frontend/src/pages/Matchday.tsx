@@ -446,6 +446,8 @@ export default function Matchday() {
   const [data, setData] = useState<MatchdayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [noGames, setNoGames] = useState(false);
+  const [lookaheadDays, setLookaheadDays] = useState(7);
   const [participationStatuses, setParticipationStatuses] = useState<ParticipationStatus[]>([]);
   const [savingParticipation, setSavingParticipation] = useState(false);
   const [upcomingGames, setUpcomingGames] = useState<UpcomingGame[]>([]);
@@ -456,10 +458,12 @@ export default function Matchday() {
 
   // Load upcoming games within configured lookahead window for tab display
   useEffect(() => {
-    apiJson<any[]>('/api/calendar/upcoming')
-      .then(events => {
+    apiJson<{ events: any[]; lookaheadDays: number }>('/api/calendar/upcoming')
+      .then(response => {
+        const days = response?.lookaheadDays ?? 7;
+        setLookaheadDays(days);
         // Backend already filters by the configured lookahead window
-        const games = (events ?? [])
+        const games = (response?.events ?? [])
           .filter(e => e.game != null)
           .map(e => ({ id: e.id, title: e.title, start: e.start }));
         setUpcomingGames(games);
@@ -469,7 +473,7 @@ export default function Matchday() {
             navigate(`/mein-spieltag/${games[0].id}`, { replace: true });
           } else {
             setLoading(false);
-            setError('Kein anstehendes Spiel gefunden.');
+            setNoGames(true);
           }
         }
       })
@@ -532,10 +536,33 @@ export default function Matchday() {
     );
   }
 
+  if (noGames) {
+    return (
+      <Box sx={{ maxWidth: 600, mx: 'auto', px: 3, py: 6, textAlign: 'center' }}>
+        <SportsSoccerIcon sx={{ fontSize: 72, color: 'text.disabled', mb: 2 }} />
+        <Typography variant="h5" fontWeight={700} gutterBottom>
+          Keine Spiele in Sicht
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Für den nächsten Zeitraum von {lookaheadDays} Tagen stehen keine Spiele an.
+        </Typography>
+        <Button
+          variant="outlined"
+          component={RouterLink}
+          to="/calendar"
+        >
+          Zum Kalender
+        </Button>
+      </Box>
+    );
+  }
+
   if (error || !data) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error ?? 'Unbekannter Fehler'}</Alert>
+      <Box sx={{ px: 3, py: 6, textAlign: 'center' }}>
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          Spieltag konnte nicht geladen werden.
+        </Typography>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
           Zurück
         </Button>

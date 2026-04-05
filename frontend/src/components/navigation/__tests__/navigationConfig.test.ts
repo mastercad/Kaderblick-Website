@@ -93,8 +93,8 @@ describe('isNavItemActive', () => {
 // ── navigationItems ───────────────────────────────────────────────────────────
 
 describe('navigationItems', () => {
-  it('contains 11 items', () => {
-    expect(navigationItems).toHaveLength(11);
+  it('contains 12 items', () => {
+    expect(navigationItems).toHaveLength(12);
   });
 
   it('first item has key "home"', () => {
@@ -147,7 +147,7 @@ describe('trainerMenuItems', () => {
 // ── navItemIconMap ────────────────────────────────────────────────────────────
 
 describe('navItemIconMap', () => {
-  const expectedKeys = ['home', 'dashboard', 'my-team', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag'];
+  const expectedKeys = ['home', 'dashboard', 'my-team', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'player-tips'];
 
   it('defines an icon for every nav key', () => {
     expectedKeys.forEach(key => {

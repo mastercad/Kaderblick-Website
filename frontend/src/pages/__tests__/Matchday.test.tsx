@@ -93,7 +93,7 @@ function setupDefaultMocks(matchdayData = makeMatchdayData(), upcomingCount = 1)
   );
 
   mockApiJson.mockImplementation((url: string) => {
-    if (url === '/api/calendar/upcoming') return Promise.resolve(upcomingEvents);
+    if (url === '/api/calendar/upcoming') return Promise.resolve({ events: upcomingEvents, lookaheadDays: 7 });
     if (url.startsWith('/api/matchday/') && url.endsWith('/view')) return Promise.resolve({});
     if (url.startsWith('/api/matchday/')) return Promise.resolve(matchdayData);
     if (url === '/api/participation/statuses') return Promise.resolve(STATUSES_RESPONSE);
@@ -147,9 +147,10 @@ describe('Matchday', () => {
   it('navigates to the first upcoming game when no eventId is in the URL', async () => {
     mockApiJson.mockImplementation((url: string) => {
       if (url === '/api/calendar/upcoming') {
-        return Promise.resolve([
-          makeUpcomingEvent(42, 'Spiel 1', '2026-05-10T15:00:00'),
-        ]);
+        return Promise.resolve({
+          events: [makeUpcomingEvent(42, 'Spiel 1', '2026-05-10T15:00:00')],
+          lookaheadDays: 7,
+        });
       }
       if (url === '/api/participation/statuses') return Promise.resolve(STATUSES_RESPONSE);
       return Promise.resolve({});
@@ -162,17 +163,18 @@ describe('Matchday', () => {
     );
   });
 
-  it('shows "Kein anstehendes Spiel gefunden" when upcoming returns no games', async () => {
+  it('shows empty state when upcoming returns no games', async () => {
     mockApiJson.mockImplementation((url: string) => {
-      if (url === '/api/calendar/upcoming') return Promise.resolve([]); // no games
+      if (url === '/api/calendar/upcoming') return Promise.resolve({ events: [], lookaheadDays: 14 });
       return Promise.resolve(STATUSES_RESPONSE);
     });
 
     renderMatchday(); // no eventId
 
     await waitFor(() =>
-      expect(screen.getByText(/kein anstehendes spiel gefunden/i)).toBeInTheDocument()
+      expect(screen.getByText(/keine spiele in sicht/i)).toBeInTheDocument()
     );
+    expect(screen.getByText(/14 tagen/i)).toBeInTheDocument();
   });
 
   it('shows error when upcoming endpoint fails and no eventId is present', async () => {
@@ -200,9 +202,9 @@ describe('Matchday', () => {
     );
   });
 
-  it('shows an error alert when matchday fetch fails', async () => {
+  it('shows an error message when matchday fetch fails', async () => {
     mockApiJson.mockImplementation((url: string) => {
-      if (url === '/api/calendar/upcoming') return Promise.resolve([makeUpcomingEvent(42, 'Spiel', '2026-05-10T15:00:00')]);
+      if (url === '/api/calendar/upcoming') return Promise.resolve({ events: [makeUpcomingEvent(42, 'Spiel', '2026-05-10T15:00:00')], lookaheadDays: 7 });
       if (url.startsWith('/api/matchday/') && !url.endsWith('/view')) return Promise.reject(new Error('500'));
       if (url === '/api/participation/statuses') return Promise.resolve(STATUSES_RESPONSE);
       return Promise.resolve({});
@@ -211,7 +213,7 @@ describe('Matchday', () => {
     renderMatchday('42');
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toBeInTheDocument()
+      expect(screen.getByText(/spieltag konnte nicht geladen werden/i)).toBeInTheDocument()
     );
   });
 
