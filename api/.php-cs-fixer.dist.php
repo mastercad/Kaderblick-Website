@@ -21,7 +21,8 @@ return (new PhpCsFixer\Config())
             'elements' => [],
             'after_heredoc' => false
         ],
-        'concat_space' => ['spacing' => 'one']
+        'concat_space' => ['spacing' => 'one'],
+        'class_definition' => ['space_before_parenthesis' => true],
     ])
     ->setFinder($finder)
 ;
