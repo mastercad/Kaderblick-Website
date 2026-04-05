@@ -329,7 +329,7 @@ class ReportFieldAliasServiceTest extends TestCase
     {
         $wd = null;
         if (null !== $weatherDaily || null !== $weatherHourly) {
-            $wd = new class($weatherDaily ?? [], $weatherHourly ?? []) {
+            $wd = new class ($weatherDaily ?? [], $weatherHourly ?? []) {
                 /**
                  * @param array<string, mixed> $daily
                  * @param array<string, mixed> $hourly
@@ -352,7 +352,7 @@ class ReportFieldAliasServiceTest extends TestCase
             };
         }
 
-        $ce = new class($date, $wd) {
+        $ce = new class ($date, $wd) {
             public function __construct(private DateTime $d, private mixed $wd)
             {
             }
@@ -368,7 +368,7 @@ class ReportFieldAliasServiceTest extends TestCase
             }
         };
 
-        $game = new class($ce) {
+        $game = new class ($ce) {
             public function __construct(private object $ce)
             {
             }
@@ -399,7 +399,7 @@ class ReportFieldAliasServiceTest extends TestCase
             }
         };
 
-        return new class($game) {
+        return new class ($game) {
             public function __construct(private object $game)
             {
             }
@@ -509,7 +509,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return null;
             }
         };
-        $game = new class($ce, $gameType) {
+        $game = new class ($ce, $gameType) {
             public function __construct(private object $ce, private object $gt)
             {
             }
@@ -539,7 +539,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return null;
             }
         };
-        $event = new class($game) {
+        $event = new class ($game) {
             public function __construct(private object $game)
             {
             }
@@ -582,7 +582,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return 'Stürmer';
             }
         };
-        $player = new class($position) {
+        $player = new class ($position) {
             public function __construct(private object $pos)
             {
             }
@@ -592,7 +592,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return $this->pos;
             }
         };
-        $event = new class($player) {
+        $event = new class ($player) {
             public function __construct(private object $player)
             {
             }
@@ -641,7 +641,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return 10;
             }
         };
-        $game = new class($homeTeam) {
+        $game = new class ($homeTeam) {
             public function __construct(private object $ht)
             {
             }
@@ -656,7 +656,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return null;
             }
         };
-        $event = new class($game, $team) {
+        $event = new class ($game, $team) {
             public function __construct(private object $g, private object $t)
             {
             }
@@ -696,7 +696,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return 20;
             }
         };
-        $game = new class($homeTeam, $awayTeam) {
+        $game = new class ($homeTeam, $awayTeam) {
             public function __construct(private object $ht, private object $at)
             {
             }
@@ -711,7 +711,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return $this->at;
             }
         };
-        $event = new class($game, $team) {
+        $event = new class ($game, $team) {
             public function __construct(private object $g, private object $t)
             {
             }
@@ -751,7 +751,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return 20;
             }
         };
-        $game = new class($homeTeam, $awayTeam) {
+        $game = new class ($homeTeam, $awayTeam) {
             public function __construct(private object $ht, private object $at)
             {
             }
@@ -766,7 +766,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return $this->at;
             }
         };
-        $event = new class($game, $team) {
+        $event = new class ($game, $team) {
             public function __construct(private object $g, private object $t)
             {
             }
@@ -804,7 +804,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return 'Rasen';
             }
         };
-        $location = new class($surfaceType) {
+        $location = new class ($surfaceType) {
             public function __construct(private object $st)
             {
             }
@@ -814,7 +814,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return $this->st;
             }
         };
-        $game = new class($location) {
+        $game = new class ($location) {
             public function __construct(private object $loc)
             {
             }
@@ -824,7 +824,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return $this->loc;
             }
         };
-        $event = new class($game) {
+        $event = new class ($game) {
             public function __construct(private object $g)
             {
             }
@@ -847,7 +847,7 @@ class ReportFieldAliasServiceTest extends TestCase
                 return null;
             }
         };
-        $event = new class($game) {
+        $event = new class ($game) {
             public function __construct(private object $g)
             {
             }
@@ -1127,7 +1127,7 @@ class ReportFieldAliasServiceTest extends TestCase
     /** Creates a minimal GameEvent stub with getGameEventType() returning a type with $code. */
     private function makeEventWithCode(string $code): object
     {
-        $type = new class($code) {
+        $type = new class ($code) {
             public function __construct(private string $code)
             {
             }
@@ -1143,7 +1143,7 @@ class ReportFieldAliasServiceTest extends TestCase
             }
         };
 
-        return new class($type) {
+        return new class ($type) {
             public function __construct(private object $type)
             {
             }
