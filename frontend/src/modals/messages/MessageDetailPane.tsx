@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Dialog from '@mui/material/Dialog';
@@ -67,6 +68,41 @@ function RecipientLabelChip({ label }: { label: RecipientLabel }) {
     </Tooltip>
   );
 }
+
+type ActionColor = 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'inherit';
+
+/** Renders a text Button with icon on desktop, IconButton+Tooltip on mobile. */
+const ActionBtn: React.FC<{
+  icon:      React.ReactElement;
+  label:     string;
+  onClick?:  () => void;
+  color?:    ActionColor;
+  testId:    string;
+  isMobile:  boolean;
+}> = ({ icon, label, onClick, color, testId, isMobile }) => {
+  if (isMobile) {
+    return (
+      <Tooltip title={label}>
+        <IconButton size="small" color={color} onClick={onClick} data-testid={testId} aria-label={label}>
+          {icon}
+        </IconButton>
+      </Tooltip>
+    );
+  }
+  return (
+    <Button
+      size="small"
+      color={color}
+      startIcon={icon}
+      onClick={onClick}
+      data-testid={testId}
+      aria-label={label}
+      sx={{ textTransform: 'none' }}
+    >
+      {label}
+    </Button>
+  );
+};
 
 interface Props {
   message:         Message | null;
@@ -209,65 +245,44 @@ export const MessageDetailPane: React.FC<Props> = ({
 
         </Box>
 
-          {/* Actions – sticky footer */}
-          <Box sx={{
-            px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider',
-            display: 'flex', gap: 1, flexWrap: 'wrap', flexShrink: 0,
-            justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            {/* Left: reply / forward actions */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-              {isOutbox ? (
-                /* Gesendet: Nachrichten wurden von mir versendet → erneut senden sinnvoll */
-                <Button variant="contained" size="small" startIcon={<SendIcon />} onClick={onResend}>
-                  Erneut senden
-                </Button>
-              ) : (
-                /* Posteingang: Antwort-Optionen */
-                <>
-                  {canReply && (
-                    <Button variant="contained" size="small" startIcon={<ReplyIcon />} onClick={onReply}>
-                      Antworten
-                    </Button>
-                  )}
-                  {canReply && message.recipients && message.recipients.length > 1 && (
-                    <Button variant="outlined" size="small" startIcon={<ReplyAllIcon />} onClick={onReplyAll}>
-                      Allen antworten
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button
-                variant="outlined" size="small" startIcon={<ForwardToInboxIcon />}
-                onClick={() => onForward({ subject: `Fw: ${message.subject}`, content: message.content || '' })}
-              >
-                Weiterleiten
-              </Button>
-            </Box>
+          {/* Actions – responsive: text+icon on desktop, icon-only on mobile */}
+          <Box
+            onContextMenu={(e) => e.preventDefault()}
+            sx={{
+              px: 1.5, py: 0.75, borderTop: '1px solid', borderColor: 'divider',
+              display: 'flex', gap: isMobile ? 0.25 : 0.5, flexShrink: 0, alignItems: 'center',
+              userSelect: 'none',
+              WebkitTouchCallout: 'none',
+            }}
+          >
+            {/* Primary actions */}
+            {isOutbox ? (
+              <ActionBtn icon={<SendIcon fontSize="small" />} label="Erneut senden" onClick={onResend} color="primary" testId="btn-resend" isMobile={isMobile} />
+            ) : (
+              <>
+                {canReply && (
+                  <ActionBtn icon={<ReplyIcon fontSize="small" />} label="Antworten" onClick={onReply} color="primary" testId="btn-reply" isMobile={isMobile} />
+                )}
+                {canReply && message.recipients && message.recipients.length > 1 && (
+                  <ActionBtn icon={<ReplyAllIcon fontSize="small" />} label="Allen antworten" onClick={onReplyAll} testId="btn-reply-all" isMobile={isMobile} />
+                )}
+              </>
+            )}
+            <ActionBtn
+              icon={<ForwardToInboxIcon fontSize="small" />}
+              label="Weiterleiten"
+              onClick={() => onForward({ subject: `Fw: ${message.subject}`, content: message.content || '' })}
+              testId="btn-forward"
+              isMobile={isMobile}
+            />
 
-            {/* Right: mark unread + delete */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              {!isOutbox && (
-                <Tooltip title="Als ungelesen markieren">
-                  <Button
-                    variant="outlined" size="small"
-                    startIcon={<MarkEmailUnreadIcon />}
-                    onClick={onMarkAsUnread}
-                    data-testid="btn-mark-unread"
-                  >
-                    Ungelesen
-                  </Button>
-                </Tooltip>
-              )}
-              <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-              <Button
-                variant="outlined" size="small" color="error"
-                startIcon={<DeleteOutlineIcon />}
-                onClick={() => setConfirmOpen(true)}
-              >
-                Löschen
-              </Button>
-            </Box>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+
+            {/* Secondary actions */}
+            {!isOutbox && (
+              <ActionBtn icon={<MarkEmailUnreadIcon fontSize="small" />} label="Ungelesen" onClick={onMarkAsUnread} testId="btn-mark-unread" isMobile={isMobile} />
+            )}
+            <ActionBtn icon={<DeleteOutlineIcon fontSize="small" />} label="Löschen" onClick={() => setConfirmOpen(true)} color="error" testId="btn-delete" isMobile={isMobile} />
           </Box>
         </>
       )}
