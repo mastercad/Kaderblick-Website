@@ -13,3 +13,7 @@ Object.assign(global, { TextEncoder, TextDecoder });
 jest.mock('../config', () => ({
   BACKEND_URL: 'http://localhost:8081',
 }));
+
+// JSDOM does not implement URL.createObjectURL / revokeObjectURL
+Object.defineProperty(global.URL, 'createObjectURL', { writable: true, value: jest.fn(() => 'blob:mock-url') });
+Object.defineProperty(global.URL, 'revokeObjectURL', { writable: true, value: jest.fn() });
