@@ -81,16 +81,19 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
 
   // ── UI ────────────────────────────────────────────────────────────────────
   const [folder,        setFolder]        = useState<Folder>(0);
+  const [expandedIds,   setExpandedIds]   = useState<Set<string>>(() => new Set());
   const [viewMode,      setViewMode]      = useState<ViewMode>(
     () => (localStorage.getItem('messages.viewMode') as ViewMode) ?? 'chrono',
   );
   const [view,          setView]          = useState<View>('list');
+  const [previousView,  setPreviousView]  = useState<View>('list');
   const [search,        setSearch]        = useState('');
   const [loading,       setLoading]       = useState(false);
   const [sendLoading,   setSendLoading]   = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error,         setError]         = useState<string | null>(null);
   const [composeForm,      setComposeForm]      = useState<ComposeForm>(EMPTY_COMPOSE);
+  const [composeTitle,     setComposeTitle]     = useState<string | undefined>(undefined);
   const [composeError,     setComposeError]     = useState<string | null>(null);
   const [sendSuccess,      setSendSuccess]      = useState(false);
   const [recipientsLocked, setRecipientsLocked] = useState(false);
@@ -244,6 +247,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
+    setExpandedIds(new Set());
     localStorage.setItem('messages.viewMode', mode);
   }, []);
 
@@ -305,8 +309,10 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
 
   const handleMessageClick = (msg: Message) => guardNavigate(() => doMessageClick(msg));
 
-  const openCompose = (prefill?: Partial<ComposeForm>, lockRecipients = false) => {
+  const openCompose = (prefill?: Partial<ComposeForm>, lockRecipients = false, title?: string) => {
+    setPreviousView(view);
     setComposeForm({ ...EMPTY_COMPOSE, ...prefill });
+    setComposeTitle(title);
     setComposeError(null);
     setSendSuccess(false);
     setRecipientsLocked(lockRecipients);
@@ -319,7 +325,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
     const replyContent = `\n\n─────────────────────\nVon: ${selected.sender}\nDatum: ${new Date(selected.sentAt).toLocaleString('de-DE')}\n\n${selected.content || ''}`;
     const senderUser: User = users.find(u => String(u.id) === String(selected.senderId))
       ?? { id: selected.senderId, fullName: selected.sender };
-    openCompose({ recipients: [senderUser], subject: replySubject, content: replyContent, parentId: String(selected.id) }, true);
+    openCompose({ recipients: [senderUser], subject: replySubject, content: replyContent, parentId: String(selected.id) }, true, 'Antworten');
   };
 
   const handleReplyAll = () => {
@@ -330,13 +336,13 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
     const senderUser: User = users.find(u => String(u.id) === String(selected.senderId))
       ?? { id: selected.senderId, fullName: selected.sender };
     const allRecipients = [senderUser, ...fromRecipients.filter(r => String(r.id) !== String(senderUser.id))];
-    openCompose({ recipients: allRecipients, subject: replySubject, content: replyContent, parentId: String(selected.id) }, true);
+    openCompose({ recipients: allRecipients, subject: replySubject, content: replyContent, parentId: String(selected.id) }, true, 'Allen antworten');
   };
 
   const handleResend = () => {
     if (!selected) return;
     const recipients: User[] = (selected.recipients || []).map(r => ({ id: r.id, fullName: r.name }));
-    openCompose({ recipients, subject: selected.subject, content: selected.content || '' });
+    openCompose({ recipients, subject: selected.subject, content: selected.content || '' }, false, 'Erneut senden');
   };
 
   const handleDelete = async () => {
@@ -454,8 +460,9 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
   const handleGroupDelete = (id: string) => setGroups((prev) => prev.filter((x) => x.id !== id));
 
   const handleComposeDiscard = () => guardNavigate(() => {
-    setView('list');
+    setView(previousView);
     setComposeForm(EMPTY_COMPOSE);
+    setComposeTitle(undefined);
     setComposeError(null);
     setSendSuccess(false);
   });
@@ -506,6 +513,8 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
       threadMessages={threadMessages}
       threadLoading={threadLoading}
       onExpandThread={loadThread}
+      expandedIds={expandedIds}
+      onExpandedIdsChange={setExpandedIds}
       viewMode={viewMode}
       onViewModeChange={handleViewModeChange}
       currentUserId={authUser?.id != null ? String(authUser.id) : undefined}
@@ -521,7 +530,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
       onReply={handleReply}
       onReplyAll={handleReplyAll}
       onResend={handleResend}
-      onForward={prefill => openCompose(prefill)}
+      onForward={prefill => openCompose(prefill, false, 'Weiterleiten')}
       onDelete={handleDelete}
       onMarkAsUnread={handleMarkAsUnread}
     />
@@ -540,6 +549,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
       onGroupCreate={handleGroupCreate}
       onGroupUpdate={handleGroupUpdate}
       onGroupDelete={handleGroupDelete}
+      title={composeTitle}
     />
   );
 

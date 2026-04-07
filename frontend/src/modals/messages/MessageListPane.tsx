@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
@@ -49,6 +49,10 @@ interface Props {
   threadLoading:   ReadonlySet<string>;
   /** Triggered when user expands a root that has no loaded thread data yet */
   onExpandThread:  (rootId: string) => void;
+  /** Set of currently expanded root-message IDs (lifted to parent for persistence) */
+  expandedIds?:     Set<string>;
+  /** Callback to update the expanded set */
+  onExpandedIdsChange?: (ids: Set<string>) => void;
   /** Current view mode, controlled by parent (MessagesModal) */
   viewMode:        ViewMode;
   /** Callback so MessageListPane can ask parent to change viewMode */
@@ -110,38 +114,34 @@ export const MessageListPane: React.FC<Props> = ({
   unreadCount, onMessageClick, onMarkAllRead,
   hasMore, loadingMore, onLoadMore,
   threadMessages, threadLoading, onExpandThread,
+  expandedIds: controlledExpandedIds,
+  onExpandedIdsChange,
   viewMode, onViewModeChange,
   currentUserId,
 }) => {
   const theme  = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  // Support both controlled (MessagesModal lifts state) and uncontrolled (tests) modes
+  const [localExpandedIds, setLocalExpandedIds] = useState<Set<string>>(() => new Set());
+  const expandedIds = controlledExpandedIds ?? localExpandedIds;
+  const setExpandedIds = onExpandedIdsChange ?? setLocalExpandedIds;
 
-  // Reset expanded tree nodes whenever the user switches view modes
-  const prevViewMode = React.useRef(viewMode);
-  useEffect(() => {
-    if (prevViewMode.current !== viewMode) {
-      prevViewMode.current = viewMode;
-      setExpandedIds(new Set());
-    }
-  }, [viewMode]);
+  const listScrollRef = useRef<HTMLDivElement | null>(null);
 
   const toggleExpand = useCallback((id: string, e: React.MouseEvent, threadLoaded: boolean) => {
     e.stopPropagation();
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-        if (!threadLoaded) {
-          onExpandThread(id);
-        }
+    const next = new Set(expandedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+      if (!threadLoaded) {
+        onExpandThread(id);
       }
-      return next;
-    });
-  }, [onExpandThread]);
+    }
+    setExpandedIds(next);
+  }, [expandedIds, setExpandedIds, onExpandThread]);
 
   /** Chrono: flat list sorted descending by date */
   const chronoList = useMemo(
@@ -198,8 +198,18 @@ export const MessageListPane: React.FC<Props> = ({
     ? chronoList.map(m => ({ message: m, depth: 0, childCount: 0, totalCount: 0, backendReplies: m.replyCount ?? 0 }))
     : treeRows;
 
+  // Scroll selected message into view whenever selectedId changes or rows are (re-)rendered.
+  // This ensures the item is visible after returning from compose/detail on mobile.
+  useEffect(() => {
+    if (!selectedId || !listScrollRef.current) return;
+    const el = listScrollRef.current.querySelector<HTMLElement>(`[data-testid="msg-${selectedId}"]`);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [selectedId, rows]);
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflowX: 'hidden' }}>
 
       {/* Search */}
       <Box sx={{ px: 1.5, pt: 1.5, pb: 1, flexShrink: 0 }}>
@@ -270,7 +280,7 @@ export const MessageListPane: React.FC<Props> = ({
       <Divider sx={{ flexShrink: 0 }} />
 
       {/* List */}
-      <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <Box ref={listScrollRef} sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
             <CircularProgress />
@@ -405,6 +415,7 @@ export const MessageListPane: React.FC<Props> = ({
                       </ListItemAvatar>
 
                       <ListItemText
+                        sx={{ minWidth: 0, overflow: 'hidden' }}
                         primary={
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
@@ -459,7 +470,7 @@ export const MessageListPane: React.FC<Props> = ({
                           </Box>
                         }
                         secondary={
-                          <Box component="span" sx={{ display: 'block' }}>
+                          <Box component="span" sx={{ display: 'block', overflow: 'hidden', minWidth: 0 }}>
                             <Typography
                               variant="body2" noWrap
                               fontWeight={isUnread ? 600 : 400}

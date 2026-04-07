@@ -49,6 +49,8 @@ interface Props {
   onGroupCreate:     (g: MessageGroup) => void;
   onGroupUpdate:     (g: MessageGroup) => void;
   onGroupDelete:     (id: string) => void;
+  /** Titel in der Toolbar – z.B. "Antworten", "Weiterleiten" */
+  title?:            string;
 }
 
 /** Label-Spalte links in jeder Compose-Zeile */
@@ -99,7 +101,7 @@ const ComposeRow: React.FC<{
 export const MessageComposePane: React.FC<Props> = ({
   users, groups, teams, clubs, form, onChange, isMobile, loading, contactsLoading,
   recipientsLocked, error, success, onSend, onDiscard, onGoToSent,
-  onGroupCreate, onGroupUpdate, onGroupDelete,
+  onGroupCreate, onGroupUpdate, onGroupDelete, title,
 }) => {
   const set = (partial: Partial<ComposeForm>) => onChange({ ...form, ...partial });
   const [groupManagerOpen, setGroupManagerOpen] = React.useState(false);
@@ -151,7 +153,7 @@ export const MessageComposePane: React.FC<Props> = ({
               <ArrowBackIcon />
             </IconButton>
           )}
-          <Typography variant="subtitle1" fontWeight={700}>Neue Nachricht</Typography>
+          <Typography variant="subtitle1" fontWeight={700} data-testid="compose-title">{title ?? 'Neue Nachricht'}</Typography>
         </Box>
         {!isMobile && (
           <Tooltip title="Verwerfen">

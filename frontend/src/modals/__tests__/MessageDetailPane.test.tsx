@@ -10,6 +10,7 @@ jest.mock('@mui/material/Stack',            () => ({ children, direction: _d, sp
 jest.mock('@mui/material/Avatar',           () => ({ children, sx: _sx, ...p }: any) => <span {...p}>{children}</span>);
 jest.mock('@mui/material/Typography',       () => ({ children, variant: _v, fontWeight: _fw, sx: _sx, component, ...p }: any) => <span {...p}>{children}</span>);
 jest.mock('@mui/material/Button',           () => ({ children, startIcon, onClick, ...p }: any) => <button onClick={onClick} {...p}>{startIcon}{children}</button>);
+jest.mock('@mui/material/IconButton',       () => ({ children, onClick, 'data-testid': tid, 'aria-label': al, ...p }: any) => <button onClick={onClick} data-testid={tid} aria-label={al} {...p}>{children}</button>);
 jest.mock('@mui/material/CircularProgress', () => () => <span data-testid="loading-spinner" />);
 jest.mock('@mui/material/Dialog',           () => ({ open, children }: any) => open ? <div data-testid="dialog">{children}</div> : null);
 jest.mock('@mui/material/DialogTitle',      () => ({ children }: any) => <div data-testid="dialog-title">{children}</div>);
@@ -82,52 +83,51 @@ describe('MessageDetailPane – canReply', () => {
 
   it('zeigt "Antworten"-Button wenn canReply=true und Posteingang', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} canReply={true} isOutbox={false} />);
-    expect(screen.getByText('Antworten')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-reply')).toBeInTheDocument();
   });
 
   it('versteckt "Antworten"-Button wenn canReply=false', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} canReply={false} isOutbox={false} />);
-    expect(screen.queryByText('Antworten')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-reply')).not.toBeInTheDocument();
   });
 
   it('zeigt "Erneut senden" statt "Antworten" im Postausgang (isOutbox=true)', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isOutbox={true} canReply={true} />);
-    expect(screen.getByText('Erneut senden')).toBeInTheDocument();
-    expect(screen.queryByText('Antworten')).not.toBeInTheDocument();
+    expect(screen.getByTestId('btn-resend')).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-reply')).not.toBeInTheDocument();
   });
 
   it('versteckt "Erneut senden" nicht wenn isOutbox=true und canReply=false', () => {
-    // Im Ausgang ist canReply irrelevant für "Erneut senden"
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isOutbox={true} canReply={false} />);
-    expect(screen.getByText('Erneut senden')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-resend')).toBeInTheDocument();
   });
 
   it('zeigt "Allen antworten" nur wenn canReply=true UND mehrere Empfänger', () => {
     render(<MessageDetailPane {...defaultProps} message={MESSAGE_MULTI_RECIPIENTS} canReply={true} isOutbox={false} />);
-    expect(screen.getByText('Allen antworten')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-reply-all')).toBeInTheDocument();
   });
 
   it('versteckt "Allen antworten" wenn canReply=false', () => {
     render(<MessageDetailPane {...defaultProps} message={MESSAGE_MULTI_RECIPIENTS} canReply={false} isOutbox={false} />);
-    expect(screen.queryByText('Allen antworten')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-reply-all')).not.toBeInTheDocument();
   });
 
   it('versteckt "Allen antworten" bei nur einem Empfänger', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} canReply={true} isOutbox={false} />);
-    expect(screen.queryByText('Allen antworten')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-reply-all')).not.toBeInTheDocument();
   });
 
   it('ruft onReply auf wenn "Antworten" geklickt wird', () => {
     const onReply = jest.fn();
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} canReply={true} isOutbox={false} onReply={onReply} />);
-    fireEvent.click(screen.getByText('Antworten'));
+    fireEvent.click(screen.getByTestId('btn-reply'));
     expect(onReply).toHaveBeenCalledTimes(1);
   });
 
   it('ruft onResend auf wenn "Erneut senden" geklickt wird', () => {
     const onResend = jest.fn();
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isOutbox={true} onResend={onResend} />);
-    fireEvent.click(screen.getByText('Erneut senden'));
+    fireEvent.click(screen.getByTestId('btn-resend'));
     expect(onResend).toHaveBeenCalledTimes(1);
   });
 });
@@ -138,14 +138,14 @@ describe('MessageDetailPane – Löschen-Dialog', () => {
   it('öffnet Bestätigungs-Dialog beim Klick auf Löschen', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} />);
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByTestId('btn-delete'));
     expect(screen.getByTestId('dialog')).toBeInTheDocument();
   });
 
   it('ruft onDelete auf wenn "Endgültig löschen" bestätigt wird', () => {
     const onDelete = jest.fn();
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} onDelete={onDelete} />);
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByTestId('btn-delete'));
     fireEvent.click(screen.getByText('Endgültig löschen'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
@@ -153,7 +153,7 @@ describe('MessageDetailPane – Löschen-Dialog', () => {
   it('schließt Dialog ohne onDelete bei "Abbrechen"', () => {
     const onDelete = jest.fn();
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} onDelete={onDelete} />);
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByTestId('btn-delete'));
     fireEvent.click(screen.getByText('Abbrechen'));
     expect(onDelete).not.toHaveBeenCalled();
     expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('MessageDetailPane – Leere Zustände', () => {
   it('zeigt Lade-Spinner wenn loading=true', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} loading={true} />);
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-    expect(screen.queryByText('Antworten')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-reply')).not.toBeInTheDocument();
   });
 });
 
@@ -196,7 +196,6 @@ describe('MessageDetailPane – Ungelesen-Button', () => {
   it('zeigt "Ungelesen"-Button wenn isOutbox=false', () => {
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isOutbox={false} />);
     expect(screen.getByTestId('btn-mark-unread')).toBeInTheDocument();
-    expect(screen.getByText('Ungelesen')).toBeInTheDocument();
   });
 
   it('zeigt keinen "Ungelesen"-Button wenn isOutbox=true', () => {
@@ -216,7 +215,7 @@ describe('MessageDetailPane – Weiterleiten Button', () => {
   it('ruft onForward mit "Fw:"-Betreff auf', () => {
     const onForward = jest.fn();
     render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} onForward={onForward} />);
-    fireEvent.click(screen.getByText('Weiterleiten'));
+    fireEvent.click(screen.getByTestId('btn-forward'));
     expect(onForward).toHaveBeenCalledWith({
       subject: 'Fw: Trainingsplan',
       content: 'Bitte kommt pünktlich.',
@@ -291,5 +290,72 @@ describe('MessageDetailPane – recipientLabels', () => {
     const msg = makeMsg([]);
     render(<MessageDetailPane {...defaultProps} message={msg} />);
     expect(screen.getByText('An: Anna Schmidt')).toBeInTheDocument();
+  });
+});
+
+// ── Responsive Buttons ─────────────────────────────────────────────────────────
+
+describe('MessageDetailPane – responsive Buttons (Desktop vs. Mobile)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  // Desktop: Button-Mock rendert data-testid aus den spread-Props
+  it('desktop: Antworten-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={false} canReply={true} isOutbox={false} />);
+    const btn = screen.getByTestId('btn-reply');
+    expect(btn).toHaveTextContent('Antworten');
+  });
+
+  it('desktop: Allen-antworten-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={MESSAGE_MULTI_RECIPIENTS} isMobile={false} canReply={true} isOutbox={false} />);
+    expect(screen.getByTestId('btn-reply-all')).toHaveTextContent('Allen antworten');
+  });
+
+  it('desktop: Weiterleiten-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={false} />);
+    expect(screen.getByTestId('btn-forward')).toHaveTextContent('Weiterleiten');
+  });
+
+  it('desktop: Ungelesen-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={false} isOutbox={false} />);
+    expect(screen.getByTestId('btn-mark-unread')).toHaveTextContent('Ungelesen');
+  });
+
+  it('desktop: Löschen-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={false} />);
+    expect(screen.getByTestId('btn-delete')).toHaveTextContent('Löschen');
+  });
+
+  it('desktop: Erneut-senden-Button hat sichtbaren Label-Text', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={false} isOutbox={true} />);
+    expect(screen.getByTestId('btn-resend')).toHaveTextContent('Erneut senden');
+  });
+
+  // Mobile: IconButton-Mock rendert data-testid, aber kein Label-Text im Button
+  it('mobile: Antworten-Button hat kein Label-Text (nur Icon)', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={true} canReply={true} isOutbox={false} />);
+    const btn = screen.getByTestId('btn-reply');
+    expect(btn).not.toHaveTextContent('Antworten');
+    expect(btn).toHaveAttribute('aria-label', 'Antworten');
+  });
+
+  it('mobile: Weiterleiten-Button hat kein Label-Text (nur Icon)', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={true} />);
+    const btn = screen.getByTestId('btn-forward');
+    expect(btn).not.toHaveTextContent('Weiterleiten');
+    expect(btn).toHaveAttribute('aria-label', 'Weiterleiten');
+  });
+
+  it('mobile: Löschen-Button hat kein Label-Text (nur Icon)', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={true} />);
+    const btn = screen.getByTestId('btn-delete');
+    expect(btn).not.toHaveTextContent('Löschen');
+    expect(btn).toHaveAttribute('aria-label', 'Löschen');
+  });
+
+  it('mobile: Erneut-senden-Button hat kein Label-Text (nur Icon)', () => {
+    render(<MessageDetailPane {...defaultProps} message={BASE_MESSAGE} isMobile={true} isOutbox={true} />);
+    const btn = screen.getByTestId('btn-resend');
+    expect(btn).not.toHaveTextContent('Erneut senden');
+    expect(btn).toHaveAttribute('aria-label', 'Erneut senden');
   });
 });

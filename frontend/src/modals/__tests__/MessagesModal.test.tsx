@@ -94,12 +94,13 @@ jest.mock('../messages/MessageDetailPane', () => ({
 }));
 
 jest.mock('../messages/MessageComposePane', () => ({
-  MessageComposePane: ({ form, onChange, error, success, onSend, onDiscard, onGoToSent, teams, clubs, onGroupCreate, onGroupUpdate, onGroupDelete }: any) => (
+  MessageComposePane: ({ form, onChange, error, success, onSend, onDiscard, onGoToSent, teams, clubs, onGroupCreate, onGroupUpdate, onGroupDelete, title }: any) => (
     <div
       data-testid="MessageComposePane"
       data-teams={teams?.length ?? 0}
       data-clubs={clubs?.length ?? 0}
       data-parentid={form.parentId ?? ''}
+      data-title={title ?? ''}
     >
       {success && <span data-testid="compose-success">sent</span>}
       {error && <span data-testid="compose-error">{error}</span>}
@@ -464,6 +465,100 @@ describe('MessagesModal', () => {
 
     expect(screen.getByTestId('MessageComposePane')).toBeInTheDocument();
     expect(screen.getByTestId('compose-subject')).toHaveValue('Re: Willkommen');
+  });
+
+  // ─── Compose-Titel je Aktion ───────────────────────────────────────────────
+
+  it('setzt Compose-Titel auf "Antworten" nach Antworten', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    fireEvent.click(screen.getByTestId('btn-reply'));
+    expect(screen.getByTestId('MessageComposePane')).toHaveAttribute('data-title', 'Antworten');
+  });
+
+  it('setzt Compose-Titel auf "Allen antworten" nach Allen antworten', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    fireEvent.click(screen.getByTestId('btn-reply-all'));
+    expect(screen.getByTestId('MessageComposePane')).toHaveAttribute('data-title', 'Allen antworten');
+  });
+
+  it('setzt Compose-Titel auf "Weiterleiten" nach Weiterleiten', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    fireEvent.click(screen.getByTestId('btn-forward'));
+    expect(screen.getByTestId('MessageComposePane')).toHaveAttribute('data-title', 'Weiterleiten');
+  });
+
+  it('setzt Compose-Titel auf "Erneut senden" nach Erneut senden', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    fireEvent.click(screen.getByTestId('btn-resend'));
+    expect(screen.getByTestId('MessageComposePane')).toHaveAttribute('data-title', 'Erneut senden');
+  });
+
+  it('setzt keinen Compose-Titel (leer) bei "Neue Nachricht"', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+    clickNeueNachricht();
+    expect(screen.getByTestId('MessageComposePane')).toHaveAttribute('data-title', '');
+  });
+
+  // ─── Zurück-Navigation aus Compose ─────────────────────────────────────────
+
+  it('Zurück aus Compose (nach Antworten) kehrt zur Detail-Ansicht zurück', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+
+    // Nachricht öffnen → Detail
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    expect(screen.getByTestId('detail-subject')).toBeInTheDocument();
+
+    // Antworten → Compose (Form ist dirty wegen vorausgefülltem Betreff+Inhalt)
+    fireEvent.click(screen.getByTestId('btn-reply'));
+    expect(screen.getByTestId('MessageComposePane')).toBeInTheDocument();
+
+    // Zurück klicken → Guard-Dialog erscheint (Form ist dirty)
+    fireEvent.click(screen.getByTestId('btn-discard'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-discard'));
+    });
+
+    // Sollte wieder in der Detail-Ansicht sein, nicht in der Liste
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-subject')).toBeInTheDocument();
+      expect(screen.queryByTestId('MessageComposePane')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Zurück aus Compose (nach "Neue Nachricht") kehrt zur Listen-Ansicht zurück', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+
+    clickNeueNachricht();
+    expect(screen.getByTestId('MessageComposePane')).toBeInTheDocument();
+
+    // Leeres Formular → kein Guard-Dialog, sofortiger Zurück-Sprung
+    fireEvent.click(screen.getByTestId('btn-discard'));
+
+    expect(screen.getByTestId('MessageListPane')).toBeInTheDocument();
+    expect(screen.queryByTestId('MessageComposePane')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('detail-subject')).not.toBeInTheDocument();
+  });
+
+  it('Zurück aus Compose (nach Weiterleiten) kehrt zur Detail-Ansicht zurück', async () => {
+    await act(async () => { render(<MessagesModal {...defaultProps} />); });
+
+    await act(async () => { fireEvent.click(screen.getByTestId('msg-1')); });
+    fireEvent.click(screen.getByTestId('btn-forward'));
+    expect(screen.getByTestId('MessageComposePane')).toBeInTheDocument();
+
+    // Form ist dirty (Betreff vorausgefüllt) → Guard-Dialog
+    fireEvent.click(screen.getByTestId('btn-discard'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-discard'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('detail-subject')).toBeInTheDocument();
+    });
   });
 
   it('verdoppelt "Re:" nicht wenn Betreff bereits damit beginnt', async () => {
