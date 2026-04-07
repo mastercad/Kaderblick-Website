@@ -201,6 +201,54 @@ describe('useReportBuilder – loadPreview', () => {
     );
     expect(previewCalls).toHaveLength(0);
   });
+
+  it('apiJson-Body ist immer JSON-serialisierbar (kein zirkulärer Verweis im config)', async () => {
+    // Regression test: ensures that the body passed to apiJson is always
+    // serializable — catches accidental window/DOM leaks into the config.
+    await act(async () => {
+      renderHook(() => useReportBuilder(true, SAMPLE_REPORT, jest.fn(), jest.fn()));
+    });
+    const previewCalls = mockApiJson.mock.calls.filter(
+      ([url]: [string]) => url === '/api/report/preview',
+    );
+    expect(previewCalls.length).toBeGreaterThan(0);
+    for (const [, opts] of previewCalls) {
+      expect(() => JSON.stringify(opts?.body)).not.toThrow();
+    }
+  });
+
+  it('überspringt Preview-Aufruf wenn config zirkuläre Referenz enthält (window-Leak-Simulation)', async () => {
+    // Builds a config that mimics what happens when window (or a DOM node)
+    // leaks into the config — e.g. via a mis-wired MUI event handler.
+    const circularConfig = {
+      ...SAMPLE_REPORT.config,
+      xField: 'player',
+      yField: 'goals',
+    } as any;
+    circularConfig.nonSerializableRef = circularConfig; // circular — simulates window.window
+
+    // IMPORTANT: create once outside the factory so renderHook sees a stable
+    // reference — otherwise useEffect([report, open]) fires on every re-render
+    // and causes an infinite loop.
+    const circularReport = { ...SAMPLE_REPORT, config: circularConfig };
+
+    let result: any;
+    await act(async () => {
+      ({ result } = renderHook(() =>
+        useReportBuilder(true, circularReport, jest.fn(), jest.fn()),
+      ));
+    });
+
+    // Whatever was passed to preview, it must be serializable (or nothing was passed)
+    const previewCalls = mockApiJson.mock.calls.filter(
+      ([url]: [string]) => url === '/api/report/preview',
+    );
+    for (const [, opts] of previewCalls) {
+      expect(() => JSON.stringify(opts?.body)).not.toThrow();
+    }
+    // Loading state must be settled
+    expect(result.current.isLoading).toBe(false);
+  });
 });
 
 // =============================================================================

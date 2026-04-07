@@ -95,9 +95,19 @@ export function useReportBuilder(
     }
     setIsLoading(true);
     try {
+      // Serialization guard: detect any accidental circular/DOM references
+      // (e.g. window object leaking into config) before they reach JSON.stringify.
+      let safeConfig: ReportConfig;
+      try {
+        safeConfig = JSON.parse(JSON.stringify(currentReport.config)) as ReportConfig;
+      } catch {
+        console.warn('[ReportBuilder] config enthält nicht-serialisierbare Werte – Preview übersprungen');
+        setPreviewData(null);
+        return;
+      }
       const data = await apiJson('/api/report/preview', {
         method: 'POST',
-        body: { config: currentReport.config },
+        body: { config: safeConfig },
       });
       setPreviewData({ ...data, config: currentReport.config });
     } catch (error) {
