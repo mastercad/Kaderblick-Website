@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ReportBuilderModal } from '../index';
 
@@ -93,8 +93,24 @@ jest.mock('../MobileWizard', () => ({
   MobileWizard: () => <div data-testid="MobileWizard" />,
 }));
 
+jest.mock('../GuidedWizard', () => ({
+  GuidedWizard: ({ onBack, onOpenBuilder }: any) => (
+    <div data-testid="GuidedWizard">
+      <button onClick={onBack}>Zurück</button>
+      {/* Exposes onOpenBuilder so tests can trigger the openBuilder function */}
+      <button onClick={() => onOpenBuilder?.({ diagramType: 'bar', xField: 'player', yField: 'goals' }, 'Test-Auswertung')} data-testid="open-builder-btn">Anpassen</button>
+    </div>
+  ),
+  // Returns true for all wizard-compatible configs (bar/line/radaroverlay + known fields)
+  isWizardCompatible: (config: any) =>
+    ['bar', 'line', 'radaroverlay'].includes(config.diagramType) &&
+    ['player', 'team', 'month'].includes(config.xField ?? ''),
+}));
+
 jest.mock('../HelpDialog', () => ({
-  HelpDialog: () => null,
+  HelpDialog: ({ onClose }: any) => (
+    <button data-testid="help-close-btn" onClick={onClose}>Hilfe schließen</button>
+  ),
 }));
 
 jest.mock('@mui/material/Alert', () => ({
@@ -120,7 +136,14 @@ afterAll(() => {
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 const NOOP = jest.fn();
+/** Wizard-kompatibler Report (bar/player/goals) → öffnet im Guided-Modus */
 const BASE_REPORT = { id: 1, name: 'Template X', description: '', config: BASE_CONFIG, isTemplate: true };
+/** Nicht-wizard-kompatibler Report (scatter) → öffnet immer im Builder-Modus */
+const BUILDER_REPORT = {
+  id: 2, name: 'Komplex', description: '',
+  config: { ...BASE_CONFIG, diagramType: 'scatter', xField: 'event_type', yField: 'shots' },
+  isTemplate: true,
+};
 
 function renderModal(stateOverrides: Record<string, any> = {}, reportProp: any = BASE_REPORT) {
   mockUseReportBuilder.mockReturnValue(makeState(stateOverrides));
@@ -140,10 +163,10 @@ describe('ReportBuilderModal — Template-Banner', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('zeigt den Info-Banner wenn ein Template von einem normalen User bearbeitet wird', () => {
-    renderModal({
-      currentReport: { ...BASE_REPORT, isTemplate: true },
-      isAdmin: false,
-    });
+    renderModal(
+      { currentReport: { ...BUILDER_REPORT, isTemplate: true }, isAdmin: false },
+      BUILDER_REPORT,
+    );
 
     const banner = screen.getByTestId('template-banner');
     expect(banner).toBeInTheDocument();
@@ -153,19 +176,19 @@ describe('ReportBuilderModal — Template-Banner', () => {
   });
 
   it('zeigt keinen Banner wenn der User Admin ist (kann in-place bearbeiten)', () => {
-    renderModal({
-      currentReport: { ...BASE_REPORT, isTemplate: true },
-      isAdmin: true,
-    });
+    renderModal(
+      { currentReport: { ...BUILDER_REPORT, isTemplate: true }, isAdmin: true },
+      BUILDER_REPORT,
+    );
 
     expect(screen.queryByTestId('template-banner')).not.toBeInTheDocument();
   });
 
   it('zeigt keinen Banner wenn der Report kein Template ist', () => {
-    renderModal({
-      currentReport: { ...BASE_REPORT, isTemplate: false },
-      isAdmin: false,
-    });
+    renderModal(
+      { currentReport: { ...BUILDER_REPORT, isTemplate: false }, isAdmin: false },
+      BUILDER_REPORT,
+    );
 
     expect(screen.queryByTestId('template-banner')).not.toBeInTheDocument();
   });
@@ -194,14 +217,19 @@ describe('ReportBuilderModal — Template-Banner', () => {
 describe('ReportBuilderModal — Titel', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('zeigt "Report bearbeiten" wenn ein vorhandener Report übergeben wird', () => {
-    renderModal({}, BASE_REPORT);
+  it('zeigt "Report bearbeiten" wenn ein nicht-wizard-kompatibler Report im Builder-Modus bearbeitet wird', () => {
+    renderModal({}, BUILDER_REPORT);
     expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Report bearbeiten');
   });
 
-  it('zeigt "Neuer Report" wenn kein Report übergeben wird', () => {
+  it('zeigt "Auswertung bearbeiten" wenn ein wizard-kompatibler Report erneut bearbeitet wird', () => {
+    renderModal({}, BASE_REPORT);
+    expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Auswertung bearbeiten');
+  });
+
+  it('zeigt "Auswertung erstellen" wenn kein Report übergeben wird (geführter Assistent)', () => {
     renderModal({}, null);
-    expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Neuer Report');
+    expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Auswertung erstellen');
   });
 });
 
@@ -215,18 +243,20 @@ describe('ReportBuilderModal — Titel', () => {
 describe('ReportBuilderModal — Inhalt & Regression', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('[REGRESSION] DesktopLayout wird gerendert wenn open=true und nicht mobil', () => {
-    renderModal({ isMobile: false });
+  it('[REGRESSION] DesktopLayout wird gerendert wenn ein nicht-wizard-kompatibler Report geöffnet wird (nicht mobil)', () => {
+    renderModal({ isMobile: false }, BUILDER_REPORT);
 
     expect(screen.getByTestId('DesktopLayout')).toBeInTheDocument();
     expect(screen.queryByTestId('MobileWizard')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('GuidedWizard')).not.toBeInTheDocument();
   });
 
-  it('[REGRESSION] MobileWizard wird gerendert wenn open=true und mobil', () => {
-    renderModal({ isMobile: true });
+  it('[REGRESSION] MobileWizard wird gerendert wenn ein nicht-wizard-kompatibler Report mobil geöffnet wird', () => {
+    renderModal({ isMobile: true }, BUILDER_REPORT);
 
     expect(screen.getByTestId('MobileWizard')).toBeInTheDocument();
     expect(screen.queryByTestId('DesktopLayout')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('GuidedWizard')).not.toBeInTheDocument();
   });
 
   it('[REGRESSION] Weder DesktopLayout noch MobileWizard werden gerendert wenn open=false', () => {
@@ -253,7 +283,7 @@ describe('ReportBuilderModal — Inhalt & Regression', () => {
 
   it('handleSave wird aufgerufen wenn der Speichern-Button geklickt wird', () => {
     const handleSave = jest.fn();
-    renderModal({ handleSave, canSave: true, isMobile: false });
+    renderModal({ handleSave, canSave: true, isMobile: false }, BUILDER_REPORT);
 
     // Der Speichern-Button ist im BaseModal-Footer — über den gemockten Button suchen
     const buttons = screen.getAllByRole('button');
@@ -264,11 +294,111 @@ describe('ReportBuilderModal — Inhalt & Regression', () => {
   });
 
   it('Speichern-Button ist deaktiviert wenn canSave=false', () => {
-    renderModal({ canSave: false, isMobile: false });
+    renderModal({ canSave: false, isMobile: false }, BUILDER_REPORT);
 
     const buttons = screen.getAllByRole('button');
     const saveButton = buttons.find(b => b.textContent?.toLowerCase().includes('speichern'));
     expect(saveButton).toBeDefined();
     expect(saveButton).toBeDisabled();
+  });
+});
+
+// ── Tests: Neuer-Report-Flow (GuidedWizard) ───────────────────────────────────
+//
+// Stellt sicher dass:
+// 1. Neue Reports immer den GuidedWizard zeigen — kein StartScreen mehr
+// 2. MODAL_TITLES[mode] ist immer eine Funktion (kein TypeError durch ungültigen mode)
+// 3. GuidedWizard ruft onClose wenn "Zurück" gedrückt wird (kein Zurück zu StartScreen)
+
+describe('ReportBuilderModal — Neuer-Report-Flow (GuidedWizard)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('zeigt GuidedWizard (nicht DesktopLayout) wenn kein Report übergeben wird', () => {
+    renderModal({ isMobile: false }, null);
+
+    expect(screen.getByTestId('GuidedWizard')).toBeInTheDocument();
+    expect(screen.queryByTestId('DesktopLayout')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('MobileWizard')).not.toBeInTheDocument();
+  });
+
+  it('[REGRESSION TypeError] MODAL_TITLES hat keinen "start"-Eintrag mehr — kein Crash beim Rendern', () => {
+    // Würde werfen: "MODAL_TITLES[mode] is not a function" wenn mode='start' (alter Zustand)
+    expect(() => renderModal({ isMobile: false }, null)).not.toThrow();
+  });
+
+  it('Kein Zurück-zur-StartScreen: onBack des GuidedWizard ruft onClose auf', () => {
+    const onClose = jest.fn();
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    render(
+      <ReportBuilderModal
+        open={true}
+        onClose={onClose}
+        onSave={NOOP}
+        report={undefined}
+      />,
+    );
+
+    // GuidedWizard rendert einen "Zurück"-Button der onBack auslöst
+    const zurueckButton = screen.getByRole('button', { name: /Zurück/i });
+    zurueckButton.click();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Speichern-Buttons (footer) werden nicht gerendert im GuidedWizard-Modus', () => {
+    renderModal({ isMobile: false, canSave: true }, null);
+
+    // Im guided-Modus gibt es keinen BaseModal-Footer mit Speichern/Abbrechen
+    const buttons = screen.queryAllByRole('button');
+    const saveButton = buttons.find(b => b.textContent?.toLowerCase().includes('speichern'));
+    expect(saveButton).toBeUndefined();
+  });
+});
+
+// ── Tests: openBuilder / Modus-Wechsel ────────────────────────────────────────
+
+describe('ReportBuilderModal — openBuilder und HelpDialog', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('wechselt zu Builder-Modus wenn GuidedWizard onOpenBuilder aufruft', () => {
+    renderModal({ isMobile: false }, null);
+    // Startet im guided-Modus → GuidedWizard ist sichtbar
+    expect(screen.getByTestId('GuidedWizard')).toBeInTheDocument();
+
+    // "Anpassen"-Button ruft onOpenBuilder auf → openBuilder() → setMode('builder')
+    fireEvent.click(screen.getByTestId('open-builder-btn'));
+
+    // Nach Modus-Wechsel wird DesktopLayout gerendert
+    expect(screen.getByTestId('DesktopLayout')).toBeInTheDocument();
+    expect(screen.queryByTestId('GuidedWizard')).not.toBeInTheDocument();
+  });
+
+  it('übergibt presetConfig an setCurrentReport wenn openBuilder mit Config aufgerufen wird', () => {
+    const setCurrentReport = jest.fn();
+    renderModal({ isMobile: false, setCurrentReport }, null);
+
+    fireEvent.click(screen.getByTestId('open-builder-btn'));
+
+    // openBuilder wurde mit presetConfig={ diagramType:'bar', ... } aufgerufen
+    // → setCurrentReport(prev => ...) muss aufgerufen worden sein
+    expect(setCurrentReport).toHaveBeenCalled();
+    // Überprüfe, dass die übergebene updater-Funktion korrekt merged
+    const updater = setCurrentReport.mock.calls[0][0];
+    const prev = { name: 'Alt', description: 'Desc', config: { diagramType: 'scatter', xField: 'event_type', yField: 'shots' }, isTemplate: false };
+    const result = updater(prev);
+    expect(result.name).toBe('Test-Auswertung');
+    expect(result.config.diagramType).toBe('bar');
+    expect(result.config.xField).toBe('player');
+    expect(result.description).toBe('Desc'); // unveränderter Wert
+  });
+
+  it('schließt HelpDialog wenn dessen onClose ausgelöst wird (setHelpOpen(false))', () => {
+    const setHelpOpen = jest.fn();
+    renderModal({ isMobile: false, setHelpOpen, helpOpen: true }, BUILDER_REPORT);
+
+    // Der gemockte HelpDialog rendert einen Schließen-Button der onClose auslöst
+    const closeHelpBtn = screen.getByTestId('help-close-btn');
+    fireEvent.click(closeHelpBtn);
+
+    expect(setHelpOpen).toHaveBeenCalledWith(false);
   });
 });

@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, Button } from '@mui/material';
 import BaseModal from '../BaseModal';
-import type { ReportBuilderModalProps } from './types';
+import type { ReportBuilderModalProps, ReportConfig } from './types';
 import { useReportBuilder } from './useReportBuilder';
 import { MobileWizard } from './MobileWizard';
 import { DesktopLayout } from './DesktopLayout';
 import { HelpDialog } from './HelpDialog';
+import { GuidedWizard } from './GuidedWizard';
+import { isWizardCompatible } from './wizardLogic';
 
 export { type Report } from './types';
+
+type Mode = 'guided' | 'builder';
+
+const MODAL_TITLES: Record<Mode, (editing: boolean) => string> = {
+  guided:  (edit) => edit ? 'Auswertung bearbeiten' : 'Auswertung erstellen',
+  builder: (edit) => edit ? 'Report bearbeiten'     : 'Manuelle Konfiguration',
+};
 
 export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
   open,
@@ -16,6 +25,42 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
   report,
 }) => {
   const state = useReportBuilder(open, report, onSave, onClose);
+  const [mode, setMode] = useState<Mode>('guided');
+
+  // Reset to correct mode whenever the modal opens
+  useEffect(() => {
+    if (open) {
+      if (report && !isWizardCompatible(report.config)) setMode('builder');
+      else setMode('guided');
+    }
+  }, [open, report]);
+
+  const openBuilder = (presetConfig?: Partial<ReportConfig>, presetName?: string) => {
+    if (presetConfig) {
+      state.setCurrentReport(prev => ({
+        ...prev,
+        name: presetName ?? prev.name,
+        config: { ...prev.config, ...presetConfig },
+      }));
+    }
+    setMode('builder');
+  };
+
+  const builderActions = mode === 'builder' && !state.isMobile ? (
+    <>
+      <Button onClick={onClose} variant="outlined" color="secondary">
+        Abbrechen
+      </Button>
+      <Button
+        onClick={state.handleSave}
+        variant="contained"
+        color="primary"
+        disabled={!state.canSave}
+      >
+        Speichern
+      </Button>
+    </>
+  ) : undefined;
 
   return (
     <BaseModal
@@ -23,31 +68,29 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
       onClose={onClose}
       maxWidth="lg"
       fullScreen={state.fullScreen}
-      title={report ? 'Report bearbeiten' : 'Neuer Report'}
-      actions={
-        state.isMobile ? undefined : (
-          <>
-            <Button onClick={onClose} variant="outlined" color="secondary">
-              Abbrechen
-            </Button>
-            <Button
-              onClick={state.handleSave}
-              variant="contained"
-              color="primary"
-              disabled={!state.canSave}
-            >
-              Speichern
-            </Button>
-          </>
-        )
-      }
+      title={MODAL_TITLES[mode](!!report)}
+      actions={builderActions}
     >
-      {state.currentReport.isTemplate && !state.isAdmin && (
+      {state.currentReport.isTemplate && !state.isAdmin && mode === 'builder' && (
         <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
           Du bearbeitest eine Vorlage. Deine Änderungen werden als persönliche Kopie für dich gespeichert — die Vorlage selbst bleibt unverändert.
         </Alert>
       )}
-      {state.isMobile ? <MobileWizard state={state} /> : <DesktopLayout state={state} />}
+
+      {mode === 'guided' && (
+        <GuidedWizard
+          state={state}
+          onSave={onSave}
+          onClose={onClose}
+          onOpenBuilder={openBuilder}
+          onBack={onClose}
+          initialConfig={report?.config}
+        />
+      )}
+
+      {mode === 'builder' && (
+        state.isMobile ? <MobileWizard state={state} /> : <DesktopLayout state={state} />
+      )}
 
       <HelpDialog open={state.helpOpen} onClose={() => state.setHelpOpen(false)} />
     </BaseModal>

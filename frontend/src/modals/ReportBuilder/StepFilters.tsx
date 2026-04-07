@@ -14,6 +14,7 @@ import {
   Autocomplete,
   TextField,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { ReportBuilderState } from './types';
@@ -38,30 +39,30 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
   } = state;
 
   type PlayerOption = { id: number; fullName: string };
+
+  // Detect mode from config
+  const isMultiPlayer = Boolean(currentReport.config.filters?.players);
+  const isMultiTeam   = Boolean(currentReport.config.filters?.teams);
+
+  // ── Single-player filter (filters.player) ──
   const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
   const [playerInputValue, setPlayerInputValue] = useState('');
   const [playerLoading, setPlayerLoading] = useState(false);
   const [selectedPlayerOption, setSelectedPlayerOption] = useState<PlayerOption | null>(null);
 
-  // Resolve existing player filter to a display label (e.g. when loading a saved report)
+  // Resolve existing single-player filter to a display label
   useEffect(() => {
     const playerId = currentReport.config.filters?.player;
-    if (!playerId) {
-      setSelectedPlayerOption(null);
-      return;
-    }
+    if (!playerId) { setSelectedPlayerOption(null); return; }
     fetchPlayerById(Number(playerId)).then(data => {
       if (data) setSelectedPlayerOption({ id: data.id, fullName: data.fullName });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced player search
+  // Debounced single-player search
   useEffect(() => {
-    if (playerInputValue.length < 2) {
-      setPlayerOptions([]);
-      return;
-    }
+    if (playerInputValue.length < 2) { setPlayerOptions([]); return; }
     setPlayerLoading(true);
     const timer = setTimeout(() => {
       searchReportPlayers(playerInputValue)
@@ -69,11 +70,50 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
         .catch(() => setPlayerOptions([]))
         .finally(() => setPlayerLoading(false));
     }, 300);
-    return () => {
-      clearTimeout(timer);
-      setPlayerLoading(false);
-    };
+    return () => { clearTimeout(timer); setPlayerLoading(false); };
   }, [playerInputValue]);
+
+  // ── Multi-player filter (filters.players — comma-sep IDs) ──
+  const [multiPlayerResolved, setMultiPlayerResolved] = useState<PlayerOption[]>([]);
+  const [multiPlayerInput, setMultiPlayerInput] = useState('');
+  const [multiPlayerOpts, setMultiPlayerOpts] = useState<PlayerOption[]>([]);
+  const [multiPlayerLoading, setMultiPlayerLoading] = useState(false);
+
+  useEffect(() => {
+    const raw = currentReport.config.filters?.players;
+    if (!raw) { setMultiPlayerResolved([]); return; }
+    const ids = raw.split(',').map(Number).filter(Boolean);
+    Promise.all(ids.map(id => fetchPlayerById(id))).then(results => {
+      setMultiPlayerResolved(results.filter((r): r is PlayerOption => r !== null));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (multiPlayerInput.length < 2) { setMultiPlayerOpts([]); return; }
+    setMultiPlayerLoading(true);
+    const timer = setTimeout(() => {
+      searchReportPlayers(multiPlayerInput)
+        .then(r => setMultiPlayerOpts(r))
+        .catch(() => setMultiPlayerOpts([]))
+        .finally(() => setMultiPlayerLoading(false));
+    }, 300);
+    return () => { clearTimeout(timer); setMultiPlayerLoading(false); };
+  }, [multiPlayerInput]);
+
+  const addMultiPlayer = (p: PlayerOption) => {
+    if (multiPlayerResolved.some(x => x.id === p.id)) return;
+    const next = [...multiPlayerResolved, p];
+    setMultiPlayerResolved(next);
+    handleFilterChange('players', next.map(x => x.id).join(','));
+    setMultiPlayerInput(''); setMultiPlayerOpts([]);
+  };
+
+  const removeMultiPlayer = (id: number) => {
+    const next = multiPlayerResolved.filter(x => x.id !== id);
+    setMultiPlayerResolved(next);
+    handleFilterChange('players', next.length ? next.map(x => x.id).join(',') : '');
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -151,60 +191,122 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
             </Paper>
           )}
 
-          {/* Team */}
+          {/* Team — single dropdown OR multi-chip (team_comparison) */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Team</InputLabel>
-              <Select
-                value={currentReport.config.filters?.team || ''}
-                onChange={(e) => handleFilterChange('team', e.target.value)}
-                label="Team"
-              >
-                <MenuItem value="">Alle Teams</MenuItem>
-                {builderData.teams.map((team) => (
-                  <MenuItem key={team.id} value={team.id.toString()}>{team.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {isMultiTeam ? (
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                  {(currentReport.config.filters?.teams ?? '')
+                    .split(',').map(Number).filter(Boolean)
+                    .map(id => {
+                      const team = builderData.teams.find(t => t.id === id);
+                      return team ? (
+                        <Chip key={id} label={team.name} size="small"
+                          onDelete={() => {
+                            const next = (currentReport.config.filters?.teams ?? '')
+                              .split(',').map(Number).filter(n => Boolean(n) && n !== id);
+                            handleFilterChange('teams', next.length ? next.join(',') : '');
+                          }}
+                        />
+                      ) : null;
+                    })}
+                </Box>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Team hinzufügen</InputLabel>
+                  <Select value="" label="Team hinzufügen"
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      if (!id) return;
+                      const existing = (currentReport.config.filters?.teams ?? '')
+                        .split(',').map(Number).filter(Boolean);
+                      if (!existing.includes(id))
+                        handleFilterChange('teams', [...existing, id].join(','));
+                    }}
+                  >
+                    <MenuItem value="" disabled>Auswählen…</MenuItem>
+                    {builderData.teams
+                      .filter(t => !(currentReport.config.filters?.teams ?? '')
+                        .split(',').map(Number).includes(t.id))
+                      .map(t => <MenuItem key={t.id} value={t.id.toString()}>{t.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
+            ) : (
+              <FormControl fullWidth>
+                <InputLabel>Team</InputLabel>
+                <Select
+                  value={currentReport.config.filters?.team || ''}
+                  onChange={(e) => handleFilterChange('team', e.target.value)}
+                  label="Team"
+                >
+                  <MenuItem value="">Alle Teams</MenuItem>
+                  {builderData.teams.map((team) => (
+                    <MenuItem key={team.id} value={team.id.toString()}>{team.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <Tip text="Zeigt nur Ereignisse, die für die gewählte Mannschaft erfasst wurden. Ohne Auswahl werden alle Teams berücksichtigt." />
           </Box>
 
-          {/* Spieler */}
+          {/* Spieler — single autocomplete OR multi-chip (player_comparison) */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <Autocomplete
-              fullWidth
-              options={playerOptions}
-              getOptionLabel={(o) => o.fullName}
-              isOptionEqualToValue={(a, b) => a.id === b.id}
-              value={selectedPlayerOption}
-              inputValue={playerInputValue}
-              loading={playerLoading}
-              onInputChange={(_, value) => setPlayerInputValue(value)}
-              onChange={(_, option) => {
-                setSelectedPlayerOption(option);
-                handleFilterChange('player', option ? option.id.toString() : '');
-              }}
-              filterOptions={(x) => x}
-              noOptionsText={playerInputValue.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Spieler"
-                  placeholder="Name eintippen…"
-                  slotProps={{
-                    input: {
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {playerLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    },
-                  }}
+            {isMultiPlayer ? (
+              <Box sx={{ flex: 1 }}>
+                {multiPlayerResolved.length > 0 && (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                    {multiPlayerResolved.map(p => (
+                      <Chip key={p.id} label={p.fullName} size="small"
+                        onDelete={() => removeMultiPlayer(p.id)} />
+                    ))}
+                  </Box>
+                )}
+                <Autocomplete
+                  fullWidth
+                  options={multiPlayerOpts}
+                  getOptionLabel={(o) => o.fullName}
+                  isOptionEqualToValue={(a, b) => a.id === b.id}
+                  value={null}
+                  inputValue={multiPlayerInput}
+                  loading={multiPlayerLoading}
+                  onInputChange={(_, val) => setMultiPlayerInput(val)}
+                  onChange={(_, v) => { if (v) addMultiPlayer(v); }}
+                  filterOptions={(x) => x}
+                  noOptionsText={multiPlayerInput.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Spieler" placeholder="Name eintippen…"
+                      slotProps={{ input: { ...params.InputProps,
+                        endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
+                      }}}
+                    />
+                  )}
                 />
-              )}
-            />
+              </Box>
+            ) : (
+              <Autocomplete
+                fullWidth
+                options={playerOptions}
+                getOptionLabel={(o) => o.fullName}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                value={selectedPlayerOption}
+                inputValue={playerInputValue}
+                loading={playerLoading}
+                onInputChange={(_, value) => setPlayerInputValue(value)}
+                onChange={(_, option) => {
+                  setSelectedPlayerOption(option);
+                  handleFilterChange('player', option ? option.id.toString() : '');
+                }}
+                filterOptions={(x) => x}
+                noOptionsText={playerInputValue.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
+                renderInput={(params) => (
+                  <TextField {...params} label="Spieler" placeholder="Name eintippen…"
+                    slotProps={{ input: { ...params.InputProps,
+                      endAdornment: (<>{playerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
+                    }}}
+                  />
+                )}
+              />
+            )}
             <Tip text="Filtert auf Ereignisse eines einzelnen Spielers. Kombinierbar mit allen anderen Filtern – z.B. „Tore von Spieler X in Heimspielen“." />
           </Box>
 

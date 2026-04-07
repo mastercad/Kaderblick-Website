@@ -14,6 +14,7 @@ import {
   Switch,
   Tooltip,
   IconButton,
+  Alert,
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -52,8 +53,50 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
 
   const { dimensions, metrics } = splitFields(availableFields);
 
+  const xField = currentReport.config.xField;
+  const yField = currentReport.config.yField;
+  const xIsMetric = !!xField && metrics.some(f => f.key === xField);
+  // A dimension on Y is valid (e.g. count of event types per player) — only warn when a metric ends up on X
+  const axesSwapped = xIsMetric;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+      {/* Orientation hint for new users */}
+      {!xField && !yField && (
+        <Alert severity="info" sx={{ mb: 0.5 }}>
+          <strong>So funktioniert es:</strong> Die <strong>X-Achse</strong> ist immer eine Dimension (z.B. Spieler, Monat, Team) — sie bestimmt die Beschriftungen. Die <strong>Y-Achse</strong> ist eine Metrik (z.B. Tore, Vorlagen) — sie bestimmt die Höhe der Balken.
+        </Alert>
+      )}
+
+      {/* Axes-swapped warning */}
+      {axesSwapped && (
+        <Alert
+          severity="warning"
+          action={
+            <Tooltip title="X- und Y-Achse tauschen">
+              <IconButton
+                size="small"
+                color="inherit"
+                onClick={() =>
+                  setCurrentReport(prev => ({
+                    ...prev,
+                    config: { ...prev.config, xField: prev.config.yField, yField: prev.config.xField },
+                  }))
+                }
+              >
+                <SwapVertIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          }
+        >
+          {(() => {
+            const xLabel = availableFields.find(f => f.key === xField)?.label ?? xField;
+            // Only fires when xIsMetric — simplify to single message
+            return <><strong>„{xLabel}"</strong> ist eine Metrik — auf der X-Achse erscheint dadurch nur „Unbekannt" als Beschriftung. Verschiebe <strong>{xLabel}</strong> auf die Y-Achse.</>;
+          })()}
+        </Alert>
+      )}
 
       {/* X-Axis — typically a dimension (Spieler, Team, Monat...) */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -84,23 +127,25 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         <Tip text="Die X-Achse bestimmt die Beschriftung und Gruppierung der Balken/Punkte – z.B. Spieler, Monat oder Team. Jeder eindeutige Wert dieses Feldes ergibt eine eigene Kategorie." />
       </Box>
 
-      {/* Swap X ↔ Y axes */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: -0.5 }}>
-        <Tooltip title="X- und Y-Achse tauschen">
-          <IconButton
-            size="small"
-            onClick={() =>
-              setCurrentReport(prev => ({
-                ...prev,
-                config: { ...prev.config, xField: prev.config.yField, yField: prev.config.xField },
-              }))
-            }
-            sx={{ color: 'primary.main' }}
-          >
-            <SwapVertIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {/* Swap X ↔ Y axes — compact button between the two selects, only shown when no swapped-warning is active */}
+      {!axesSwapped && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: -0.5 }}>
+          <Tooltip title="X- und Y-Achse tauschen">
+            <IconButton
+              size="small"
+              onClick={() =>
+                setCurrentReport(prev => ({
+                  ...prev,
+                  config: { ...prev.config, xField: prev.config.yField, yField: prev.config.xField },
+                }))
+              }
+              sx={{ color: 'primary.main' }}
+            >
+              <SwapVertIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
 
       {/* Y-Axis — typically a metric (Tore, Assists, Karten...) */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -196,8 +241,10 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             label="Gruppierung (optional)"
           >
             <MenuItem value="">Keine Gruppierung</MenuItem>
-            {dimensions.map((field) => (
-              <MenuItem key={field.key} value={field.key}>{field.label}</MenuItem>
+            {dimensions
+              .filter(f => f.key !== currentReport.config.xField)
+              .map((field) => (
+                <MenuItem key={field.key} value={field.key}>{field.label}</MenuItem>
             ))}
           </Select>
         </FormControl>

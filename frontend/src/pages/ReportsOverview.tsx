@@ -41,13 +41,10 @@ import {
   Visibility as PreviewIcon,
   VisibilityOff as PreviewOffIcon,
   Star as StarIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  RocketLaunch as RocketIcon,
 } from '@mui/icons-material';
 import { ReportBuilderModal, type Report } from '../modals/ReportBuilderModal';
 import { DynamicConfirmationModal } from '../modals/DynamicConfirmationModal';
-import { fetchReportDefinitions, deleteReport, fetchReportPresets, fetchReportContextData } from '../services/reports';
+import { fetchReportDefinitions, deleteReport, fetchReportContextData } from '../services/reports';
 import type { ContextOption } from '../services/reports';
 import { createWidget } from '../services/createWidget';
 import { apiJson } from '../utils/api';
@@ -74,80 +71,6 @@ const DIAGRAM_META: Record<string, { label: string; icon: React.ReactElement; co
 
 const getDiagramMeta = (type: string) =>
   DIAGRAM_META[type] || { label: type, icon: <BarChartIcon />, color: '#757575' };
-
-/* ──────────────── Preset type ──────────────── */
-
-interface Preset {
-  key: string;
-  label: string;
-  config: Partial<Report['config']>;
-}
-
-/* ──────────────── Preset Card Component ──────────────── */
-
-interface PresetCardProps {
-  preset: Preset;
-  onUse: (preset: Preset) => void;
-  saving: boolean;
-}
-
-const PresetCard: React.FC<PresetCardProps> = ({ preset, onUse, saving }) => {
-  const meta = getDiagramMeta(preset.config.diagramType || 'bar');
-
-  return (
-    <Card
-      elevation={1}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'box-shadow 0.2s, transform 0.15s',
-        cursor: 'pointer',
-        '&:hover': {
-          boxShadow: 4,
-          transform: 'translateY(-2px)',
-        },
-        borderTop: `3px solid ${meta.color}`,
-        bgcolor: 'background.paper',
-      }}
-      onClick={() => !saving && onUse(preset)}
-    >
-      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-        <Box display="flex" alignItems="center" gap={1} mb={1}>
-          <Chip
-            icon={meta.icon}
-            label={meta.label}
-            size="small"
-            sx={{
-              bgcolor: `${meta.color}15`,
-              color: meta.color,
-              fontWeight: 600,
-              '& .MuiChip-icon': { color: meta.color },
-            }}
-          />
-        </Box>
-        <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-          {preset.label}
-        </Typography>
-      </CardContent>
-      <CardActions sx={{ px: 2, py: 1 }}>
-        <Button
-          size="small"
-          startIcon={saving ? <CircularProgress size={14} /> : <RocketIcon />}
-          disabled={saving}
-          onClick={(e) => {
-            e.stopPropagation();
-            onUse(preset);
-          }}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
-          color="primary"
-        >
-          Übernehmen &amp; speichern
-        </Button>
-      </CardActions>
-    </Card>
-  );
-};
 
 /* ──────────────── Report Card Component ──────────────── */
 
@@ -246,8 +169,6 @@ const ReportCard: React.FC<ReportCardProps> = ({
                 sx={{
                   mt: 1,
                   p: 1,
-                  minHeight: 180,
-                  maxHeight: 280,
                   overflow: 'hidden',
                   bgcolor: 'grey.50',
                 }}
@@ -315,8 +236,6 @@ const ReportsOverviewInner = () => {
     message: '',
     severity: 'success',
   });
-  const [presets, setPresets] = useState<Preset[]>([]);
-  const [presetsExpanded, setPresetsExpanded] = useState(true);
   const [savingPreset, setSavingPreset] = useState<string | null>(null);
 
   // ── Context modal state ──
@@ -324,7 +243,6 @@ const ReportsOverviewInner = () => {
     open: boolean;
     needsTeam: boolean;
     needsPlayer: boolean;
-    preset?: Preset;
     templateReport?: Report;
   }>({ open: false, needsTeam: false, needsPlayer: false });
   const [contextTeams, setContextTeams] = useState<ContextOption[]>([]);
@@ -335,22 +253,9 @@ const ReportsOverviewInner = () => {
 
   useEffect(() => {
     loadReports();
-    loadPresets();
   }, []);
 
-  const loadPresets = async () => {
-    try {
-      const data = await fetchReportPresets();
-      if (data.presets) {
-        setPresets(data.presets as unknown as Preset[]);
-      }
-    } catch (err) {
-      console.error('Failed to load presets:', err);
-    }
-  };
-
   const openContextModal = useCallback(async (opts: {
-    preset?: Preset;
     templateReport?: Report;
     needsTeam: boolean;
     needsPlayer: boolean;
@@ -484,54 +389,10 @@ const ReportsOverviewInner = () => {
     if (selectedContextTeam)   filters.team   = String(selectedContextTeam.id);
     if (selectedContextPlayer) filters.player = String(selectedContextPlayer.id);
 
-    const { preset, templateReport } = contextModal;
+    const { templateReport } = contextModal;
     setContextModal((s) => ({ ...s, open: false }));
     setSelectedContextTeam(null);
     setSelectedContextPlayer(null);
-
-    if (preset) {
-      // Defer to handleUsePreset with the pre-collected filters (no modal re-trigger)
-      // Inline the preset creation here to avoid a forward const reference
-      setSavingPreset(preset.key);
-      try {
-        const reportData = {
-          name: preset.label,
-          description: '',
-          config: {
-            diagramType: preset.config.diagramType || 'bar',
-            xField: preset.config.xField || '',
-            yField: preset.config.yField || '',
-            groupBy: preset.config.groupBy,
-            metrics: preset.config.metrics,
-            radarNormalize: preset.config.radarNormalize,
-            facetBy: preset.config.facetBy,
-            facetSubType: preset.config.facetSubType,
-            facetLayout: preset.config.facetLayout,
-            showLegend: preset.config.showLegend ?? true,
-            showLabels: preset.config.showLabels ?? false,
-            filters: {
-              ...(preset.config.filters || {}),
-              ...filters,
-            },
-          },
-        };
-        const result = await apiJson<{ id: number }>('/api/report/definition', {
-          method: 'POST',
-          body: reportData,
-        });
-        await loadReports();
-        if (result?.id) {
-          await createWidget({ type: 'report', reportId: result.id });
-          setSnackbar({ open: true, message: `"${preset.label}" wurde erstellt und zum Dashboard hinzugefügt!`, severity: 'success' });
-        }
-      } catch (err) {
-        console.error('Failed to create from preset with context:', err);
-        setSnackbar({ open: true, message: 'Fehler beim Erstellen der Auswertung', severity: 'error' });
-      } finally {
-        setSavingPreset(null);
-      }
-      return;
-    }
 
     if (templateReport) {
       // Template flow: create a personal copy with merged filters, then add to dashboard
@@ -595,71 +456,6 @@ const ReportsOverviewInner = () => {
       });
     }
   }, [openContextModal]);
-
-  const handleUsePreset = useCallback(async (preset: Preset, contextFilters?: { team?: string; player?: string }) => {
-    // If preset involves player/team dimension and no contextFilters provided yet: open modal first
-    if (!contextFilters) {
-      const ctx = needsContext(preset.config);
-      if (ctx.needsPlayer || ctx.needsTeam) {
-        await openContextModal({ preset, ...ctx });
-        return;
-      }
-    }
-    setSavingPreset(preset.key);
-    try {
-      const reportData = {
-        name: preset.label,
-        description: '',
-        config: {
-          diagramType: preset.config.diagramType || 'bar',
-          xField: preset.config.xField || '',
-          yField: preset.config.yField || '',
-          groupBy: preset.config.groupBy,
-          metrics: preset.config.metrics,
-          radarNormalize: preset.config.radarNormalize,
-          facetBy: preset.config.facetBy,
-          facetSubType: preset.config.facetSubType,
-          facetLayout: preset.config.facetLayout,
-          showLegend: preset.config.showLegend ?? true,
-          showLabels: preset.config.showLabels ?? false,
-          filters: {
-            ...(preset.config.filters || {}),
-            ...(contextFilters?.team   ? { team:   contextFilters.team }   : {}),
-            ...(contextFilters?.player ? { player: contextFilters.player } : {}),
-          },
-        },
-      };
-      const result = await apiJson<{ id: number }>('/api/report/definition', {
-        method: 'POST',
-        body: reportData,
-      });
-      await loadReports();
-      // Direkt als Dashboard-Widget hinzufügen
-      if (result?.id) {
-        await createWidget({ type: 'report', reportId: result.id });
-        setSnackbar({
-          open: true,
-          message: `"${preset.label}" wurde erstellt und zum Dashboard hinzugefügt!`,
-          severity: 'success',
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: `"${preset.label}" wurde als Auswertung gespeichert!`,
-          severity: 'success',
-        });
-      }
-    } catch (err) {
-      console.error('Failed to create from preset:', err);
-      setSnackbar({
-        open: true,
-        message: 'Fehler beim Erstellen der Auswertung',
-        severity: 'error',
-      });
-    } finally {
-      setSavingPreset(null);
-    }
-  }, []);
 
   return (
     <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
@@ -727,43 +523,6 @@ const ReportsOverviewInner = () => {
           </Button>
         </Paper>
       ) : null}
-
-      {/* ── Fertige Vorlagen (Presets) ── */}
-      {!loading && presets.length > 0 && (
-        <Box mb={4}>
-          <Box
-            display="flex"
-            alignItems="center"
-            gap={1}
-            mb={1}
-            sx={{ cursor: 'pointer', userSelect: 'none' }}
-            onClick={() => setPresetsExpanded((v) => !v)}
-          >
-            <StarIcon sx={{ color: 'warning.main' }} />
-            <Typography variant="h6" fontWeight={600}>
-              Fertige Vorlagen
-            </Typography>
-            <Chip label={presets.length} size="small" color="warning" variant="outlined" />
-            {presetsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </Box>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Mit einem Klick übernehmen — die Auswertung wird erstellt und direkt als Dashboard-Widget hinzugefügt.
-          </Typography>
-          <Collapse in={presetsExpanded}>
-            <Grid container spacing={2}>
-              {presets.map((preset) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={preset.key}>
-                  <PresetCard
-                    preset={preset}
-                    onUse={handleUsePreset}
-                    saving={savingPreset === preset.key}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Collapse>
-        </Box>
-      )}
 
       {/* ── Meine Auswertungen ── */}
       {!loading && (
@@ -846,10 +605,9 @@ const ReportsOverviewInner = () => {
           <Button
             onClick={() => {
               // Proceed without any context filter
-              const { preset, templateReport } = contextModal;
+              const { templateReport } = contextModal;
               setContextModal((s) => ({ ...s, open: false }));
-              if (preset) handleUsePreset(preset, {});
-              else if (templateReport) {
+              if (templateReport) {
                 createWidget({ type: 'report', reportId: templateReport.id! })
                   .then(() => setSnackbar({ open: true, message: `"${templateReport.name}" wurde zum Dashboard hinzugefügt!`, severity: 'success' }))
                   .catch(() => setSnackbar({ open: true, message: 'Fehler beim Hinzufügen', severity: 'error' }));

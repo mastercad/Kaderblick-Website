@@ -8,6 +8,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Alert,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -27,7 +28,9 @@ interface DesktopLayoutProps {
 }
 
 export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
-  const { expandedSection, setExpandedSection, activeFilterCount, setHelpOpen } = state;
+  const { expandedSection, setExpandedSection, activeFilterCount, setHelpOpen, currentReport } = state;
+  const [introDismissed, setIntroDismissed] = React.useState(false);
+  const showIntro = !introDismissed && !currentReport.config.xField;
 
   const sections = [
     { id: 'basics', label: 'Basis-Informationen', icon: <TextFieldsIcon fontSize="small" />, content: <StepBasics state={state} /> },
@@ -52,6 +55,25 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
           '&::-webkit-scrollbar-thumb': { bgcolor: 'action.disabled', borderRadius: 3 },
         }}
       >
+        {showIntro && (
+          <Alert
+            severity="info"
+            onClose={() => setIntroDismissed(true)}
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="body2" fontWeight={600} gutterBottom>
+              So funktioniert der manuelle Builder:
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+              <li><strong>X-Achse</strong> = Dimension — Beschriftungen (z.&nbsp;B. Spieler, Monat, Team)</li>
+              <li><strong>Y-Achse</strong> = Metrik — Zahlenwerte (z.&nbsp;B. Tore, Vorlagen, Karten)</li>
+              <li><strong>Gruppierung</strong> = optionale zweite Dimension für verschiedene Farben/Linien</li>
+            </Box>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              Tipp: Setze zuerst einen Team-Filter, damit nur relevante Ereignisse ausgewertet werden.
+            </Typography>
+          </Alert>
+        )}
         {sections.map((section) => (
           <Accordion
             key={section.id}

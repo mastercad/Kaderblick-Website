@@ -162,12 +162,17 @@ class ReportController extends AbstractController
             ->setMaxResults(20)
             ->getResult();
 
-        return $this->json(array_map(fn ($p) => [
-            'id' => $p->getId(),
-            'fullName' => $p->getFullName(),
-            'firstName' => $p->getFirstName(),
-            'lastName' => $p->getLastName(),
-        ], $players));
+        return $this->json(array_map(static function ($p) {
+            $firstAssignment = $p->getPlayerTeamAssignments()->first();
+
+            return [
+                'id' => $p->getId(),
+                'fullName' => $p->getFullName(),
+                'firstName' => $p->getFirstName(),
+                'lastName' => $p->getLastName(),
+                'teamName' => false !== $firstAssignment ? $firstAssignment->getTeam()->getName() : null,
+            ];
+        }, $players));
     }
 
     #[Route('/preview', name: 'api_report_preview', methods: ['POST'])]

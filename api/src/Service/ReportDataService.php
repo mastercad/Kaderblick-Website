@@ -170,6 +170,10 @@ class ReportDataService
                     if (isset($filters['player'])) {
                         $qb->andWhere('e.player = :player')->setParameter('player', $filters['player']);
                     }
+                    if (isset($filters['players']) && '' !== $filters['players']) {
+                        $playerIds = array_map('intval', explode(',', (string) $filters['players']));
+                        $qb->andWhere('e.player IN (:players)')->setParameter('players', $playerIds);
+                    }
                     if (isset($filters['surfaceType'])) {
                         $qb->leftJoin('e.game', 'g2')->leftJoin('g2.location', 'loc2')
                             ->andWhere('loc2.surfaceType = :surfaceType')->setParameter('surfaceType', (int) $filters['surfaceType']);
@@ -228,6 +232,10 @@ class ReportDataService
         }
         if (isset($filters['player'])) {
             $qb->andWhere('e.player = :player')->setParameter('player', $filters['player']);
+        }
+        if (isset($filters['players']) && '' !== $filters['players']) {
+            $playerIds = array_map('intval', explode(',', (string) $filters['players']));
+            $qb->andWhere('e.player IN (:players)')->setParameter('players', $playerIds);
         }
         if (isset($filters['surfaceType'])) {
             // join through game -> location -> surfaceType
@@ -720,6 +728,11 @@ class ReportDataService
      */
     private function considerGroup(array $events, string $diagramType, string $xField, string $yField, array $groupBy): array
     {
+        // Prevent N×N cross-product matrix: strip any groupBy field that is the same as xField.
+        // E.g. xField=player + groupBy=player would produce one dataset per player plotted against
+        // all players — resulting in 89 datasets mostly filled with zeros.
+        $groupBy = array_values(array_filter($groupBy, fn ($gf) => $gf !== $xField));
+
         if (empty($groupBy)) {
             if ('pie' === $diagramType) {
                 return $this->generateReportDataForPieWithoutGroup($events, $yField);
@@ -728,7 +741,7 @@ class ReportDataService
             return $this->generateReportDataForLineOrBarWithoutGroup($events, $xField, $yField);
         }
 
-        return $this->generateReportDataForGroup($events, $xField, $groupBy);
+        return $this->generateReportDataForGroup($events, $xField, $yField, $groupBy);
     }
 
     /**
@@ -774,25 +787,33 @@ class ReportDataService
      */
     private function generateReportDataForLineOrBarWithoutGroup(array $events, string $xField, string $yField): array
     {
-        // Bar/Line: X = xField, Y = Anzahl der Events pro X (mit Fallback)
-        $counts = [];
+        // Resolve yField metric aggregate (if available)
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+        $yAggregate = isset($fieldAliases[$yField]['aggregate']) && is_callable($fieldAliases[$yField]['aggregate'])
+            ? $fieldAliases[$yField]['aggregate']
+            : null;
+
+        // Bar/Line: X = xField, Y = metric aggregate (or raw event count) per X bucket
+        /** @var array<string, list<mixed>> $buckets */
+        $buckets = [];
         $sortKeys = [];
         foreach ($events as $event) {
             $x = $this->retrieveFieldValue($event, $xField);
             if (null === $x || '' === $x) {
                 $x = 'Unbekannt';
             }
-            $counts[$x] = ($counts[$x] ?? 0) + 1;
+            $x = $this->stringifyValue($x);
+            $buckets[$x][] = $event;
             if (!isset($sortKeys[$x])) {
                 $sortKeys[$x] = $this->retrieveSortKey($event, $xField);
             }
         }
-        $xLabels = array_keys($counts);
+        $xLabels = array_keys($buckets);
         // Sort by sort key (handles date/month fields correctly; falls back to display value)
         usort($xLabels, fn ($a, $b) => strcmp($sortKeys[$a] ?? $a, $sortKeys[$b] ?? $b));
         $data = [];
         foreach ($xLabels as $x) {
-            $data[] = $counts[$x];
+            $data[] = null !== $yAggregate ? (float) $yAggregate($buckets[$x]) : count($buckets[$x]);
         }
 
         // Load alias metadata to resolve human-friendly labels for the dataset
@@ -818,12 +839,21 @@ class ReportDataService
      *
      * @return array<string, mixed>
      */
-    private function generateReportDataForGroup(array $events, string $xField, array $groupBy): array
+    private function generateReportDataForGroup(array $events, string $xField, string $yField, array $groupBy): array
     {
-        // Mit groupBy: X = xField, Layer = groupBy, Y = yField
+        // Resolve yField metric aggregate (if available)
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+        $yAggregate = isset($fieldAliases[$yField]['aggregate']) && is_callable($fieldAliases[$yField]['aggregate'])
+            ? $fieldAliases[$yField]['aggregate']
+            : null;
+
+        // Mit groupBy: X = xField, Layer = groupBy, Y = yField metric (or raw event count)
         $xValues = [];
         $xSortKeys = [];
         $layerValues = [];
+        // When a metric aggregate is needed, collect event buckets; otherwise count directly
+        /** @var array<string, array<string, list<mixed>>> $eventBuckets */
+        $eventBuckets = [];
         $matrix = [];
         foreach ($events as $event) {
             // Normalize x and groupBy values to safe string keys (entities/proxies may be returned)
@@ -841,10 +871,14 @@ class ReportDataService
                 $xSortKeys[$x] = $this->retrieveSortKey($event, $xField);
             }
             $layerValues[$layerKey] = true;
-            if (!isset($matrix[$layerKey][$x])) {
-                $matrix[$layerKey][$x] = 0;
+            if (null !== $yAggregate) {
+                $eventBuckets[$layerKey][$x][] = $event;
+            } else {
+                if (!isset($matrix[$layerKey][$x])) {
+                    $matrix[$layerKey][$x] = 0;
+                }
+                ++$matrix[$layerKey][$x];
             }
-            ++$matrix[$layerKey][$x];
         }
         $xLabels = array_keys($xValues);
         // Sort by sort key (handles date/month fields correctly; falls back to display value)
@@ -856,7 +890,12 @@ class ReportDataService
         foreach ($layers as $layerKey) {
             $data = [];
             foreach ($xLabels as $xVal) {
-                $data[] = $matrix[$layerKey][$xVal] ?? 0;
+                if (null !== $yAggregate) {
+                    $bucket = $eventBuckets[$layerKey][$xVal] ?? [];
+                    $data[] = (float) $yAggregate($bucket);
+                } else {
+                    $data[] = $matrix[$layerKey][$xVal] ?? 0;
+                }
             }
             $datasets[] = [
                 'label' => $layerKey,

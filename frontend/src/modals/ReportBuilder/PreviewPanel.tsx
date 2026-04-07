@@ -24,6 +24,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
     showAdvancedMeta,
     setShowAdvancedMeta,
     computePreviewWarnings,
+    currentReport,
   } = state;
 
   if (isLoading) {
@@ -50,7 +51,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
           Noch keine Vorschau
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Wähle X- und Y-Achse im Schritt &quot;Daten &amp; Chart&quot;
+          Wähle X- und Y-Achse im Schritt „Daten &amp; Chart"
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+          Tipp: X-Achse = wer oder was (Spieler, Monat), Y-Achse = was gezählt wird (Tore, Vorlagen)
         </Typography>
       </Box>
     );
@@ -58,65 +62,97 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
 
   if (previewData) {
     const warnings = computePreviewWarnings();
+    const isEmpty = !previewData.labels?.length && !previewData.panels?.length;
+    const eventsCount: number = previewData.meta?.eventsCount ?? -1;
+
     return (
       <Box sx={{ width: '100%' }}>
-        {/* Preview meta warnings */}
-        {previewData.meta && (
-          <Box sx={{ mb: 1 }}>
-            {previewData.meta.userMessage && (
-              <Alert severity={previewData.meta.eventsCount === 0 ? 'warning' : 'info'} sx={{ mb: 1 }}>
-                {previewData.meta.userMessage}
-              </Alert>
-            )}
-            {isSuperAdmin && (
-              <Box sx={{ mt: 0.5 }}>
-                <Button size="small" onClick={() => setShowAdvancedMeta(s => !s)}>
-                  {showAdvancedMeta ? 'Erweiterte Details verbergen' : 'Erweiterte Details'}
-                </Button>
-                <Collapse in={showAdvancedMeta}>
-                  <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    {previewData.meta.dbAggregate === true && (
-                      <Alert severity="info" variant="outlined">DB-Aggregate aktiv.</Alert>
-                    )}
-                    {Array.isArray(previewData.meta.warnings) &&
-                      previewData.meta.warnings.map((w: string, idx: number) => (
-                        <Alert key={`warn-${idx}`} severity="warning" variant="outlined">{w}</Alert>
-                      ))}
-                    {Array.isArray(previewData.meta.suggestions) &&
-                      previewData.meta.suggestions.map((s: string, idx: number) => (
-                        <Alert key={`sug-${idx}`} severity="info" variant="outlined">{s}</Alert>
-                      ))}
-                    {warnings.movingAverageWindowTooLarge && (
-                      <Alert severity="warning" variant="outlined">
-                        Gleitschnitt-Fenster größer als Datenpunkte
-                      </Alert>
-                    )}
-                    {warnings.boxplotFormatInvalid && (
-                      <Alert severity="warning" variant="outlined">
-                        Boxplot erwartet pro Label Arrays
-                      </Alert>
-                    )}
-                    {warnings.scatterNonNumeric && (
-                      <Alert severity="warning" variant="outlined">
-                        Scatter enthält nicht-numerische Werte
-                      </Alert>
-                    )}
-                  </Box>
-                </Collapse>
+        {/* Empty-result guidance — shown before the chart so users see it immediately */}
+        {isEmpty && (
+          <Alert severity="warning" sx={{ mb: 1.5 }}>
+            <strong>Keine Daten für diese Kombination.</strong> Mögliche Ursachen:
+            <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2.5 }}>
+              {eventsCount === 0 && (
+                <li>Es gibt für die gewählten Filter <strong>keine passenden Spielereignisse</strong> in der Datenbank.</li>
+              )}
+              <li>X- und Y-Achse sind möglicherweise <strong>vertauscht</strong> — X sollte eine Dimension sein (Spieler, Monat), Y eine Metrik (Tore, Vorlagen).</li>
+              <li>Der gewählte <strong>Filter</strong> (Team, Zeitraum, Spieltyp) schließt alle Ereignisse aus.</li>
+              <li>Für diese Metrik gibt es <strong>noch keine erfassten Ereignisse</strong> der entsprechenden Typen.</li>
+            </Box>
+          </Alert>
+        )}
+
+        {/* eventsCount info when data is present */}
+        {!isEmpty && eventsCount >= 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+            Basiert auf {eventsCount} Ereignis{eventsCount !== 1 ? 'sen' : ''}
+          </Typography>
+        )}
+
+        {/* Backend meta messages */}
+        {previewData.meta?.userMessage && (
+          <Alert severity={eventsCount === 0 ? 'warning' : 'info'} sx={{ mb: 1 }}>
+            {previewData.meta.userMessage}
+          </Alert>
+        )}
+
+        {/* User-facing suggestions from backend */}
+        {Array.isArray(previewData.meta?.userSuggestions) && previewData.meta.userSuggestions.length > 0 && (
+          <Alert severity="info" sx={{ mb: 1 }}>
+            {previewData.meta.userSuggestions.join(' ')}
+          </Alert>
+        )}
+
+        {isSuperAdmin && (
+          <Box sx={{ mt: 0.5, mb: 1 }}>
+            <Button size="small" onClick={() => setShowAdvancedMeta(s => !s)}>
+              {showAdvancedMeta ? 'Erweiterte Details verbergen' : 'Erweiterte Details'}
+            </Button>
+            <Collapse in={showAdvancedMeta}>
+              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {previewData.meta?.dbAggregate === true && (
+                  <Alert severity="info" variant="outlined">DB-Aggregate aktiv.</Alert>
+                )}
+                {Array.isArray(previewData.meta?.warnings) &&
+                  previewData.meta.warnings.map((w: string, idx: number) => (
+                    <Alert key={`warn-${idx}`} severity="warning" variant="outlined">{w}</Alert>
+                  ))}
+                {Array.isArray(previewData.meta?.suggestions) &&
+                  previewData.meta.suggestions.map((s: string, idx: number) => (
+                    <Alert key={`sug-${idx}`} severity="info" variant="outlined">{s}</Alert>
+                  ))}
+                {warnings.movingAverageWindowTooLarge && (
+                  <Alert severity="warning" variant="outlined">
+                    Gleitschnitt-Fenster größer als Datenpunkte
+                  </Alert>
+                )}
+                {warnings.boxplotFormatInvalid && (
+                  <Alert severity="warning" variant="outlined">
+                    Boxplot erwartet pro Label Arrays
+                  </Alert>
+                )}
+                {warnings.scatterNonNumeric && (
+                  <Alert severity="warning" variant="outlined">
+                    Scatter enthält nicht-numerische Werte
+                  </Alert>
+                )}
               </Box>
-            )}
+            </Collapse>
           </Box>
         )}
-        <WidgetRefreshProvider>
-          <ReportWidget config={previewData} />
-        </WidgetRefreshProvider>
+
+        {!isEmpty && (
+          <WidgetRefreshProvider>
+            <ReportWidget config={previewData} />
+          </WidgetRefreshProvider>
+        )}
       </Box>
     );
   }
 
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight={250} width="100%">
-      <Typography color="text.secondary">Preview wird geladen...</Typography>
+      <Typography color="text.secondary">Vorschau wird geladen...</Typography>
     </Box>
   );
 };

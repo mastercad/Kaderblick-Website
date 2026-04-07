@@ -61,7 +61,9 @@ export interface ReportConfig {
 
 export interface ReportFilters {
   team?: string;
+  teams?: string;   // comma-separated team IDs (team_comparison)
   player?: string;
+  players?: string; // comma-separated player IDs (player_comparison)
   eventType?: string;
   gameType?: string;
   surfaceType?: string;

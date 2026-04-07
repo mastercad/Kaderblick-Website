@@ -412,7 +412,7 @@ describe('fetchPlayerById', () => {
 
   it('gibt die Spielerdaten zurück wenn der API-Aufruf erfolgreich ist', async () => {
     const mockPlayer = { id: 5, fullName: 'Test Spieler' };
-    mockApiJson.mockResolvedValue(mockPlayer);
+    mockApiJson.mockResolvedValue({ player: mockPlayer });
 
     const result = await fetchPlayerById(5);
 

@@ -82,7 +82,7 @@ export async function fetchReportPresets(): Promise<{ presets: ReportPreset[] }>
 export interface ContextOption { id: number; name?: string; fullName?: string }
 
 /** Search players by name for the report builder filter autocomplete. */
-export async function searchReportPlayers(q: string): Promise<Array<{ id: number; fullName: string; firstName: string; lastName: string }>> {
+export async function searchReportPlayers(q: string): Promise<Array<{ id: number; fullName: string; firstName: string; lastName: string; teamName?: string | null }>> {
   if (q.trim().length < 2) return [];
   return apiJson(`/api/report/player-search?q=${encodeURIComponent(q.trim())}`);
 }
@@ -90,7 +90,8 @@ export async function searchReportPlayers(q: string): Promise<Array<{ id: number
 /** Resolve a single player by ID (used to restore saved player filters). */
 export async function fetchPlayerById(id: number): Promise<{ id: number; fullName: string } | null> {
   try {
-    return await apiJson(`/api/players/${id}`);
+    const data = await apiJson(`/api/players/${id}`);
+    return data?.player ?? null;
   } catch {
     return null;
   }

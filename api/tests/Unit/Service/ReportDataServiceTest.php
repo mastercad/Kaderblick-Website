@@ -239,7 +239,7 @@ class ReportDataServiceTest extends TestCase
 
         $mGroup = $ref->getMethod('generateReportDataForGroup');
         $mGroup->setAccessible(true);
-        $outGroup = $mGroup->invokeArgs($svc, [[$evA1, $evA2, $evB], 'player', ['team']]);
+        $outGroup = $mGroup->invokeArgs($svc, [[$evA1, $evA2, $evB], 'player', 'count', ['team']]);
         $this->assertArrayHasKey('labels', $outGroup);
         $this->assertArrayHasKey('datasets', $outGroup);
 
@@ -650,6 +650,73 @@ class ReportDataServiceTest extends TestCase
         $this->assertSame('TeamX', $result['datasets'][0]['label']);
     }
 
+    public function testConsiderGroupStripsGroupByWhenEqualToXField(): void
+    {
+        // Bug-fix regression: groupBy=['player'] + xField='player' must NOT produce
+        // an N×N cross-product matrix — it should strip the duplicate and route to ungrouped.
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $playerA = $this->createMock(Player::class);
+        $playerA->method('getFullName')->willReturn('Alice');
+        $playerA->method('__toString')->willReturn('Alice');
+
+        $ev1 = $this->createMock(GameEvent::class);
+        $ev1->method('getPlayer')->willReturn($playerA);
+        $ev2 = $this->createMock(GameEvent::class);
+        $ev2->method('getPlayer')->willReturn($playerA);
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('considerGroup');
+        $m->setAccessible(true);
+
+        // groupBy=['player'] and xField='player' → groupBy stripped to [] → ungrouped
+        $result = $m->invoke($svc, [$ev1, $ev2], 'bar', 'player', 'count', ['player']);
+
+        // Ungrouped: exactly 1 dataset (not one dataset per player)
+        $this->assertCount(1, $result['datasets']);
+        $this->assertContains('Alice', $result['labels']);
+    }
+
+    public function testConsiderGroupStripsXFieldFromGroupByButKeepsOtherFields(): void
+    {
+        // groupBy=['player', 'team'] + xField='player':
+        // 'player' is stripped (= xField), 'team' is kept → grouped by team → 2 datasets
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $playerA = $this->createMock(Player::class);
+        $playerA->method('getFullName')->willReturn('Alice');
+        $playerA->method('__toString')->willReturn('Alice');
+
+        $teamX = $this->createMock(Team::class);
+        $teamX->method('getName')->willReturn('TeamX');
+        $teamX->method('__toString')->willReturn('TeamX');
+        $teamY = $this->createMock(Team::class);
+        $teamY->method('getName')->willReturn('TeamY');
+        $teamY->method('__toString')->willReturn('TeamY');
+
+        $ev1 = $this->createMock(GameEvent::class);
+        $ev1->method('getPlayer')->willReturn($playerA);
+        $ev1->method('getTeam')->willReturn($teamX);
+
+        $ev2 = $this->createMock(GameEvent::class);
+        $ev2->method('getPlayer')->willReturn($playerA);
+        $ev2->method('getTeam')->willReturn($teamY);
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('considerGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invoke($svc, [$ev1, $ev2], 'bar', 'player', 'count', ['player', 'team']);
+
+        // 'team' is kept → grouped result with 2 datasets (one per team)
+        $this->assertCount(2, $result['datasets']);
+        $datasetLabels = array_column($result['datasets'], 'label');
+        $this->assertContains('TeamX', $datasetLabels);
+        $this->assertContains('TeamY', $datasetLabels);
+    }
+
     // ── retrieveFieldValue ─────────────────────────────────────────────
 
     public function testRetrieveFieldValueUsesAliasCallback(): void
@@ -890,7 +957,7 @@ class ReportDataServiceTest extends TestCase
         $m->setAccessible(true);
 
         // Group by BOTH team and eventType
-        $result = $m->invoke($svc, [$ev1], 'player', ['team', 'eventType']);
+        $result = $m->invoke($svc, [$ev1], 'player', 'count', ['team', 'eventType']);
 
         $this->assertArrayHasKey('labels', $result);
         $this->assertArrayHasKey('datasets', $result);
