@@ -60,6 +60,7 @@ function makeState(overrides: {
     isLoading: false,
     hasPreview: false,
     previewData: null,
+    previewError: false,
     showAdvancedMeta: false,
     setShowAdvancedMeta: jest.fn(),
     activeStep: 0,
@@ -331,5 +332,31 @@ describe('PreviewPanel – SuperAdmin: Erweiterte Details', () => {
     expect(screen.queryByText(/Gleitschnitt-Fenster/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Boxplot erwartet/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/nicht-numerische Werte/i)).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+//  Fehlerzustand (previewError)
+// =============================================================================
+
+describe('PreviewPanel – Fehlerzustand (previewError=true)', () => {
+  it('zeigt Fehlermeldung wenn previewError=true und hasPreview=true', () => {
+    render(<PreviewPanel state={makeState({ hasPreview: true, previewError: true })} />);
+    expect(screen.getByText(/Vorschau konnte nicht geladen werden/i)).toBeInTheDocument();
+  });
+
+  it('zeigt KEINEN Ladezustand im Fehlerzustand', () => {
+    render(<PreviewPanel state={makeState({ hasPreview: true, previewError: true })} />);
+    expect(screen.queryByText(/Lade Vorschau/i)).not.toBeInTheDocument();
+  });
+
+  it('zeigt NICHT den Platzhalter im Fehlerzustand', () => {
+    render(<PreviewPanel state={makeState({ hasPreview: true, previewError: true })} />);
+    expect(screen.queryByText(/Noch keine Vorschau/i)).not.toBeInTheDocument();
+  });
+
+  it('zeigt Vorbereitungstext wenn hasPreview=true, kein Fehler, keine Daten', () => {
+    render(<PreviewPanel state={makeState({ hasPreview: true, previewError: false, previewData: null })} />);
+    expect(screen.getByText(/Vorschau wird vorbereitet/i)).toBeInTheDocument();
   });
 });

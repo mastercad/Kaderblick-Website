@@ -32,6 +32,7 @@ export function useReportBuilder(
   const [availableFields, setAvailableFields] = useState<FieldOption[]>([]);
   const [previewData, setPreviewData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
   const [builderData, setBuilderData] = useState<BuilderData | null>(null);
   const [showAdvancedMeta, setShowAdvancedMeta] = useState(false);
 
@@ -94,6 +95,7 @@ export function useReportBuilder(
       return;
     }
     setIsLoading(true);
+    setPreviewError(false);
     try {
       // Serialization guard: detect any accidental circular/DOM references
       // (e.g. window object leaking into config) before they reach JSON.stringify.
@@ -103,6 +105,7 @@ export function useReportBuilder(
       } catch {
         console.warn('[ReportBuilder] config enthält nicht-serialisierbare Werte – Preview übersprungen');
         setPreviewData(null);
+        setPreviewError(true);
         return;
       }
       const data = await apiJson('/api/report/preview', {
@@ -113,6 +116,7 @@ export function useReportBuilder(
     } catch (error) {
       console.error('Error loading preview:', error);
       setPreviewData(null);
+      setPreviewError(true);
     } finally {
       setIsLoading(false);
     }
@@ -206,6 +210,7 @@ export function useReportBuilder(
     builderData,
     previewData,
     isLoading,
+    previewError,
     showAdvancedMeta,
     setShowAdvancedMeta,
     activeStep,

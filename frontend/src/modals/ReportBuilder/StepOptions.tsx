@@ -192,7 +192,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           <FormControlLabel
             control={
               <Checkbox
-                checked={currentReport.config.showLegend}
+                checked={currentReport.config.showLegend ?? false}
                 onChange={(e) => handleConfigChange('showLegend', e.target.checked)}
               />
             }
@@ -206,7 +206,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           <FormControlLabel
             control={
               <Checkbox
-                checked={currentReport.config.showLabels}
+                checked={currentReport.config.showLabels ?? false}
                 onChange={(e) => handleConfigChange('showLabels', e.target.checked)}
               />
             }

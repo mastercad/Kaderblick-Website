@@ -40,55 +40,34 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
 
   type PlayerOption = { id: number; fullName: string };
 
-  // Detect mode from config
-  const isMultiPlayer = Boolean(currentReport.config.filters?.players);
-  const isMultiTeam   = Boolean(currentReport.config.filters?.teams);
-
-  // ── Single-player filter (filters.player) ──
-  const [playerOptions, setPlayerOptions] = useState<PlayerOption[]>([]);
-  const [playerInputValue, setPlayerInputValue] = useState('');
-  const [playerLoading, setPlayerLoading] = useState(false);
-  const [selectedPlayerOption, setSelectedPlayerOption] = useState<PlayerOption | null>(null);
-
-  // Resolve existing single-player filter to a display label
-  useEffect(() => {
-    const playerId = currentReport.config.filters?.player;
-    if (!playerId) { setSelectedPlayerOption(null); return; }
-    fetchPlayerById(Number(playerId)).then(data => {
-      if (data) setSelectedPlayerOption({ id: data.id, fullName: data.fullName });
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Debounced single-player search
-  useEffect(() => {
-    if (playerInputValue.length < 2) { setPlayerOptions([]); return; }
-    setPlayerLoading(true);
-    const timer = setTimeout(() => {
-      searchReportPlayers(playerInputValue)
-        .then(results => setPlayerOptions(results))
-        .catch(() => setPlayerOptions([]))
-        .finally(() => setPlayerLoading(false));
-    }, 300);
-    return () => { clearTimeout(timer); setPlayerLoading(false); };
-  }, [playerInputValue]);
-
-  // ── Multi-player filter (filters.players — comma-sep IDs) ──
+  // ── Player filter — always multi-chip ──
+  // Supports both filters.players (comma-sep) and legacy filters.player (single ID).
   const [multiPlayerResolved, setMultiPlayerResolved] = useState<PlayerOption[]>([]);
   const [multiPlayerInput, setMultiPlayerInput] = useState('');
   const [multiPlayerOpts, setMultiPlayerOpts] = useState<PlayerOption[]>([]);
   const [multiPlayerLoading, setMultiPlayerLoading] = useState(false);
 
+  // On mount: resolve existing player IDs from filters.players or fallback to filters.player.
+  // Uses functional updater to MERGE with any players already added during async resolution
+  // (avoids race condition when StepFilters remounts in MobileWizard mid-fetch).
   useEffect(() => {
     const raw = currentReport.config.filters?.players;
-    if (!raw) { setMultiPlayerResolved([]); return; }
-    const ids = raw.split(',').map(Number).filter(Boolean);
+    const single = currentReport.config.filters?.player;
+    const source = raw || (single ?? '');
+    if (!source) { setMultiPlayerResolved([]); return; }
+    const ids = source.split(',').map(Number).filter(Boolean);
     Promise.all(ids.map(id => fetchPlayerById(id))).then(results => {
-      setMultiPlayerResolved(results.filter((r): r is PlayerOption => r !== null));
+      const resolved = results.filter((r): r is PlayerOption => r !== null);
+      setMultiPlayerResolved(prev => {
+        const byId = new Map(prev.map(p => [p.id, p]));
+        resolved.forEach(r => { byId.set(r.id, r); }); // merge, not overwrite
+        return Array.from(byId.values());
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debounced player search
   useEffect(() => {
     if (multiPlayerInput.length < 2) { setMultiPlayerOpts([]); return; }
     setMultiPlayerLoading(true);
@@ -103,17 +82,39 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
 
   const addMultiPlayer = (p: PlayerOption) => {
     if (multiPlayerResolved.some(x => x.id === p.id)) return;
-    const next = [...multiPlayerResolved, p];
-    setMultiPlayerResolved(next);
-    handleFilterChange('players', next.map(x => x.id).join(','));
+    setMultiPlayerResolved(prev => {
+      if (prev.some(x => x.id === p.id)) return prev;
+      return [...prev, p];
+    });
+    // Derive new ID list from filters.players (authoritative state), not from the
+    // potentially-stale multiPlayerResolved (which is [] during async init on remount).
+    const currentIds = (currentReport.config.filters?.players ?? '')
+      .split(',').map(Number).filter(Boolean);
+    if (!currentIds.includes(p.id)) {
+      handleFilterChange('player', '');
+      handleFilterChange('players', [...currentIds, p.id].join(','));
+    }
     setMultiPlayerInput(''); setMultiPlayerOpts([]);
   };
 
   const removeMultiPlayer = (id: number) => {
-    const next = multiPlayerResolved.filter(x => x.id !== id);
-    setMultiPlayerResolved(next);
-    handleFilterChange('players', next.length ? next.map(x => x.id).join(',') : '');
+    setMultiPlayerResolved(prev => prev.filter(x => x.id !== id));
+    // Same: derive remaining IDs from filters.players, not from local state.
+    const remaining = (currentReport.config.filters?.players ?? '')
+      .split(',').map(Number).filter(Boolean)
+      .filter(existingId => existingId !== id);
+    handleFilterChange('player', '');
+    handleFilterChange('players', remaining.length ? remaining.join(',') : '');
   };
+
+  // ── Team filter — always multi-chip ──
+  // Supports both filters.teams (comma-sep) and legacy filters.team (single ID).
+  const currentTeamIds = (() => {
+    const raw = currentReport.config.filters?.teams;
+    if (raw) return raw.split(',').map(Number).filter(Boolean);
+    const single = currentReport.config.filters?.team;
+    return single ? [Number(single)].filter(Boolean) : [];
+  })();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -191,123 +192,80 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
             </Paper>
           )}
 
-          {/* Team — single dropdown OR multi-chip (team_comparison) */}
+          {/* Team — immer Multi-Chip (wie GuidedWizard) */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            {isMultiTeam ? (
-              <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1 }}>
+              {currentTeamIds.length > 0 && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
-                  {(currentReport.config.filters?.teams ?? '')
-                    .split(',').map(Number).filter(Boolean)
-                    .map(id => {
-                      const team = builderData.teams.find(t => t.id === id);
-                      return team ? (
-                        <Chip key={id} label={team.name} size="small"
-                          onDelete={() => {
-                            const next = (currentReport.config.filters?.teams ?? '')
-                              .split(',').map(Number).filter(n => Boolean(n) && n !== id);
-                            handleFilterChange('teams', next.length ? next.join(',') : '');
-                          }}
-                        />
-                      ) : null;
-                    })}
+                  {currentTeamIds.map(id => {
+                    const team = builderData.teams.find(t => t.id === id);
+                    return team ? (
+                      <Chip key={id} label={team.name} size="small"
+                        onDelete={() => {
+                          const next = currentTeamIds.filter(n => n !== id);
+                          handleFilterChange('team', '');
+                          handleFilterChange('teams', next.length ? next.join(',') : '');
+                        }}
+                      />
+                    ) : null;
+                  })}
                 </Box>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Team hinzufügen</InputLabel>
-                  <Select value="" label="Team hinzufügen"
-                    onChange={(e) => {
-                      const id = Number(e.target.value);
-                      if (!id) return;
-                      const existing = (currentReport.config.filters?.teams ?? '')
-                        .split(',').map(Number).filter(Boolean);
-                      if (!existing.includes(id))
-                        handleFilterChange('teams', [...existing, id].join(','));
-                    }}
-                  >
-                    <MenuItem value="" disabled>Auswählen…</MenuItem>
-                    {builderData.teams
-                      .filter(t => !(currentReport.config.filters?.teams ?? '')
-                        .split(',').map(Number).includes(t.id))
-                      .map(t => <MenuItem key={t.id} value={t.id.toString()}>{t.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Box>
-            ) : (
-              <FormControl fullWidth>
-                <InputLabel>Team</InputLabel>
-                <Select
-                  value={currentReport.config.filters?.team || ''}
-                  onChange={(e) => handleFilterChange('team', e.target.value)}
-                  label="Team"
+              )}
+              <FormControl fullWidth size="small">
+                <InputLabel>Team hinzufügen</InputLabel>
+                <Select value="" label="Team hinzufügen"
+                  onChange={(e) => {
+                    const id = Number(e.target.value);
+                    if (!id) return;
+                    if (!currentTeamIds.includes(id)) {
+                      handleFilterChange('team', '');
+                      handleFilterChange('teams', [...currentTeamIds, id].join(','));
+                    }
+                  }}
                 >
-                  <MenuItem value="">Alle Teams</MenuItem>
-                  {builderData.teams.map((team) => (
-                    <MenuItem key={team.id} value={team.id.toString()}>{team.name}</MenuItem>
-                  ))}
+                  <MenuItem value="" disabled>Auswählen…</MenuItem>
+                  {builderData.teams
+                    .filter(t => !currentTeamIds.includes(t.id))
+                    .map(t => <MenuItem key={t.id} value={t.id.toString()}>{t.name}</MenuItem>)}
                 </Select>
               </FormControl>
-            )}
-            <Tip text="Zeigt nur Ereignisse, die für die gewählte Mannschaft erfasst wurden. Ohne Auswahl werden alle Teams berücksichtigt." />
+            </Box>
+            <Tip text="Zeigt nur Ereignisse, die für die gewählten Mannschaften erfasst wurden. Ohne Auswahl werden alle Teams berücksichtigt." />
           </Box>
 
-          {/* Spieler — single autocomplete OR multi-chip (player_comparison) */}
+          {/* Spieler — immer Multi-Chip (wie GuidedWizard) */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            {isMultiPlayer ? (
-              <Box sx={{ flex: 1 }}>
-                {multiPlayerResolved.length > 0 && (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
-                    {multiPlayerResolved.map(p => (
-                      <Chip key={p.id} label={p.fullName} size="small"
-                        onDelete={() => removeMultiPlayer(p.id)} />
-                    ))}
-                  </Box>
-                )}
-                <Autocomplete
-                  fullWidth
-                  options={multiPlayerOpts}
-                  getOptionLabel={(o) => o.fullName}
-                  isOptionEqualToValue={(a, b) => a.id === b.id}
-                  value={null}
-                  inputValue={multiPlayerInput}
-                  loading={multiPlayerLoading}
-                  onInputChange={(_, val) => setMultiPlayerInput(val)}
-                  onChange={(_, v) => { if (v) addMultiPlayer(v); }}
-                  filterOptions={(x) => x}
-                  noOptionsText={multiPlayerInput.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Spieler" placeholder="Name eintippen…"
-                      slotProps={{ input: { ...params.InputProps,
-                        endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
-                      }}}
-                    />
-                  )}
-                />
-              </Box>
-            ) : (
+            <Box sx={{ flex: 1 }}>
+              {multiPlayerResolved.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                  {multiPlayerResolved.map(p => (
+                    <Chip key={p.id} label={p.fullName} size="small"
+                      onDelete={() => removeMultiPlayer(p.id)} />
+                  ))}
+                </Box>
+              )}
               <Autocomplete
                 fullWidth
-                options={playerOptions}
+                options={multiPlayerOpts}
                 getOptionLabel={(o) => o.fullName}
                 isOptionEqualToValue={(a, b) => a.id === b.id}
-                value={selectedPlayerOption}
-                inputValue={playerInputValue}
-                loading={playerLoading}
-                onInputChange={(_, value) => setPlayerInputValue(value)}
-                onChange={(_, option) => {
-                  setSelectedPlayerOption(option);
-                  handleFilterChange('player', option ? option.id.toString() : '');
-                }}
+                value={null}
+                inputValue={multiPlayerInput}
+                loading={multiPlayerLoading}
+                onInputChange={(_, val) => setMultiPlayerInput(val)}
+                onChange={(_, v) => { if (v) addMultiPlayer(v); }}
                 filterOptions={(x) => x}
-                noOptionsText={playerInputValue.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
+                noOptionsText={multiPlayerInput.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
                 renderInput={(params) => (
-                  <TextField {...params} label="Spieler" placeholder="Name eintippen…"
+                  <TextField {...params} label="Spieler hinzufügen" placeholder="Name eintippen…"
                     slotProps={{ input: { ...params.InputProps,
-                      endAdornment: (<>{playerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
+                      endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
                     }}}
                   />
                 )}
               />
-            )}
-            <Tip text="Filtert auf Ereignisse eines einzelnen Spielers. Kombinierbar mit allen anderen Filtern – z.B. „Tore von Spieler X in Heimspielen“." />
+            </Box>
+            <Tip text="Filtert auf Ereignisse eines oder mehrerer Spieler. Ohne Auswahl werden alle Spieler berücksichtigt." />
           </Box>
 
           {/* Spieltyp */}

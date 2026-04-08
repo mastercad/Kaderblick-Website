@@ -161,7 +161,10 @@ class ReportDataService
                     }
 
                     // Apply standard filters (same as non-DB path)
-                    if (isset($filters['team'])) {
+                    if (isset($filters['teams']) && '' !== $filters['teams']) {
+                        $teamIds = array_map('intval', explode(',', (string) $filters['teams']));
+                        $qb->andWhere('e.team IN (:teams)')->setParameter('teams', $teamIds);
+                    } elseif (isset($filters['team'])) {
                         $qb->andWhere('e.team = :team')->setParameter('team', $filters['team']);
                     }
                     if (isset($filters['eventType'])) {
@@ -224,7 +227,10 @@ class ReportDataService
         }
 
         $qb = $this->em->getRepository(GameEvent::class)->createQueryBuilder('e');
-        if (isset($filters['team'])) {
+        if (isset($filters['teams']) && '' !== $filters['teams']) {
+            $teamIds = array_map('intval', explode(',', (string) $filters['teams']));
+            $qb->andWhere('e.team IN (:teams)')->setParameter('teams', $teamIds);
+        } elseif (isset($filters['team'])) {
             $qb->andWhere('e.team = :team')->setParameter('team', $filters['team']);
         }
         if (isset($filters['eventType'])) {
@@ -741,7 +747,7 @@ class ReportDataService
             return $this->generateReportDataForLineOrBarWithoutGroup($events, $xField, $yField);
         }
 
-        return $this->generateReportDataForGroup($events, $xField, $yField, $groupBy);
+        return $this->generateReportDataForGroup($events, $xField, $yField, $groupBy, $diagramType);
     }
 
     /**
@@ -839,7 +845,7 @@ class ReportDataService
      *
      * @return array<string, mixed>
      */
-    private function generateReportDataForGroup(array $events, string $xField, string $yField, array $groupBy): array
+    private function generateReportDataForGroup(array $events, string $xField, string $yField, array $groupBy, string $diagramType = ''): array
     {
         // Resolve yField metric aggregate (if available)
         $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
@@ -886,15 +892,16 @@ class ReportDataService
         $layers = array_keys($layerValues);
         sort($layers);
 
+        $isLineLike = in_array($diagramType, ['line', 'area', 'stackedarea', 'scatter'], true);
         $datasets = [];
         foreach ($layers as $layerKey) {
             $data = [];
             foreach ($xLabels as $xVal) {
                 if (null !== $yAggregate) {
                     $bucket = $eventBuckets[$layerKey][$xVal] ?? [];
-                    $data[] = (float) $yAggregate($bucket);
+                    $data[] = !empty($bucket) ? (float) $yAggregate($bucket) : ($isLineLike ? null : 0.0);
                 } else {
-                    $data[] = $matrix[$layerKey][$xVal] ?? 0;
+                    $data[] = isset($matrix[$layerKey][$xVal]) ? $matrix[$layerKey][$xVal] : ($isLineLike ? null : 0);
                 }
             }
             $datasets[] = [

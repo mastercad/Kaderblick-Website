@@ -43,11 +43,21 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     case 'bar':
       return <Bar {...chartProps} />;
 
-    case 'line':
-      return <Line {...chartProps} />;
+    case 'line': {
+      const lineData = {
+        ...chartData,
+        datasets: chartData.datasets.map((ds: any) => ({ ...ds, spanGaps: true })),
+      };
+      return <Line data={lineData} options={options} plugins={[dataLabelsPlugin]} />;
+    }
 
-    case 'area':
-      return <Line {...chartProps} />;
+    case 'area': {
+      const areaData = {
+        ...chartData,
+        datasets: chartData.datasets.map((ds: any) => ({ ...ds, spanGaps: true })),
+      };
+      return <Line data={areaData} options={options} plugins={[dataLabelsPlugin]} />;
+    }
 
     case 'stackedarea': {
       const stackedOptions = {
@@ -59,7 +69,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
       };
       const stackedData = {
         ...chartData,
-        datasets: chartData.datasets.map((ds: any) => ({ ...ds, fill: true })),
+        datasets: chartData.datasets.map((ds: any) => ({ ...ds, fill: true, spanGaps: true })),
       };
       let finalDatasets = stackedData.datasets;
       const maCfg = (data as any).config?.movingAverage;
@@ -109,7 +119,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         labels: data.labels,
         datasets: data.datasets.map((ds: any, i: number) => ({
           label: ds.label,
-          data: (ds.data || []).map((v: number, idx: number) => ({ x: idx, y: Number(v) })),
+          data: (ds.data || []).flatMap((v: number | null, idx: number) => v !== null ? [{ x: idx, y: Number(v) }] : []),
           backgroundColor: ds.backgroundColor || defaultColors[i % defaultColors.length],
           borderColor: ds.borderColor || defaultColors[i % defaultColors.length],
           showLine: false,

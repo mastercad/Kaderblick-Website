@@ -19,6 +19,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
   const {
     previewData,
     isLoading,
+    previewError,
     hasPreview,
     isSuperAdmin,
     showAdvancedMeta,
@@ -150,9 +151,30 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
     );
   }
 
+  if (previewError) {
+    return (
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        minHeight={250}
+        textAlign="center"
+        sx={{ p: 3, bgcolor: 'action.hover', borderRadius: 2, width: '100%' }}
+      >
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Vorschau konnte nicht geladen werden.
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Bitte prüfe X- und Y-Achse oder speichere den Report und öffne ihn erneut.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight={250} width="100%">
-      <Typography color="text.secondary">Vorschau wird geladen...</Typography>
+      <Typography color="text.secondary">Vorschau wird vorbereitet…</Typography>
     </Box>
   );
 };

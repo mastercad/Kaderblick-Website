@@ -91,6 +91,7 @@ export interface ReportBuilderState {
   builderData: BuilderData | null;
   previewData: any;
   isLoading: boolean;
+  previewError: boolean;
   showAdvancedMeta: boolean;
   setShowAdvancedMeta: React.Dispatch<React.SetStateAction<boolean>>;
 

@@ -246,8 +246,9 @@ describe('useReportBuilder – loadPreview', () => {
     for (const [, opts] of previewCalls) {
       expect(() => JSON.stringify(opts?.body)).not.toThrow();
     }
-    // Loading state must be settled
+    // Loading state must be settled and error flagged
     expect(result.current.isLoading).toBe(false);
+    expect(result.current.previewError).toBe(true);
   });
 });
 

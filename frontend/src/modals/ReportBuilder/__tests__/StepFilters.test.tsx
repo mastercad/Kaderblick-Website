@@ -298,6 +298,41 @@ describe('StepFilters - Multi-Spieler-Chips (player_comparison)', () => {
     expect(handleFilterChange).toHaveBeenCalledWith('players', '');
     expect(chips()).toHaveLength(0);
   });
+
+  // Regression: Remount-Race — wenn fetchPlayerById noch aussteht (z.B. nach Schritt-Navigation im
+  // MobileWizard) und der User sofort einen zweiten Spieler hinzufügt, darf player-1 nicht
+  // aus filters.players verloren gehen.
+  it('behält existierende IDs aus filters.players während fetchPlayerById noch pending ist', async () => {
+    // Deferred promise — simuliert langsamen API-Aufruf
+    let resolveFetch!: (v: any) => void;
+    const pendingFetch = new Promise(r => { resolveFetch = r; });
+    mockFetchById.mockReturnValueOnce(pendingFetch);
+
+    const handleFilterChange = jest.fn();
+
+    // Mount mit player 42 bereits im Filter — fetchPlayerById läuft, aber löst noch NICHT auf
+    render(<StepFilters state={makeState({ players: '42' }, handleFilterChange)} />);
+
+    mockSearch.mockResolvedValue([{ id: 57, fullName: 'Neue Spielerin' }]);
+
+    // User tippt und wählt einen zweiten Spieler, während fetchPlayerById noch hängt
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Ne' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('player-option'));
+    });
+
+    // Beide IDs müssen im Filter sein — nicht nur die neu hinzugefügte
+    expect(handleFilterChange).toHaveBeenCalledWith('players', '42,57');
+    expect(handleFilterChange).not.toHaveBeenCalledWith('players', '57');
+
+    // Fetch nachträglich auflösen (kein Absturz, keine Überüberschreibung)
+    await act(async () => {
+      resolveFetch({ id: 42, fullName: 'Alter Spieler' });
+    });
+  });
 });
 
 // =============================================================================
@@ -492,5 +527,3 @@ describe('StepFilters - Spieler-Autocomplete-Suche (Debounce)', () => {
     expect(mockSearch).toHaveBeenCalledWith('Mue');
   });
 });
-
-

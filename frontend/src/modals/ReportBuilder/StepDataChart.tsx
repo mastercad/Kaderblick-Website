@@ -103,7 +103,7 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         <FormControl fullWidth>
           <InputLabel>X-Achse (Gruppierung) *</InputLabel>
           <Select
-            value={currentReport.config.xField}
+            value={currentReport.config.xField ?? ''}
             onChange={(e) => handleConfigChange('xField', e.target.value)}
             label="X-Achse (Gruppierung) *"
           >
@@ -152,7 +152,7 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         <FormControl fullWidth>
           <InputLabel>Y-Achse (Wert) *</InputLabel>
           <Select
-            value={currentReport.config.yField}
+            value={currentReport.config.yField ?? ''}
             onChange={(e) => handleConfigChange('yField', e.target.value)}
             label="Y-Achse (Wert) *"
           >
@@ -219,7 +219,7 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           <FormControl fullWidth>
             <InputLabel>Chart Typ</InputLabel>
             <Select
-              value={currentReport.config.diagramType}
+              value={currentReport.config.diagramType ?? 'bar'}
               onChange={(e) => handleConfigChange('diagramType', e.target.value)}
               label="Chart Typ"
             >
