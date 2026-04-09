@@ -53,8 +53,6 @@ jobs:
           echo "prod_dir=${{ secrets.MAIN_PROJECT_PATH }}/production_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "staging_dir=${{ secrets.MAIN_PROJECT_PATH }}/staging_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
 
-      # Nur docker-compose-Dateien + minimale Config auf den Server kopieren.
-      # Source-Code und vendor/ stecken im Docker-Image – nicht nötig auf dem Server.
       - name: Prepare release files locally
         run: |
           mkdir -p build/api/config build/frontend
@@ -63,12 +61,10 @@ jobs:
           cp api/.env.dist build/api/
           cp -r api/config/packages api/config/routes api/config/routes.yaml \
                 api/config/services.yaml api/config/bundles.php build/api/config/ 2>/dev/null || true
-          # Verschlüsselte Secrets mitkopieren – Volume-Mount würde sonst das Image-Verzeichnis
-          # overlayen und secrets:decrypt-to-local findet keine Quelldateien mehr.
           cp -r api/config/secrets build/api/config/ 2>/dev/null || true
 
       - name: Create production release directory on server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -80,7 +76,7 @@ jobs:
             chown -R ${{ secrets.PLESK_USERNAME }}:psacln "${{ steps.release.outputs.prod_dir }}"
 
       - name: Copy release files to server
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.PLESK_USERNAME }}
@@ -90,7 +86,7 @@ jobs:
           strip_components: 1
 
       - name: Create staging release directory on server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -103,7 +99,7 @@ jobs:
             chown -R ${{ secrets.PLESK_USERNAME }}:psacln "${{ steps.release.outputs.staging_dir }}"
 
       - name: Deploy JWT keys
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -120,7 +116,7 @@ jobs:
             done
 
       - name: Write .env and decrypt keys
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -157,7 +153,7 @@ jobs:
             echo "VITE_BACKEND_URL=https://staging-api.kaderblick.de" > "$STAGING_DIR/frontend/.env"
 
       - name: Prepare shared uploads symlinks
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -179,7 +175,7 @@ jobs:
       # ============================================================
 
       - name: Ensure DB container is running
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -200,7 +196,7 @@ jobs:
             fi
 
       - name: Update maintenance container
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -218,7 +214,7 @@ jobs:
       # ============================================================
 
       - name: Enable production maintenance
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -228,7 +224,7 @@ jobs:
             chmod 644 "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_production.flag"
 
       - name: Set production_current symlink
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -241,7 +237,7 @@ jobs:
             mkdir -p "$PROD_CURRENT/api/var/cache" "$PROD_CURRENT/api/var/log"
 
       - name: Deploy production containers
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -253,14 +249,19 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
             docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
             docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag || github.sha }}
-            docker compose -f docker-compose.yml -p production down --remove-orphans api frontend 2>/dev/null || true
-            command -v conntrack >/dev/null 2>&1 || apt-get install -y conntrack-tools -qq
-            conntrack -D -s 172.18.0.0/16
+            docker compose -f docker-compose.yml -p production down --remove-orphans --stop-timeout 10 api frontend 2>/dev/null || true
+            sleep 2
+            # Veraltete NAT-Einträge bereinigen, damit externe Verbindungen (z.B. Google SSO)
+            # nach Container-Neustart sofort wieder funktionieren. Nur tote Einträge werden
+            # entfernt, aktive nginx-Verbindungen bleiben unangetastet.
+            command -v conntrack >/dev/null 2>&1 && conntrack -D -t DNAT 2>/dev/null || true
+            command -v conntrack >/dev/null 2>&1 && conntrack -D --state UNREPLIED 2>/dev/null || true
             IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
             DATABASE_URL="${{ secrets.DATABASE_URL }}" XDEBUG_MODE=off \
             HOST_UID=$(id -u kaderblick-ftp-admin) HOST_GID=$(id -g kaderblick-ftp-admin) \
             docker compose -f docker-compose.yml -p production up -d --no-build --force-recreate api frontend
             mkdir -p api/var
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
 
       - name: Production setup (secrets / cache / migrations / JWT)
         uses: ./.github/actions/symfony-app-setup
@@ -286,7 +287,7 @@ jobs:
           work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/production_current
 
       - name: Production healthcheck
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -306,7 +307,7 @@ jobs:
 
       - name: Rollback production on failure
         if: failure()
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -315,11 +316,15 @@ jobs:
             OLD=$(cat "${{ secrets.MAIN_PROJECT_PATH }}/.rollback_to" 2>/dev/null || echo "")
             if [ -n "$OLD" ] && [ -d "$OLD" ]; then
               echo "Rollback auf $OLD ..."
-              docker compose -p production down --remove-orphans api frontend 2>/dev/null || true
+              docker compose -p production down --remove-orphans --stop-timeout 10 api frontend 2>/dev/null || true
+              sleep 2
               ln -sfn "$OLD" "${{ secrets.MAIN_PROJECT_PATH }}/production_current"
               cd "$OLD"
               IMAGE_TAG=latest API_IMAGE_TAG=latest DATABASE_URL="${{ secrets.DATABASE_URL }}" XDEBUG_MODE=off \
               docker compose -f docker-compose.yml -p production up -d --no-build --force-recreate api frontend 2>/dev/null || true
+              command -v conntrack >/dev/null 2>&1 && conntrack -D -t DNAT 2>/dev/null || true
+              command -v conntrack >/dev/null 2>&1 && conntrack -D --state UNREPLIED 2>/dev/null || true
+              /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
               echo "Rollback auf $OLD abgeschlossen."
             else
               echo "Kein Rollback-Ziel vorhanden."
@@ -328,7 +333,7 @@ jobs:
 
       - name: Disable production maintenance
         if: always()
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -341,7 +346,7 @@ jobs:
       # ============================================================
 
       - name: Enable staging maintenance
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -351,7 +356,7 @@ jobs:
             chmod 644 "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_staging.flag"
 
       - name: Clone production DB to staging
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -366,7 +371,7 @@ jobs:
             echo "DB-Klon abgeschlossen."
 
       - name: Set staging_current symlink
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -378,7 +383,7 @@ jobs:
                      "${{ secrets.MAIN_PROJECT_PATH }}/staging_current/api/var/log"
 
       - name: Deploy staging containers
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -391,14 +396,19 @@ jobs:
             docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
             docker pull ghcr.io/mastercad/kaderblick/frontend-staging:${{ inputs.image_tag || github.sha }}
             docker compose -f docker-compose.yml -f docker-compose.staging.yml -p staging \
-              down --remove-orphans api frontend 2>/dev/null || true
+              down --remove-orphans --stop-timeout 10 api frontend 2>/dev/null || true
+            sleep 2
+            command -v conntrack >/dev/null 2>&1 && conntrack -D -t DNAT 2>/dev/null || true
+            command -v conntrack >/dev/null 2>&1 && conntrack -D --state UNREPLIED 2>/dev/null || true
             STAGING_DB_URL=$(echo "${{ secrets.DATABASE_URL }}" | sed 's|3306/kaderblick|3306/kaderblick_staging|')
-            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} DATABASE_URL="$STAGING_DB_URL" XDEBUG_MODE=off \
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
+            DATABASE_URL="$STAGING_DB_URL" XDEBUG_MODE=off \
             PMA_PORT=18082 API_PORT=18081 REACT_PORT=18080 \
             HOST_UID=$(id -u kaderblick-ftp-admin) HOST_GID=$(id -g kaderblick-ftp-admin) \
             docker compose -f docker-compose.yml -f docker-compose.staging.yml -p staging \
               up -d --no-build --force-recreate api frontend
             mkdir -p api/var
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
 
       - name: Staging setup (secrets / cache / migrations / JWT)
         uses: ./.github/actions/symfony-app-setup
@@ -425,7 +435,7 @@ jobs:
 
       - name: Disable staging maintenance
         if: always()
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -457,7 +467,7 @@ jobs:
 
       - name: Cleanup old releases
         if: always()
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
@@ -466,3 +476,13 @@ jobs:
             BASE="${{ secrets.MAIN_PROJECT_PATH }}"
             [ -d "$BASE/production_releases" ] && cd "$BASE/production_releases" && ls -1dt * | tail -n +4 | xargs -r rm -rf
             [ -d "$BASE/staging_releases" ]    && cd "$BASE/staging_releases"    && ls -1dt * | tail -n +4 | xargs -r rm -rf
+
+      - name: Clean up old Docker data
+        if: always()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            docker system prune -af --volumes=false 2>&1 || true
