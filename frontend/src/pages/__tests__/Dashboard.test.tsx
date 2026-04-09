@@ -154,7 +154,7 @@ jest.mock('../../modals/DynamicConfirmationModal', () => ({
     ) : null,
 }));
 
-jest.mock('../../modals/ReportBuilderModal', () => ({
+jest.mock('../../modals/ReportBuilder', () => ({
   // Passes the received report back unmodified so handleEditReportSave runs its own logic
   ReportBuilderModal: ({ open, onSave, onClose, report }: any) =>
     open ? (

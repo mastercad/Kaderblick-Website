@@ -772,3 +772,144 @@ function makeInput(
     ...(extraOverrides ?? {}),
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fix-Regression: async player-fetch vor step-4 + Filterdaten-Erhalt
+//
+// Abgedeckt:
+//  – isInitializing bleibt true bis der player-fetch aufgelöst ist (Fix 1)
+//  – step 4 wird erst gesetzt nachdem selectedPlayer verfügbar ist
+//  – zurück + Zeitraum-Änderung: setCurrentReport enthält filters.player (kein Race)
+//  – zurück + Zeitraum-Änderung: setCurrentReport enthält filters.players für comparison
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('initialConfig – async player-fetch muss vor step-4 abgeschlossen sein', () => {
+  const PLAYER_CONFIG: ReportConfig = {
+    diagramType: 'bar',
+    xField: 'player',
+    yField: 'goals',
+    filters: { player: '42' },
+    metrics: [],
+    showLegend: false,
+    showLabels: false,
+  };
+
+  it('hält isInitializing=true und step=0 bis playerFetch aufgelöst ist', async () => {
+    let resolvePlayer!: (v: { id: number; fullName: string }) => void;
+    mockFetchById.mockReturnValue(
+      new Promise<{ id: number; fullName: string }>(res => { resolvePlayer = res; }),
+    );
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({}, makeState(1), { initialConfig: PLAYER_CONFIG })),
+    );
+
+    // Synchrone Effekte abwarten – Promise noch NICHT aufgelöst
+    act(() => {});
+    expect(result.current.isInitializing).toBe(true);
+    expect(result.current.step).toBe(0);
+
+    // Player-Fetch auflösen → jetzt sollte step=4 gesetzt sein
+    await act(async () => { resolvePlayer({ id: 42, fullName: 'Test Player' }); });
+
+    expect(result.current.isInitializing).toBe(false);
+    expect(result.current.step).toBe(4);
+    expect(result.current.selectedPlayer).toEqual({ id: 42, fullName: 'Test Player' });
+  });
+
+  it('step 4 wird gesetzt sobald kein player-Fetch nötig ist (kein player-Filter)', async () => {
+    const noPlayerConfig: ReportConfig = {
+      diagramType: 'bar',
+      xField: 'team',
+      yField: 'goals',
+      filters: { team: '1' },
+      metrics: [],
+      showLegend: false,
+      showLabels: false,
+    };
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({}, makeState(2), { initialConfig: noPlayerConfig })),
+    );
+
+    // Ohne async Player-Fetch muss step=4 synchron gesetzt werden
+    act(() => {});
+    expect(result.current.step).toBe(4);
+    expect(result.current.isInitializing).toBe(false);
+    expect(mockFetchById).not.toHaveBeenCalled();
+  });
+
+  it('zurück + Zeitraum-Änderung: setCurrentReport enthält filters.player (kein Datenverlust)', async () => {
+    mockFetchById.mockResolvedValue({ id: 42, fullName: 'Test Player' });
+
+    const state = makeState(1);
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({}, state, { initialConfig: PLAYER_CONFIG })),
+    );
+
+    // Auf vollständige Initialisierung (inkl. async Fetch) warten
+    await act(async () => {});
+    expect(result.current.step).toBe(4);
+    expect(result.current.selectedPlayer).toEqual({ id: 42, fullName: 'Test Player' });
+
+    // Zurück zu Schritt 3 (Zeitraum-Auswahl)
+    act(() => { result.current.handleBack(); });
+    expect(result.current.step).toBe(3);
+
+    // Zeitraum neu wählen → autoAdvance → goToConfirm
+    act(() => { result.current.handleSelectTimeRange('all'); });
+    act(() => { jest.advanceTimersByTime(500); });
+
+    expect(result.current.step).toBe(4);
+    expect(state.setCurrentReport).toHaveBeenCalled();
+
+    // letzter setCurrentReport-Aufruf muss filters.player beibehalten
+    const lastUpdater =
+      state.setCurrentReport.mock.calls[state.setCurrentReport.mock.calls.length - 1][0] as
+      (prev: ReturnType<typeof makeState>['currentReport']) => ReturnType<typeof makeState>['currentReport'];
+    const next = lastUpdater(state.currentReport);
+    expect((next.config.filters as Record<string, string>).player).toBe('42');
+  });
+
+  it('zurück + Zeitraum-Änderung: setCurrentReport enthält filters.players für comparison', async () => {
+    const p1 = { id: 10, fullName: 'Spieler A' };
+    const p2 = { id: 11, fullName: 'Spieler B' };
+    mockFetchById.mockImplementation((id: number) =>
+      Promise.resolve(id === 10 ? p1 : p2),
+    );
+
+    const compConfig: ReportConfig = {
+      diagramType: 'bar',
+      xField: 'player',
+      yField: 'goals',
+      filters: { players: '10,11' },
+      metrics: [],
+      showLegend: false,
+      showLabels: false,
+    };
+
+    const state = makeState(1);
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({}, state, { initialConfig: compConfig })),
+    );
+
+    await act(async () => {});
+    expect(result.current.step).toBe(4);
+    expect(result.current.selectedComparisonPlayers).toHaveLength(2);
+
+    // Zurück + Zeitraum neu setzen → goToConfirm
+    act(() => { result.current.handleBack(); });
+    act(() => { result.current.handleSelectTimeRange('season'); });
+    act(() => { jest.advanceTimersByTime(500); });
+
+    expect(result.current.step).toBe(4);
+    expect(state.setCurrentReport).toHaveBeenCalled();
+
+    const lastUpdater =
+      state.setCurrentReport.mock.calls[state.setCurrentReport.mock.calls.length - 1][0] as
+      (prev: ReturnType<typeof makeState>['currentReport']) => ReturnType<typeof makeState>['currentReport'];
+    const next = lastUpdater(state.currentReport);
+    expect((next.config.filters as Record<string, string>).players).toBe('10,11');
+  });
+});
+

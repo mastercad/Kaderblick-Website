@@ -42,6 +42,14 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
         name: presetName ?? prev.name,
         config: { ...prev.config, ...presetConfig },
       }));
+    } else if (report) {
+      // Switching from the guided wizard to the full builder without a preset:
+      // always restore the original saved report so that ALL filters (team,
+      // player, date range, gameType, …) are intact in the builder.
+      // The wizard's goToConfirm may have rebuilt the config during navigation
+      // before async player/comparison-player fetches resolved, potentially
+      // discarding filter values that were present in the saved report.
+      state.setCurrentReport(report);
     }
     setMode('builder');
   };

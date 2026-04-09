@@ -156,23 +156,40 @@ export function useWizardState({
     if (mapped.comparisonTeamIds.length) {
       setSelectedComparisonTeams(mapped.comparisonTeamIds);
     }
-    if (mapped.comparisonPlayerIds.length) {
-      Promise.all(mapped.comparisonPlayerIds.map(id => fetchPlayerById(id)))
-        .then(players => {
-          setSelectedComparisonPlayers(
-            players.filter((p): p is PlayerOption => p !== null),
-          );
-        })
-        .catch(() => { /* ignore — players stay empty */ });
-    }
+    // Collect all async player-resolution promises and wait for them to settle
+    // BEFORE advancing to the confirm step (step 4).  This closes a timing
+    // window where goToConfirm could fire with selectedPlayer /
+    // selectedComparisonPlayers still null – because the fetch had not yet
+    // resolved – causing those filter values to be lost when the user later
+    // clicks "Anpassen" to open the full builder.
+    const fetchPromises: Promise<void>[] = [];
+
     if (mapped.playerId !== undefined) {
-      fetchPlayerById(mapped.playerId)
-        .then(p => { if (p) setSelectedPlayer(p); })
-        .catch(() => { /* ignore */ });
+      fetchPromises.push(
+        fetchPlayerById(mapped.playerId)
+          .then(p => { if (p) setSelectedPlayer(p); })
+          .catch(() => { /* ignore */ }),
+      );
     }
 
-    setStep(4);
-    setIsInitializing(false);
+    if (mapped.comparisonPlayerIds.length) {
+      fetchPromises.push(
+        Promise.all(mapped.comparisonPlayerIds.map(id => fetchPlayerById(id)))
+          .then(players => {
+            setSelectedComparisonPlayers(
+              players.filter((p): p is PlayerOption => p !== null),
+            );
+          })
+          .catch(() => { /* ignore — players stay empty */ }),
+      );
+    }
+
+    const finalize = () => { setStep(4); setIsInitializing(false); };
+    if (fetchPromises.length === 0) {
+      finalize();
+    } else {
+      Promise.all(fetchPromises).finally(finalize);
+    }
   }, [initialConfig, builderData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Debounced player search ────────────────────────────────────────────────

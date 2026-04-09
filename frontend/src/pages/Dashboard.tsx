@@ -29,7 +29,7 @@ import { DashboardDndKitWrapper } from '../dnd/DashboardDndKitWrapper';
 import { DynamicConfirmationModal } from '../modals/DynamicConfirmationModal';
 import { deleteWidget } from '../services/deleteWidget';
 import { WidgetRefreshProvider, useWidgetRefresh } from '../context/WidgetRefreshContext';
-import { ReportBuilderModal, type Report } from '../modals/ReportBuilderModal';
+import { ReportBuilderModal, type Report } from '../modals/ReportBuilder';
 import { apiJson } from '../utils/api';
 
 export default function Dashboard() {

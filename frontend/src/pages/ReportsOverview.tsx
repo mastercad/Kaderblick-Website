@@ -42,7 +42,7 @@ import {
   VisibilityOff as PreviewOffIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
-import { ReportBuilderModal, type Report } from '../modals/ReportBuilderModal';
+import { ReportBuilderModal, type Report } from '../modals/ReportBuilder';
 import { DynamicConfirmationModal } from '../modals/DynamicConfirmationModal';
 import { fetchReportDefinitions, deleteReport, fetchReportContextData } from '../services/reports';
 import type { ContextOption } from '../services/reports';
