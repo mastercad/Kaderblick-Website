@@ -5,7 +5,6 @@ namespace Tests\Feature\Controller;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mailer\MailerInterface;
@@ -18,22 +17,26 @@ use Symfony\Component\Mailer\MailerInterface;
  */
 class VerificationControllerTest extends WebTestCase
 {
+    private EntityManagerInterface $em;
+
+    protected function setUp(): void
+    {
+        self::ensureKernelShutdown();
+        static::createClient();
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
+    }
+
     protected function tearDown(): void
     {
+        $this->em->getConnection()->rollBack();
         parent::tearDown();
         restore_exception_handler();
     }
 
     private function getEntityManager(): EntityManagerInterface
     {
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-
-        if (!$em->isOpen()) {
-            static::getContainer()->get('doctrine')->resetManager();
-            $em = static::getContainer()->get(EntityManagerInterface::class);
-        }
-
-        return $em;
+        return $this->em;
     }
 
     private function createUnverifiedUser(string $email, string $token = 'valid-test-token-abc123', ?DateTime $expires = null): User
@@ -55,30 +58,16 @@ class VerificationControllerTest extends WebTestCase
         return $user;
     }
 
-    private function cleanup(string ...$emails): void
-    {
-        $connection = $this->getEntityManager()->getConnection();
-        try {
-            foreach ($emails as $email) {
-                $connection->executeStatement('DELETE FROM users WHERE email = ?', [$email]);
-            }
-        } catch (Exception) {
-            // ignore
-        }
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/verify-email/{token}
     // ─────────────────────────────────────────────────────────────────────────
 
     public function testVerifyEmailReturns200AndActivatesUser(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-verify-ok@example.com';
-        $this->cleanup($email);
 
-        $user = $this->createUnverifiedUser($email, 'good-token-1234567890abcdef');
+        $this->createUnverifiedUser($email, 'good-token-1234567890abcdef');
 
         $client->request('GET', '/api/verify-email/good-token-1234567890abcdef');
 
@@ -92,16 +81,12 @@ class VerificationControllerTest extends WebTestCase
         $this->assertTrue($fresh->isEnabled());
         $this->assertNull($fresh->getVerificationToken());
         $this->assertNull($fresh->getVerificationExpires());
-
-        $this->cleanup($email);
     }
 
     public function testVerifyEmailResponseContainsMessageAndNeedsContextFlag(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-verify-context@example.com';
-        $this->cleanup($email);
 
         $this->createUnverifiedUser($email, 'context-flag-token-abcdef123456');
 
@@ -114,19 +99,14 @@ class VerificationControllerTest extends WebTestCase
         $this->assertStringContainsString('erfolgreich verifiziert', $response['message']);
         $this->assertArrayHasKey('needsContext', $response);
         $this->assertTrue($response['needsContext']);
-
-        $this->cleanup($email);
     }
 
     public function testVerifyEmailSendsWelcomeEmail(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-welcome@example.com';
-        $this->cleanup($email);
 
         $this->createUnverifiedUser($email, 'welcome-email-token-abcdef12345678');
-
         $mailerCalls = [];
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects($this->once())->method('send')
@@ -144,14 +124,11 @@ class VerificationControllerTest extends WebTestCase
         $client->request('GET', '/api/verify-email/welcome-email-token-abcdef12345678');
 
         $this->assertResponseStatusCodeSame(200);
-
-        $this->cleanup($email);
     }
 
     public function testVerifyEmailWithInvalidTokenReturns404(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
 
         $client->request('GET', '/api/verify-email/does-not-exist-00000000000000');
 
@@ -164,10 +141,8 @@ class VerificationControllerTest extends WebTestCase
 
     public function testVerifyEmailWithExpiredTokenReturns410(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-expired@example.com';
-        $this->cleanup($email);
 
         $this->createUnverifiedUser($email, 'expired-token-abcdef1234567890', new DateTime('-1 day'));
 
@@ -178,8 +153,6 @@ class VerificationControllerTest extends WebTestCase
         $response = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $response);
         $this->assertStringContainsString('abgelaufen', $response['error']);
-
-        $this->cleanup($email);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -188,10 +161,8 @@ class VerificationControllerTest extends WebTestCase
 
     public function testResendVerificationGeneratesNewToken(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-resend-token@example.com';
-        $this->cleanup($email);
 
         $user = $this->createUnverifiedUser($email, 'old-token-abcdef1234567890');
         $oldToken = $user->getVerificationToken();
@@ -217,14 +188,11 @@ class VerificationControllerTest extends WebTestCase
         // Still unverified after resend
         $this->assertFalse($fresh->isVerified());
         $this->assertFalse($fresh->isEnabled());
-
-        $this->cleanup($email);
     }
 
     public function testResendVerificationWithUnknownUserReturns404(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
 
         $client->request('POST', '/api/resend-verification/999999999');
 
@@ -246,10 +214,8 @@ class VerificationControllerTest extends WebTestCase
      */
     public function testVerifyEmailAssignsRoleUser(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
+        $client = static::getClient();
         $email = 'vc-role-user@example.com';
-        $this->cleanup($email);
 
         $this->createUnverifiedUser($email, 'role-user-token-abcdef1234567890');
 
@@ -266,8 +232,6 @@ class VerificationControllerTest extends WebTestCase
             $fresh->getRoles(),
             'Verified user must have ROLE_USER so protected endpoints are accessible.'
         );
-
-        $this->cleanup($email);
     }
 
     /**
@@ -277,19 +241,14 @@ class VerificationControllerTest extends WebTestCase
      */
     public function testUnverifiedUserDoesNotHaveRoleUser(): void
     {
-        self::ensureKernelShutdown();
         $email = 'vc-no-role-user@example.com';
-        $this->cleanup($email);
 
         $user = $this->createUnverifiedUser($email, 'no-role-user-token-abcdef123456');
-
         $this->assertNotContains(
             'ROLE_USER',
             $user->getRoles(),
             'Unverified user must not have ROLE_USER.'
         );
         $this->assertContains('ROLE_GUEST', $user->getRoles());
-
-        $this->cleanup($email);
     }
 }

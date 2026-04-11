@@ -94,20 +94,30 @@ class CoachTeamAssignmentFixtures extends Fixture implements DependentFixtureInt
                 'team' => 'Team 10',      // D-Jugend
                 'start' => '2023-01-01',
                 'type' => 'videoanalyst'
+            ],
+            [
+                'coach' => 'coach_6',     // NULL-dates – kein Start-/Enddatum → immer aktiv
+                'team' => 'Team 3',
+                'start' => null,
+                'end' => null,
+                'type' => 'co_trainer'
             ]
         ];
 
         foreach ($assignments as $data) {
             $coach = $this->getReference($data['coach'], Coach::class);
             $team = $this->getReference($data['team'], Team::class);
-            $startDate = new DateTime($data['start']);
+            $startDate = isset($data['start']) ? new DateTime($data['start']) : null;
+            $endDate = isset($data['end']) ? new DateTime($data['end']) : null;
             $type = $this->getReference('coach_team_assignment_type_' . $data['type'], CoachTeamAssignmentType::class);
             $criteria = [
                 'coach' => $coach,
                 'team' => $team,
-                'startDate' => $startDate,
                 'coachTeamAssignmentType' => $type,
             ];
+            if (null !== $startDate) {
+                $criteria['startDate'] = $startDate;
+            }
             $existing = $manager->getRepository(CoachTeamAssignment::class)->findOneBy($criteria);
             if ($existing) {
                 $assignment = $existing;
@@ -116,10 +126,8 @@ class CoachTeamAssignmentFixtures extends Fixture implements DependentFixtureInt
                 $assignment->setCoach($coach);
                 $assignment->setTeam($team);
                 $assignment->setStartDate($startDate);
+                $assignment->setEndDate($endDate);
                 $assignment->setCoachTeamAssignmentType($type);
-                if (isset($data['end'])) {
-                    $assignment->setEndDate(new DateTime($data['end']));
-                }
                 $manager->persist($assignment);
             }
         }

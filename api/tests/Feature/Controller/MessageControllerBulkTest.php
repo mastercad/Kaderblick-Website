@@ -34,12 +34,17 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $fixtureSuperAdmin;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
+
+        $this->fixtureSuperAdmin = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->fixtureSuperAdmin, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // =========================================================================
@@ -48,7 +53,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToTeamAllRoleAddsPlayersAndCoaches(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-all@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Team All');
 
         $playerUser = $this->createUser(self::PREFIX . 'player-all@example.com');
@@ -78,7 +83,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToTeamPlayersRoleAddsOnlyPlayers(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-players@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Team Players');
 
         $playerUser = $this->createUser(self::PREFIX . 'player-pr@example.com');
@@ -108,7 +113,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToTeamCoachesRoleAddsOnlyCoaches(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-coaches@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Team Coaches');
 
         $playerUser = $this->createUser(self::PREFIX . 'player-cr@example.com');
@@ -138,7 +143,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToTeamExcludesUsersWithExpiredAssignment(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-exp@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Team Expired');
 
         $expiredUser = $this->createUser(self::PREFIX . 'expired-player@example.com');
@@ -164,7 +169,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToTeamExcludesDisabledUsers(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-disabled@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Team Disabled');
 
         $disabledUser = $this->createUser(self::PREFIX . 'disabled-player@example.com', enabled: false);
@@ -190,7 +195,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToMultipleTeamsDeduplicatesRecipients(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-dup@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team1 = $this->createTeam(self::PREFIX . 'Team Dedup 1');
         $team2 = $this->createTeam(self::PREFIX . 'Team Dedup 2');
 
@@ -227,7 +232,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToClubAllRoleAddsPlayersAndCoaches(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-club-all@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $club = $this->createClub(self::PREFIX . 'Club All');
 
         $playerUser = $this->createUser(self::PREFIX . 'club-player-all@example.com');
@@ -257,7 +262,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendToClubPlayersRoleAddsOnlyPlayers(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-club-pr@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $club = $this->createClub(self::PREFIX . 'Club Players');
 
         $playerUser = $this->createUser(self::PREFIX . 'club-player-pr@example.com');
@@ -291,7 +296,7 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     public function testSendCombinesTeamTargetsWithDirectRecipients(): void
     {
-        $sender = $this->createSuperAdmin(self::PREFIX . 'sender-combo@example.com');
+        $sender = $this->fixtureSuperAdmin;
         $team = $this->createTeam(self::PREFIX . 'Combo Team');
         $teamPlayer = $this->createUser(self::PREFIX . 'combo-team-player@example.com');
         $directUser = $this->createUser(self::PREFIX . 'combo-direct@example.com');
@@ -335,22 +340,6 @@ class MessageControllerBulkTest extends ApiWebTestCase
         $user->setRoles(['ROLE_USER']);
         $user->setIsEnabled($enabled);
         $user->setIsVerified($verified);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
-
-    private function createSuperAdmin(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Admin');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
         $this->em->persist($user);
         $this->em->flush();
 
@@ -555,17 +544,9 @@ class MessageControllerBulkTest extends ApiWebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-
-        $conn->executeStatement(
-            'DELETE FROM message_recipients WHERE message_id IN (SELECT id FROM messages WHERE subject LIKE :prefix)',
-            ['prefix' => self::PREFIX . '%']
-        );
-        $conn->executeStatement('DELETE FROM messages WHERE subject LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-        $conn->executeStatement('DELETE FROM user_relations WHERE user_id IN (SELECT id FROM users WHERE email LIKE :prefix)', ['prefix' => self::PREFIX . '%']);
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-
-        $this->em->close();
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
         parent::tearDown();
         restore_exception_handler();
     }

@@ -13,7 +13,6 @@ use App\Entity\Team;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -42,6 +41,7 @@ class GamesControllerDetailsTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
 
         $this->suffix = bin2hex(random_bytes(6));
 
@@ -78,27 +78,13 @@ class GamesControllerDetailsTest extends WebTestCase
             ->setCalendarEvent($this->calendarEvent);
         $this->em->persist($this->game);
 
-        $this->adminUser = (new User())
-            ->setEmail('test-gdet-admin-' . $this->suffix . '@test.example.com')
-            ->setFirstName('Admin')
-            ->setLastName('GDET')
-            ->setPassword('test')
-            ->setRoles(['ROLE_ADMIN'])
-            ->setIsEnabled(true)
-            ->setIsVerified(true);
-        $this->em->persist($this->adminUser);
-
-        $this->regularUser = (new User())
-            ->setEmail('test-gdet-user-' . $this->suffix . '@test.example.com')
-            ->setFirstName('Regular')
-            ->setLastName('GDET')
-            ->setPassword('test')
-            ->setRoles(['ROLE_USER'])
-            ->setIsEnabled(true)
-            ->setIsVerified(true);
-        $this->em->persist($this->regularUser);
-
         $this->em->flush();
+
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+
+        $this->regularUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->regularUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // ── details() ─────────────────────────────────────────────────────────────
@@ -271,22 +257,8 @@ class GamesControllerDetailsTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        try {
-            $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-            $conn->executeStatement(
-                "DELETE ge FROM game_events ge JOIN games g ON ge.game_id = g.id
-                 JOIN teams t ON g.home_team_id = t.id WHERE t.name LIKE 'test-gdet-%'"
-            );
-            $conn->executeStatement(
-                "DELETE FROM games WHERE home_team_id IN (SELECT id FROM teams WHERE name LIKE 'test-gdet-%')"
-            );
-            $conn->executeStatement("DELETE FROM calendar_events WHERE title LIKE 'test-gdet-event-%'");
-            $conn->executeStatement("DELETE FROM teams WHERE name LIKE 'test-gdet-%'");
-            $conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-gdet-%'");
-            $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1');
-        } catch (Exception $e) {
-            // ignore cleanup errors
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
         }
         parent::tearDown();
         restore_exception_handler();

@@ -5,68 +5,64 @@ namespace Tests\Feature;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 
 class RegistrationTest extends WebTestCase
 {
+    private EntityManagerInterface $em;
+
+    protected function setUp(): void
+    {
+        self::ensureKernelShutdown();
+        static::createClient();
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->cleanupTestUsers();
+    }
+
     protected function tearDown(): void
     {
+        $this->cleanupTestUsers();
         parent::tearDown();
         restore_exception_handler();
     }
 
-    private function getEntityManager(): EntityManagerInterface
-    {
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-
-        // If EntityManager is closed, create a new one
-        if (!$em->isOpen()) {
-            static::getContainer()->get('doctrine')->resetManager();
-            $em = static::getContainer()->get(EntityManagerInterface::class);
-        }
-
-        return $em;
-    }
-
+    /**
+     * Deletes all users created by this test class so tests are independent.
+     * Cannot use transaction rollback because KernelBrowser reboots the kernel
+     * (closing the DB connection) between HTTP requests.
+     */
     private function cleanupTestUsers(): void
     {
-        $em = $this->getEntityManager();
-        $connection = $em->getConnection();
-
         $testEmails = [
             'test-register@example.com',
             'test-verify@example.com',
             'test-duplicate@example.com',
-            'expired@example.com',
-            'test-url@example.com',
             'test-hash@example.com',
             'test-resend@example.com',
             'test-new-token@example.com',
-            'test-reset@example.com',
+            'test-url@example.com',
+            'expired@example.com',
         ];
+        $conn = $this->em->getConnection();
+        $placeholders = implode(',', array_fill(0, count($testEmails), '?'));
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $conn->executeStatement(
+            "DELETE FROM users WHERE email IN ($placeholders)",
+            $testEmails
+        );
+        $conn->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+    }
 
-        try {
-            foreach ($testEmails as $email) {
-                // Use raw SQL to ensure cleanup even if EntityManager is closed
-                $connection->executeStatement(
-                    'DELETE FROM users WHERE email = ?',
-                    [$email]
-                );
-            }
-        } catch (Exception $e) {
-            // Ignore errors during cleanup
-        }
+    private function getEntityManager(): EntityManagerInterface
+    {
+        return $this->em;
     }
 
     public function testSuccessfulRegistration(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Mock the mailer
         $mailer = $this->createMock(MailerInterface::class);
@@ -113,14 +109,11 @@ class RegistrationTest extends WebTestCase
         $this->assertFalse($user->isEnabled());
         $this->assertNotNull($user->getVerificationToken());
         $this->assertNotNull($user->getVerificationExpires());
-
-        $this->cleanupTestUsers();
     }
 
     public function testRegistrationWithMultipleFirstNames(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         $client->request('POST', '/api/register', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -138,14 +131,11 @@ class RegistrationTest extends WebTestCase
         $this->assertNotNull($user);
         $this->assertEquals('Hans Peter', $user->getFirstName());
         $this->assertEquals('Schmidt', $user->getLastName());
-
-        $this->cleanupTestUsers();
     }
 
     public function testRegistrationWithDuplicateEmail(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // First registration
         $client->request('POST', '/api/register', [], [], [
@@ -172,13 +162,11 @@ class RegistrationTest extends WebTestCase
         $response = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $response);
         $this->assertStringContainsString('bereits registriert', $response['error']);
-
-        $this->cleanupTestUsers();
     }
 
     public function testRegistrationWithMissingData(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
 
         $client->request('POST', '/api/register', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -195,8 +183,7 @@ class RegistrationTest extends WebTestCase
 
     public function testEmailVerification(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Register user
         $client->request('POST', '/api/register', [], [], [
@@ -229,18 +216,15 @@ class RegistrationTest extends WebTestCase
         $em = $this->getEntityManager();
         $em->clear();
         $user = $em->getRepository(User::class)->findOneBy(['email' => 'test-verify@example.com']);
-
         $this->assertTrue($user->isVerified());
         $this->assertTrue($user->isEnabled());
         $this->assertNull($user->getVerificationToken());
         $this->assertNull($user->getVerificationExpires());
-
-        $this->cleanupTestUsers();
     }
 
     public function testEmailVerificationWithInvalidToken(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
 
         $client->request('GET', '/api/verify-email/invalid-token-12345');
 
@@ -253,8 +237,7 @@ class RegistrationTest extends WebTestCase
 
     public function testEmailVerificationWithExpiredToken(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Create user with expired token
         $user = new User();
@@ -278,16 +261,11 @@ class RegistrationTest extends WebTestCase
         $response = json_decode($client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $response);
         $this->assertStringContainsString('abgelaufen', $response['error']);
-
-        $this->cleanupTestUsers();
     }
 
     public function testVerificationEmailContainsCorrectUrl(): void
     {
-        self::ensureKernelShutdown();
-        $client = static::createClient();
-        $this->cleanupTestUsers();
-
+        $client = static::getClient();
         $verificationToken = null;
 
         // Mock the mailer to capture and verify the email
@@ -334,14 +312,11 @@ class RegistrationTest extends WebTestCase
         $this->assertNotNull($user);
         $this->assertNotNull($verificationToken, 'Token should have been extracted from email');
         $this->assertEquals($verificationToken, $user->getVerificationToken());
-
-        $this->cleanupTestUsers();
     }
 
     public function testPasswordIsHashedCorrectly(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers(); // Clean up first
+        $client = static::getClient();
 
         $plainPassword = 'SecurePassword123!';
 
@@ -362,14 +337,11 @@ class RegistrationTest extends WebTestCase
         $this->assertNotEquals($plainPassword, $user->getPassword());
         $this->assertStringStartsWith('$', $user->getPassword()); // Hashed passwords start with $
         $this->assertGreaterThan(50, strlen($user->getPassword())); // Hashed passwords are long
-
-        $this->cleanupTestUsers();
     }
 
     public function testResendVerificationWithValidUser(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Create a user first
         $client->request('POST', '/api/register', [], [], [
@@ -401,18 +373,15 @@ class RegistrationTest extends WebTestCase
         $em = $this->getEntityManager();
         $em->clear();
         $updatedUser = $em->getRepository(User::class)->findOneBy(['email' => 'test-resend@example.com']);
-
         $this->assertNotNull($updatedUser->getVerificationToken());
         $this->assertNotEquals($oldToken, $updatedUser->getVerificationToken());
         $this->assertFalse($updatedUser->isVerified());
         $this->assertFalse($updatedUser->isEnabled());
-
-        $this->cleanupTestUsers();
     }
 
     public function testResendVerificationWithInvalidUser(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
 
         $client->request('POST', '/api/resend-verification/99999');
 
@@ -425,8 +394,7 @@ class RegistrationTest extends WebTestCase
 
     public function testResendVerificationGeneratesNewToken(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Create a user
         $client->request('POST', '/api/register', [], [], [
@@ -465,14 +433,11 @@ class RegistrationTest extends WebTestCase
             $oldExpires->getTimestamp(),
             $updatedUser->getVerificationExpires()->getTimestamp()
         );
-
-        $this->cleanupTestUsers();
     }
 
     public function testResendVerificationResetsVerificationStatus(): void
     {
-        $client = static::createClient();
-        $this->cleanupTestUsers();
+        $client = static::getClient();
 
         // Create a user and manually verify them
         $user = new User();
@@ -501,7 +466,5 @@ class RegistrationTest extends WebTestCase
         // Verify status was reset
         $this->assertFalse($updatedUser->isVerified());
         $this->assertFalse($updatedUser->isEnabled());
-
-        $this->cleanupTestUsers();
     }
 }

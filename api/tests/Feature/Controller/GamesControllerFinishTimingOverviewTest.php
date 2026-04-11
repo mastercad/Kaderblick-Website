@@ -12,7 +12,6 @@ use App\Entity\User;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Exception;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -41,6 +40,7 @@ class GamesControllerFinishTimingOverviewTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
 
         $this->emailSuffix = bin2hex(random_bytes(6));
 
@@ -78,27 +78,13 @@ class GamesControllerFinishTimingOverviewTest extends WebTestCase
             ->setCalendarEvent($this->calendarEvent);
         $this->em->persist($this->game);
 
-        $this->adminUser = (new User())
-            ->setEmail('test-gft-admin-' . $this->emailSuffix . '@test.example.com')
-            ->setFirstName('Admin')
-            ->setLastName('GFT')
-            ->setPassword('test')
-            ->setRoles(['ROLE_ADMIN'])
-            ->setIsEnabled(true)
-            ->setIsVerified(true);
-        $this->em->persist($this->adminUser);
-
-        $this->regularUser = (new User())
-            ->setEmail('test-gft-user-' . $this->emailSuffix . '@test.example.com')
-            ->setFirstName('Regular')
-            ->setLastName('GFT')
-            ->setPassword('test')
-            ->setRoles(['ROLE_USER'])
-            ->setIsEnabled(true)
-            ->setIsVerified(true);
-        $this->em->persist($this->regularUser);
-
         $this->em->flush();
+
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+
+        $this->regularUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->regularUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // ── finish() ──────────────────────────────────────────────────────────────
@@ -457,22 +443,8 @@ class GamesControllerFinishTimingOverviewTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        try {
-            $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0');
-            // Delete games whose home team is a test-gft team
-            $conn->executeStatement(
-                "DELETE FROM games WHERE home_team_id IN (SELECT id FROM teams WHERE name LIKE 'test-gft-%')"
-            );
-            // Delete the game's calendar events
-            $conn->executeStatement("DELETE FROM calendar_events WHERE title LIKE 'test-gft-event-%'");
-            // Delete test teams (home, away, other-*)
-            $conn->executeStatement("DELETE FROM teams WHERE name LIKE 'test-gft-%'");
-            // Delete test users
-            $conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-gft-%'");
-            $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1');
-        } catch (Exception $e) {
-            // ignore cleanup errors to avoid masking test failures
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
         }
         parent::tearDown();
         restore_exception_handler();

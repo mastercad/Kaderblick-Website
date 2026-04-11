@@ -39,6 +39,7 @@ class TeamsControllerPlayersTest extends WebTestCase
 
         $this->fixturePosition = $this->em->getRepository(Position::class)->findOneBy([]);
         self::assertNotNull($this->fixturePosition, 'Keine Fixture-Position gefunden. Bitte Fixtures laden.');
+        $this->em->getConnection()->beginTransaction();
     }
 
     // ── Hilfsmethoden ──────────────────────────────────────────────────────────
@@ -203,20 +204,7 @@ class TeamsControllerPlayersTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        // Reihenfolge beachten (FKs)
-        $conn->executeStatement(
-            <<<SQL
-                DELETE FROM player_team_assignments
-                WHERE player_id IN (
-                    SELECT id FROM (
-                        SELECT id FROM players WHERE first_name LIKE 'test-squad-%'
-                    ) AS tmp
-                )
-            SQL
-        );
-        $conn->executeStatement("DELETE FROM players WHERE first_name LIKE 'test-squad-%'");
-
+        $this->em->getConnection()->rollBack();
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

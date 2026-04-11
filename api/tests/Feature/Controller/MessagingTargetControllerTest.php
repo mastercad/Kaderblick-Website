@@ -15,7 +15,8 @@ use Tests\Feature\ApiWebTestCase;
  * Relevant fixture users:
  *   user4@example.com  – linked to player_4_1 (Team 1) and player_5_2 (Team 2)
  *   user6@example.com  – ROLE_USER, linked to player_1_1 (Team 1 / Club 1)
- *   user9@example.com  – ROLE_USER, no UserRelations → resolves to empty teams/clubs
+ *   user9@example.com  – ROLE_USER, linked to player_5_1 (Team 1)
+ *   user10@example.com – ROLE_USER, no UserRelations → resolves to empty teams/clubs
  *   user21@example.com – ROLE_SUPERADMIN, sees all teams and active clubs
  */
 class MessagingTargetControllerTest extends ApiWebTestCase
@@ -35,8 +36,8 @@ class MessagingTargetControllerTest extends ApiWebTestCase
     public function testTeamsEndpointReturnsEmptyForUnlinkedUser(): void
     {
         $client = static::createClient();
-        // user9 = ROLE_USER with no UserRelations in fixtures
-        $this->authenticateUser($client, 'user9@example.com');
+        // user10 = ROLE_USER with no UserRelations in fixtures
+        $this->authenticateUser($client, 'user10@example.com');
         $client->request('GET', '/api/messaging/teams');
 
         $this->assertResponseIsSuccessful();
@@ -102,7 +103,7 @@ class MessagingTargetControllerTest extends ApiWebTestCase
     public function testClubsEndpointReturnsEmptyForUnlinkedUser(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user9@example.com');
+        $this->authenticateUser($client, 'user10@example.com');
         $client->request('GET', '/api/messaging/clubs');
 
         $this->assertResponseIsSuccessful();

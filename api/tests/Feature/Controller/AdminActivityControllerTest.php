@@ -4,7 +4,6 @@ namespace Tests\Feature\Controller;
 
 use App\Entity\User;
 use DateTime;
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -21,9 +20,8 @@ class AdminActivityControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
-    private Connection $conn;
 
-    // Test-Users (Email-Präfix "test-activity-" → sicherer Teardown)
+    // Test-Users (inline, mit spezifischen Attributen)
     private User $superAdmin;
     private User $userActive;
     private User $userNever;
@@ -34,30 +32,17 @@ class AdminActivityControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
+        $this->client->disableReboot();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
-        $this->conn = static::getContainer()->get(Connection::class);
+        $this->em->getConnection()->beginTransaction();
 
-        // ── SUPERADMIN (für Authentifizierung) ────────────────────────────────
-        $this->superAdmin = new User();
-        $this->superAdmin->setEmail('test-activity-superadmin@test.example.com');
-        $this->superAdmin->setFirstName('Test');
-        $this->superAdmin->setLastName('SuperAdmin');
-        $this->superAdmin->setPassword('test');
-        $this->superAdmin->setRoles(['ROLE_SUPERADMIN']);
-        $this->superAdmin->setIsEnabled(true);
-        $this->superAdmin->setIsVerified(true);
-        $this->em->persist($this->superAdmin);
+        // ── SUPERADMIN (für Authentifizierung) — aus Fixtures laden ──────────
+        $this->superAdmin = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->superAdmin, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
 
-        // ── ROLE_USER (für 403-Tests) ─────────────────────────────────────────
-        $this->regularUser = new User();
-        $this->regularUser->setEmail('test-activity-regular@test.example.com');
-        $this->regularUser->setFirstName('Test');
-        $this->regularUser->setLastName('Regular');
-        $this->regularUser->setPassword('test');
-        $this->regularUser->setRoles(['ROLE_USER']);
-        $this->regularUser->setIsEnabled(true);
-        $this->regularUser->setIsVerified(true);
-        $this->em->persist($this->regularUser);
+        // ── ROLE_USER (für 403-Tests) — aus Fixtures laden ───────────────────
+        $this->regularUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->regularUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
 
         // ── User mit aktueller Aktivität ──────────────────────────────────────
         $this->userActive = new User();
@@ -371,8 +356,9 @@ class AdminActivityControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $this->conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-activity-%'");
-        $this->em->close();
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
         parent::tearDown();
         restore_exception_handler();
     }

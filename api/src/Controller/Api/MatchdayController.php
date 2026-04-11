@@ -14,6 +14,7 @@ use App\Repository\MatchdayViewRepository;
 use App\Repository\ParticipationRepository;
 use App\Security\Voter\CalendarEventVoter;
 use App\Service\CalendarEventSerializer;
+use App\Service\UserTeamAccessService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ class MatchdayController extends AbstractController
         private readonly CalendarEventSerializer $serializer,
         private readonly ParticipationRepository $participationRepo,
         private readonly MatchdayViewRepository $matchdayViewRepo,
+        private readonly UserTeamAccessService $teamAccessService,
     ) {
     }
 
@@ -228,302 +230,339 @@ class MatchdayController extends AbstractController
             'task' => empty($myTasksData) || !in_array(false, array_column($myTasksData, 'isDone'), true),
         ];
 
-        // --- Squad readiness (coaches/admins only) ---
-        // Shows only the coached team(s), integrates matchPlan formation data,
-        // and lists alternative-position players for open slots.
+        // --- Squad readiness ---
+        // Sichtbar für ALLE User, aber jeweils nur die Teams, denen der User
+        // aktuell aktiv zugeordnet ist (als Spieler ODER Trainer, via UserRelation).
+        // Einzige Ausnahme: ROLE_SUPERADMIN sieht alle Teams des Spiels.
         $squadReadiness = null;
-        if ($isCoach) {
-            // Collect all teams linked to the event
-            $allEventTeams = [];
-            if ($calendarEvent->getGame()) {
-                if ($calendarEvent->getGame()->getHomeTeam()) {
-                    $allEventTeams[] = $calendarEvent->getGame()->getHomeTeam();
-                }
-                if ($calendarEvent->getGame()->getAwayTeam()) {
-                    $allEventTeams[] = $calendarEvent->getGame()->getAwayTeam();
-                }
-            }
-            foreach ($calendarEvent->getPermissions() as $permission) {
-                if ($permission->getTeam()) {
-                    $allEventTeams[] = $permission->getTeam();
-                }
-            }
-            $allEventTeams = array_unique($allEventTeams, SORT_REGULAR);
 
-            // Non-admin coaches: keep only the teams they actually coach.
-            // Uses the same per-team DB check as isCoachOfAnyEventTeam() — no
-            // unsafe fallback that would accidentally expose opposing teams.
-            if (!$isAdmin) {
-                $relevantTeams = [];
-                foreach ($allEventTeams as $t) {
-                    $hit = $this->entityManager->getRepository(\App\Entity\CoachTeamAssignment::class)
-                        ->createQueryBuilder('cta')
-                        ->innerJoin('cta.coach', 'c')
-                        ->innerJoin('c.userRelations', 'ur')
-                        ->where('ur.user = :user')
-                        ->andWhere('cta.team = :team')
-                        ->setParameter('user', $user)
-                        ->setParameter('team', $t)
-                        ->setMaxResults(1)
-                        ->getQuery()
-                        ->getOneOrNullResult();
-                    if (null !== $hit) {
-                        $relevantTeams[] = $t;
+        // Alle am Event beteiligten Teams sammeln
+        $allEventTeams = [];
+        if ($calendarEvent->getGame()) {
+            if ($calendarEvent->getGame()->getHomeTeam()) {
+                $allEventTeams[] = $calendarEvent->getGame()->getHomeTeam();
+            }
+            if ($calendarEvent->getGame()->getAwayTeam()) {
+                $allEventTeams[] = $calendarEvent->getGame()->getAwayTeam();
+            }
+        }
+        foreach ($calendarEvent->getPermissions() as $permission) {
+            if ($permission->getTeam()) {
+                $allEventTeams[] = $permission->getTeam();
+            }
+        }
+        $allEventTeams = array_unique($allEventTeams, SORT_REGULAR);
+
+        // Matchplan vorab laden – wird für published-Prüfung UND Formation-Ansicht benötigt
+        $gameMatchPlan = $calendarEvent->getGame()?->getMatchPlan();
+        $matchPlanTeamId = isset($gameMatchPlan['selectedTeamId'])
+            ? (int) $gameMatchPlan['selectedTeamId']
+            : null;
+        // published gilt ausschließlich für das eine Team, für das die Aufstellung erstellt wurde
+        $publishedTeamId = (is_array($gameMatchPlan) && !empty($gameMatchPlan['published']) && null !== $matchPlanTeamId)
+            ? $matchPlanTeamId
+            : null;
+
+        $eventDate = $calendarEvent->getStartDate();
+
+        // Sichtbarkeitsregeln:
+        //   SuperAdmin / Admin → alle Teams des Spiels
+        //   Coach              → eigene aktive Coach-Teams am Ereignisdatum (immer)
+        //   Spieler            → eigenes aktives Spieler-Team am Ereignisdatum,
+        //                        NUR wenn der Matchplan für genau dieses Team published ist
+        //   sonst              → kein Zugang (z. B. reine Freund-Relation)
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles());
+        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles());
+
+        if ($isSuperAdmin || $isAdmin) {
+            $relevantTeams = $allEventTeams;
+        } else {
+            $myCoachTeams = $this->teamAccessService->getCoachTeamsForDate($user, $allEventTeams, $eventDate);
+            $myPlayerTeams = $this->teamAccessService->getPlayerTeamsForDate($user, $allEventTeams, $eventDate);
+
+            $coachTeamIds = array_map(fn ($t) => $t->getId(), $myCoachTeams);
+
+            // Coach-Teams immer hinzufügen
+            $relevantTeams = $myCoachTeams;
+            // Spieler-Teams nur wenn published für genau dieses Team – niemals Gegner
+            foreach ($myPlayerTeams as $pt) {
+                if (
+                    !in_array($pt->getId(), $coachTeamIds, true)
+                    && $pt->getId() === $publishedTeamId
+                ) {
+                    $relevantTeams[] = $pt;
+                }
+            }
+        }
+
+        // Participation lookup: userId → status data (reuse already-fetched data)
+        $participationByUser = [];
+        foreach ($allParticipations as $p) {
+            $uid = $p->getUser()?->getId();
+            if (null !== $uid) {
+                $participationByUser[$uid] = [
+                    'statusId' => $p->getStatus()?->getId(),
+                    'statusName' => $p->getStatus()?->getName(),
+                    'statusCode' => $p->getStatus()?->getCode(),
+                    'color' => $p->getStatus()?->getColor(),
+                ];
+            }
+        }
+
+        $squadByTeam = [];
+
+        foreach ($relevantTeams as $team) {
+            // Load squad: only players active on the event date.
+            // A PlayerTeamAssignment is "active" when:
+            //   startDate IS NULL  OR  startDate <= eventDate
+            //   endDate   IS NULL  OR  endDate   >= eventDate
+            /** @var PlayerTeamAssignment[] $assignments */
+            $assignments = $this->entityManager->getRepository(PlayerTeamAssignment::class)
+                ->createQueryBuilder('pta')
+                ->select('pta', 'p', 'pos', 'altPos', 'ur', 'u')
+                ->innerJoin('pta.player', 'p')
+                ->leftJoin('p.mainPosition', 'pos')
+                ->leftJoin('p.alternativePositions', 'altPos')
+                ->leftJoin('p.userRelations', 'ur')
+                ->leftJoin('ur.user', 'u')
+                ->where('pta.team = :team')
+                ->andWhere('pta.startDate IS NULL OR pta.startDate <= :eventDate')
+                ->andWhere('pta.endDate IS NULL OR pta.endDate >= :eventDate')
+                ->setParameter('team', $team)
+                ->setParameter('eventDate', $eventDate)
+                ->getQuery()
+                ->getResult();
+
+            // Build enriched player lookup: playerId → data
+            $squadByPlayerId = [];
+            foreach ($assignments as $pta) {
+                $player = $pta->getPlayer();
+                $linkedUserId = null;
+                foreach ($player->getUserRelations() as $ur) {
+                    $linkedUserId = $ur->getUser()->getId();
+                    break;
+                }
+
+                $part = null !== $linkedUserId ? ($participationByUser[$linkedUserId] ?? null) : null;
+                $statusCode = $part['statusCode'] ?? 'none';
+
+                $altPositionStrings = [];
+                foreach ($player->getAlternativePositions() as $altPos) {
+                    $short = $altPos->getShortName();
+                    $name = $altPos->getName();
+                    if (null !== $short) {
+                        $altPositionStrings[] = $short;
                     }
+                    $altPositionStrings[] = $name;
                 }
-            } else {
-                $relevantTeams = $allEventTeams;
+
+                $squadByPlayerId[$player->getId()] = [
+                    'playerId' => $player->getId(),
+                    'name' => $player->getFirstName() . ' ' . $player->getLastName(),
+                    'mainPositionName' => $player->getMainPosition()->getName(),
+                    'mainPositionShort' => $player->getMainPosition()->getShortName()
+                        ?? $player->getMainPosition()->getName(),
+                    'alternativePositionStrings' => array_unique($altPositionStrings),
+                    'userId' => $linkedUserId,
+                    'statusId' => $part['statusId'] ?? null,
+                    'statusName' => $part['statusName'] ?? null,
+                    'statusCode' => $statusCode,
+                    'statusColor' => $part['color'] ?? null,
+                ];
             }
 
-            // Participation lookup: userId → status data (reuse already-fetched data)
-            $participationByUser = [];
-            foreach ($allParticipations as $p) {
-                $uid = $p->getUser()?->getId();
-                if (null !== $uid) {
-                    $participationByUser[$uid] = [
-                        'statusId' => $p->getStatus()?->getId(),
-                        'statusName' => $p->getStatus()?->getName(),
-                        'statusCode' => $p->getStatus()?->getCode(),
-                        'color' => $p->getStatus()?->getColor(),
-                    ];
-                }
-            }
+            $attending = count(array_filter($squadByPlayerId, fn ($p) => 'attending' === $p['statusCode']));
+            $total = count($squadByPlayerId);
 
-            // MatchPlan from the game (one plan may be locked to a specific team)
-            $gameMatchPlan = $calendarEvent->getGame()?->getMatchPlan();
-            $matchPlanTeamId = isset($gameMatchPlan['selectedTeamId'])
-                ? (int) $gameMatchPlan['selectedTeamId']
+            // Check if a matchPlan is available for this specific team
+            $teamMatchPlan = ($matchPlanTeamId === $team->getId() && is_array($gameMatchPlan))
+                ? $gameMatchPlan
                 : null;
 
-            $squadByTeam = [];
-            $eventDate = $calendarEvent->getStartDate();
-
-            foreach ($relevantTeams as $team) {
-                // Load squad: only players active on the event date.
-                // A PlayerTeamAssignment is "active" when:
-                //   startDate IS NULL  OR  startDate <= eventDate
-                //   endDate   IS NULL  OR  endDate   >= eventDate
-                /** @var PlayerTeamAssignment[] $assignments */
-                $assignments = $this->entityManager->getRepository(PlayerTeamAssignment::class)
-                    ->createQueryBuilder('pta')
-                    ->select('pta', 'p', 'pos', 'altPos', 'ur', 'u')
-                    ->innerJoin('pta.player', 'p')
-                    ->leftJoin('p.mainPosition', 'pos')
-                    ->leftJoin('p.alternativePositions', 'altPos')
-                    ->leftJoin('p.userRelations', 'ur')
-                    ->leftJoin('ur.user', 'u')
-                    ->where('pta.team = :team')
-                    ->andWhere('pta.startDate IS NULL OR pta.startDate <= :eventDate')
-                    ->andWhere('pta.endDate IS NULL OR pta.endDate >= :eventDate')
-                    ->setParameter('team', $team)
-                    ->setParameter('eventDate', $eventDate)
-                    ->getQuery()
-                    ->getResult();
-
-                // Build enriched player lookup: playerId → data
-                $squadByPlayerId = [];
-                foreach ($assignments as $pta) {
-                    $player = $pta->getPlayer();
-                    $linkedUserId = null;
-                    foreach ($player->getUserRelations() as $ur) {
-                        $linkedUserId = $ur->getUser()->getId();
+            // Only use the formation view when the plan actually has players placed.
+            // An empty/initialised plan (phases exist but players array is empty)
+            // must fall back to the position-based view so the full squad is visible.
+            $startPhaseForCheck = null;
+            if (null !== $teamMatchPlan && !empty($teamMatchPlan['phases'])) {
+                foreach ($teamMatchPlan['phases'] as $phase) {
+                    if (($phase['sourceType'] ?? '') === 'start') {
+                        $startPhaseForCheck = $phase;
                         break;
                     }
+                }
+                $startPhaseForCheck ??= $teamMatchPlan['phases'][0] ?? null;
+            }
+            // Nur echte Spieler (isRealPlayer === true) zählen – Positions-Platzhalter
+            // (isRealPlayer: false) gelten nicht als "Plan mit Spielern".
+            $hasRealPlayersInPlan = false;
+            if (null !== $startPhaseForCheck) {
+                foreach (array_merge($startPhaseForCheck['players'] ?? [], $startPhaseForCheck['bench'] ?? []) as $pp) {
+                    if (($pp['isRealPlayer'] ?? false) === true) {
+                        $hasRealPlayersInPlan = true;
+                        break;
+                    }
+                }
+            }
 
-                    $part = null !== $linkedUserId ? ($participationByUser[$linkedUserId] ?? null) : null;
-                    $statusCode = $part['statusCode'] ?? 'none';
+            if (null !== $teamMatchPlan && !empty($teamMatchPlan['phases']) && $hasRealPlayersInPlan) {
+                // ── Formation-based view ──────────────────────────────────────────
+                // Locate the start phase (first phase with sourceType === 'start')
+                $startPhase = null;
+                foreach ($teamMatchPlan['phases'] as $phase) {
+                    if (($phase['sourceType'] ?? '') === 'start') {
+                        $startPhase = $phase;
+                        break;
+                    }
+                }
+                $startPhase ??= $teamMatchPlan['phases'][0] ?? null;
 
-                    $altPositionStrings = [];
-                    foreach ($player->getAlternativePositions() as $altPos) {
-                        $short = $altPos->getShortName();
-                        $name = $altPos->getName();
-                        if (null !== $short) {
-                            $altPositionStrings[] = $short;
-                        }
-                        $altPositionStrings[] = $name;
+                // Collect ALL planned player IDs (starters + bench) up front
+                // so suggestions can exclude already-committed players
+                $allPlannedPlayerIds = [];
+                foreach (array_merge($startPhase['players'] ?? [], $startPhase['bench'] ?? []) as $pp) {
+                    $pid = isset($pp['playerId']) ? (int) $pp['playerId'] : null;
+                    if (null !== $pid) {
+                        $allPlannedPlayerIds[] = $pid;
+                    }
+                }
+
+                // Build startingXI with status + suggestions for open slots.
+                // Only treat a slot as "occupied" when isRealPlayer === true and
+                // playerId is set — otherwise it is a position placeholder.
+                $startingXI = [];
+                $confirmedInXI = 0;
+                $altCoveredInXI = 0;
+                foreach ($startPhase['players'] ?? [] as $planPlayer) {
+                    $isRealPlayer = ($planPlayer['isRealPlayer'] ?? false) === true;
+                    $pid = ($isRealPlayer && isset($planPlayer['playerId']))
+                        ? (int) $planPlayer['playerId']
+                        : null;
+                    $playerData = null !== $pid ? ($squadByPlayerId[$pid] ?? null) : null;
+                    $statusCode = $playerData['statusCode'] ?? 'none';
+                    $isConfirmed = 'attending' === $statusCode;
+
+                    if ($isConfirmed) {
+                        ++$confirmedInXI;
                     }
 
-                    $squadByPlayerId[$player->getId()] = [
-                        'playerId' => $player->getId(),
-                        'name' => $player->getFirstName() . ' ' . $player->getLastName(),
-                        'mainPositionName' => $player->getMainPosition()->getName(),
-                        'mainPositionShort' => $player->getMainPosition()->getShortName()
-                            ?? $player->getMainPosition()->getName(),
-                        'alternativePositionStrings' => array_unique($altPositionStrings),
-                        'userId' => $linkedUserId,
-                        'statusId' => $part['statusId'] ?? null,
-                        'statusName' => $part['statusName'] ?? null,
+                    $slotPos = $planPlayer['position'] ?? '';
+                    $suggestions = [];
+                    if (!$isConfirmed) {
+                        $suggestions = $this->findPositionAlternatives($slotPos, $squadByPlayerId, $allPlannedPlayerIds);
+                        if (!empty($suggestions)) {
+                            ++$altCoveredInXI;
+                        }
+                    }
+
+                    $startingXI[] = [
+                        // null playerName signals an open / placeholder slot on the frontend
+                        'slot' => '' !== $slotPos ? $slotPos : null,
+                        'playerName' => $isRealPlayer ? ($planPlayer['name'] ?? null) : null,
+                        'playerId' => $pid,
+                        'userId' => $playerData['userId'] ?? null,
+                        'statusId' => $playerData['statusId'] ?? null,
+                        'statusName' => $playerData['statusName'] ?? null,
                         'statusCode' => $statusCode,
-                        'statusColor' => $part['color'] ?? null,
+                        'statusColor' => $playerData['statusColor'] ?? null,
+                        'isConfirmed' => $isConfirmed,
+                        'suggestions' => $suggestions,
                     ];
                 }
 
-                $attending = count(array_filter($squadByPlayerId, fn ($p) => 'attending' === $p['statusCode']));
-                $total = count($squadByPlayerId);
+                // Build bench entries
+                $bench = [];
+                foreach ($startPhase['bench'] ?? [] as $planPlayer) {
+                    $pid = isset($planPlayer['playerId']) ? (int) $planPlayer['playerId'] : null;
+                    $playerData = null !== $pid ? ($squadByPlayerId[$pid] ?? null) : null;
+                    $statusCode = $playerData['statusCode'] ?? 'none';
 
-                // Check if a matchPlan is available for this specific team
-                $teamMatchPlan = ($matchPlanTeamId === $team->getId() && is_array($gameMatchPlan))
-                    ? $gameMatchPlan
-                    : null;
-
-                if (null !== $teamMatchPlan && !empty($teamMatchPlan['phases'])) {
-                    // ── Formation-based view ──────────────────────────────────────────
-                    // Locate the start phase (first phase with sourceType === 'start')
-                    $startPhase = null;
-                    foreach ($teamMatchPlan['phases'] as $phase) {
-                        if (($phase['sourceType'] ?? '') === 'start') {
-                            $startPhase = $phase;
-                            break;
-                        }
-                    }
-                    $startPhase ??= $teamMatchPlan['phases'][0] ?? null;
-
-                    // Collect ALL planned player IDs (starters + bench) up front
-                    // so suggestions can exclude already-committed players
-                    $allPlannedPlayerIds = [];
-                    foreach (array_merge($startPhase['players'] ?? [], $startPhase['bench'] ?? []) as $pp) {
-                        $pid = isset($pp['playerId']) ? (int) $pp['playerId'] : null;
-                        if (null !== $pid) {
-                            $allPlannedPlayerIds[] = $pid;
-                        }
-                    }
-
-                    // Build startingXI with status + suggestions for open slots.
-                    // Only treat a slot as "occupied" when isRealPlayer === true and
-                    // playerId is set — otherwise it is a position placeholder.
-                    $startingXI = [];
-                    $confirmedInXI = 0;
-                    $altCoveredInXI = 0;
-                    foreach ($startPhase['players'] ?? [] as $planPlayer) {
-                        $isRealPlayer = ($planPlayer['isRealPlayer'] ?? false) === true;
-                        $pid = ($isRealPlayer && isset($planPlayer['playerId']))
-                            ? (int) $planPlayer['playerId']
-                            : null;
-                        $playerData = null !== $pid ? ($squadByPlayerId[$pid] ?? null) : null;
-                        $statusCode = $playerData['statusCode'] ?? 'none';
-                        $isConfirmed = 'attending' === $statusCode;
-
-                        if ($isConfirmed) {
-                            ++$confirmedInXI;
-                        }
-
-                        $slotPos = $planPlayer['position'] ?? '';
-                        $suggestions = [];
-                        if (!$isConfirmed) {
-                            $suggestions = $this->findPositionAlternatives($slotPos, $squadByPlayerId, $allPlannedPlayerIds);
-                            if (!empty($suggestions)) {
-                                ++$altCoveredInXI;
-                            }
-                        }
-
-                        $startingXI[] = [
-                            // null playerName signals an open / placeholder slot on the frontend
-                            'slot' => '' !== $slotPos ? $slotPos : null,
-                            'playerName' => $isRealPlayer ? ($planPlayer['name'] ?? null) : null,
-                            'playerId' => $pid,
-                            'userId' => $playerData['userId'] ?? null,
-                            'statusId' => $playerData['statusId'] ?? null,
-                            'statusName' => $playerData['statusName'] ?? null,
-                            'statusCode' => $statusCode,
-                            'statusColor' => $playerData['statusColor'] ?? null,
-                            'isConfirmed' => $isConfirmed,
-                            'suggestions' => $suggestions,
-                        ];
-                    }
-
-                    // Build bench entries
-                    $bench = [];
-                    foreach ($startPhase['bench'] ?? [] as $planPlayer) {
-                        $pid = isset($planPlayer['playerId']) ? (int) $planPlayer['playerId'] : null;
-                        $playerData = null !== $pid ? ($squadByPlayerId[$pid] ?? null) : null;
-                        $statusCode = $playerData['statusCode'] ?? 'none';
-
-                        $bench[] = [
-                            'slot' => $planPlayer['position'] ?? null,
-                            'playerName' => $planPlayer['name'] ?? null,
-                            'playerId' => $pid,
-                            'userId' => $playerData['userId'] ?? null,
-                            'statusId' => $playerData['statusId'] ?? null,
-                            'statusName' => $playerData['statusName'] ?? null,
-                            'statusCode' => $statusCode,
-                            'statusColor' => $playerData['statusColor'] ?? null,
-                            'isConfirmed' => 'attending' === $statusCode,
-                            'suggestions' => [],
-                        ];
-                    }
-
-                    // Squad members present but not included in the matchPlan at all
-                    $unplanned = [];
-                    foreach ($squadByPlayerId as $pid => $pd) {
-                        if (!in_array($pid, $allPlannedPlayerIds, true)) {
-                            $unplanned[] = [
-                                'playerId' => $pid,
-                                'name' => $pd['name'],
-                                'positionShort' => $pd['mainPositionShort'],
-                                'alternativePositions' => array_values(array_unique($pd['alternativePositionStrings'])),
-                                'statusCode' => $pd['statusCode'],
-                                'statusColor' => $pd['statusColor'],
-                                'statusName' => $pd['statusName'],
-                            ];
-                        }
-                    }
-
-                    $xiTotal = count($startingXI);
-                    $completionPercent = $xiTotal > 0
-                        ? (int) round(($confirmedInXI + $altCoveredInXI) / $xiTotal * 100)
-                        : 0;
-                    $trafficLight = $confirmedInXI >= 11 ? 'green' : ($confirmedInXI >= 7 ? 'yellow' : 'red');
-
-                    $squadByTeam[] = [
-                        'teamId' => $team->getId(),
-                        'teamName' => $team->getName(),
-                        'attending' => $attending,
-                        'total' => $total,
-                        'trafficLight' => $trafficLight,
-                        'completionPercent' => $completionPercent,
-                        'hasMatchPlan' => true,
-                        'startingXI' => $startingXI,
-                        'bench' => $bench,
-                        'unplanned' => $unplanned,
-                        'playersByPosition' => null,
+                    $bench[] = [
+                        'slot' => $planPlayer['position'] ?? null,
+                        'playerName' => $planPlayer['name'] ?? null,
+                        'playerId' => $pid,
+                        'userId' => $playerData['userId'] ?? null,
+                        'statusId' => $playerData['statusId'] ?? null,
+                        'statusName' => $playerData['statusName'] ?? null,
+                        'statusCode' => $statusCode,
+                        'statusColor' => $playerData['statusColor'] ?? null,
+                        'isConfirmed' => 'attending' === $statusCode,
+                        'suggestions' => [],
                     ];
-                } else {
-                    // ── Position-grouped fallback (no matchPlan) ─────────────────────
-                    $playersByPosition = [];
-                    foreach ($squadByPlayerId as $pid => $pd) {
-                        $posName = $pd['mainPositionName'] ?? 'Unbekannt';
-                        $playersByPosition[$posName][] = [
+                }
+
+                // Squad members present but not included in the matchPlan at all
+                $unplanned = [];
+                foreach ($squadByPlayerId as $pid => $pd) {
+                    if (!in_array($pid, $allPlannedPlayerIds, true)) {
+                        $unplanned[] = [
                             'playerId' => $pid,
                             'name' => $pd['name'],
                             'positionShort' => $pd['mainPositionShort'],
                             'alternativePositions' => array_values(array_unique($pd['alternativePositionStrings'])),
-                            'userId' => $pd['userId'],
-                            'statusId' => $pd['statusId'],
-                            'statusName' => $pd['statusName'],
                             'statusCode' => $pd['statusCode'],
                             'statusColor' => $pd['statusColor'],
+                            'statusName' => $pd['statusName'],
                         ];
                     }
+                }
 
-                    $completionPercent = $total > 0 ? (int) round($attending / $total * 100) : 0;
-                    $trafficLight = $attending >= 11 ? 'green' : ($attending >= 7 ? 'yellow' : 'red');
+                $xiTotal = count($startingXI);
+                $completionPercent = $xiTotal > 0
+                    ? (int) round(($confirmedInXI + $altCoveredInXI) / $xiTotal * 100)
+                    : 0;
+                $trafficLight = $confirmedInXI >= 11 ? 'green' : ($confirmedInXI >= 7 ? 'yellow' : 'red');
 
-                    $squadByTeam[] = [
-                        'teamId' => $team->getId(),
-                        'teamName' => $team->getName(),
-                        'attending' => $attending,
-                        'total' => $total,
-                        'trafficLight' => $trafficLight,
-                        'completionPercent' => $completionPercent,
-                        'hasMatchPlan' => false,
-                        'startingXI' => null,
-                        'bench' => null,
-                        'unplanned' => null,
-                        'playersByPosition' => $playersByPosition,
+                $squadByTeam[] = [
+                    'teamId' => $team->getId(),
+                    'teamName' => $team->getName(),
+                    'attending' => $attending,
+                    'total' => $total,
+                    'trafficLight' => $trafficLight,
+                    'completionPercent' => $completionPercent,
+                    'hasMatchPlan' => true,
+                    'startingXI' => $startingXI,
+                    'bench' => $bench,
+                    'unplanned' => $unplanned,
+                    'playersByPosition' => null,
+                ];
+            } else {
+                // ── Position-grouped fallback (no matchPlan) ─────────────────────
+                $playersByPosition = [];
+                foreach ($squadByPlayerId as $pid => $pd) {
+                    $posName = $pd['mainPositionName'] ?? 'Unbekannt';
+                    $playersByPosition[$posName][] = [
+                        'playerId' => $pid,
+                        'name' => $pd['name'],
+                        'positionShort' => $pd['mainPositionShort'],
+                        'alternativePositions' => array_values(array_unique($pd['alternativePositionStrings'])),
+                        'userId' => $pd['userId'],
+                        'statusId' => $pd['statusId'],
+                        'statusName' => $pd['statusName'],
+                        'statusCode' => $pd['statusCode'],
+                        'statusColor' => $pd['statusColor'],
                     ];
                 }
-            }
 
+                $completionPercent = $total > 0 ? (int) round($attending / $total * 100) : 0;
+                $trafficLight = $attending >= 11 ? 'green' : ($attending >= 7 ? 'yellow' : 'red');
+
+                $squadByTeam[] = [
+                    'teamId' => $team->getId(),
+                    'teamName' => $team->getName(),
+                    'attending' => $attending,
+                    'total' => $total,
+                    'trafficLight' => $trafficLight,
+                    'completionPercent' => $completionPercent,
+                    'hasMatchPlan' => false,
+                    'startingXI' => null,
+                    'bench' => null,
+                    'unplanned' => null,
+                    'playersByPosition' => $playersByPosition,
+                ];
+            }
+        }
+
+        if (!empty($relevantTeams)) {
             $squadReadiness = $squadByTeam;
         }
 
@@ -609,8 +648,7 @@ class MatchdayController extends AbstractController
     }
 
     /**
-     * Returns true if the user is a coach of at least one team linked to the event.
-     * Falls back to true for admins (i.e., callers must check admin themselves).
+     * Returns true if the user is an active self_coach of at least one team linked to the event.
      */
     private function isCoachOfAnyEventTeam(User $user, CalendarEvent $event): bool
     {
@@ -635,24 +673,8 @@ class MatchdayController extends AbstractController
             return false;
         }
 
-        foreach ($teams as $team) {
-            $coachAssignment = $this->entityManager->getRepository(\App\Entity\CoachTeamAssignment::class)
-                ->createQueryBuilder('cta')
-                ->innerJoin('cta.coach', 'c')
-                ->innerJoin('c.userRelations', 'ur')
-                ->where('ur.user = :user')
-                ->andWhere('cta.team = :team')
-                ->setParameter('user', $user)
-                ->setParameter('team', $team)
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult();
-
-            if (null !== $coachAssignment) {
-                return true;
-            }
-        }
-
-        return false;
+        return !empty(
+            $this->teamAccessService->getCoachTeamsForDate($user, $teams, $event->getStartDate())
+        );
     }
 }

@@ -33,12 +33,18 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $sender;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
+        $this->client->disableReboot();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
+
+        $this->sender = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->sender, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // =========================================================================
@@ -47,7 +53,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsTeamLabelWithAllMembersDetail(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-team-sender@example.com');
+        $sender = $this->sender;
         $team = $this->createTeam(self::PREFIX . 'Show Team');
 
         $this->login($sender);
@@ -82,7 +88,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsTeamLabelWithPlayersOnlyDetail(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-team-role-sender@example.com');
+        $sender = $this->sender;
         $team = $this->createTeam(self::PREFIX . 'Show Team Role');
 
         $this->login($sender);
@@ -116,7 +122,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsTeamLabelWithCoachesOnlyDetail(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-team-coaches-sender@example.com');
+        $sender = $this->sender;
         $team = $this->createTeam(self::PREFIX . 'Show Team Coaches');
 
         $this->login($sender);
@@ -152,7 +158,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsClubLabelWithCoachesOnlyDetail(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-club-sender@example.com');
+        $sender = $this->sender;
         $club = $this->createClub(self::PREFIX . 'Show Club');
 
         $this->login($sender);
@@ -187,7 +193,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsClubLabelWithAllMembersDetail(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-club-all-sender@example.com');
+        $sender = $this->sender;
         $club = $this->createClub(self::PREFIX . 'Show Club All');
 
         $this->login($sender);
@@ -223,7 +229,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsUserLabelForDirectRecipient(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-user-sender@example.com');
+        $sender = $this->sender;
         $recipient = $this->createUser(self::PREFIX . 'show-user-recip@example.com', 'Anna', 'Tester');
 
         $this->login($sender);
@@ -261,7 +267,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testShowReturnsNullRecipientLabelsForOldMessagesWithoutContext(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'show-null-sender@example.com');
+        $sender = $this->sender;
         $recip = $this->createUser(self::PREFIX . 'show-null-recip@example.com');
 
         // Simulate an old message created via ORM without any context fields
@@ -289,7 +295,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testOutboxIncludesRecipientLabelsForSentMessages(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'outbox-sender@example.com');
+        $sender = $this->sender;
         $club = $this->createClub(self::PREFIX . 'Outbox Club');
 
         $this->login($sender);
@@ -334,7 +340,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testGroupMembersAppearAsUserTypeLabels(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'grp-sender@example.com');
+        $sender = $this->sender;
         $member1 = $this->createUser(self::PREFIX . 'grp-member1@example.com', 'Karl', 'Eins');
         $member2 = $this->createUser(self::PREFIX . 'grp-member2@example.com', 'Lisa', 'Zwei');
 
@@ -390,7 +396,7 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     public function testGroupMemberListedAsDirectRecipientAppearsOnlyOnce(): void
     {
-        $sender = $this->createAdmin(self::PREFIX . 'dedup-sender@example.com');
+        $sender = $this->sender;
         $shared = $this->createUser(self::PREFIX . 'dedup-shared@example.com', 'Shared', 'User');
 
         $group = new MessageGroup();
@@ -457,22 +463,6 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
         return $user;
     }
 
-    private function createAdmin(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Admin');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
-
     private function createTeam(string $name): Team
     {
         $ageGroup = $this->em->getRepository(AgeGroup::class)->findOneBy([]);
@@ -517,36 +507,9 @@ class MessageControllerRecipientLabelsTest extends ApiWebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-
-        // Delete in FK-safe order:
-        // 1. Group memberships (FK → message_groups, users)
-        $conn->executeStatement(
-            'DELETE FROM message_group_members WHERE message_group_id IN (SELECT id FROM message_groups WHERE name LIKE :prefix)',
-            ['prefix' => self::PREFIX . '%']
-        );
-        // 2. Message-recipient links (FK → messages, users)
-        $conn->executeStatement(
-            'DELETE FROM message_recipients WHERE message_id IN (SELECT id FROM messages WHERE subject LIKE :prefix)',
-            ['prefix' => self::PREFIX . '%']
-        );
-        // 3. Messages (FK group_id → message_groups ON DELETE SET NULL – auto-handled)
-        $conn->executeStatement(
-            'DELETE FROM messages WHERE subject LIKE :prefix',
-            ['prefix' => self::PREFIX . '%']
-        );
-        // 4. Groups (now safe: message_group_members cleaned, messages deleted)
-        $conn->executeStatement(
-            'DELETE FROM message_groups WHERE name LIKE :prefix',
-            ['prefix' => self::PREFIX . '%']
-        );
-        // 5. Users (notifications cascade via ON DELETE CASCADE on notifications.user_id)
-        $conn->executeStatement(
-            'DELETE FROM users WHERE email LIKE :prefix',
-            ['prefix' => self::PREFIX . '%']
-        );
-
-        $this->em->close();
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
         parent::tearDown();
     }
 }

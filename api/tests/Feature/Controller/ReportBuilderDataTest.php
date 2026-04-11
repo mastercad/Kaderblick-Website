@@ -44,25 +44,17 @@ class ReportBuilderDataTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $em;
 
-    // -------------------------------------------------------------------------
-    //  Entities created during individual tests (cleaned up in tearDown)
-    // -------------------------------------------------------------------------
-    /** @var int[] */
-    private array $createdUserIds = [];
-    /** @var int[] */
-    private array $createdPlayerIds = [];
-    /** @var int[] */
-    private array $createdTeamIds = [];
-    /** @var int[] */
-    private array $createdGameIds = [];
-    /** @var int[] */
-    private array $createdEventIds = [];
+    private User $fixtureUser;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
+
+        $this->fixtureUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->fixtureUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // =========================================================================
@@ -81,7 +73,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testBuilderDataReturnsExpectedKeys(): void
     {
-        $user = $this->createUser(self::PREFIX . 'struct@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -96,7 +88,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testBuilderDataDoesNotContainPlayersKey(): void
     {
-        $user = $this->createUser(self::PREFIX . 'no-players@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -113,7 +105,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testBuilderDataFieldsHaveKeyLabelAndSource(): void
     {
-        $user = $this->createUser(self::PREFIX . 'fields-shape@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -132,7 +124,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testAvailableDatesContainsOnlyUniqueDateStrings(): void
     {
-        $user = $this->createUser(self::PREFIX . 'dates@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -152,7 +144,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testAvailableDatesAreSortedAscending(): void
     {
-        $user = $this->createUser(self::PREFIX . 'dates-sort@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -174,7 +166,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testBuilderDataTeamsOnlyContainsTeamsWithEvents(): void
     {
-        $user = $this->createUser(self::PREFIX . 'teams-filter@example.com');
+        $user = $this->fixtureUser;
 
         // Team with events
         [$teamWithEvents, $teamId] = $this->createTeamWithEvent('Team mit Events');
@@ -198,7 +190,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testBuilderDataHasCacheControlHeader(): void
     {
-        $user = $this->createUser(self::PREFIX . 'cache@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/builder-data');
@@ -224,7 +216,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchReturnsEmptyArrayForEmptyQuery(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-empty@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/player-search?q=');
@@ -234,7 +226,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchReturnsEmptyArrayForSingleCharQuery(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-one@example.com');
+        $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/player-search?q=M');
@@ -248,7 +240,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchReturnMatchingPlayersByLastName(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-match@example.com');
+        $user = $this->fixtureUser;
         $player = $this->createPlayer('FindMe', 'Suchname');
 
         $this->client->loginUser($user);
@@ -264,7 +256,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchReturnMatchingPlayersByFirstName(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-first@example.com');
+        $user = $this->fixtureUser;
         $player = $this->createPlayer('VornameXY', 'Beliebig');
 
         $this->client->loginUser($user);
@@ -279,7 +271,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchIsCaseInsensitive(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-case@example.com');
+        $user = $this->fixtureUser;
         $player = $this->createPlayer('Maxi', 'Mustermann');
 
         $this->client->loginUser($user);
@@ -292,7 +284,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchDoesNotReturnNonMatchingPlayer(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-nomatch@example.com');
+        $user = $this->fixtureUser;
         $this->createPlayer('Nobody', 'XzqNotMatch99');
 
         $this->client->loginUser($user);
@@ -310,7 +302,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchResultHasExpectedFields(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-fields@example.com');
+        $user = $this->fixtureUser;
         $this->createPlayer('Beispiel', 'Spieler');
 
         $this->client->loginUser($user);
@@ -327,7 +319,7 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testPlayerSearchIsLimitedToTwentyResults(): void
     {
-        $user = $this->createUser(self::PREFIX . 'search-limit@example.com');
+        $user = $this->fixtureUser;
 
         // Create 25 players with the same distinctive last name prefix
         for ($i = 0; $i < 25; ++$i) {
@@ -345,24 +337,6 @@ class ReportBuilderDataTest extends WebTestCase
     //  Helpers
     // =========================================================================
 
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-        $this->createdUserIds[] = $user->getId();
-
-        return $user;
-    }
-
     private function createPlayer(string $firstName, string $lastName): Player
     {
         $player = new Player();
@@ -372,7 +346,6 @@ class ReportBuilderDataTest extends WebTestCase
         $player->setMainPosition($this->getOrCreatePosition());
         $this->em->persist($player);
         $this->em->flush();
-        $this->createdPlayerIds[] = $player->getId();
 
         return $player;
     }
@@ -391,7 +364,6 @@ class ReportBuilderDataTest extends WebTestCase
         $team->setAgeGroup($ageGroup);
         $this->em->persist($team);
         $this->em->flush();
-        $this->createdTeamIds[] = $team->getId();
 
         $eventType = $this->getOrCreateGameEventType();
         $game = $this->createGame($team);
@@ -403,7 +375,6 @@ class ReportBuilderDataTest extends WebTestCase
         $event->setTimestamp(new DateTimeImmutable('2024-06-15'));
         $this->em->persist($event);
         $this->em->flush();
-        $this->createdEventIds[] = $event->getId();
 
         return [$team, $team->getId()];
     }
@@ -416,7 +387,6 @@ class ReportBuilderDataTest extends WebTestCase
         $team->setAgeGroup($ageGroup);
         $this->em->persist($team);
         $this->em->flush();
-        $this->createdTeamIds[] = $team->getId();
 
         return $team;
     }
@@ -429,7 +399,6 @@ class ReportBuilderDataTest extends WebTestCase
         $game->setGameType($gameType);
         $this->em->persist($game);
         $this->em->flush();
-        $this->createdGameIds[] = $game->getId();
 
         return $game;
     }
@@ -493,35 +462,9 @@ class ReportBuilderDataTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-
-        if (!empty($this->createdEventIds)) {
-            $conn->executeStatement(
-                'DELETE FROM game_events WHERE id IN (' . implode(',', $this->createdEventIds) . ')'
-            );
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
         }
-        if (!empty($this->createdGameIds)) {
-            $conn->executeStatement(
-                'DELETE FROM games WHERE id IN (' . implode(',', $this->createdGameIds) . ')'
-            );
-        }
-        if (!empty($this->createdTeamIds)) {
-            $conn->executeStatement(
-                'DELETE FROM teams WHERE id IN (' . implode(',', $this->createdTeamIds) . ')'
-            );
-        }
-        if (!empty($this->createdPlayerIds)) {
-            $conn->executeStatement(
-                'DELETE FROM players WHERE id IN (' . implode(',', $this->createdPlayerIds) . ')'
-            );
-        }
-        if (!empty($this->createdUserIds)) {
-            $conn->executeStatement(
-                'DELETE FROM users WHERE id IN (' . implode(',', $this->createdUserIds) . ')'
-            );
-        }
-
-        $this->em->close();
         parent::tearDown();
         restore_exception_handler();
     }

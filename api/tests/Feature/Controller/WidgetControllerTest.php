@@ -17,14 +17,14 @@ class WidgetControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
-        $container = static::getContainer();
-        $this->entityManager = $container->get(EntityManagerInterface::class);
+        $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->entityManager->getConnection()->beginTransaction();
     }
 
     public function testDeleteDeniesAccessToOtherUsersWidget(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
+        $user1 = $this->loadUser('user6@example.com');
+        $user2 = $this->loadUser('user7@example.com');
         $widget = $this->createWidget($user2, 'voter-test-calendar');
 
         $this->client->loginUser($user1);
@@ -35,7 +35,7 @@ class WidgetControllerTest extends WebTestCase
 
     public function testDeleteAllowsAccessToOwnWidget(): void
     {
-        $user = $this->createUser('voter-test-user@example.com');
+        $user = $this->loadUser('user6@example.com');
         $widget = $this->createWidget($user, 'voter-test-calendar');
 
         $this->client->loginUser($user);
@@ -44,18 +44,10 @@ class WidgetControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    private function createUser(string $email): User
+    private function loadUser(string $email): User
     {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($user, sprintf('Fixture user "%s" not found. Please load fixtures.', $email));
 
         return $user;
     }
@@ -75,10 +67,7 @@ class WidgetControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $connection = $this->entityManager->getConnection();
-        $connection->executeStatement('DELETE FROM dashboard_widgets WHERE type LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
-        $this->entityManager->close();
+        $this->entityManager->getConnection()->rollBack();
         parent::tearDown();
         restore_exception_handler();
     }

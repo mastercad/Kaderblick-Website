@@ -18,15 +18,15 @@ class FormationControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
-        $container = static::getContainer();
-        $this->entityManager = $container->get(EntityManagerInterface::class);
+        $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->entityManager->getConnection()->beginTransaction();
     }
 
     public function testIndexOnlyReturnsOwnFormations(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com', ['ROLE_USER']);
-        $user2 = $this->createUser('voter-test-user2@example.com', ['ROLE_USER']);
-        $type = $this->getOrCreateFormationType();
+        $user1 = $this->loadUser('user6@example.com');
+        $user2 = $this->loadUser('user7@example.com');
+        $type = $this->getFormationType();
 
         $this->createFormation($user1, $type, 'voter-test-Own Formation');
         $this->createFormation($user2, $type, 'voter-test-Other Formation');
@@ -43,9 +43,9 @@ class FormationControllerTest extends WebTestCase
 
     public function testEditDeniesAccessToOtherUsersFormation(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com', ['ROLE_USER']);
-        $user2 = $this->createUser('voter-test-user2@example.com', ['ROLE_USER']);
-        $type = $this->getOrCreateFormationType();
+        $user1 = $this->loadUser('user6@example.com');
+        $user2 = $this->loadUser('user7@example.com');
+        $type = $this->getFormationType();
         $otherFormation = $this->createFormation($user2, $type, 'voter-test-Other Formation');
 
         $this->client->loginUser($user1);
@@ -63,8 +63,8 @@ class FormationControllerTest extends WebTestCase
 
     public function testEditAllowsAccessToOwnFormation(): void
     {
-        $user = $this->createUser('voter-test-user@example.com', ['ROLE_USER']);
-        $type = $this->getOrCreateFormationType();
+        $user = $this->loadUser('user6@example.com');
+        $type = $this->getFormationType();
         $formation = $this->createFormation($user, $type, 'voter-test-My Formation');
 
         $this->client->loginUser($user);
@@ -82,9 +82,9 @@ class FormationControllerTest extends WebTestCase
 
     public function testDeleteDeniesAccessToOtherUsersFormation(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com', ['ROLE_USER']);
-        $user2 = $this->createUser('voter-test-user2@example.com', ['ROLE_USER']);
-        $type = $this->getOrCreateFormationType();
+        $user1 = $this->loadUser('user6@example.com');
+        $user2 = $this->loadUser('user7@example.com');
+        $type = $this->getFormationType();
         $otherFormation = $this->createFormation($user2, $type, 'voter-test-Other Formation');
 
         $this->client->loginUser($user1);
@@ -95,8 +95,8 @@ class FormationControllerTest extends WebTestCase
 
     public function testDeleteAllowsAccessToOwnFormation(): void
     {
-        $user = $this->createUser('voter-test-user@example.com', ['ROLE_USER']);
-        $type = $this->getOrCreateFormationType();
+        $user = $this->loadUser('user6@example.com');
+        $type = $this->getFormationType();
         $formation = $this->createFormation($user, $type, 'voter-test-My Formation');
 
         $this->client->loginUser($user);
@@ -107,9 +107,9 @@ class FormationControllerTest extends WebTestCase
 
     public function testAdminCanAccessOtherUsersFormation(): void
     {
-        $regularUser = $this->createUser('voter-test-user@example.com', ['ROLE_USER']);
-        $admin = $this->createUser('voter-test-admin@example.com', ['ROLE_ADMIN']);
-        $type = $this->getOrCreateFormationType();
+        $regularUser = $this->loadUser('user6@example.com');
+        $admin = $this->loadUser('user16@example.com');
+        $type = $this->getFormationType();
         $userFormation = $this->createFormation($regularUser, $type, 'voter-test-User Formation');
 
         $this->client->loginUser($admin);
@@ -125,36 +125,18 @@ class FormationControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    /**
-     * @param array<string> $roles
-     */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
+    private function loadUser(string $email): User
     {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($user, sprintf('Fixture user "%s" not found. Please load fixtures.', $email));
 
         return $user;
     }
 
-    private function getOrCreateFormationType(): FormationType
+    private function getFormationType(): FormationType
     {
-        $typeRepo = $this->entityManager->getRepository(FormationType::class);
-        $type = $typeRepo->findOneBy(['name' => 'fußball']);
-
-        if (!$type) {
-            $type = new FormationType();
-            $type->setName('fußball');
-            $this->entityManager->persist($type);
-            $this->entityManager->flush();
-        }
+        $type = $this->entityManager->getRepository(FormationType::class)->findOneBy(['name' => 'fußball']);
+        self::assertNotNull($type, 'FormationType "fußball" not found. Please load master fixtures.');
 
         return $type;
     }
@@ -175,14 +157,7 @@ class FormationControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $connection = $this->entityManager->getConnection();
-
-        // Delete only test data with voter-test- prefix
-        $connection->executeStatement('DELETE FROM formations WHERE name LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
-
-        $this->entityManager->close();
-
+        $this->entityManager->getConnection()->rollBack();
         parent::tearDown();
         restore_exception_handler();
     }
