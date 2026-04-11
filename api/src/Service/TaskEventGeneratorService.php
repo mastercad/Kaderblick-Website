@@ -113,8 +113,10 @@ class TaskEventGeneratorService
             return;
         }
 
-        // Hole alle zukünftigen Spiel-Events
-        $startDate = $task->getAssignedDate() ?? new DateTimeImmutable();
+        // Hole alle zukünftigen Spiel-Events (ab jetzt), damit vergangene Assignments,
+        // die in generateEvents() bewusst erhalten werden (assignedDate < now),
+        // nicht erneut angelegt und dadurch dupliziert werden.
+        $startDate = new DateTimeImmutable();
 
         $spielEvents = $this->calendarEventRepository->createQueryBuilder('ce')
             ->where('ce.calendarEventType = :spielType')

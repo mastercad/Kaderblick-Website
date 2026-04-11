@@ -6,20 +6,37 @@ use App\Entity\DashboardWidget;
 use App\Entity\ReportDefinition;
 use App\Entity\User;
 use App\Repository\DashboardWidgetRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 
 class DashboardEndToEndTest extends ApiWebTestCase
 {
+    private KernelBrowser $client;
+    private EntityManagerInterface $em;
+
+    protected function setUp(): void
+    {
+        self::ensureKernelShutdown();
+        $this->client = static::createClient();
+        $this->em = static::getContainer()->get('doctrine')->getManager();
+        $this->em->getConnection()->beginTransaction();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->em->getConnection()->rollBack();
+        parent::tearDown();
+    }
+
     public function testUserCanUpdateOwnWidget(): void
     {
-        $client = static::createClient();
-        $container = static::getContainer();
-        $em = $container->get('doctrine')->getManager();
-        $widgetRepo = $container->get(DashboardWidgetRepository::class);
+        $client = $this->client;
+        $widgetRepo = static::getContainer()->get(DashboardWidgetRepository::class);
         $this->authenticateUser($client, 'user1@example.com');
 
-        // Widget für User anlegen
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
+        // Widget fuer User anlegen
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
         $widget = new DashboardWidget();
         $widget->setUser($user)
             ->setType('test')
@@ -28,8 +45,8 @@ class DashboardEndToEndTest extends ApiWebTestCase
             ->setConfig(['foo' => 'bar'])
             ->setEnabled(true)
             ->setDefault(false);
-        $em->persist($widget);
-        $em->flush();
+        $this->em->persist($widget);
+        $this->em->flush();
 
         $payload = [
             'id' => $widget->getId(),
@@ -42,7 +59,7 @@ class DashboardEndToEndTest extends ApiWebTestCase
 
         $client->jsonRequest('PUT', '/app/dashboard/widget/update', $payload);
         $this->assertResponseIsSuccessful();
-        $em->refresh($widget);
+        $this->em->refresh($widget);
         $this->assertEquals(2, $widget->getPosition());
         $this->assertEquals(6, $widget->getWidth());
         $this->assertFalse($widget->isEnabled());
@@ -51,14 +68,12 @@ class DashboardEndToEndTest extends ApiWebTestCase
 
     public function testDefaultWidgetCopyOnUserEdit(): void
     {
-        $client = static::createClient();
-        $container = static::getContainer();
-        $em = $container->get('doctrine')->getManager();
-        $widgetRepo = $container->get(DashboardWidgetRepository::class);
+        $client = $this->client;
+        $widgetRepo = static::getContainer()->get(DashboardWidgetRepository::class);
         $this->authenticateUser($client, 'user2@example.com');
 
-        // Default Widget für einen existierenden User (z.B. user1@example.com)
-        $defaultOwner = $em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
+        // Default Widget fuer einen existierenden User (z.B. user1@example.com)
+        $defaultOwner = $this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
         $defaultWidget = new DashboardWidget();
         $defaultWidget->setUser($defaultOwner)
             ->setType('test')
@@ -67,8 +82,8 @@ class DashboardEndToEndTest extends ApiWebTestCase
             ->setConfig(['foo' => 'bar'])
             ->setEnabled(true)
             ->setDefault(true);
-        $em->persist($defaultWidget);
-        $em->flush();
+        $this->em->persist($defaultWidget);
+        $this->em->flush();
 
         $payload = [
             'id' => $defaultWidget->getId(),
@@ -82,12 +97,12 @@ class DashboardEndToEndTest extends ApiWebTestCase
         $client->jsonRequest('PUT', '/app/dashboard/widget/update', $payload);
         $this->assertResponseIsSuccessful();
 
-        // Default Widget bleibt unverändert
-        $em->refresh($defaultWidget);
+        // Default Widget bleibt unveraendert
+        $this->em->refresh($defaultWidget);
         $this->assertEquals(1, $defaultWidget->getPosition());
         $this->assertEquals(['foo' => 'bar'], $defaultWidget->getConfig());
-        // Es existiert ein neues Widget für user2
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user2@example.com']);
+        // Es existiert ein neues Widget fuer user2
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user2@example.com']);
         $userWidgets = $widgetRepo->findBy(['user' => $user, 'type' => 'test']);
         $this->assertNotEmpty($userWidgets);
         $userWidget = $userWidgets[0];
@@ -98,13 +113,10 @@ class DashboardEndToEndTest extends ApiWebTestCase
 
     public function testUserCannotUpdateOthersWidget(): void
     {
-        $client = static::createClient();
-        $container = static::getContainer();
-        $em = $container->get('doctrine')->getManager();
-        $widgetRepo = $container->get(DashboardWidgetRepository::class);
+        $client = $this->client;
         $this->authenticateUser($client, 'user3@example.com');
 
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user4@example.com']);
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user4@example.com']);
         $widget = new DashboardWidget();
         $widget->setUser($user)
             ->setType('test')
@@ -113,8 +125,8 @@ class DashboardEndToEndTest extends ApiWebTestCase
             ->setConfig(['foo' => 'bar'])
             ->setEnabled(true)
             ->setDefault(false);
-        $em->persist($widget);
-        $em->flush();
+        $this->em->persist($widget);
+        $this->em->flush();
 
         $payload = [
             'id' => $widget->getId(),
@@ -126,23 +138,20 @@ class DashboardEndToEndTest extends ApiWebTestCase
         ];
 
         $client->jsonRequest('PUT', '/app/dashboard/widget/update', $payload);
-        $this->assertResponseStatusCodeSame(Response::HTTP_OK); // Controller gibt trotzdem success zurück
-        $em->refresh($widget);
-        // Widget bleibt unverändert
+        $this->assertResponseStatusCodeSame(Response::HTTP_OK); // Controller gibt trotzdem success zurueck
+        $this->em->refresh($widget);
+        // Widget bleibt unveraendert
         $this->assertEquals(1, $widget->getPosition());
         $this->assertEquals(['foo' => 'bar'], $widget->getConfig());
     }
 
     public function testUpdateWidgetsTriggersTypeInitializationBug(): void
     {
-        $client = static::createClient();
-        $container = static::getContainer();
-        $em = $container->get('doctrine')->getManager();
-        $widgetRepo = $container->get(DashboardWidgetRepository::class);
+        $client = $this->client;
         $this->authenticateUser($client, 'user2@example.com');
 
-        // Default Widget für einen existierenden User
-        $defaultOwner = $em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
+        // Default Widget fuer einen existierenden User
+        $defaultOwner = $this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
         $defaultWidget = new DashboardWidget();
         $defaultWidget->setUser($defaultOwner)
             ->setType('test')
@@ -151,8 +160,8 @@ class DashboardEndToEndTest extends ApiWebTestCase
             ->setConfig(['foo' => 'bar'])
             ->setEnabled(true)
             ->setDefault(true);
-        $em->persist($defaultWidget);
-        $em->flush();
+        $this->em->persist($defaultWidget);
+        $this->em->flush();
 
         // Simuliere ein Massenupdate wie im Fehlerbericht, ohne type/config
         $payload = [
@@ -174,18 +183,16 @@ class DashboardEndToEndTest extends ApiWebTestCase
 
     public function testCopyDefaultReportWidgetLosesReportDefinition(): void
     {
-        $client = static::createClient();
-        $container = static::getContainer();
-        $em = $container->get('doctrine')->getManager();
+        $client = $this->client;
         $this->authenticateUser($client, 'user2@example.com');
 
         // ReportDefinition anlegen
         $report = new ReportDefinition();
         $report->setName('Mein Report');
-        $em->persist($report);
+        $this->em->persist($report);
 
-        // Default-Widget mit ReportDefinition für user1
-        $defaultOwner = $em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
+        // Default-Widget mit ReportDefinition fuer user1
+        $defaultOwner = $this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']);
         $defaultWidget = new DashboardWidget();
         $defaultWidget->setUser($defaultOwner)
             ->setType('report')
@@ -195,8 +202,8 @@ class DashboardEndToEndTest extends ApiWebTestCase
             ->setEnabled(true)
             ->setDefault(true)
             ->setReportDefinition($report);
-        $em->persist($defaultWidget);
-        $em->flush();
+        $this->em->persist($defaultWidget);
+        $this->em->flush();
 
         // Massenupdate, das das Kopieren triggert
         $payload = [
@@ -212,10 +219,10 @@ class DashboardEndToEndTest extends ApiWebTestCase
         $client->jsonRequest('PUT', '/app/dashboard/widgets/update', $payload);
         $this->assertResponseIsSuccessful();
 
-        // Das neue Widget für user2 suchen (höchste ID = zuletzt kopiert)
-        $user2 = $em->getRepository(User::class)->findOneBy(['email' => 'user2@example.com']);
-        $widgets = $em->getRepository(DashboardWidget::class)->findBy(['user' => $user2, 'type' => 'report']);
-        $this->assertNotEmpty($widgets, 'Es wurde kein Widget für user2 angelegt');
+        // Das neue Widget fuer user2 suchen (hoechste ID = zuletzt kopiert)
+        $user2 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user2@example.com']);
+        $widgets = $this->em->getRepository(DashboardWidget::class)->findBy(['user' => $user2, 'type' => 'report']);
+        $this->assertNotEmpty($widgets, 'Es wurde kein Widget fuer user2 angelegt');
         /** @var ?DashboardWidget $copied */
         $copied = array_reduce($widgets, function ($carry, $item) {
             return (null === $carry || $item->getId() > $carry->getId()) ? $item : $carry;
@@ -223,6 +230,6 @@ class DashboardEndToEndTest extends ApiWebTestCase
         $this->assertNotNull($copied, 'Kein kopiertes Widget gefunden!');
         $this->assertNotNull($copied->getReportDefinition(), 'ReportDefinition wurde nicht kopiert!');
         $this->assertNotEquals($report->getId(), $copied->getReportDefinition()->getId(), 'ReportDefinition wurde nicht als Kopie angelegt!');
-        $this->assertEquals($report->getName(), $copied->getReportDefinition()->getName(), 'ReportDefinition-Name stimmt nicht überein!');
+        $this->assertEquals($report->getName(), $copied->getReportDefinition()->getName(), 'ReportDefinition-Name stimmt nicht ueberein!');
     }
 }

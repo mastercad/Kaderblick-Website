@@ -11,6 +11,10 @@ use Throwable;
 
 class CoachTeamPlayerService
 {
+    public function __construct(private readonly UserTeamAccessService $accessService)
+    {
+    }
+
     /**
      * Ermittelt alle Teams, die einem User als Coach zugeordnet sind.
      *
@@ -18,25 +22,7 @@ class CoachTeamPlayerService
      */
     public function collectCoachTeams(User $user): array
     {
-        $teams = [];
-
-        // Alle UserRelations des Users durchgehen, wo er als Coach verknüpft ist
-        foreach ($user->getUserRelations() as $relation) {
-            $coach = $relation->getCoach();
-            if ($coach && 'coach' === $relation->getRelationType()->getCategory()) {
-                // Alle aktuellen Team-Zuordnungen des Coaches ermitteln
-                foreach ($coach->getCoachTeamAssignments() as $assignment) {
-                    if ($this->isCurrentAssignment($assignment->getStartDate(), $assignment->getEndDate())) {
-                        $team = $assignment->getTeam();
-                        if (!isset($teams[$team->getId()])) {
-                            $teams[$team->getId()] = $team;
-                        }
-                    }
-                }
-            }
-        }
-
-        return $teams;
+        return $this->accessService->getSelfCoachTeams($user);
     }
 
     /**
@@ -85,23 +71,7 @@ class CoachTeamPlayerService
      */
     public function collectPlayerTeams(User $user): array
     {
-        $teams = [];
-
-        foreach ($user->getUserRelations() as $relation) {
-            $player = $relation->getPlayer();
-            if ($player) {
-                foreach ($player->getPlayerTeamAssignments() as $assignment) {
-                    if ($this->isCurrentAssignment($assignment->getStartDate(), $assignment->getEndDate())) {
-                        $team = $assignment->getTeam();
-                        if (!isset($teams[$team->getId()])) {
-                            $teams[$team->getId()] = $team;
-                        }
-                    }
-                }
-            }
-        }
-
-        return $teams;
+        return $this->accessService->getSelfPlayerTeams($user);
     }
 
     /**
@@ -114,7 +84,12 @@ class CoachTeamPlayerService
         $oldestStart = null;
 
         foreach ($user->getUserRelations() as $relation) {
+            $identifier = $relation->getRelationType()->getIdentifier();
+
             if ($player = $relation->getPlayer()) {
+                if ('self_player' !== $identifier) {
+                    continue;
+                }
                 foreach ($player->getPlayerTeamAssignments() as $pta) {
                     if ($this->isCurrentAssignment($pta->getStartDate(), $pta->getEndDate())) {
                         $start = $pta->getStartDate();
@@ -127,6 +102,9 @@ class CoachTeamPlayerService
             }
 
             if ($coach = $relation->getCoach()) {
+                if ('self_coach' !== $identifier) {
+                    continue;
+                }
                 foreach ($coach->getCoachTeamAssignments() as $cta) {
                     if ($this->isCurrentAssignment($cta->getStartDate(), $cta->getEndDate())) {
                         $start = $cta->getStartDate();

@@ -15,8 +15,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class MessageControllerSenderFlagsTest extends WebTestCase
 {
-    private const PREFIX = 'msgflags-test-';
-
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
 
@@ -25,6 +23,7 @@ class MessageControllerSenderFlagsTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->entityManager->getConnection()->beginTransaction();
     }
 
     // =========================================================================
@@ -33,9 +32,9 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testShowReturnsSenderIdForRegularSender(): void
     {
-        $sender = $this->createUser(self::PREFIX . 'sender@example.com');
-        $recipient = $this->createUser(self::PREFIX . 'recipient@example.com');
-        $message = $this->createMessage($sender, [$recipient], self::PREFIX . 'hello');
+        $sender = $this->loadUser('user6@example.com');
+        $recipient = $this->loadUser('user7@example.com');
+        $message = $this->createMessage($sender, [$recipient], 'hello');
 
         $this->client->loginUser($recipient);
         $this->client->request('GET', '/api/messages/' . $message->getId());
@@ -49,9 +48,9 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testShowReturnsSenderIsSuperAdminFalseForRegularUser(): void
     {
-        $sender = $this->createUser(self::PREFIX . 'sender2@example.com');
-        $recipient = $this->createUser(self::PREFIX . 'recipient2@example.com');
-        $message = $this->createMessage($sender, [$recipient], self::PREFIX . 'hello2');
+        $sender = $this->loadUser('user6@example.com');
+        $recipient = $this->loadUser('user7@example.com');
+        $message = $this->createMessage($sender, [$recipient], 'hello2');
 
         $this->client->loginUser($recipient);
         $this->client->request('GET', '/api/messages/' . $message->getId());
@@ -62,9 +61,9 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testShowReturnsSenderIsSuperAdminTrueWhenSenderIsAdmin(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $recipient = $this->createUser(self::PREFIX . 'recipient3@example.com');
-        $message = $this->createMessage($admin, [$recipient], self::PREFIX . 'admin-msg');
+        $admin = $this->loadUser('user21@example.com');
+        $recipient = $this->loadUser('user7@example.com');
+        $message = $this->createMessage($admin, [$recipient], 'admin-msg');
 
         $this->client->loginUser($recipient);
         $this->client->request('GET', '/api/messages/' . $message->getId());
@@ -79,9 +78,9 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testIndexReturnsSenderIdForEachMessage(): void
     {
-        $sender = $this->createUser(self::PREFIX . 'sender-idx@example.com');
-        $recipient = $this->createUser(self::PREFIX . 'recipient-idx@example.com');
-        $this->createMessage($sender, [$recipient], self::PREFIX . 'inbox-msg');
+        $sender = $this->loadUser('user6@example.com');
+        $recipient = $this->loadUser('user7@example.com');
+        $this->createMessage($sender, [$recipient], 'inbox-msg');
 
         $this->client->loginUser($recipient);
         $this->client->request('GET', '/api/messages');
@@ -91,7 +90,7 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
         $testMessages = array_values(array_filter(
             $data['messages'],
-            fn ($m) => str_starts_with($m['subject'], self::PREFIX . 'inbox-msg')
+            fn ($m) => str_starts_with($m['subject'], 'inbox-msg')
         ));
 
         $this->assertNotEmpty($testMessages);
@@ -101,9 +100,9 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testIndexReturnsSenderIsSuperAdminFlag(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin-idx@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $recipient = $this->createUser(self::PREFIX . 'recipient-idx2@example.com');
-        $this->createMessage($admin, [$recipient], self::PREFIX . 'admin-inbox');
+        $admin = $this->loadUser('user21@example.com');
+        $recipient = $this->loadUser('user7@example.com');
+        $this->createMessage($admin, [$recipient], 'admin-inbox');
 
         $this->client->loginUser($recipient);
         $this->client->request('GET', '/api/messages');
@@ -111,7 +110,7 @@ class MessageControllerSenderFlagsTest extends WebTestCase
         $data = json_decode($this->client->getResponse()->getContent(), true);
         $adminMessages = array_values(array_filter(
             $data['messages'],
-            fn ($m) => str_starts_with($m['subject'], self::PREFIX . 'admin-inbox')
+            fn ($m) => str_starts_with($m['subject'], 'admin-inbox')
         ));
 
         $this->assertNotEmpty($adminMessages);
@@ -125,12 +124,13 @@ class MessageControllerSenderFlagsTest extends WebTestCase
     public function testCreateBlocksUnlinkedUserSendingToRegularUser(): void
     {
         // Unverknüpfter User (keine UserRelation mit Spieler/Trainer)
-        $unlinked = $this->createUser(self::PREFIX . 'unlinked@example.com');
-        $normalUser = $this->createUser(self::PREFIX . 'normal@example.com');
+        // user16 (ROLE_ADMIN) has no UserRelation entries in the fixtures and is therefore truly unlinked.
+        $unlinked = $this->loadUser('user16@example.com');
+        $normalUser = $this->loadUser('user10@example.com');
 
         $this->client->loginUser($unlinked);
         $this->client->request('POST', '/api/messages', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'subject' => self::PREFIX . 'blocked',
+            'subject' => 'blocked',
             'content' => 'Test',
             'recipientIds' => [$normalUser->getId()],
         ]));
@@ -142,12 +142,12 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testCreateAllowsUnlinkedUserSendingToSuperAdmin(): void
     {
-        $unlinked = $this->createUser(self::PREFIX . 'unlinked2@example.com');
-        $admin = $this->createUser(self::PREFIX . 'admin2@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
+        $unlinked = $this->loadUser('user16@example.com');
+        $admin = $this->loadUser('user21@example.com');
 
         $this->client->loginUser($unlinked);
         $this->client->request('POST', '/api/messages', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'subject' => self::PREFIX . 'allowed',
+            'subject' => 'allowed',
             'content' => 'Antwort auf eure Nachricht',
             'recipientIds' => [$admin->getId()],
         ]));
@@ -158,13 +158,13 @@ class MessageControllerSenderFlagsTest extends WebTestCase
     public function testCreateBlocksUnlinkedUserSendingToMixedRecipients(): void
     {
         // Wenn auch nur EIN Empfänger kein Superadmin ist → 403
-        $unlinked = $this->createUser(self::PREFIX . 'unlinked3@example.com');
-        $admin = $this->createUser(self::PREFIX . 'admin3@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $normalUser = $this->createUser(self::PREFIX . 'normal3@example.com');
+        $unlinked = $this->loadUser('user16@example.com');
+        $admin = $this->loadUser('user21@example.com');
+        $normalUser = $this->loadUser('user10@example.com');
 
         $this->client->loginUser($unlinked);
         $this->client->request('POST', '/api/messages', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'subject' => self::PREFIX . 'mixed-blocked',
+            'subject' => 'mixed-blocked',
             'content' => 'Test',
             'recipientIds' => [$admin->getId(), $normalUser->getId()],
         ]));
@@ -174,12 +174,12 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     public function testCreateAllowsSuperAdminToSendToAnyone(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin4@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
-        $recipient = $this->createUser(self::PREFIX . 'anyone@example.com');
+        $admin = $this->loadUser('user21@example.com');
+        $recipient = $this->loadUser('user6@example.com');
 
         $this->client->loginUser($admin);
         $this->client->request('POST', '/api/messages', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'subject' => self::PREFIX . 'admin-sends',
+            'subject' => 'admin-sends',
             'content' => 'Hallo!',
             'recipientIds' => [$recipient->getId()],
         ]));
@@ -191,19 +191,10 @@ class MessageControllerSenderFlagsTest extends WebTestCase
     //  Helpers
     // =========================================================================
 
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
+    private function loadUser(string $email): User
     {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($user, sprintf('Fixture user "%s" not found. Please load fixtures.', $email));
 
         return $user;
     }
@@ -226,16 +217,7 @@ class MessageControllerSenderFlagsTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->entityManager->getConnection();
-
-        $conn->executeStatement(
-            'DELETE FROM message_recipients WHERE message_id IN (SELECT id FROM messages WHERE subject LIKE :prefix)',
-            ['prefix' => self::PREFIX . '%']
-        );
-        $conn->executeStatement('DELETE FROM messages WHERE subject LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-
-        $this->entityManager->close();
+        $this->entityManager->getConnection()->rollBack();
         parent::tearDown();
         restore_exception_handler();
     }

@@ -17,22 +17,43 @@ class ParticipationControllerTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
 
+    private User $user1;
+    private User $user2;
+    private CalendarEventType $eventType;
+    private ParticipationStatus $statusYes;
+    private ParticipationStatus $statusNo;
+
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $container = static::getContainer();
         $this->entityManager = $container->get(EntityManagerInterface::class);
+        $this->entityManager->getConnection()->beginTransaction();
+
+        $this->user1 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->user1, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
+
+        $this->user2 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        self::assertNotNull($this->user2, 'Fixture-User user7@example.com nicht gefunden. Bitte Fixtures laden.');
+
+        $this->eventType = $this->entityManager->getRepository(CalendarEventType::class)->findOneBy(['name' => 'Training']);
+        self::assertNotNull($this->eventType, 'Fixture-CalendarEventType Training nicht gefunden. Bitte Fixtures laden.');
+
+        $this->statusYes = $this->entityManager->getRepository(ParticipationStatus::class)->findOneBy(['code' => 'attending']);
+        self::assertNotNull($this->statusYes, 'Fixture-ParticipationStatus attending nicht gefunden. Bitte Fixtures laden.');
+
+        $this->statusNo = $this->entityManager->getRepository(ParticipationStatus::class)->findOneBy(['code' => 'not_attending']);
+        self::assertNotNull($this->statusNo, 'Fixture-ParticipationStatus not_attending nicht gefunden. Bitte Fixtures laden.');
     }
 
     public function testGetEventParticipationsReturnsAllEventParticipationsForEligibleUser(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
-        $eventType = $this->createEventType();
-        $event = $this->createEvent($eventType);
-        $statusYes = $this->createStatus('voter-test-Zugesagt');
-        $statusNo = $this->createStatus('voter-test-Abgesagt');
+        $user1 = $this->user1;
+        $user2 = $this->user2;
+        $event = $this->createEvent($this->eventType);
+        $statusYes = $this->statusYes;
+        $statusNo = $this->statusNo;
 
         // Both users participate in the same event
         $this->createParticipation($event, $user1, $statusYes);
@@ -52,33 +73,6 @@ class ParticipationControllerTest extends WebTestCase
         $this->assertContains($user2->getId(), $returnedUserIds);
     }
 
-    private function createUser(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        return $user;
-    }
-
-    private function createEventType(): CalendarEventType
-    {
-        $type = new CalendarEventType();
-        $type->setName('voter-test-Training');
-        $type->setColor('#000000');
-        $this->entityManager->persist($type);
-        $this->entityManager->flush();
-
-        return $type;
-    }
-
     private function createEvent(CalendarEventType $type): CalendarEvent
     {
         $event = new CalendarEvent();
@@ -90,18 +84,6 @@ class ParticipationControllerTest extends WebTestCase
         $this->entityManager->flush();
 
         return $event;
-    }
-
-    private function createStatus(string $name): ParticipationStatus
-    {
-        $status = new ParticipationStatus();
-        $status->setName($name);
-        $status->setCode(strtolower(str_replace(' ', '_', $name)));
-        $status->setColor('#000000');
-        $this->entityManager->persist($status);
-        $this->entityManager->flush();
-
-        return $status;
     }
 
     private function createParticipation(CalendarEvent $event, User $user, ParticipationStatus $status): Participation
@@ -118,29 +100,9 @@ class ParticipationControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $connection = $this->entityManager->getConnection();
-        $connection->executeStatement(
-            <<<SQL
-                DELETE 
-                FROM participations
-                WHERE id IN (
-                    SELECT id 
-                    FROM (
-                        SELECT p.id 
-                        FROM participations p 
-                        JOIN calendar_events e 
-                        ON p.event_id = e.id 
-                        WHERE e.title LIKE "voter-test-%"
-                    ) AS tmp
-                )
-            SQL
-        );
-        $connection->executeStatement('DELETE FROM calendar_events WHERE title LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM calendar_event_types WHERE name LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM participation_statuses WHERE name LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
-
-        $this->entityManager->close();
+        if ($this->entityManager->getConnection()->isTransactionActive()) {
+            $this->entityManager->getConnection()->rollBack();
+        }
         parent::tearDown();
         restore_exception_handler();
     }

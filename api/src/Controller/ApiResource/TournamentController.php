@@ -11,6 +11,7 @@ use App\Security\Voter\TournamentVoter;
 use App\Service\TournamentMatchGameService;
 use App\Service\TournamentPdfService;
 use App\Service\TournamentPlanGenerator;
+use App\Service\UserTeamAccessService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +29,7 @@ class TournamentController extends AbstractController
         private TournamentPlanGenerator $planGenerator,
         private TournamentMatchGameService $matchGameService,
         private TournamentPdfService $pdfService,
+        private UserTeamAccessService $teamAccessService,
     ) {
     }
 
@@ -401,24 +403,15 @@ class TournamentController extends AbstractController
     {
         $this->denyAccessUnlessGranted(TournamentVoter::VIEW, $tournament);
 
-        // Resolve user team IDs from authenticated user
+        // Resolve user team IDs from authenticated user (self_player + self_coach only)
         $userTeamIds = [];
         /** @var User|null $currentUser */
         $currentUser = $this->getUser();
         if ($currentUser instanceof User) {
-            foreach ($currentUser->getUserRelations() as $rel) {
-                if ($rel->getPlayer() instanceof \App\Entity\Player) {
-                    foreach ($rel->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                        $teamId = $assignment->getTeam()->getId();
-                        $userTeamIds[$teamId] = $teamId;
-                    }
-                }
-                if ($rel->getCoach() instanceof \App\Entity\Coach) {
-                    foreach ($rel->getCoach()->getCoachTeamAssignments() as $assignment) {
-                        $teamId = $assignment->getTeam()->getId();
-                        $userTeamIds[$teamId] = $teamId;
-                    }
-                }
+            $playerTeams = $this->teamAccessService->getSelfPlayerTeams($currentUser);
+            $coachTeams = $this->teamAccessService->getSelfCoachTeams($currentUser);
+            foreach (array_merge($playerTeams, $coachTeams) as $team) {
+                $userTeamIds[$team->getId()] = $team->getId();
             }
         }
 

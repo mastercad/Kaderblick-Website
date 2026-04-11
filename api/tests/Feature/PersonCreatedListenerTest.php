@@ -19,10 +19,12 @@ class PersonCreatedListenerTest extends KernelTestCase
         self::bootKernel();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->userRelationRepository = self::getContainer()->get(UserRelationRepository::class);
+        $this->entityManager->getConnection()->beginTransaction();
     }
 
     protected function tearDown(): void
     {
+        $this->entityManager->getConnection()->rollBack();
         $this->entityManager->close();
         parent::tearDown();
         restore_exception_handler();

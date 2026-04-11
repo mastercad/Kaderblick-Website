@@ -18,8 +18,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class MessageGroupControllerTest extends WebTestCase
 {
-    private const PREFIX = 'mggroup-test-';
-
     private KernelBrowser $client;
     private EntityManagerInterface $em;
 
@@ -28,6 +26,7 @@ class MessageGroupControllerTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
     }
 
     // =========================================================================
@@ -42,8 +41,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testIndexReturnsOnlyOwnGroups(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-idx@example.com');
-        $other = $this->createUser(self::PREFIX . 'other-idx@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $other = $this->loadUser('user7@example.com');
         $this->createGroup('Owners Group', $owner);
         $this->createGroup('Others Group', $other);
 
@@ -59,8 +58,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testIndexGroupHasMemberCount(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-cnt@example.com');
-        $member = $this->createUser(self::PREFIX . 'member-cnt@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $member = $this->loadUser('user7@example.com');
         $this->createGroup('Count Group', $owner, [$member]);
 
         $this->client->loginUser($owner);
@@ -86,8 +85,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testCreateReturnsGroupWithIdAndMembers(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-create@example.com');
-        $member = $this->createUser(self::PREFIX . 'member-create@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $member = $this->loadUser('user7@example.com');
 
         $this->client->loginUser($owner);
         $this->client->request(
@@ -97,7 +96,7 @@ class MessageGroupControllerTest extends WebTestCase
             [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode([
-                'name' => self::PREFIX . 'New Group',
+                'name' => 'New Group',
                 'memberIds' => [$member->getId()],
             ])
         );
@@ -106,7 +105,7 @@ class MessageGroupControllerTest extends WebTestCase
         $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('group', $data);
         $this->assertArrayHasKey('id', $data['group']);
-        $this->assertSame(self::PREFIX . 'New Group', $data['group']['name']);
+        $this->assertSame('New Group', $data['group']['name']);
         $this->assertSame(1, $data['group']['memberCount']);
         $memberIds = array_column($data['group']['members'], 'id');
         $this->assertContains($member->getId(), $memberIds);
@@ -114,7 +113,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testCreateGroupWithNoMembers(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-empty@example.com');
+        $owner = $this->loadUser('user6@example.com');
 
         $this->client->loginUser($owner);
         $this->client->request(
@@ -123,7 +122,7 @@ class MessageGroupControllerTest extends WebTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['name' => self::PREFIX . 'Empty Group'])
+            json_encode(['name' => 'Empty Group'])
         );
 
         $this->assertResponseIsSuccessful();
@@ -138,7 +137,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testShowRequiresAuthentication(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-show-auth@example.com');
+        $owner = $this->loadUser('user6@example.com');
         $group = $this->createGroup('Show Auth Group', $owner);
 
         $this->client->request('GET', '/api/message-groups/' . $group->getId());
@@ -147,8 +146,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testShowReturnsForbiddenForNonOwner(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-show-403@example.com');
-        $outsider = $this->createUser(self::PREFIX . 'outsider-show-403@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $outsider = $this->loadUser('user7@example.com');
         $group = $this->createGroup('Private Group', $owner);
 
         $this->client->loginUser($outsider);
@@ -159,8 +158,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testShowReturnsGroupWithMembers(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-show@example.com');
-        $member = $this->createUser(self::PREFIX . 'member-show@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $member = $this->loadUser('user7@example.com');
         $group = $this->createGroup('Show Group', $owner, [$member]);
 
         $this->client->loginUser($owner);
@@ -185,9 +184,9 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testShowGroupWithMultipleMembers(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-multi@example.com');
-        $member1 = $this->createUser(self::PREFIX . 'member-multi-1@example.com');
-        $member2 = $this->createUser(self::PREFIX . 'member-multi-2@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $member1 = $this->loadUser('user7@example.com');
+        $member2 = $this->loadUser('user8@example.com');
         $group = $this->createGroup('Multi Member Group', $owner, [$member1, $member2]);
 
         $this->client->loginUser($owner);
@@ -204,7 +203,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testUpdateRequiresAuthentication(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-update-auth@example.com');
+        $owner = $this->loadUser('user6@example.com');
         $group = $this->createGroup('Update Auth Group', $owner);
 
         $this->client->request('PUT', '/api/message-groups/' . $group->getId(), [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
@@ -215,8 +214,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testUpdateReturnsForbiddenForNonOwner(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-update-403@example.com');
-        $outsider = $this->createUser(self::PREFIX . 'outsider-update-403@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $outsider = $this->loadUser('user7@example.com');
         $group = $this->createGroup('Update 403 Group', $owner);
 
         $this->client->loginUser($outsider);
@@ -229,9 +228,9 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testUpdateChangesNameAndReturnsUpdatedGroup(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-upd@example.com');
+        $owner = $this->loadUser('user6@example.com');
         $group = $this->createGroup('Old Name', $owner);
-        $member = $this->createUser(self::PREFIX . 'member-upd@example.com');
+        $member = $this->loadUser('user7@example.com');
 
         $this->client->loginUser($owner);
         $this->client->request(
@@ -256,9 +255,9 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testUpdateReplacesMembers(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-replace@example.com');
-        $old = $this->createUser(self::PREFIX . 'old-member@example.com');
-        $new = $this->createUser(self::PREFIX . 'new-member@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $old = $this->loadUser('user7@example.com');
+        $new = $this->loadUser('user8@example.com');
         $group = $this->createGroup('Replace Group', $owner, [$old]);
 
         $this->client->loginUser($owner);
@@ -286,7 +285,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testDeleteRequiresAuthentication(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-del-auth@example.com');
+        $owner = $this->loadUser('user6@example.com');
         $group = $this->createGroup('Del Auth Group', $owner);
 
         $this->client->request('DELETE', '/api/message-groups/' . $group->getId());
@@ -295,8 +294,8 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testDeleteReturnsForbiddenForNonOwner(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-del-403@example.com');
-        $outsider = $this->createUser(self::PREFIX . 'outsider-del-403@example.com');
+        $owner = $this->loadUser('user6@example.com');
+        $outsider = $this->loadUser('user7@example.com');
         $group = $this->createGroup('Del 403 Group', $owner);
 
         $this->client->loginUser($outsider);
@@ -307,7 +306,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     public function testDeleteOwnerCanDeleteGroup(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'owner-del@example.com');
+        $owner = $this->loadUser('user6@example.com');
         $group = $this->createGroup('Deletable Group', $owner);
         $id = $group->getId();
 
@@ -328,18 +327,10 @@ class MessageGroupControllerTest extends WebTestCase
     // Helpers
     // =========================================================================
 
-    private function createUser(string $email): User
+    private function loadUser(string $email): User
     {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
+        self::assertNotNull($user, sprintf('Fixture user "%s" not found. Please load fixtures.', $email));
 
         return $user;
     }
@@ -361,21 +352,7 @@ class MessageGroupControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-
-        // Remove group membership rows first (junction table, name may vary)
-        $conn->executeStatement(
-            'DELETE FROM message_group_members WHERE message_group_id IN (SELECT id 
-                FROM message_groups WHERE name LIKE :prefix OR owner_id IN (SELECT id FROM users WHERE email LIKE :prefix))',
-            ['prefix' => self::PREFIX . '%']
-        );
-        $conn->executeStatement(
-            'DELETE FROM message_groups WHERE owner_id IN (SELECT id FROM users WHERE email LIKE :prefix)',
-            ['prefix' => self::PREFIX . '%']
-        );
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-
-        $this->em->close();
+        $this->em->getConnection()->rollBack();
         parent::tearDown();
         restore_exception_handler();
     }

@@ -4,9 +4,13 @@ namespace App\DataFixtures\TestData;
 
 use App\Entity\Coach;
 use App\Entity\Player;
+use App\Entity\PlayerTeamAssignment;
+use App\Entity\Position;
 use App\Entity\RelationType;
+use App\Entity\Team;
 use App\Entity\User;
 use App\Entity\UserRelation;
+use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
@@ -249,6 +253,175 @@ class UserRelationFixtures extends Fixture implements DependentFixtureInterface,
             $relationFriendSpieler4->setPlayer($player4Team1);
             $relationFriendSpieler4->setRelationType($this->getReference('relation_type_friend', RelationType::class));
             $manager->persist($relationFriendSpieler4);
+        }
+
+        // ─── Squad-Readiness-Relationen ──────────────────────────────────────────
+        // Benötigt für MatchdayControllerSquadReadinessTest.
+        // Jede Relation bildet exakt das Szenario ab, das im Test geprüft wird:
+        //   user_9  (ROLE_USER)  → self_player → player_5_1  → Team 1  (start 2023-01-01, kein Ende)
+        //   user_11 (ROLE_CLUB)  → self_coach  → coach_1     → Team 1  (start 2023-01-01, kein Ende)
+        //   user_12 (ROLE_CLUB)  → self_player → player_6_1  → Team 1  (start 2023-01-01, kein Ende)
+        //                        → self_coach  → coach_5     → Team 2  (start 2016-01-01, kein Ende)
+        //   user_13 (ROLE_CLUB)  → self_coach  → coach_8     → Team 1  (start 2015-01-01, ENDE 2020-12-31 = abgelaufen)
+        //   user_14 (ROLE_CLUB)  → self_player → player_5_2  → Team 2  (start 2023-01-01, kein Ende)
+        //
+        // Absichtlich NICHT verändert:
+        //   user_10 → wird in UserRelationTest als "User ohne Relation" genutzt
+
+        $relTypeSelfPlayer = $this->getReference('relation_type_self_player', RelationType::class);
+        $relTypeSelfCoach = $this->getReference('relation_type_self_coach', RelationType::class);
+
+        // user_9 → self_player → player_5_1 (Team 1)
+        $squadUser9 = $this->getReference('user_9', User::class);
+        $squadP5Team1 = $this->getReference('player_5_1', Player::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser9, 'player' => $squadP5Team1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser9)->setPlayer($squadP5Team1)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
+        }
+
+        // user_11 → self_coach → coach_1 (aktiv in Team 1, start 2023-01-01)
+        $squadUser11 = $this->getReference('user_11', User::class);
+        $squadCoach1 = $this->getReference('coach_1', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser11, 'coach' => $squadCoach1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser11)->setCoach($squadCoach1)->setRelationType($relTypeSelfCoach);
+            $manager->persist($rel);
+        }
+
+        // user_12 → self_player → player_6_1 (Team 1) + self_coach → coach_5 (Team 2)
+        $squadUser12 = $this->getReference('user_12', User::class);
+        $squadP6Team1 = $this->getReference('player_6_1', Player::class);
+        $squadCoach5 = $this->getReference('coach_5', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser12, 'player' => $squadP6Team1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser12)->setPlayer($squadP6Team1)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
+        }
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser12, 'coach' => $squadCoach5])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser12)->setCoach($squadCoach5)->setRelationType($relTypeSelfCoach);
+            $manager->persist($rel);
+        }
+
+        // user_13 → self_coach → coach_8 (Team 1, abgelaufen 2020-12-31)
+        $squadUser13 = $this->getReference('user_13', User::class);
+        $squadCoach8 = $this->getReference('coach_8', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser13, 'coach' => $squadCoach8])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser13)->setCoach($squadCoach8)->setRelationType($relTypeSelfCoach);
+            $manager->persist($rel);
+        }
+
+        // user_14 → self_player → player_5_2 (Team 2, start 2023-01-01)
+        $squadUser14 = $this->getReference('user_14', User::class);
+        $squadP5Team2 = $this->getReference('player_5_2', Player::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser14, 'player' => $squadP5Team2])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser14)->setPlayer($squadP5Team2)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
+        }
+
+        // ─── Weitere Squad-Readiness-Relationen ─────────────────────────────────
+        // user_15 → self_player × 2 → player_7_1 (Team 1) + player_7_2 (Team 2)  [D3: zwei self_player]
+        $squadUser15 = $this->getReference('user_15', User::class);
+        $squadP7Team1 = $this->getReference('player_7_1', Player::class);
+        $squadP7Team2 = $this->getReference('player_7_2', Player::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser15, 'player' => $squadP7Team1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser15)->setPlayer($squadP7Team1)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
+        }
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser15, 'player' => $squadP7Team2])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser15)->setPlayer($squadP7Team2)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
+        }
+
+        // user_17 → relative → player_10_1  [A4: relative ≠ self_player → DENY]
+        $relTypeRelative = $this->getReference('relation_type_relative', RelationType::class);
+        $squadUser17 = $this->getReference('user_17', User::class);
+        $squadP10Team1 = $this->getReference('player_10_1', Player::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser17, 'player' => $squadP10Team1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser17)->setPlayer($squadP10Team1)->setRelationType($relTypeRelative);
+            $manager->persist($rel);
+        }
+
+        // user_18 → guardian → player_11_1  [A5: guardian ≠ self_player → DENY]
+        $relTypeGuardian = $this->getReference('relation_type_guardian', RelationType::class);
+        $squadUser18 = $this->getReference('user_18', User::class);
+        $squadP11Team1 = $this->getReference('player_11_1', Player::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser18, 'player' => $squadP11Team1])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser18)->setPlayer($squadP11Team1)->setRelationType($relTypeGuardian);
+            $manager->persist($rel);
+        }
+
+        // user_19 → assistant → coach_1  [A9: assistant ≠ self_coach → DENY]
+        $relTypeAssistant = $this->getReference('relation_type_assistant', RelationType::class);
+        $squadUser19 = $this->getReference('user_19', User::class);
+        $coachOne = $this->getReference('coach_1', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser19, 'coach' => $coachOne])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser19)->setCoach($coachOne)->setRelationType($relTypeAssistant);
+            $manager->persist($rel);
+        }
+
+        // user_20 → observer → coach_5  [A10: observer ≠ self_coach → DENY]
+        $relTypeObserver = $this->getReference('relation_type_observer', RelationType::class);
+        $squadUser20 = $this->getReference('user_20', User::class);
+        $coachFive = $this->getReference('coach_5', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser20, 'coach' => $coachFive])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser20)->setCoach($coachFive)->setRelationType($relTypeObserver);
+            $manager->persist($rel);
+        }
+
+        // user_22 → substitute → coach_1  [A11: substitute ≠ self_coach → DENY]
+        $relTypeSubstitute = $this->getReference('relation_type_substitute', RelationType::class);
+        $squadUser22 = $this->getReference('user_22', User::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser22, 'coach' => $coachOne])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser22)->setCoach($coachOne)->setRelationType($relTypeSubstitute);
+            $manager->persist($rel);
+        }
+
+        // user_23 → self_coach → coach_6 (CTA: startDate=NULL, endDate=NULL)  [B6: null-dates → ALLOW]
+        $squadUser23 = $this->getReference('user_23', User::class);
+        $squadCoach6 = $this->getReference('coach_6', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser23, 'coach' => $squadCoach6])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser23)->setCoach($squadCoach6)->setRelationType($relTypeSelfCoach);
+            $manager->persist($rel);
+        }
+
+        // user_24 → self_player → Spieler mit abgelaufener PTA  [B12: expired PTA → DENY]
+        $squadUser24 = $this->getReference('user_24', User::class);
+        $expiredPlayerMail = 'squad_test_expired@example.com';
+        $expiredPlayer = $manager->getRepository(Player::class)->findOneBy(['email' => $expiredPlayerMail]);
+        if (!$expiredPlayer) {
+            $expiredPlayer = new Player();
+            $expiredPlayer->setFirstName('ExpiredTest');
+            $expiredPlayer->setLastName('Squad24');
+            $expiredPlayer->setEmail($expiredPlayerMail);
+            /** @var Position $anyPosition */
+            $anyPosition = $manager->getRepository(Position::class)->findOneBy([]);
+            $expiredPlayer->setMainPosition($anyPosition);
+            $manager->persist($expiredPlayer);
+
+            $team1 = $this->getReference('Team 1', Team::class);
+            $expiredPta = new PlayerTeamAssignment();
+            $expiredPta->setPlayer($expiredPlayer);
+            $expiredPta->setTeam($team1);
+            $expiredPta->setStartDate(new DateTimeImmutable('2020-01-01'));
+            $expiredPta->setEndDate(new DateTimeImmutable('2021-12-31'));
+            $manager->persist($expiredPta);
+        }
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $squadUser24, 'player' => $expiredPlayer])) {
+            $rel = new UserRelation();
+            $rel->setUser($squadUser24)->setPlayer($expiredPlayer)->setRelationType($relTypeSelfPlayer);
+            $manager->persist($rel);
         }
 
         $manager->flush();

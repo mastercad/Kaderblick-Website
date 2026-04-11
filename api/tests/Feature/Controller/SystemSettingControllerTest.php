@@ -4,6 +4,8 @@ namespace Tests\Feature\Controller;
 
 use App\Entity\SystemSetting;
 use App\Service\SystemSettingService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\ApiWebTestCase;
 
@@ -14,42 +16,57 @@ use Tests\Feature\ApiWebTestCase;
  */
 class SystemSettingControllerTest extends ApiWebTestCase
 {
+    private KernelBrowser $client;
+    private EntityManagerInterface $em;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        self::ensureKernelShutdown();
+        $this->client = static::createClient();
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
+        parent::tearDown();
+        restore_exception_handler();
+    }
+
     // ────────────────────────────── Auth guards ──────────────────────────────
 
     public function testListRequiresAuthentication(): void
     {
-        $client = static::createClient();
-
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testListForbiddenForRegularUser(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user6@example.com'); // ROLE_USER
+        $this->authenticateUser($this->client, 'user6@example.com'); // ROLE_USER
 
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testListForbiddenForAdmin(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($this->client, 'user16@example.com'); // ROLE_ADMIN
 
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testUpdateRequiresAuthentication(): void
     {
-        $client = static::createClient();
-
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -63,10 +80,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testUpdateForbiddenForAdmin(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($this->client, 'user16@example.com'); // ROLE_ADMIN
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -82,35 +98,31 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testListReturnSettingsForSuperadmin(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('settings', $data);
         $this->assertArrayHasKey('defaults', $data);
     }
 
     public function testListContainsRegistrationContextSetting(): void
     {
-        $client = static::createClient();
-        $em = static::getContainer()->get('doctrine')->getManager();
-
         // Ensure the setting row exists
-        $setting = $em->getRepository(SystemSetting::class)
+        $setting = $this->em->getRepository(SystemSetting::class)
             ->findOneBy(['key' => SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED]);
         if (null === $setting) {
             $setting = new SystemSetting(SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED, 'true');
-            $em->persist($setting);
-            $em->flush();
+            $this->em->persist($setting);
+            $this->em->flush();
         }
 
-        $this->authenticateUser($client, 'user21@example.com');
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->authenticateUser($this->client, 'user21@example.com');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey(
             SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             $data['settings'],
@@ -122,10 +134,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testUpdateRegistrationContextToFalse(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -135,16 +146,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('false', $data['value']);
     }
 
     public function testUpdateRegistrationContextToTrue(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -154,16 +164,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('true', $data['value']);
     }
 
     public function testUpdateRejectsUnknownKey(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/totally_unknown_key',
             [],
@@ -173,16 +182,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateRejectsMissingValueField(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -192,18 +200,16 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateIsPersisted(): void
     {
-        $client = static::createClient();
-        $em = static::getContainer()->get('doctrine')->getManager();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         // Set to false
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED,
             [],
@@ -214,28 +220,26 @@ class SystemSettingControllerTest extends ApiWebTestCase
         $this->assertResponseIsSuccessful();
 
         // Read back from DB
-        $em->clear();
-        $setting = $em->getRepository(SystemSetting::class)
+        $this->em->clear();
+        $setting = $this->em->getRepository(SystemSetting::class)
             ->findOneBy(['key' => SystemSettingService::KEY_REGISTRATION_CONTEXT_ENABLED]);
         $this->assertNotNull($setting);
         $this->assertSame('false', $setting->getValue(), 'Value was not persisted to the database.');
 
         // Restore
-        $setting->setValue('true');
-        $em->flush();
+        $this->em->flush();
     }
 
     // ────────────────────────────── Push notification mode ──────────────────────────────
 
     public function testListDefaultIncludesPushNotificationsMode(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey(
             SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
             $data['defaults'],
@@ -249,10 +253,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testUpdatePushNotificationsModeToOnlyMe(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
             [],
@@ -262,16 +265,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_ONLY_ME, $data['value']);
     }
 
     public function testUpdatePushNotificationsModeToDisabled(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
             [],
@@ -281,16 +283,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_DISABLED, $data['value']);
     }
 
     public function testUpdatePushNotificationsModeToAll(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
             [],
@@ -300,16 +301,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame(SystemSettingService::PUSH_NOTIFICATIONS_MODE_ALL, $data['value']);
     }
 
     public function testUpdatePushNotificationsModeRejectsInvalidValue(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_PUSH_NOTIFICATIONS_MODE,
             [],
@@ -319,7 +319,7 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
@@ -327,13 +327,12 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testListDefaultIncludesMatchdayLookaheadDays(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request('GET', '/api/superadmin/system-settings');
+        $this->client->request('GET', '/api/superadmin/system-settings');
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey(
             SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             $data['defaults'],
@@ -347,10 +346,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
 
     public function testUpdateMatchdayLookaheadDaysAcceptsValidValue(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -360,16 +358,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('14', $data['value']);
     }
 
     public function testUpdateMatchdayLookaheadDaysAcceptsBoundaryOne(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -379,16 +376,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('1', $data['value']);
     }
 
     public function testUpdateMatchdayLookaheadDaysAcceptsBoundaryNinety(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -398,16 +394,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertSame('90', $data['value']);
     }
 
     public function testUpdateMatchdayLookaheadDaysRejectsZero(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -417,16 +412,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateMatchdayLookaheadDaysRejectsNegativeValue(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -436,16 +430,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateMatchdayLookaheadDaysRejectsAboveNinety(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -455,16 +448,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateMatchdayLookaheadDaysRejectsNonIntegerString(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -474,16 +466,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateMatchdayLookaheadDaysRejectsFloatValue(): void
     {
-        $client = static::createClient();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -493,17 +484,15 @@ class SystemSettingControllerTest extends ApiWebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('error', $data);
     }
 
     public function testUpdateMatchdayLookaheadDaysIsPersisted(): void
     {
-        $client = static::createClient();
-        $em = static::getContainer()->get('doctrine')->getManager();
-        $this->authenticateUser($client, 'user21@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
-        $client->request(
+        $this->client->request(
             'PATCH',
             '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
             [],
@@ -515,20 +504,10 @@ class SystemSettingControllerTest extends ApiWebTestCase
         $this->assertResponseIsSuccessful();
 
         // Read back from DB
-        $em->clear();
-        $setting = $em->getRepository(SystemSetting::class)
+        $this->em->clear();
+        $setting = $this->em->getRepository(SystemSetting::class)
             ->findOneBy(['key' => SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS]);
         $this->assertNotNull($setting);
         $this->assertSame('21', $setting->getValue(), 'matchday_lookahead_days was not persisted.');
-
-        // Restore default
-        $client->request(
-            'PATCH',
-            '/api/superadmin/system-settings/' . SystemSettingService::KEY_MATCHDAY_LOOKAHEAD_DAYS,
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['value' => (string) SystemSettingService::MATCHDAY_LOOKAHEAD_DAYS_DEFAULT])
-        );
     }
 }

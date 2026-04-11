@@ -35,6 +35,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { CalendarEvent, EventFormData } from '../types/calendar';
 import { useCalendarData } from '../hooks/useCalendarData';
 import { fulfillPendingTournamentMatches } from '../utils/mapApiEventToCalendarEvent';
+import { buildTaskEditFormFields } from '../utils/buildTaskEditFormFields';
 import { buildCalendarEventPayload } from '../utils/buildCalendarEventPayload';
 
 moment.updateLocale('de', {
@@ -362,15 +363,7 @@ function CalendarInner({ setCalendarFabHandler }: CalendarProps) {
       tournament: event.tournament,
       teamIds: event.teamIds,
       pendingTournamentMatches: event.tournament?.matches ? (console.debug("EDIT: ", event.tournament?.matches), fulfillPendingTournamentMatches(event.tournament?.matches, teams)) : [],
-      task: event.task ? {
-        id: event.task.id,
-        isRecurring: event.task.isRecurring,
-        recurrenceMode: event.task.recurrenceMode,
-        recurrenceRule: event.task.recurrenceRule,
-        rotationUsers: event.task.rotationUsers,
-        rotationCount: event.task.rotationCount,
-        offset: event.task.offset,
-      } : undefined
+      ...buildTaskEditFormFields(event.task),
     });
     setEditingEventId(event.id);
     setEditingEventPermissions(event.permissions ?? null);

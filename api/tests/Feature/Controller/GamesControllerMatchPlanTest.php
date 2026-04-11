@@ -47,6 +47,7 @@ class GamesControllerMatchPlanTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
 
         $position = $this->em->getRepository(Position::class)->findOneBy([]);
         self::assertNotNull($position, 'Keine Fixture-Position. Bitte Fixtures laden.');
@@ -361,5 +362,14 @@ class GamesControllerMatchPlanTest extends WebTestCase
     private function uniqueEmail(string $prefix): string
     {
         return sprintf('%s-%s@example.com', $prefix, $this->emailSuffix);
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
+        parent::tearDown();
+        restore_exception_handler();
     }
 }

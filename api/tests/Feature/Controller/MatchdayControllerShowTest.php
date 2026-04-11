@@ -55,7 +55,9 @@ class MatchdayControllerShowTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
+        $this->client->disableReboot();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em->getConnection()->beginTransaction();
 
         $this->emailSuffix = bin2hex(random_bytes(6));
 
@@ -94,8 +96,9 @@ class MatchdayControllerShowTest extends WebTestCase
             ->setCalendarEvent($this->calendarEvent);
         $this->em->persist($this->game);
 
-        // Admin user
-        $this->adminUser = $this->makeUser('test-md-admin', ['ROLE_ADMIN']);
+        // Admin user — load from fixture
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
 
         // Player user linked to homeTeam
         $position = $this->em->getRepository(\App\Entity\Position::class)->findOneBy([]);
@@ -151,8 +154,9 @@ class MatchdayControllerShowTest extends WebTestCase
         $this->coachUser->addUserRelation($coachRelation);
         $coach->addUserRelation($coachRelation);
 
-        // Unrelated user (not in homeTeam or awayTeam, not admin)
-        $this->unrelatedUser = $this->makeUser('test-md-unrelated', ['ROLE_USER']);
+        // Unrelated user — load from fixture (ROLE_USER, no relation to test teams)
+        $this->unrelatedUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($this->unrelatedUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');
 
         $this->em->flush();
     }
@@ -550,12 +554,9 @@ class MatchdayControllerShowTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        // Delete user_relations before users to avoid FK constraint violations
-        $conn->executeStatement(
-            "DELETE ur FROM user_relations ur INNER JOIN users u ON ur.user_id = u.id WHERE u.email LIKE 'test-md-%'"
-        );
-        $conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-md-%'");
+        if ($this->em->getConnection()->isTransactionActive()) {
+            $this->em->getConnection()->rollBack();
+        }
         parent::tearDown();
         restore_exception_handler();
     }

@@ -282,8 +282,8 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
         />
       </Box>
 
-      {/* ── Formation-based view (matchPlan exists) ── */}
-      {team.hasMatchPlan && team.startingXI && (
+      {/* ── Formation-based view (matchPlan exists and has players) ── */}
+      {team.hasMatchPlan && team.startingXI && team.startingXI.length > 0 && (
         <>
           {/* Startelf */}
           <Typography variant="caption" fontWeight={700} color="text.secondary"
@@ -839,8 +839,8 @@ export default function Matchday() {
         </Paper>
       )}
 
-      {/* ── Squad readiness (coach / admin) ── */}
-      {isCoachOrAdmin && squadReadiness && squadReadiness.length > 0 && (
+      {/* ── Squad readiness ── */}
+      {squadReadiness && squadReadiness.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             <GroupIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />

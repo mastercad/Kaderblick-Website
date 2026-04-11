@@ -47,7 +47,13 @@ class TeamsController extends AbstractController
 
         $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
-        $isCoach = count($coachTeamIds) > 0;
+        $isCoach = false;
+        foreach ($user->getUserRelations() as $rel) {
+            if ('coach' === $rel->getRelationType()->getCategory()) {
+                $isCoach = true;
+                break;
+            }
+        }
 
         // Only coaches, admins and superadmins may bypass the user-assignment filter.
         // Regular users (e.g. parents) must never see all teams just by passing a context.

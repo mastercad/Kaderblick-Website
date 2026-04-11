@@ -6,8 +6,8 @@ use App\Entity\CalendarEvent;
 use App\Entity\User;
 use App\Repository\CalendarEventRepository;
 use App\Repository\UserRepository;
+use App\Service\UserTeamAccessService;
 use DateTime;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -28,7 +28,7 @@ class ICalController extends AbstractController
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly CalendarEventRepository $calendarEventRepository,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly UserTeamAccessService $teamAccessService,
     ) {
     }
 
@@ -126,7 +126,7 @@ class ICalController extends AbstractController
 
             if ('team' === $type) {
                 $team = $perm->getTeam();
-                if (null !== $team && $this->isUserInTeam($user, $team)) {
+                if (null !== $team && $this->isUserInTeam($user, $event, $team)) {
                     return true;
                 }
             }
@@ -139,21 +139,16 @@ class ICalController extends AbstractController
         return false;
     }
 
-    private function isUserInTeam(User $user, \App\Entity\Team $team): bool
+    private function isUserInTeam(User $user, CalendarEvent $event, \App\Entity\Team $team): bool
     {
-        $result = $this->entityManager
-            ->getRepository(\App\Entity\PlayerTeamAssignment::class)
-            ->createQueryBuilder('pta')
-            ->innerJoin('pta.player', 'p')
-            ->innerJoin('p.userRelations', 'ur')
-            ->where('ur.user = :user')
-            ->andWhere('pta.team = :team')
-            ->setParameter('user', $user)
-            ->setParameter('team', $team)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $eventDate = $event->getStartDate();
+        $playerTeams = $this->teamAccessService->getPlayerTeamsForDate($user, [$team], $eventDate);
+        if (!empty($playerTeams)) {
+            return true;
+        }
+        $coachTeams = $this->teamAccessService->getCoachTeamsForDate($user, [$team], $eventDate);
 
-        return null !== $result;
+        return !empty($coachTeams);
     }
 
     /** @param CalendarEvent[] $events */
