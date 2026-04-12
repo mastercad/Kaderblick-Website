@@ -14,6 +14,7 @@ use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -246,6 +247,213 @@ class GamesControllerDetailsTest extends WebTestCase
         self::assertArrayHasKey('id', $event);
         self::assertArrayHasKey('gameEventType', $event);
         self::assertArrayHasKey('player', $event);
+    }
+
+    // ── collectScores() – goal-variant coverage ───────────────────────────────
+
+    /**
+     * All goal variant codes that represent a valid, counted goal for the
+     * scoring team (everything but own_goal, offside_goal, var_goal_denied).
+     *
+     * @return array<string, array{string}>
+     */
+    public static function goalVariantCodesProvider(): array
+    {
+        return [
+            'goal' => ['goal'],
+            'penalty_goal' => ['penalty_goal'],
+            'freekick_goal' => ['freekick_goal'],
+            'header_goal' => ['header_goal'],
+            'corner_goal' => ['corner_goal'],
+            'cross_goal' => ['cross_goal'],
+            'counter_goal' => ['counter_goal'],
+            'pressing_goal' => ['pressing_goal'],
+            'sub_goal' => ['sub_goal'],
+            'var_goal_confirmed' => ['var_goal_confirmed'],
+        ];
+    }
+
+    #[DataProvider('goalVariantCodesProvider')]
+    public function testDetailsScoreCountsGoalVariantForHomeTeam(string $code): void
+    {
+        $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => $code]);
+        if (null === $type) {
+            $this->markTestSkipped("GameEventType '$code' not found in fixtures.");
+        }
+
+        $event = (new GameEvent())
+            ->setGame($this->game)
+            ->setGameEventType($type)
+            ->setTeam($this->homeTeam)
+            ->setTimestamp(new DateTime());
+        $this->em->persist($event);
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(1, $data['homeScore'], "Code '$code' should count as 1 home goal.");
+        self::assertSame(0, $data['awayScore']);
+    }
+
+    #[DataProvider('goalVariantCodesProvider')]
+    public function testDetailsScoreCountsGoalVariantForAwayTeam(string $code): void
+    {
+        $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => $code]);
+        if (null === $type) {
+            $this->markTestSkipped("GameEventType '$code' not found in fixtures.");
+        }
+
+        $event = (new GameEvent())
+            ->setGame($this->game)
+            ->setGameEventType($type)
+            ->setTeam($this->awayTeam)
+            ->setTimestamp(new DateTime());
+        $this->em->persist($event);
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(0, $data['homeScore']);
+        self::assertSame(1, $data['awayScore'], "Code '$code' should count as 1 away goal.");
+    }
+
+    public function testDetailsScoreOwnGoalByHomeTeamCountsForAway(): void
+    {
+        $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        if (null === $type) {
+            $this->markTestSkipped('GameEventType own_goal not found in fixtures.');
+        }
+
+        $event = (new GameEvent())
+            ->setGame($this->game)
+            ->setGameEventType($type)
+            ->setTeam($this->homeTeam)
+            ->setTimestamp(new DateTime());
+        $this->em->persist($event);
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(0, $data['homeScore'], 'Own goal by home team must not increase home score.');
+        self::assertSame(1, $data['awayScore'], 'Own goal by home team must increase away score.');
+    }
+
+    public function testDetailsScoreOwnGoalByAwayTeamCountsForHome(): void
+    {
+        $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        if (null === $type) {
+            $this->markTestSkipped('GameEventType own_goal not found in fixtures.');
+        }
+
+        $event = (new GameEvent())
+            ->setGame($this->game)
+            ->setGameEventType($type)
+            ->setTeam($this->awayTeam)
+            ->setTimestamp(new DateTime());
+        $this->em->persist($event);
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(1, $data['homeScore'], 'Own goal by away team must increase home score.');
+        self::assertSame(0, $data['awayScore'], 'Own goal by away team must not increase away score.');
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function nonCountingEventCodesProvider(): array
+    {
+        return [
+            'offside_goal' => ['offside_goal'],
+            'var_goal_denied' => ['var_goal_denied'],
+        ];
+    }
+
+    #[DataProvider('nonCountingEventCodesProvider')]
+    public function testDetailsScoreDoesNotCountNonGoalEventCode(string $code): void
+    {
+        $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => $code]);
+        if (null === $type) {
+            $this->markTestSkipped("GameEventType '$code' not found in fixtures.");
+        }
+
+        // Add one for each team to ensure neither direction counts
+        foreach ([$this->homeTeam, $this->awayTeam] as $team) {
+            $event = (new GameEvent())
+                ->setGame($this->game)
+                ->setGameEventType($type)
+                ->setTeam($team)
+                ->setTimestamp(new DateTime());
+            $this->em->persist($event);
+        }
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(0, $data['homeScore'], "Code '$code' must not be counted as a goal.");
+        self::assertSame(0, $data['awayScore'], "Code '$code' must not be counted as a goal.");
+    }
+
+    public function testDetailsScoreMixedGoalTypesCombination(): void
+    {
+        // home scores 3: penalty_goal, header_goal, counter_goal
+        // away scores 2: freekick_goal, corner_goal
+        // not counted: offside_goal (home), var_goal_denied (away)
+        // own_goal by away team -> +1 for home  => home=4, away=2
+        $scenarios = [
+            ['code' => 'penalty_goal',   'team' => $this->homeTeam],
+            ['code' => 'header_goal',    'team' => $this->homeTeam],
+            ['code' => 'counter_goal',   'team' => $this->homeTeam],
+            ['code' => 'freekick_goal',  'team' => $this->awayTeam],
+            ['code' => 'corner_goal',    'team' => $this->awayTeam],
+            ['code' => 'offside_goal',   'team' => $this->homeTeam],  // not counted
+            ['code' => 'var_goal_denied', 'team' => $this->awayTeam], // not counted
+            ['code' => 'own_goal',       'team' => $this->awayTeam],  // +1 for home
+        ];
+
+        foreach ($scenarios as $s) {
+            $type = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => $s['code']]);
+            if (null === $type) {
+                $this->markTestSkipped("GameEventType '{$s['code']}' not found.");
+            }
+            $event = (new GameEvent())
+                ->setGame($this->game)
+                ->setGameEventType($type)
+                ->setTeam($s['team'])
+                ->setTimestamp(new DateTime());
+            $this->em->persist($event);
+        }
+        $this->em->flush();
+
+        $this->authenticate($this->adminUser);
+        $this->client->request('GET', '/api/games/' . $this->game->getId() . '/details');
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        self::assertSame(4, $data['homeScore'], 'Home: 3 goal variants + 1 away own_goal.');
+        self::assertSame(2, $data['awayScore'], 'Away: 2 goal variants, offside/denied not counted.');
     }
 
     private function authenticate(User $user): void

@@ -174,16 +174,19 @@ class GameEventTypeFixtures extends Fixture implements FixtureGroupInterface
             if (!$existing) {
                 $eventType = new GameEventType();
                 $eventType->setName($type['name']);
-                $eventType->setCode($type['code']);
-                $eventType->setColor($type['color']);
-                $eventType->setIcon($type['icon']);
-                $eventType->setSystem($type['isSystem']);
                 $manager->persist($eventType);
-                $this->addReference(
-                    'game_event_type_' . strtolower(str_replace(['-', ' ', '(', ')'], '_', $type['name'])),
-                    $eventType
-                );
+            } else {
+                $eventType = $existing;
             }
+            // Always sync code, color, icon, isSystem to keep master data up-to-date
+            $eventType->setCode($type['code']);
+            $eventType->setColor($type['color']);
+            $eventType->setIcon($type['icon']);
+            $eventType->setSystem($type['isSystem']);
+            $this->addReference(
+                'game_event_type_' . strtolower(str_replace(['-', ' ', '(', ')'], '_', $type['name'])),
+                $eventType
+            );
         }
 
         $manager->flush();

@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use App\Entity\Game;
-use App\Entity\GameEventType;
 use App\Entity\Team;
 use App\Entity\TournamentMatch;
 use Doctrine\ORM\EntityManagerInterface;
@@ -111,27 +110,32 @@ class TournamentAdvancementService
      */
     private function calculateScores(Game $game): array
     {
-        $goalType = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'goal']);
-        $ownGoalType = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        // Codes that must NOT be counted even though they contain 'goal'
+        $nonGoalCodes = ['offside_goal', 'var_goal_denied', 'own_goal_attempt'];
 
         $homeScore = 0;
         $awayScore = 0;
 
         foreach ($game->getGameEvents() as $event) {
             $eventType = $event->getGameEventType();
+            if (null === $eventType) {
+                continue;
+            }
+
+            $code = $eventType->getCode();
             $eventTeam = $event->getTeam();
 
-            if ($eventType === $goalType) {
+            if ('own_goal' === $code) {
                 if ($eventTeam === $game->getHomeTeam()) {
-                    ++$homeScore;
-                } elseif ($eventTeam === $game->getAwayTeam()) {
                     ++$awayScore;
+                } elseif ($eventTeam === $game->getAwayTeam()) {
+                    ++$homeScore;
                 }
-            } elseif ($eventType === $ownGoalType) {
+            } elseif (!in_array($code, $nonGoalCodes, true) && str_contains($code, 'goal')) {
                 if ($eventTeam === $game->getHomeTeam()) {
-                    ++$awayScore;
-                } elseif ($eventTeam === $game->getAwayTeam()) {
                     ++$homeScore;
+                } elseif ($eventTeam === $game->getAwayTeam()) {
+                    ++$awayScore;
                 }
             }
         }

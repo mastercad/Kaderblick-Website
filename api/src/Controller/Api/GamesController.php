@@ -955,24 +955,33 @@ class GamesController extends ApiController
      */
     private function collectScores(array $gameEvents, Game $game): array
     {
-        $gameEventGoal = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['code' => 'goal']);
-        $gameEventOwnGoal = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        // Codes that must NOT be counted even though they contain 'goal'
+        $nonGoalCodes = ['offside_goal', 'var_goal_denied', 'own_goal_attempt'];
 
         $homeScore = 0;
         $awayScore = 0;
 
         foreach ($gameEvents as $gameEvent) {
-            if ($gameEvent->getGameEventType() === $gameEventGoal) {
+            $eventType = $gameEvent->getGameEventType();
+            if (null === $eventType) {
+                continue;
+            }
+
+            $code = $eventType->getCode();
+
+            if ('own_goal' === $code) {
+                // Own goal counts for the opponent
                 if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$homeScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
                     ++$awayScore;
+                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
+                    ++$homeScore;
                 }
-            } elseif ($gameEvent->getGameEventType() === $gameEventOwnGoal) {
+            } elseif (!in_array($code, $nonGoalCodes, true) && str_contains($code, 'goal')) {
+                // All other goal variants count for the scoring team
                 if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$awayScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
                     ++$homeScore;
+                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
+                    ++$awayScore;
                 }
             }
         }

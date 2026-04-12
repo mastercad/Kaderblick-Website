@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use App\Entity\Game;
 use App\Entity\GameEvent;
-use App\Entity\GameEventType;
 use App\Entity\Video;
 use App\Repository\CameraRepository;
 use App\Repository\GameEventRepository;
@@ -13,7 +12,6 @@ use App\Repository\VideoTypeRepository;
 use App\Security\Voter\GameVoter;
 use App\Security\Voter\VideoVoter;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -22,10 +20,6 @@ use Symfony\Component\Routing\Annotation\Route;
 class GamesController extends AbstractController
 {
     private int $youtubeLinkStartOffset = -60;
-
-    public function __construct(private EntityManagerInterface $entityManager)
-    {
-    }
 
     #[Route(path: '/', name: 'index', methods: ['GET'])]
     public function index(GameRepository $gameRepository): Response
@@ -135,24 +129,33 @@ class GamesController extends AbstractController
      */
     private function collectScores(array $gameEvents, Game $game): array
     {
-        $gameEventGoal = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['code' => 'goal']);
-        $gameEventOwnGoal = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        // Codes that must NOT be counted even though they contain 'goal'
+        $nonGoalCodes = ['offside_goal', 'var_goal_denied', 'own_goal_attempt'];
 
         $homeScore = 0;
         $awayScore = 0;
 
         foreach ($gameEvents as $gameEvent) {
-            if ($gameEvent->getGameEventType() === $gameEventGoal) {
+            $eventType = $gameEvent->getGameEventType();
+            if (null === $eventType) {
+                continue;
+            }
+
+            $code = $eventType->getCode();
+
+            if ('own_goal' === $code) {
+                // Own goal counts for the opponent
                 if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$homeScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
                     ++$awayScore;
+                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
+                    ++$homeScore;
                 }
-            } elseif ($gameEvent->getGameEventType() === $gameEventOwnGoal) {
+            } elseif (!in_array($code, $nonGoalCodes, true) && str_contains($code, 'goal')) {
+                // All other goal variants count for the scoring team
                 if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$awayScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
                     ++$homeScore;
+                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
+                    ++$awayScore;
                 }
             }
         }

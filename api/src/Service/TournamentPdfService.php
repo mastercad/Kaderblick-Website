@@ -2,11 +2,9 @@
 
 namespace App\Service;
 
-use App\Entity\GameEventType;
 use App\Entity\Tournament;
 use DateTimeImmutable;
 use DateTimeInterface;
-use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Twig\Environment;
@@ -15,7 +13,6 @@ class TournamentPdfService
 {
     public function __construct(
         private Environment $twig,
-        private EntityManagerInterface $em,
         private string $projectDir,
     ) {
     }
@@ -153,9 +150,8 @@ class TournamentPdfService
             $teamCount = count($teams);
         }
 
-        // Event types for score calculation
-        $gameEventGoal = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'goal']);
-        $gameEventOwnGoal = $this->em->getRepository(GameEventType::class)->findOneBy(['code' => 'own_goal']);
+        // Codes that must NOT be counted even though they contain 'goal'
+        $nonGoalCodes = ['offside_goal', 'var_goal_denied', 'own_goal_attempt'];
 
         // Matches grouped by stage
         $matchesByStage = [];
@@ -170,17 +166,22 @@ class TournamentPdfService
                 $homeScore = 0;
                 $awayScore = 0;
                 foreach ($game->getGameEvents() as $ge) {
-                    if ($ge->getGameEventType() === $gameEventGoal) {
+                    $geType = $ge->getGameEventType();
+                    if (null === $geType) {
+                        continue;
+                    }
+                    $code = $geType->getCode();
+                    if ('own_goal' === $code) {
                         if ($ge->getTeam() === $game->getHomeTeam()) {
-                            ++$homeScore;
-                        } elseif ($ge->getTeam() === $game->getAwayTeam()) {
                             ++$awayScore;
+                        } elseif ($ge->getTeam() === $game->getAwayTeam()) {
+                            ++$homeScore;
                         }
-                    } elseif ($ge->getGameEventType() === $gameEventOwnGoal) {
+                    } elseif (!in_array($code, $nonGoalCodes, true) && str_contains($code, 'goal')) {
                         if ($ge->getTeam() === $game->getHomeTeam()) {
-                            ++$awayScore;
-                        } elseif ($ge->getTeam() === $game->getAwayTeam()) {
                             ++$homeScore;
+                        } elseif ($ge->getTeam() === $game->getAwayTeam()) {
+                            ++$awayScore;
                         }
                     }
                 }

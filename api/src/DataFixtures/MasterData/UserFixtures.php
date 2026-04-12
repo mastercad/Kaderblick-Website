@@ -11,7 +11,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface
 {
     public static function getGroups(): array
     {
-        return ['master'];
+        return ['master', 'demo'];
     }
 
     public function load(ObjectManager $manager): void
@@ -25,7 +25,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface
                 ->setFirstName('Andreas')
                 ->setLastName('Kempe')
                 ->setRoles(['ROLE_SUPERADMIN'])
-                ->setPassword('$2y$13$dp0os8m.w398LvveRtUKwO0sQkKMXfKDyclEK1X0ZpVkXFqwQtmkG')
+                ->setPassword('$2y$13$5M1HZSipUxTlL3oZ3rAojuXJgAIuMJf3iQe7MuKm1FWOeOsgAh4xS')
                 ->setIsVerified(true)
                 ->setIsEnabled(true);
             $manager->persist($user);
