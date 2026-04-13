@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mailer\MailerInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class RegistrationTest extends WebTestCase
 {
     private EntityManagerInterface $em;

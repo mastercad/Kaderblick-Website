@@ -11,6 +11,7 @@ use App\Service\TournamentAdvancementService;
 use App\Service\TournamentMatchGameService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
  *
  * All assertions use in-memory entity objects — no database required.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TournamentAdvancementServiceScoreTest extends TestCase
 {
     private TournamentAdvancementService $service;

@@ -7,8 +7,10 @@ use App\Service\CoachTeamPlayerService;
 use App\Service\TournamentAdvancementService;
 use App\Service\VideoTimelineService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class GamesControllerTest extends TestCase
 {
     /**

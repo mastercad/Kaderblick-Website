@@ -10,8 +10,10 @@ use App\Service\CoachTeamPlayerService;
 use App\Service\UserTeamAccessService;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class CoachTeamPlayerServiceTest extends TestCase
 {
     /** @var \PHPUnit\Framework\MockObject\MockObject&UserTeamAccessService */

@@ -4,6 +4,7 @@ namespace App\Tests\Unit\Controller;
 
 use App\Controller\GameEventsController;
 use DateTime;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -17,6 +18,7 @@ use ReflectionMethod;
  * Der Controller konvertiert diesen Wert zu einem Offset in Sekunden,
  * der dann auf das Spielstart-Datum addiert wird.
  */
+#[AllowMockObjectsWithoutExpectations]
 class GameEventsSecondsConversionTest extends TestCase
 {
     private GameEventsController $controller;

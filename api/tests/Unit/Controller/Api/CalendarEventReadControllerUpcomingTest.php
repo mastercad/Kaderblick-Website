@@ -10,6 +10,7 @@ use App\Service\CalendarEventSerializer;
 use App\Service\SystemSettingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -28,6 +29,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  *  - Each event is serialized via CalendarEventSerializer::serialize().
  *  - The response is a JSON array.
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventReadControllerUpcomingTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

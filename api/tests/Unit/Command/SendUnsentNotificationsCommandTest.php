@@ -10,6 +10,7 @@ use App\Service\HeartbeatService;
 use App\Service\PushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -17,6 +18,7 @@ use ReflectionProperty;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[AllowMockObjectsWithoutExpectations]
 class SendUnsentNotificationsCommandTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

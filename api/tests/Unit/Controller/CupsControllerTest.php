@@ -5,9 +5,11 @@ namespace App\Tests\Unit\Controller;
 use App\Controller\Api\CupsController;
 use App\Repository\GameRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
+#[AllowMockObjectsWithoutExpectations]
 class CupsControllerTest extends TestCase
 {
     private EntityManagerInterface $entityManager;

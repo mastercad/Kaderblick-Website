@@ -17,6 +17,7 @@ use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -34,6 +35,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  *  - ROLE_SUPERADMIN always gets canParticipate: true
  *  - Non-tournament events delegate to TeamMembershipService
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarControllerPermissionsTest extends TestCase
 {
     private CalendarEventReadController $controller;

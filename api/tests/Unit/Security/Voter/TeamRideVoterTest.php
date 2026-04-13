@@ -7,6 +7,7 @@ use App\Entity\TeamRide;
 use App\Entity\User;
 use App\Security\Voter\TeamRideVoter;
 use App\Service\TeamMembershipService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -18,6 +19,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
  *
  * Exercises all attribute/subject combinations via a mocked TeamMembershipService.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TeamRideVoterTest extends TestCase
 {
     private TeamMembershipService&MockObject $membershipService;

@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
  *  - `setMaxResults($limit)` is called with the given limit.
  *  - The `withinDays` parameter controls the lookahead window.
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventRepositoryFindUpcomingTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

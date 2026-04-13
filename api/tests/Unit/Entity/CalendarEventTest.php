@@ -4,8 +4,10 @@ namespace App\Tests\Unit\Entity;
 
 use App\Entity\CalendarEvent;
 use App\Entity\User;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventTest extends TestCase
 {
     public function testCancelledDefaultsToFalse(): void

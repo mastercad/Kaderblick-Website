@@ -10,6 +10,7 @@ use App\Repository\PushSubscriptionRepository;
 use App\Service\PushNotificationService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -18,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class PushControllerTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

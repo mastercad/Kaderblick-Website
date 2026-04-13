@@ -24,6 +24,7 @@ import FeedbackIcon from '@mui/icons-material/Feedback';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import PollIcon from '@mui/icons-material/Poll';
 import { useNavigate } from 'react-router-dom';
 import { AppNotification } from '../types/notifications';
 
@@ -38,6 +39,7 @@ const getNotificationIcon = (type: AppNotification['type']) => {
     case 'news': return <NewsIcon />;
     case 'message': return <MessageIcon />;
     case 'participation': return <EventIcon />;
+    case 'survey': return <PollIcon />;
     case 'system': return <SystemIcon />;
     case 'team_ride':
     case 'team_ride_booking':
@@ -69,6 +71,7 @@ const getNotificationColor = (type: AppNotification['type']) => {
     case 'news': return '#1976d2';
     case 'message': return '#2e7d32';
     case 'participation': return '#ed6c02';
+    case 'survey': return '#00897b';
     case 'system': return '#0288d1';
     case 'team_ride':
     case 'team_ride_booking':
@@ -106,6 +109,7 @@ const getNotificationLabel = (type: AppNotification['type']) => {
     case 'news': return 'Neuigkeiten';
     case 'message': return 'Nachricht';
     case 'participation': return 'Teilnahme';
+    case 'survey': return 'Umfrage';
     case 'system': return 'System';
     case 'team_ride': return 'Mitfahrgelegenheit';
     case 'team_ride_booking': return 'Mitfahrt gebucht';
@@ -240,7 +244,7 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
 };
 
 // Keys that should be hidden (internal IDs etc.)
-const HIDDEN_KEYS = new Set(['eventId', 'id', 'rideId', 'userId', 'conversationId']);
+const HIDDEN_KEYS = new Set(['eventId', 'id', 'rideId', 'userId', 'conversationId', 'surveyId', 'reminderKey']);
 
 // Keys that represent a title — shown as text without label
 const TITLE_KEYS = new Set(['eventTitle', 'title', 'eventName', 'name']);
@@ -371,6 +375,21 @@ const renderNotificationData = (type: AppNotification['type'], data: any, onNavi
             sx={{ mt: 0.5 }}
           >
             Feedback öffnen
+          </Button>
+        </Box>
+      );
+
+    case 'survey':
+      return (
+        <Box>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PollIcon />}
+            onClick={() => onNavigate(data.url ?? '/surveys')}
+            sx={{ mt: 0.5 }}
+          >
+            Zur Umfrage
           </Button>
         </Box>
       );

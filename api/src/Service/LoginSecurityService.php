@@ -10,6 +10,7 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Throwable;
 
 /**
  * Handles login security checks:
@@ -135,7 +136,11 @@ class LoginSecurityService
         // Warn the user only if they already have at least one known device
         // (on the very first login ever the list is empty → no point warning).
         if ([] !== $knownTokens) {
-            $this->sendNewDeviceWarning($user);
+            try {
+                $this->sendNewDeviceWarning($user);
+            } catch (Throwable) {
+                // Non-critical – a mailer failure must never block the login.
+            }
         }
 
         // Record the new device hash (evict oldest entry when the list is full).

@@ -16,6 +16,7 @@ use App\Repository\ParticipationStatusRepository;
 use App\Service\NotificationService;
 use App\Service\TeamMembershipService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -29,6 +30,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Tests that ParticipationController::respond() dispatches the correct XP event
  * based on the participation status and calendar event type.
  */
+#[AllowMockObjectsWithoutExpectations]
 class ParticipationControllerXpTest extends TestCase
 {
     private ParticipationController $controller;

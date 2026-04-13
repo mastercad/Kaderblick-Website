@@ -6,8 +6,10 @@ use App\DataFixtures\MasterData\CupFixtures;
 use App\Entity\Cup;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class CupFixturesTest extends TestCase
 {
     // -------------------------------------------------------------------------

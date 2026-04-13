@@ -11,6 +11,7 @@ use App\Service\TeamMembershipService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -18,6 +19,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 /**
  * Unit tests for CalendarEventSerializer::serialize().
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventSerializerTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

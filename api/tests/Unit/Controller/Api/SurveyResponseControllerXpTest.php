@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Event\SurveyCompletedEvent;
 use App\Repository\SurveyRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -21,6 +22,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Tests that SurveyResponseController::create() dispatches SurveyCompletedEvent
  * for authenticated users, and skips the dispatch for anonymous users.
  */
+#[AllowMockObjectsWithoutExpectations]
 class SurveyResponseControllerXpTest extends TestCase
 {
     private SurveyResponseController $controller;

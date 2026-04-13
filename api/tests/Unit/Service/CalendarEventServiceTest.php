@@ -22,12 +22,14 @@ use App\Service\CalendarEventService;
 use App\Service\TaskEventGeneratorService;
 use App\Service\TeamMembershipService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventServiceTest extends TestCase
 {
     public function testDeleteCalendarEventsForTaskRemovesAllRelatedEvents(): void

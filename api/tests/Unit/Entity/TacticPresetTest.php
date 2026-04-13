@@ -6,8 +6,10 @@ use App\Entity\Club;
 use App\Entity\TacticPreset;
 use App\Entity\User;
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class TacticPresetTest extends TestCase
 {
     // -----------------------------------------------------------------

@@ -7,11 +7,13 @@ use App\Entity\User;
 use App\Security\Voter\SurveyOptionVoter;
 use ArrayIterator;
 use Doctrine\Common\Collections\Collection;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class SurveyOptionVoterTest extends TestCase
 {
     private SurveyOptionVoter $voter;

@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -30,6 +31,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Unit tests for CalendarController::deleteEvent() and
  * CalendarController::updateCalendarEvent() — training-series aspects.
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarControllerDeleteTest extends TestCase
 {
     private EntityManagerInterface&MockObject $entityManager;

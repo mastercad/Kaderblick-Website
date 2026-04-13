@@ -11,6 +11,7 @@ use App\Entity\Tournament;
 use App\Entity\TournamentMatch;
 use App\Service\TournamentPdfService;
 use DateTime;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -24,6 +25,7 @@ use Twig\Environment;
  * buildTemplateData() is called via ReflectionMethod. All entity objects are
  * created in-memory — no database, no Twig rendering, no PDF generation.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TournamentPdfServiceScoreTest extends TestCase
 {
     private TournamentPdfService $service;

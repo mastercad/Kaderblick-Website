@@ -6,10 +6,12 @@ use App\Entity\Task;
 use App\Entity\User;
 use App\Security\Voter\TaskVoter;
 use ArrayIterator;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class TaskVoterTest extends TestCase
 {
     private TaskVoter $voter;

@@ -10,6 +10,7 @@ use App\Service\TrainingSeriesUpdateService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -20,6 +21,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * Verifies scope filtering, per-event date/time preservation, duration carry-over,
  * end-date extension/shortening, and the returned TrainingSeriesUpdateResult.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TrainingSeriesUpdateServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

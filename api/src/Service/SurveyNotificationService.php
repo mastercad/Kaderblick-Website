@@ -60,7 +60,7 @@ class SurveyNotificationService
             ($survey->getDescription() ?: 'Es wurde eine neue Umfrage erstellt.') . $dueDateText,
             [
                 'surveyId' => $survey->getId(),
-                'url' => '/surveys/' . $survey->getId(),
+                'url' => '/survey/fill/' . $survey->getId(),
             ]
         );
 
@@ -101,8 +101,7 @@ class SurveyNotificationService
             $urgencyText,
             [
                 'surveyId' => $survey->getId(),
-                'url' => '/surveys/' . $survey->getId(),
-                'reminderKey' => $reminderKey,
+                'url' => '/survey/fill/' . $survey->getId(),
             ]
         );
 
@@ -178,7 +177,7 @@ class SurveyNotificationService
             $userIds = array_merge($userIds, $clubUserIds);
         }
 
-        $userIds = array_unique($userIds);
+        $userIds = array_values(array_unique($userIds));
 
         if (empty($userIds)) {
             return [];

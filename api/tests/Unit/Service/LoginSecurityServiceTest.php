@@ -9,12 +9,16 @@ use App\Service\LoginSecurityService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Exception;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Contracts\Cache\CacheInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class LoginSecurityServiceTest extends TestCase
 {
     private CacheInterface&MockObject $cache;
@@ -297,6 +301,78 @@ class LoginSecurityServiceTest extends TestCase
 
         $newToken = $this->service->handleSuccessfulLogin($user, 'untrusted-cookie-value');
         $this->assertNotNull($newToken);
+    }
+
+    // ── REGRESSION: mailer failure must never block login ────────────────────
+
+    /**
+     * Regression test for the bug where a mailer error (e.g. "550 Recipient
+     * address rejected" on a local dev environment) caused handleSuccessfulLogin()
+     * to throw an exception, which propagated all the way up to the login
+     * controller and returned HTTP 500 instead of 200 with a JWT.
+     *
+     * The fix: sendNewDeviceWarning() is now wrapped in try/catch(\Throwable).
+     * A broken mailer must never prevent a user from logging in.
+     */
+    public function testHandleSuccessfulLoginDoesNotThrowWhenMailerFails(): void
+    {
+        $user = $this->makeUser('target@example.com');
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
+
+        $this->mailer->method('send')
+            ->willThrowException(new RuntimeException('550 Recipient address rejected'));
+        $this->em->method('flush');
+
+        // Must not throw – login must succeed despite mailer failure.
+        $newToken = $this->service->handleSuccessfulLogin($user, null);
+
+        $this->assertNotNull($newToken, 'Login must still return a new device token even when the warning email fails');
+    }
+
+    public function testHandleSuccessfulLoginStillStoresDeviceTokenWhenMailerFails(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
+
+        $this->mailer->method('send')
+            ->willThrowException(new RuntimeException('SMTP connection failed'));
+        $this->em->method('flush');
+
+        $newToken = $this->service->handleSuccessfulLogin($user, null);
+
+        $this->assertNotNull($newToken);
+        $this->assertContains(
+            hash('sha256', $newToken),
+            $user->getKnownDeviceTokens(),
+            'New device hash must be persisted even when warning email could not be sent'
+        );
+    }
+
+    public function testHandleSuccessfulLoginStillFlushesWhenMailerFails(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
+
+        $this->mailer->method('send')
+            ->willThrowException(new Exception('Mailer unavailable'));
+        $this->em->expects($this->atLeastOnce())->method('flush');
+
+        $this->service->handleSuccessfulLogin($user, null);
+    }
+
+    public function testHandleSuccessfulLoginDoesNotThrowOnTransportException(): void
+    {
+        $user = $this->makeUser();
+        $user->setKnownDeviceTokens([hash('sha256', 'existing-device-token')]);
+
+        $this->mailer->method('send')
+            ->willThrowException(new \Symfony\Component\Mailer\Exception\TransportException('Connection refused'));
+        $this->em->method('flush');
+
+        // TransportException is a \Throwable – must also be swallowed.
+        $result = $this->service->handleSuccessfulLogin($user, null);
+
+        $this->assertNotNull($result);
     }
 
     public function testHandleSuccessfulLoginEvictsOldestTokenWhenCapacityFull(): void

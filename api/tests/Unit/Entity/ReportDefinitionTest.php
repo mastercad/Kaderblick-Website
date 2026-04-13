@@ -5,8 +5,10 @@ namespace App\Tests\Unit\Entity;
 use App\Entity\ReportDefinition;
 use App\Entity\User;
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class ReportDefinitionTest extends TestCase
 {
     public function testConstructorSetsDefaults(): void

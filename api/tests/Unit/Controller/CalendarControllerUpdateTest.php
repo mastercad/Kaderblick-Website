@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -30,6 +31,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  *  - bulk update: series, from_here, same_weekday scopes
  *  - time-of-day change + duration change during bulk update
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarControllerUpdateTest extends TestCase
 {
     private EntityManagerInterface&MockObject $entityManager;

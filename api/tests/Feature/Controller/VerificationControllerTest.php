@@ -5,6 +5,7 @@ namespace Tests\Feature\Controller;
 use App\Entity\User;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Mailer\MailerInterface;
@@ -15,6 +16,7 @@ use Symfony\Component\Mailer\MailerInterface;
  * Covers the /api/verify-email/{token} and /api/resend-verification/{userId}
  * endpoints that were moved from RegisterController into VerificationController.
  */
+#[AllowMockObjectsWithoutExpectations]
 class VerificationControllerTest extends WebTestCase
 {
     private EntityManagerInterface $em;

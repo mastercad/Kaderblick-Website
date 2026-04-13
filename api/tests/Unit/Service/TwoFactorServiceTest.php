@@ -10,11 +10,13 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
 use OTPHP\TOTP;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
+#[AllowMockObjectsWithoutExpectations]
 class TwoFactorServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

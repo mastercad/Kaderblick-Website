@@ -7,11 +7,13 @@ use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\MatchPlanVoter;
 use App\Service\CoachTeamPlayerService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class MatchPlanVoterTest extends TestCase
 {
     /** @var MockObject&CoachTeamPlayerService */

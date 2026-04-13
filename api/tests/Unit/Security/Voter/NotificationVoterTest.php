@@ -5,10 +5,12 @@ namespace App\Tests\Unit\Security\Voter;
 use App\Entity\Notification;
 use App\Entity\User;
 use App\Security\Voter\NotificationVoter;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class NotificationVoterTest extends TestCase
 {
     private NotificationVoter $voter;

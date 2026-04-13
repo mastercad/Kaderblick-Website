@@ -6,6 +6,7 @@ namespace App\Tests\Unit\EventSubscriber;
 
 use App\EventSubscriber\SecurityAlertSubscriber;
 use App\Service\AdminAlertService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -15,6 +16,7 @@ use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationExc
 use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 
+#[AllowMockObjectsWithoutExpectations]
 class SecurityAlertSubscriberTest extends TestCase
 {
     private AdminAlertService&MockObject $adminAlertService;

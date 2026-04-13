@@ -6,6 +6,7 @@ use App\Entity\Team;
 use App\Entity\User;
 use App\Service\CoachTeamPlayerService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -19,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *  – GET /api/report/context-data   → Normaler Nutzer erhält nur seine Teams (via Service)
  *  – GET /api/report/context-data   → Normaler Nutzer ohne Zuordnungen → leere Arrays
  */
+#[AllowMockObjectsWithoutExpectations]
 class ReportContextDataTest extends WebTestCase
 {
     private const PREFIX = 'ctx-data-test-';

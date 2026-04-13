@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Event\CalendarEventCreatedEvent;
 use App\Service\CalendarEventService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -23,6 +24,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * Tests that CalendarController::createEvent() dispatches CalendarEventCreatedEvent
  * after a calendar event is successfully created.
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarControllerXpTest extends TestCase
 {
     private CalendarEventWriteController $controller;

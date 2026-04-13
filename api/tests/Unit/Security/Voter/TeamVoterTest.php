@@ -6,11 +6,13 @@ use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\TeamVoter;
 use App\Service\CoachTeamPlayerService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class TeamVoterTest extends TestCase
 {
     /** @var MockObject&CoachTeamPlayerService */

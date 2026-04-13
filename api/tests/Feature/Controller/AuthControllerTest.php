@@ -7,6 +7,7 @@ namespace App\Tests\Feature\Controller;
 use App\Entity\User;
 use App\Service\LoginSecurityService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -18,6 +19,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *  POST /api/logout
  *  GET  /api/token/refresh
  */
+#[AllowMockObjectsWithoutExpectations]
 class AuthControllerTest extends WebTestCase
 {
     private const PREFIX = 'auth-ctrl-test-';

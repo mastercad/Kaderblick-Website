@@ -3,6 +3,7 @@
 namespace App\Tests\Unit\Controller\Api;
 
 use App\Controller\Api\MatchdayController;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -22,6 +23,7 @@ use ReflectionMethod;
  *  - isMainPosition flag is set correctly.
  *  - Multiple matching players are all returned.
  */
+#[AllowMockObjectsWithoutExpectations]
 class MatchdayControllerFindPositionAlternativesTest extends TestCase
 {
     /** Calls the private method via Reflection. */

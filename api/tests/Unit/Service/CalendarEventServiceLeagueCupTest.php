@@ -13,6 +13,7 @@ use App\Service\TaskEventGeneratorService;
 use App\Service\TeamMembershipService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -30,6 +31,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  *  - key present + falsy value   → set null  (clearing)
  *  - key absent                  → leave unchanged
  */
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventServiceLeagueCupTest extends TestCase
 {
     private CalendarEventService $service;

@@ -5,10 +5,12 @@ namespace App\Tests\Unit\Security\Voter;
 use App\Entity\CalendarEventType;
 use App\Entity\User;
 use App\Security\Voter\CalendarEventTypeVoter;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class CalendarEventTypeVoterTest extends TestCase
 {
     private CalendarEventTypeVoter $voter;

@@ -12,6 +12,7 @@ use App\Service\PushNotificationService;
 use DateInterval;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -21,6 +22,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Twig\Environment;
 
+#[AllowMockObjectsWithoutExpectations]
 class AdminAlertServiceTest extends TestCase
 {
     private MailerInterface&MockObject $mailer;

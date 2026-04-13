@@ -4,8 +4,10 @@ namespace App\Tests\Unit\Entity;
 
 use App\Entity\Cup;
 use App\Entity\Game;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class GameCupTest extends TestCase
 {
     // -------------------------------------------------------------------------

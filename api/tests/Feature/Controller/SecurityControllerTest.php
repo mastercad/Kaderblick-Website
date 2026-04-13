@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Controller;
 
 use App\Service\LoginSecurityService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -13,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * Uses a mock LoginSecurityService so no database is required.
  */
+#[AllowMockObjectsWithoutExpectations]
 class SecurityControllerTest extends WebTestCase
 {
     protected function tearDown(): void

@@ -10,8 +10,10 @@ use App\Repository\PlayerRepository;
 use App\Repository\PlayerTeamAssignmentRepository;
 use App\Repository\TeamRepository;
 use App\Service\GameDetailsSyncService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class GameDetailsSyncServiceTest extends TestCase
 {
     public function testSyncGameDetailsUpdatesDatabaseCorrectly(): void

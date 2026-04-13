@@ -6,6 +6,7 @@ use App\Entity\SystemSetting;
 use App\Repository\SystemSettingRepository;
 use App\Service\SystemSettingService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * Focuses on the getMatchdayLookaheadDays() method that was introduced to
  * control how many days ahead upcoming games are shown in "Mein Spieltag".
  */
+#[AllowMockObjectsWithoutExpectations]
 class SystemSettingServiceTest extends TestCase
 {
     private SystemSettingRepository&MockObject $repository;

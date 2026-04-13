@@ -5,11 +5,13 @@ namespace App\Tests\Unit\Security\Voter;
 use App\Entity\Cup;
 use App\Entity\User;
 use App\Security\Voter\CupVoter;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class CupVoterTest extends TestCase
 {
     private CupVoter $voter;

@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Event\TaskCompletedEvent;
 use App\Repository\TaskAssignmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -22,6 +23,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  * Tests that TaskController::updateAssignment() dispatches TaskCompletedEvent
  * when the assignment status is set to 'erledigt'.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TaskControllerXpTest extends TestCase
 {
     /** @var EventDispatcherInterface&MockObject */

@@ -4,8 +4,10 @@ namespace App\Tests\Unit\Controller;
 
 use App\Controller\VideosController;
 use App\Service\VideoTimelineService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class VideosControllerTest extends TestCase
 {
     /**

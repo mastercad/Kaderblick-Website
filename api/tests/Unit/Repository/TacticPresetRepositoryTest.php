@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -21,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  * Key assertion: setParameter() must be used for each named parameter –
  * NOT setParameters(array), which would throw a TypeError at runtime.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TacticPresetRepositoryTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

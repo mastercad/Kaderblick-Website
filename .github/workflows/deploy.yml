@@ -57,7 +57,7 @@ jobs:
       - name: Prepare release files locally
         run: |
           mkdir -p build/api/config build/frontend
-          cp docker-compose.yml docker-compose.staging.yml docker-compose.db.yml docker-compose.maintenance.yml build/
+          cp docker-compose.yml docker-compose.staging.yml docker-compose.demo.yml docker-compose.db.yml docker-compose.maintenance.yml build/
           cp -r .docker build/
           cp api/.env.dist build/api/
           cp -r api/config/packages api/config/routes api/config/routes.yaml \

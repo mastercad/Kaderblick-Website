@@ -11,6 +11,7 @@ use App\Service\EmailVerificationService;
 use App\Service\SystemSettingService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -32,6 +33,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  *  - ProfileCompletenessReachedEvent is dispatched for each milestone reached
  *  - No milestone event is dispatched when the profile is incomplete
  */
+#[AllowMockObjectsWithoutExpectations]
 class ProfileControllerXpTest extends TestCase
 {
     private ProfileController $controller;

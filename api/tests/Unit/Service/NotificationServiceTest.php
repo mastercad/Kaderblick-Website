@@ -7,9 +7,11 @@ use App\Entity\User;
 use App\Repository\NotificationRepository;
 use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class NotificationServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

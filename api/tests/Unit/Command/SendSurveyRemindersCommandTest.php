@@ -7,6 +7,7 @@ use App\Entity\Survey;
 use App\Repository\SurveyRepository;
 use App\Service\HeartbeatService;
 use App\Service\SurveyNotificationService;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -16,6 +17,7 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[AllowMockObjectsWithoutExpectations]
 class SendSurveyRemindersCommandTest extends TestCase
 {
     private SurveyRepository&MockObject $surveyRepository;

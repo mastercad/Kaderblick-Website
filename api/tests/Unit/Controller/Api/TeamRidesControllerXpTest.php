@@ -11,6 +11,7 @@ use App\Repository\TeamRideRepository;
 use App\Service\NotificationService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Tests that TeamRidesController::add() dispatches CarpoolOfferedEvent
  * after a ride is successfully created.
  */
+#[AllowMockObjectsWithoutExpectations]
 class TeamRidesControllerXpTest extends TestCase
 {
     private TeamRidesController $controller;

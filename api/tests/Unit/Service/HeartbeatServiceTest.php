@@ -8,11 +8,13 @@ use App\Service\HeartbeatService;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class HeartbeatServiceTest extends TestCase
 {
     private CacheInterface&MockObject $cache;

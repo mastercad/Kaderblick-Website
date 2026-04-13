@@ -10,6 +10,7 @@ use App\Repository\ParticipationStatusRepository;
 use App\Service\NotificationService;
 use App\Service\TeamMembershipService;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -28,6 +29,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  *  - SUPERADMIN bypasses the membership check
  *  - respond() returns 403 for non-eligible users
  */
+#[AllowMockObjectsWithoutExpectations]
 class ParticipationControllerAccessTest extends TestCase
 {
     private ParticipationController $controller;

@@ -8,11 +8,13 @@ use App\Enum\SystemAlertCategory;
 use App\Repository\SystemAlertOccurrenceRepository;
 use App\Repository\SystemAlertRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\Request;
 
+#[AllowMockObjectsWithoutExpectations]
 class SystemAlertControllerTest extends TestCase
 {
     private SystemAlertRepository&MockObject $alertRepository;

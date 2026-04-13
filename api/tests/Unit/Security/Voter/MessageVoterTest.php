@@ -5,10 +5,12 @@ namespace App\Tests\Unit\Security\Voter;
 use App\Entity\Message;
 use App\Entity\User;
 use App\Security\Voter\MessageVoter;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class MessageVoterTest extends TestCase
 {
     private MessageVoter $voter;

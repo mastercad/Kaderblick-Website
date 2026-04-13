@@ -10,11 +10,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use Generator;
 use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\WebPush;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class PushNotificationServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;

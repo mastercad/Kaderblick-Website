@@ -20,6 +20,7 @@ use App\Repository\CalendarEventRepository;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -34,6 +35,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * - Turniere werden über Tournament::getTeams() (TournamentTeam) gefunden
  * - Nicht-relevante Events werden herausgefiltert
  */
+#[AllowMockObjectsWithoutExpectations]
 class MyTeamControllerEventFilterTest extends TestCase
 {
     private const MY_TEAM_ID = 1;

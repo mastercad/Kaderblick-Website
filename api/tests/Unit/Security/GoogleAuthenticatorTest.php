@@ -17,6 +17,7 @@ use KnpU\OAuth2ClientBundle\Exception\InvalidStateException;
 use League\OAuth2\Client\Provider\ResourceOwnerInterface;
 use League\OAuth2\Client\Token\AccessToken;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -30,6 +31,7 @@ use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationExc
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Twig\Environment;
 
+#[AllowMockObjectsWithoutExpectations]
 class GoogleAuthenticatorTest extends TestCase
 {
     private ClientRegistry&MockObject $clientRegistry;
