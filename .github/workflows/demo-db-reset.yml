@@ -1,0 +1,88 @@
+name: Demo DB Reset (täglich)
+
+# Setzt die Demo-Datenbank täglich um 0:00 UTC über die Fixtures zurück.
+# NUR die kaderblick_demo-Datenbank wird zurückgesetzt – Production und Staging bleiben unberührt.
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Jeden Tag um 0:00 UTC
+  workflow_dispatch:       # Manueller Start jederzeit möglich
+
+concurrency:
+  group: demo-db-reset
+  cancel-in-progress: false
+
+jobs:
+  reset-demo-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable demo maintenance
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            touch "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
+            chmod 644 "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
+
+      - name: Reset demo database
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -proot -e "DROP DATABASE IF EXISTS kaderblick_demo;"
+            docker exec kaderblick-db mysql -uroot -proot -e "CREATE DATABASE kaderblick_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON kaderblick_demo.* TO 'kaderblick'@'%'; FLUSH PRIVILEGES;"
+            echo "Demo-DB zurückgesetzt."
+
+      - name: Run migrations on demo
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.MAIN_PROJECT_PATH }}/demo_current"
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              exec -T --user www-data api \
+              bin/console doctrine:migrations:migrate --no-interaction --env=prod
+            echo "Migrationen auf Demo abgeschlossen."
+
+      - name: Load fixtures on demo
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.MAIN_PROJECT_PATH }}/demo_current"
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              exec -T --user www-data api \
+              bin/console doctrine:fixtures:load \
+              --env=prod --no-interaction --group=master
+            echo "Fixtures auf Demo geladen."
+
+      - name: Disable demo maintenance
+        if: always()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            rm -f "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"

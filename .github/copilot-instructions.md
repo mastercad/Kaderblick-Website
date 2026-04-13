@@ -39,7 +39,7 @@
 - **External:** Google OAuth (see `client_secret_*.json` in `app/`)
 
 ## Examples
-- Add a new entity: Create in `src/Entity/`, update `src/Repository/`, generate migration, run `bin/console doctrine:migrations:migrate`.
+- Add a new entity: Create in `src/Entity/`, update `src/Repository/`, generate migration, run `bin/console app:doctrine:migrate`.
 - Add an API endpoint: Create controller in `src/Controller/ApiResource/`, define route in `config/routes/`.
 
 ## Tips

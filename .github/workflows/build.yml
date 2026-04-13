@@ -82,6 +82,17 @@ jobs:
             --push .
           rm -f frontend/.env
 
+      - name: Build and push frontend-demo image
+        run: |
+          echo "VITE_BACKEND_URL=https://demo-api.kaderblick.de" > frontend/.env
+          docker buildx build \
+            --cache-from type=gha,scope=frontend \
+            --cache-to   type=gha,mode=max,scope=frontend \
+            -f .docker/frontend/Dockerfile \
+            -t ghcr.io/mastercad/kaderblick/frontend-demo:${{ github.sha }} \
+            --push .
+          rm -f frontend/.env
+
       - name: Build and push maintenance image
         run: |
           docker buildx build \
@@ -118,6 +129,16 @@ jobs:
         uses: actions/delete-package-versions@v5
         with:
           package-name: kaderblick%2Ffrontend-staging
+          package-type: container
+          min-versions-to-keep: 5
+          ignore-versions: latest
+
+      - name: Cleanup old GHCR images (frontend-demo)
+        if: always()
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: kaderblick%2Ffrontend-demo
           package-type: container
           min-versions-to-keep: 5
           ignore-versions: latest

@@ -52,6 +52,7 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           echo "prod_dir=${{ secrets.MAIN_PROJECT_PATH }}/production_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "staging_dir=${{ secrets.MAIN_PROJECT_PATH }}/staging_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "demo_dir=${{ secrets.MAIN_PROJECT_PATH }}/demo_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
 
       - name: Prepare release files locally
         run: |
@@ -85,7 +86,7 @@ jobs:
           target: "${{ steps.release.outputs.prod_dir }}"
           strip_components: 1
 
-      - name: Create staging release directory on server
+      - name: Create non-production release directories on server
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PLESK_HOST }}
@@ -97,6 +98,10 @@ jobs:
             cp -r "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}"
             chmod 755 "${{ steps.release.outputs.staging_dir }}"
             chown -R ${{ secrets.PLESK_USERNAME }}:psacln "${{ steps.release.outputs.staging_dir }}"
+            mkdir -p "${{ secrets.MAIN_PROJECT_PATH }}/demo_releases"
+            cp -r "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.demo_dir }}"
+            chmod 755 "${{ steps.release.outputs.demo_dir }}"
+            chown -R ${{ secrets.PLESK_USERNAME }}:psacln "${{ steps.release.outputs.demo_dir }}"
 
       - name: Deploy JWT keys
         uses: appleboy/ssh-action@v1.2.5
@@ -107,7 +112,7 @@ jobs:
           script: |
             set -e
             ROOT_DIR="${{ secrets.MAIN_PROJECT_PATH }}"
-            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}"; do
+            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}" "${{ steps.release.outputs.demo_dir }}"; do
               mkdir -p "$DIR/api/config/jwt"
               if [ -d "$ROOT_DIR/api/config/jwt" ]; then
                 cp -r "$ROOT_DIR/api/config/jwt/"* "$DIR/api/config/jwt/" 2>/dev/null || true
@@ -152,6 +157,21 @@ jobs:
             chmod 655 "$STAGING_DIR/api/config/secrets/staging/staging.decrypt.private.php"
             echo "VITE_BACKEND_URL=https://staging-api.kaderblick.de" > "$STAGING_DIR/frontend/.env"
 
+            # --- Demo ---
+            DEMO_DIR="${{ steps.release.outputs.demo_dir }}"
+            cp "$DEMO_DIR/api/.env.dist" "$DEMO_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$DEMO_DIR/api/.env"
+            sed -i 's|^GOOGLE_REDIRECT_URI=.*$|GOOGLE_REDIRECT_URI=https://demo.kaderblick.de/oauth2callback|' "$DEMO_DIR/api/.env"
+            sed -i 's|^FRONTEND_URL=.*$|FRONTEND_URL=https://demo.kaderblick.de|' "$DEMO_DIR/api/.env"
+            echo "APP_DEBUG=0"                           >> "$DEMO_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$DEMO_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$DEMO_DIR/api/.env"
+            mkdir -p "$DEMO_DIR/api/config/secrets/prod"
+            echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
+              > "$DEMO_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 655 "$DEMO_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            echo "VITE_BACKEND_URL=https://demo-api.kaderblick.de" > "$DEMO_DIR/frontend/.env"
+
       - name: Prepare shared uploads symlinks
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -164,7 +184,7 @@ jobs:
             mkdir -p "$SHARED"
             chown -R www-data:www-data "$SHARED"
             chmod -R 775 "$SHARED"
-            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}"; do
+            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}" "${{ steps.release.outputs.demo_dir }}"; do
               mkdir -p "$DIR/public"
               rm -rf "$DIR/public/uploads"
               ln -s "$SHARED" "$DIR/public/uploads"
@@ -444,6 +464,105 @@ jobs:
             rm -f "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_staging.flag"
 
       # ============================================================
+      # DEMO DEPLOYMENT (nach erfolgreichem Staging-Deploy)
+      # ============================================================
+
+      - name: Enable demo maintenance
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            touch "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
+            chmod 644 "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
+
+      - name: Setup demo database
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS kaderblick_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON kaderblick_demo.* TO 'kaderblick'@'%'; FLUSH PRIVILEGES;"
+            echo "Demo-DB bereit."
+
+      - name: Set demo_current symlink
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            ln -sfn "${{ steps.release.outputs.demo_dir }}" "${{ secrets.MAIN_PROJECT_PATH }}/demo_current"
+            mkdir -p "${{ secrets.MAIN_PROJECT_PATH }}/demo_current/api/var/cache" \
+                     "${{ secrets.MAIN_PROJECT_PATH }}/demo_current/api/var/log"
+
+      - name: Deploy demo containers
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.MAIN_PROJECT_PATH }}/demo_current"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag || github.sha }}
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              down --remove-orphans --stop-timeout 10 api frontend 2>/dev/null || true
+            sleep 2
+            command -v conntrack >/dev/null 2>&1 && conntrack -D -t DNAT 2>/dev/null || true
+            command -v conntrack >/dev/null 2>&1 && conntrack -D --state UNREPLIED 2>/dev/null || true
+            DEMO_DB_URL=$(echo "${{ secrets.DATABASE_URL }}" | sed 's|3306/kaderblick|3306/kaderblick_demo|')
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
+            DATABASE_URL="$DEMO_DB_URL" XDEBUG_MODE=off \
+            PMA_PORT=28082 API_PORT=28081 REACT_PORT=28080 \
+            HOST_UID=$(id -u kaderblick-ftp-admin) HOST_GID=$(id -g kaderblick-ftp-admin) \
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              up -d --no-build --force-recreate api frontend
+            mkdir -p api/var
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+
+      - name: Demo setup (secrets / cache / migrations / JWT)
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          env: prod
+          compose_project: demo
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_current
+          main_project_path: ${{ secrets.MAIN_PROJECT_PATH }}
+
+      - name: Load fixtures on demo
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          env: prod
+          compose_project: demo
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_current
+
+      - name: Disable demo maintenance
+        if: always()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            rm -f "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
+
+      # ============================================================
       # NACH ERFOLGREICHEM DEPLOY: :latest Tag in GHCR setzen
       # ============================================================
 
@@ -459,7 +578,7 @@ jobs:
         if: success()
         run: |
           TAG="${{ inputs.image_tag || github.sha }}"
-          for IMAGE in api frontend-prod frontend-staging maintenance; do
+          for IMAGE in api frontend-prod frontend-staging frontend-demo maintenance; do
             docker pull ghcr.io/mastercad/kaderblick/${IMAGE}:${TAG}
             docker tag  ghcr.io/mastercad/kaderblick/${IMAGE}:${TAG} ghcr.io/mastercad/kaderblick/${IMAGE}:latest
             docker push ghcr.io/mastercad/kaderblick/${IMAGE}:latest
@@ -476,6 +595,7 @@ jobs:
             BASE="${{ secrets.MAIN_PROJECT_PATH }}"
             [ -d "$BASE/production_releases" ] && cd "$BASE/production_releases" && ls -1dt * | tail -n +4 | xargs -r rm -rf
             [ -d "$BASE/staging_releases" ]    && cd "$BASE/staging_releases"    && ls -1dt * | tail -n +4 | xargs -r rm -rf
+            [ -d "$BASE/demo_releases" ]       && cd "$BASE/demo_releases"       && ls -1dt * | tail -n +4 | xargs -r rm -rf
 
       - name: Clean up old Docker data
         if: always()

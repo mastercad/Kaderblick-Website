@@ -1,0 +1,12 @@
+# Demo-spezifische Overrides
+# Verwendung: docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo up
+#
+# Zweck:
+#   - Frontend-Image mit demo-spezifischer VITE_BACKEND_URL (demo-api.kaderblick.de)
+#   - var/ liegt wie bei Production auf dem Container-Filesystem → bei --force-recreate
+#     immer sauber, keine korrupten Zwischendateien aus fehlgeschlagenen Deployments.
+
+services:
+  frontend:
+    # Demo-Image hat VITE_BACKEND_URL=https://demo-api.kaderblick.de eingebettet
+    image: ghcr.io/mastercad/kaderblick/frontend-demo:${IMAGE_TAG:-latest}
