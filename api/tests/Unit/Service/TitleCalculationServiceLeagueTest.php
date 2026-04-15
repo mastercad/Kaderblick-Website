@@ -3,6 +3,7 @@
 namespace App\Tests\Unit\Service;
 
 use App\Repository\PlayerTitleRepository;
+use App\Service\GoalCountingService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -21,7 +22,8 @@ class TitleCalculationServiceLeagueTest extends TestCase
         $repo->method('findOneBy')->willReturn(null);
         $repo->method('deactivateTitles');
 
-        $service = new TitleCalculationService($em, $repo);
+        $goalCountingService = $this->createMock(GoalCountingService::class);
+        $service = new TitleCalculationService($em, $repo, $goalCountingService);
         $league = $this->getMockBuilder(\App\Entity\League::class)->onlyMethods(['getId', 'getName'])->getMock();
         $league->method('getId')->willReturn(1);
         $league->method('getName')->willReturn('Testliga');
@@ -84,7 +86,7 @@ class TitleCalculationServiceLeagueTest extends TestCase
         });
 
         $service = $this->getMockBuilder(TitleCalculationService::class)
-            ->setConstructorArgs([$em, $repo])
+            ->setConstructorArgs([$em, $repo, $this->createMock(GoalCountingService::class)])
             ->onlyMethods(['debugGoalsForSeason'])
             ->getMock();
 

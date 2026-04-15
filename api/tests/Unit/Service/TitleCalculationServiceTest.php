@@ -6,6 +6,7 @@ use App\Entity\PlayerTitle;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Repository\PlayerTitleRepository;
+use App\Service\GoalCountingService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -78,7 +79,8 @@ class TitleCalculationServiceTest extends TestCase
         $repo->method('findOneBy')->willReturn(null);
         $repo->method('deactivateTitles');
 
-        $service = new TitleCalculationService($em, $repo);
+        $goalCountingService = $this->createMock(GoalCountingService::class);
+        $service = new TitleCalculationService($em, $repo, $goalCountingService);
 
         $player1 = new \App\Entity\Player();
         $reflection1 = new ReflectionClass($player1);
@@ -122,7 +124,8 @@ class TitleCalculationServiceTest extends TestCase
         $repo->method('deactivateTitles');
         $em->method('getRepository')->willReturn($repo);
 
-        $service = new TitleCalculationService($em, $repo);
+        $goalCountingService = $this->createMock(GoalCountingService::class);
+        $service = new TitleCalculationService($em, $repo, $goalCountingService);
 
         $userRelationMock = new DummyUserRelation($user);
         $playerMock = new DummyPlayer($userRelationMock);
@@ -162,7 +165,8 @@ class TitleCalculationServiceTest extends TestCase
         $repo->method('findOneBy')->willReturn(null);
         $repo->method('deactivateTitles');
 
-        $service = new TitleCalculationService($em, $repo);
+        $goalCountingService = $this->createMock(GoalCountingService::class);
+        $service = new TitleCalculationService($em, $repo, $goalCountingService);
 
         $player1 = $this->getMockBuilder(\App\Entity\Player::class)->onlyMethods(['getId', 'getLastName'])->getMock();
         $player1->method('getId')->willReturn(1);

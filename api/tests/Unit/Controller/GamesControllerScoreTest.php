@@ -2,37 +2,33 @@
 
 namespace App\Tests\Unit\Controller;
 
-use App\Controller\GamesController;
 use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\GameEventType;
 use App\Entity\Team;
+use App\Service\GoalCountingService;
 use DateTime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 
 /**
- * Unit tests for the private collectScores() method in the legacy Twig
- * GamesController (App\Controller\GamesController).
+ * Smoke-tests for goal-variant codes against GoalCountingService::collectScores().
  *
- * The method is accessed via reflection so no HTTP requests are needed.
- * All entity objects are created in-memory (no database).
+ * Originally tested the private GamesController::collectScores() method via
+ * reflection. After extracting the logic to GoalCountingService, this suite
+ * now exercises the service directly, covering additional goal-variant codes
+ * (freekick_goal, cross_goal, pressing_goal, sub_goal, var_goal_confirmed)
+ * that complement the dedicated GoalCountingServiceTest.
  */
 class GamesControllerScoreTest extends TestCase
 {
-    private GamesController $controller;
-    private ReflectionMethod $collectScores;
+    private GoalCountingService $service;
     private Team $homeTeam;
     private Team $awayTeam;
 
     protected function setUp(): void
     {
-        $this->controller = new GamesController();
-
-        $this->collectScores = new ReflectionMethod(GamesController::class, 'collectScores');
-        $this->collectScores->setAccessible(true);
-
+        $this->service = new GoalCountingService();
         $this->homeTeam = (new Team())->setName('Home');
         $this->awayTeam = (new Team())->setName('Away');
     }
@@ -61,7 +57,7 @@ class GamesControllerScoreTest extends TestCase
      */
     private function invoke(array $events, Game $game): array
     {
-        return $this->collectScores->invoke($this->controller, $events, $game);
+        return $this->service->collectScores($events, $game);
     }
 
     // ── goal variant codes that must count for the scoring team ───────────────
@@ -160,7 +156,6 @@ class GamesControllerScoreTest extends TestCase
             ->setGameEventType(null)  // explicitly set to null
             ->setTeam($this->homeTeam)
             ->setTimestamp(new DateTime());
-        // No GameEventType set
 
         $scores = $this->invoke([$event], $game);
 

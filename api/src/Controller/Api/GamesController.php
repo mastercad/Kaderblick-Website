@@ -22,6 +22,7 @@ use App\Security\Voter\GameVoter;
 use App\Security\Voter\MatchPlanVoter;
 use App\Security\Voter\VideoVoter;
 use App\Service\CoachTeamPlayerService;
+use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
 use App\Service\UserTitleService;
 use App\Service\VideoTimelineService;
@@ -84,6 +85,7 @@ class GamesController extends ApiController
         private readonly VideoTimelineService $videoTimelineService,
         private readonly TournamentAdvancementService $advancementService,
         private readonly CoachTeamPlayerService $coachTeamPlayerService,
+        private readonly GoalCountingService $goalCountingService,
     ) {
         $this->entityManager = $entityManager;
     }
@@ -337,7 +339,7 @@ class GamesController extends ApiController
         }
         ksort($cameras);
 
-        $scores = $this->collectScores($gameEvents, $game);
+        $scores = $this->goalCountingService->collectScores($gameEvents, $game);
         $location = $game->getCalendarEvent()->getLocation();
         /** @var User|null $currentUser */
         $currentUser = $this->getUser();
@@ -405,7 +407,7 @@ class GamesController extends ApiController
         };
 
         $gameEvents = $gameEventRepository->findAllGameEvents($game);
-        $scores = $this->collectScores($gameEvents, $game);
+        $scores = $this->goalCountingService->collectScores($gameEvents, $game);
 
         // Events serialisieren (nur relevante Felder)
         $serializeEvent = function ($event) use ($userTitleService) {
@@ -689,7 +691,7 @@ class GamesController extends ApiController
                 foreach ($game->getGameEvents() as $gameEvent) {
                     $gameEvents[] = $gameEvent;
                 }
-                $scores = $this->collectScores($gameEvents, $game);
+                $scores = $this->goalCountingService->collectScores($gameEvents, $game);
                 $finished[] = [
                     'game' => $serializeGame($game),
                     'homeScore' => $scores['home'],
@@ -946,49 +948,5 @@ class GamesController extends ApiController
             'allPlayers' => $allPlayers,
             'hasParticipationData' => $hasParticipationData,
         ]);
-    }
-
-    /**
-     * @param array<int, GameEvent> $gameEvents
-     *
-     * @return array<string, int>
-     */
-    private function collectScores(array $gameEvents, Game $game): array
-    {
-        // Codes that must NOT be counted even though they contain 'goal'
-        $nonGoalCodes = ['offside_goal', 'var_goal_denied', 'own_goal_attempt'];
-
-        $homeScore = 0;
-        $awayScore = 0;
-
-        foreach ($gameEvents as $gameEvent) {
-            $eventType = $gameEvent->getGameEventType();
-            if (null === $eventType) {
-                continue;
-            }
-
-            $code = $eventType->getCode();
-
-            if ('own_goal' === $code) {
-                // Own goal counts for the opponent
-                if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$awayScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
-                    ++$homeScore;
-                }
-            } elseif (!in_array($code, $nonGoalCodes, true) && str_contains($code, 'goal')) {
-                // All other goal variants count for the scoring team
-                if ($gameEvent->getTeam() === $game->getHomeTeam()) {
-                    ++$homeScore;
-                } elseif ($gameEvent->getTeam() === $game->getAwayTeam()) {
-                    ++$awayScore;
-                }
-            }
-        }
-
-        return [
-            'home' => $homeScore,
-            'away' => $awayScore
-        ];
     }
 }

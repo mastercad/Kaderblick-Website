@@ -31,7 +31,7 @@ class GameEvent
     #[ORM\JoinColumn(name: 'game_event_type_id', referencedColumnName: 'id', nullable: false)]
     #[Groups(['game_event:read', 'game_event:write', 'game:read', 'calendar_event:read'])]
     #[MaxDepth(1)]
-    private ?GameEventType $gameEventType;
+    private ?GameEventType $gameEventType = null;
 
     #[ORM\ManyToOne(targetEntity: Player::class, inversedBy: 'gameEvents')]
     #[ORM\JoinColumn(name: 'player_id', referencedColumnName: 'id', nullable: true)]

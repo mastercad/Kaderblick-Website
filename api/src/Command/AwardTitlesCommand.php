@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\GameEvent;
 use App\Entity\PlayerTitle;
+use App\Service\GoalCountingService;
 use App\Service\HeartbeatService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +25,7 @@ class AwardTitlesCommand extends Command
         private EntityManagerInterface $entityManager,
         private TitleCalculationService $titleCalculationService,
         private HeartbeatService $heartbeatService,
+        private GoalCountingService $goalCountingService,
     ) {
         parent::__construct();
     }
@@ -60,7 +62,7 @@ class AwardTitlesCommand extends Command
                 $relations[] = $userRelation->getRelationType()->getIdentifier();
             }
 
-            if ('goal' !== $gameEvent->getGameEventType()?->getCode()) {
+            if (!$this->goalCountingService->isGoalForScorer($gameEvent->getGameEventType()?->getCode() ?? '')) {
                 continue;
             }
 

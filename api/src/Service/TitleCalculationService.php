@@ -18,7 +18,8 @@ class TitleCalculationService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private PlayerTitleRepository $playerTitleRepository
+        private PlayerTitleRepository $playerTitleRepository,
+        private GoalCountingService $goalCountingService,
     ) {
     }
 
@@ -291,6 +292,8 @@ class TitleCalculationService
      */
     public function debugGoalsForSeason(?string $season = null, ?Team $team = null, ?League $league = null): array
     {
+        [$goalDql, $goalParams] = $this->goalCountingService->getScorerGoalDqlCondition('gt.code');
+
         $qb = $this->entityManager->getRepository('App\\Entity\\GameEvent')->createQueryBuilder('ge')
             ->select('ge', 'player', 'game', 'ce', 'cet', 'team', 'gt', 'l')
             ->leftJoin('ge.player', 'player')
@@ -300,13 +303,13 @@ class TitleCalculationService
             ->leftJoin('ge.team', 'team')
             ->leftJoin('ge.gameEventType', 'gt')
             ->leftJoin('game.league', 'l')
-            ->where('(gt.code = :goalCode OR gt.code LIKE :likeGoal)')
-            ->andWhere('gt.code != :ownGoal')
+            ->where($goalDql)
             ->andWhere('cet.name = :eventTypeName')
-            ->setParameter('goalCode', 'goal')
-            ->setParameter('likeGoal', '%_goal')
-            ->setParameter('ownGoal', 'own_goal')
             ->setParameter('eventTypeName', 'Spiel');
+
+        foreach ($goalParams as $key => $value) {
+            $qb->setParameter($key, $value);
+        }
 
         if ($season) {
             [$startYear, $endYear] = explode('/', $season);

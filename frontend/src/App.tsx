@@ -77,6 +77,7 @@ const SurfaceTypes = lazy(() => import('./pages/SurfaceTypes'));
 const GameEventTypes = lazy(() => import('./pages/GameEventTypes'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const MyTeam = lazy(() => import('./pages/MyTeam'));
+const ClubSeason = lazy(() => import('./pages/ClubSeason'));
 const Nationalities = lazy(() => import('./pages/Nationalities'));
 const CoachLicenses = lazy(() => import('./pages/CoachLicenses'));
 const Leagues = lazy(() => import('./pages/Leagues'));
@@ -299,6 +300,7 @@ function App() {
                     <Route path="/unlock-account" element={<UnlockAccount />} />
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route path="/my-team" element={<ProtectedRoute><MyTeam /></ProtectedRoute>} />
+                    <Route path="/mein-verein" element={<ProtectedRoute><ClubSeason /></ProtectedRoute>} />
                     <Route path="/surveys" element={<ProtectedRoute><SurveyList /></ProtectedRoute>} />
                     <Route path="/team-size-guide" element={<ProtectedRoute><SizeGuide /></ProtectedRoute>} />
                     <Route path="/games" element={<ProtectedRoute><GamesContainer /></ProtectedRoute>} />

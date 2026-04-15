@@ -190,7 +190,7 @@ class PushController extends AbstractController
         if (0 === $subscriptionCount) {
             $issues[] = 'no_subscriptions';
         }
-        if ($recentStats['total'] > 0 && 0 === $recentStats['sent']) {
+        if ($subscriptionCount > 0 && $recentStats['total'] > 0 && 0 === $recentStats['sent']) {
             $issues[] = ($hasRecoveredPushDelivery || !$hasEnoughDeliverySamples)
                 ? 'notification_queue_stuck'
                 : 'all_deliveries_failed';
@@ -198,7 +198,7 @@ class PushController extends AbstractController
         if ($unsentCount > 5) {
             $issues[] = 'many_unsent_stuck';
         }
-        if ($hasEnoughDeliverySamples && $recentStats['failRate'] > 50 && !$hasRecoveredPushDelivery) {
+        if ($subscriptionCount > 0 && $hasEnoughDeliverySamples && $recentStats['failRate'] > 50 && !$hasRecoveredPushDelivery) {
             $issues[] = 'high_failure_rate';
         }
 
