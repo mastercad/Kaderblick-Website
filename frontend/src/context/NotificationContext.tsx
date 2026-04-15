@@ -229,6 +229,24 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Update document.title with unread count (WhatsApp-style: "(3) Kaderblick App")
+  useEffect(() => {
+    const applyCount = () => {
+      const baseTitle = document.title.replace(/^\(\d+\)\s*/, '');
+      document.title = unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+    };
+
+    applyCount();
+
+    // Re-apply whenever react-helmet-async updates the title (e.g. on route change)
+    const titleEl = document.querySelector('title');
+    if (!titleEl) return;
+    const observer = new MutationObserver(applyCount);
+    observer.observe(titleEl, { childList: true });
+
+    return () => observer.disconnect();
+  }, [unreadCount]);
+
   return (
     <NotificationContext.Provider value={{
       notifications,
