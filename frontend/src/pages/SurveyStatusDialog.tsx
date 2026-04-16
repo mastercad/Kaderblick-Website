@@ -21,6 +21,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import { apiJson } from '../utils/api';
+import EmptyStateHint from '../components/EmptyStateHint';
 import SurveyStatsPanel from '../components/SurveyStatsPanel';
 
 interface SurveyStatusDialogProps {
@@ -120,7 +121,12 @@ const ResultsView: React.FC<{ results: any }> = ({ results }) => {
       </Paper>
 
       {results.results.length === 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>Noch keine Auswertungsdaten vorhanden.</Alert>
+        <EmptyStateHint
+          icon={<PollIcon />}
+          title="Noch keine Auswertungsdaten"
+          description="Bisher haben noch keine Teilnehmer abgestimmt."
+          compact
+        />
       )}
 
       {/* Per-question results */}
@@ -305,9 +311,12 @@ const TextResults: React.FC<{ answers: any }> = ({ answers }) => {
 
   if (textList.length === 0) {
     return (
-      <Alert severity="info" variant="outlined" sx={{ borderStyle: 'dashed' }}>
-        Noch keine Textantworten vorhanden.
-      </Alert>
+      <EmptyStateHint
+        icon={<PollIcon />}
+        title="Noch keine Textantworten"
+        description="Bisher wurden keine Textantworten eingereicht."
+        compact
+      />
     );
   }
 

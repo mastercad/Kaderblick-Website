@@ -37,8 +37,11 @@ export default function NavMobileBottomBar({
   const go = (path: string) => { onMobileMenuClose(); navigate(path); };
 
   const activeValue =
-    ['dashboard', 'my-team', 'calendar', 'games'].find(k => active(k)) ??
-    (mobileMenuOpen ? 'more' : false);
+    active('dashboard')    ? 'dashboard' :
+    active('spielbetrieb') ? 'games'     :
+    active('team')         ? 'my-team'   :
+    active('calendar')     ? 'calendar'  :
+    mobileMenuOpen         ? 'more'      : false;
 
   return (
     <Paper

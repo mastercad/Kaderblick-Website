@@ -1,13 +1,5 @@
 name: Build Docker Images
 
-# Reusable workflow: baut alle Docker-Images und pusht sie nach GHCR.
-# Wird von ci.yml aufgerufen, bevor QA und Deploy-Jobs starten.
-#
-# Strategie bei unverändertem Code:
-#   Wenn sich ein Bereich (api/, frontend/, .docker/) nicht geändert hat,
-#   wird das bestehende 'latest'-Image nur neu getaggt (~Sekunden statt Minuten).
-#   Dadurch hat jeder Commit einen eindeutigen SHA-Tag, ohne unnötige Builds.
-
 on:
   workflow_call:
 

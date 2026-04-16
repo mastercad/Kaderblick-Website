@@ -45,7 +45,6 @@ interface RenderOptions {
 }
 
 const defaultProps = {
-  openMessages: jest.fn(),
   onOpenQRShare: jest.fn(),
   onToggle: jest.fn(),
 };
@@ -138,11 +137,6 @@ describe('expanded mode (collapsed=false)', () => {
     expect(screen.getByText('Kalender')).toBeInTheDocument();
   });
 
-  it('renders "Nachrichten" label', () => {
-    renderSidebar({ collapsed: false });
-    expect(screen.getByText('Nachrichten')).toBeInTheDocument();
-  });
-
   it('renders "QR-Code teilen" label', () => {
     renderSidebar({ collapsed: false });
     expect(screen.getByText('QR-Code teilen')).toBeInTheDocument();
@@ -162,11 +156,6 @@ describe('collapsed mode (collapsed=true)', () => {
     expect(screen.queryByText('Home')).not.toBeInTheDocument();
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
     expect(screen.queryByText('Kalender')).not.toBeInTheDocument();
-  });
-
-  it('hides "Nachrichten" label', () => {
-    renderSidebar({ collapsed: true });
-    expect(screen.queryByText('Nachrichten')).not.toBeInTheDocument();
   });
 
   it('hides "QR-Code teilen" label', () => {
@@ -211,12 +200,6 @@ describe('navigation item clicks', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('calls openMessages when "Nachrichten" is clicked', () => {
-    renderSidebar();
-    fireEvent.click(screen.getByText('Nachrichten').closest('[role="button"]')!);
-    expect(defaultProps.openMessages).toHaveBeenCalledTimes(1);
-  });
-
   it('calls onOpenQRShare when "QR-Code teilen" is clicked', () => {
     renderSidebar();
     fireEvent.click(screen.getByText('QR-Code teilen').closest('[role="button"]')!);
@@ -253,17 +236,6 @@ describe('active item highlighting', () => {
 // ── Message badge ─────────────────────────────────────────────────────────────
 
 describe('unread message badge', () => {
-  it('shows badge with unread message count', () => {
-    const notifications = [
-      { id: '1', type: 'message' as const, title: 'Msg', message: '', timestamp: new Date(), read: false },
-      { id: '2', type: 'message' as const, title: 'Msg', message: '', timestamp: new Date(), read: false },
-    ];
-    mockUseNotifications.mockReturnValue({ ...baseNotifications, notifications });
-    renderSidebar();
-    // Badge renders the count as text
-    expect(screen.getByText('2')).toBeInTheDocument();
-  });
-
   it('does not show badge when no unread messages', () => {
     renderSidebar();
     // No numeric badge text should appear (0 is hidden by MUI)

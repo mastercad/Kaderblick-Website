@@ -5,33 +5,27 @@ import Typography from '@mui/material/Typography';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import Badge from '@mui/material/Badge';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
-import MessageIcon from '@mui/icons-material/Message';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useNotifications } from '../../context/NotificationContext';
-import { useNavConfig, navItemIconMap, navItemColorMap, isNavItemActive } from './navigationConfig';
+import { useNavConfig, navItemIconMap, navItemColorMap, isNavItemActive, getNavItemRoute } from './navigationConfig';
 
 export const SIDEBAR_EXPANDED_WIDTH  = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
 export const SIDEBAR_STORAGE_KEY     = 'kb_sidebar_collapsed';
 
 interface NavSidebarProps {
-  openMessages: () => void;
   onOpenQRShare: () => void;
   collapsed: boolean;
   onToggle: () => void;
 }
 
-export default function NavSidebar({ openMessages, onOpenQRShare, collapsed, onToggle }: NavSidebarProps) {
+export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSidebarProps) {
   const { navigationItems, trainerMenuItems, adminMenuSections, isAdmin, isCoach } = useNavConfig();
-  const { notifications } = useNotifications();
-  const unreadMessageCount = notifications.filter(n => n.type === 'message' && !n.read).length;
   const theme = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -109,7 +103,7 @@ export default function NavSidebar({ openMessages, onOpenQRShare, collapsed, onT
               <ListItemButton
                 selected={active}
                 ref={active ? setActiveRef : undefined}
-                onClick={() => navigate(item.key === 'home' ? '/' : `/${item.key}`)}
+                onClick={() => navigate(getNavItemRoute(item.key))}
                 sx={itemSx(color)}
               >
                 {icon && <ListItemIcon sx={iconSx(active, color)}>{icon}</ListItemIcon>}
@@ -123,20 +117,6 @@ export default function NavSidebar({ openMessages, onOpenQRShare, collapsed, onT
             </Tooltip>
           );
         })}
-
-        {/* Nachrichten */}
-        <Tooltip title={collapsed ? 'Nachrichten' : ''} placement="right" arrow
-          disableHoverListener={!collapsed} disableFocusListener={!collapsed} disableTouchListener={!collapsed}
-        >
-          <ListItemButton onClick={openMessages} sx={itemSx(navItemColorMap['messages'])}>
-            <ListItemIcon sx={iconSx(false, navItemColorMap['messages'])}>
-              <Badge badgeContent={unreadMessageCount} color="error">
-                <MessageIcon fontSize="small" />
-              </Badge>
-            </ListItemIcon>
-            {!collapsed && <ListItemText primary="Nachrichten" primaryTypographyProps={{ fontSize: '0.9rem' }} />}
-          </ListItemButton>
-        </Tooltip>
 
         {/* Trainer-Bereich */}
         {isCoach && (

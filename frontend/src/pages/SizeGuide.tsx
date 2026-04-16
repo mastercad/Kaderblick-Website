@@ -33,6 +33,7 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import EmptyStateHint from '../components/EmptyStateHint';
 
 interface Player {
   id: number;
@@ -366,9 +367,12 @@ const SizeGuide: React.FC = () => {
       </Stack>
 
       {teams.length === 0 && (
-        <Alert severity="info" icon={<FormatListBulletedIcon />}>
-          Keine Teamdaten verfügbar. Du bist keinem Team als Trainer zugeordnet.
-        </Alert>
+        <EmptyStateHint
+          icon={<CheckroomIcon />}
+          title="Keine Teamdaten verfügbar"
+          description="Du bist keinem Team als Trainer zugeordnet."
+          compact
+        />
       )}
 
       {/* ── Ausgewähltes Team ──────────────────────────────────── */}

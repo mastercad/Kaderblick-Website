@@ -17,6 +17,7 @@ import ProfileModal from './modals/ProfileModal';
 import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
 import NavSidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
+import { PageTabBar } from './components/navigation/PageTabBar';
 import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
 import Privacy from './pages/Privacy';
@@ -305,7 +306,6 @@ function App() {
                       }}
                     >
                       <NavSidebar
-                        openMessages={() => setShowMessages(true)}
                         onOpenQRShare={() => setShowQRShare(true)}
                         collapsed={sidebarCollapsed}
                         onToggle={handleSidebarToggle}
@@ -316,9 +316,10 @@ function App() {
                 {!isHome && <PushWarningBanner />}
                 {!isHome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
               <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
+                {user && <PageTabBar />}
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
                     <Route path="/funktionen" element={<FeaturesOverview />} />
                     <Route path="/funktionen/:slug" element={<FeatureDetail />} />
                     <Route path="/fuer-trainer" element={<PublicIntentPage />} />

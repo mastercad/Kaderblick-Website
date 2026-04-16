@@ -27,6 +27,11 @@ jest.mock('../../../hooks/useUnreadMessageCount', () => ({
   requestRefreshUnreadMessageCount: jest.fn(),
 }));
 
+const mockNavigateFn = jest.fn();
+jest.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigateFn,
+}));
+
 const mockUseAuth          = useAuth          as jest.MockedFunction<typeof useAuth>;
 const mockUseNotifications = useNotifications as jest.MockedFunction<typeof useNotifications>;
 

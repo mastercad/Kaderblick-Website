@@ -1,10 +1,5 @@
 name: Pull Request Checks
 
-# Läuft bei jedem Pull Request:
-# 1. Images aus dem PR-Branch bauen und nach GHCR pushen
-# 2. QA gegen exakt diese Images ausführen (keine lokalen Builds)
-# Kein Deploy.
-
 on:
   pull_request:
 

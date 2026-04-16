@@ -11,26 +11,22 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import MessageIcon from '@mui/icons-material/Message';
-import BarChartIcon from '@mui/icons-material/BarChart';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+
 import PollIcon from '@mui/icons-material/Poll';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import FeedbackIcon from '@mui/icons-material/Feedback';
 import GroupWorkIcon from '@mui/icons-material/GroupWork';
 import PersonIcon from '@mui/icons-material/Person';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CheckroomIcon from '@mui/icons-material/Checkroom';
-import ChecklistIcon from '@mui/icons-material/Checklist';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useNotifications } from '../../context/NotificationContext';
 import { useNavConfig, isNavItemActive, navItemColorMap } from './navigationConfig';
 
 interface NavMobileDrawerProps {
   open: boolean;
   onClose: () => void;
-  openMessages: () => void;
   onOpenQRShare: () => void;
 }
 
@@ -44,10 +40,8 @@ const tileBaseSx = (active: boolean, primary: string) => ({
   '&:active': { transform: 'scale(0.94)' },
 });
 
-export default function NavMobileDrawer({ open, onClose, openMessages, onOpenQRShare }: NavMobileDrawerProps) {
+export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMobileDrawerProps) {
   const { adminMenuSections, isAdmin, isCoach } = useNavConfig();
-  const { notifications } = useNotifications();
-  const unreadMessageCount = notifications.filter(n => n.type === 'message' && !n.read).length;
   const theme = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -98,13 +92,10 @@ export default function NavMobileDrawer({ open, onClose, openMessages, onOpenQRS
         {/* Standard-Items */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
           {([
-            { key: 'reports',       label: 'Auswertungen', icon: <BarChartIcon sx={{ fontSize: 28 }} />,   color: navItemColorMap['reports'] },
-            { key: 'news',          label: 'Neuigkeiten',  icon: <NewspaperIcon sx={{ fontSize: 28 }} />,  color: navItemColorMap['news'] },
-            { key: 'surveys',       label: 'Umfragen',     icon: <PollIcon sx={{ fontSize: 28 }} />,       color: navItemColorMap['surveys'] },
-            { key: 'tasks',         label: 'Aufgaben',     icon: <AssignmentIcon sx={{ fontSize: 28 }} />,     color: navItemColorMap['tasks'] },
-            { key: 'mein-feedback', label: 'Mein Feedback',icon: <FeedbackIcon sx={{ fontSize: 28 }} />,       color: navItemColorMap['mein-feedback'] },
-            { key: 'mein-spieltag', label: 'Mein Spieltag', icon: <ChecklistIcon sx={{ fontSize: 28 }} />,      color: navItemColorMap['mein-spieltag'] },
-            { key: 'player-tips',   label: 'Spieler-Tipps', icon: <TipsAndUpdatesIcon sx={{ fontSize: 28 }} />, color: navItemColorMap['player-tips'] },
+            { key: 'news',        label: 'Neuigkeiten',   icon: <NewspaperIcon sx={{ fontSize: 28 }} />,    color: navItemColorMap['news'] },
+            { key: 'surveys',     label: 'Umfragen',      icon: <PollIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['surveys'] },
+            { key: 'tasks',       label: 'Aufgaben',      icon: <AssignmentIcon sx={{ fontSize: 28 }} />,   color: navItemColorMap['tasks'] },
+            { key: 'player-tips', label: 'Spieler-Tipps', icon: <TipsAndUpdatesIcon sx={{ fontSize: 28 }} />, color: navItemColorMap['player-tips'] },
           ] as { key: string; label: string; icon: React.ReactElement; color: string }[]).map((tile) => {
             const isActive = active(tile.key);
             return (
@@ -114,15 +105,6 @@ export default function NavMobileDrawer({ open, onClose, openMessages, onOpenQRS
               </ButtonBase>
             );
           })}
-          {/* Nachrichten */}
-          <ButtonBase onClick={() => { onClose(); openMessages(); }} sx={tileBaseSx(false, navItemColorMap['messages'])}>
-            <Box sx={{ color: navItemColorMap['messages'], opacity: 0.65, mb: 0.5, lineHeight: 0, transition: 'opacity 0.15s' }}>
-              <Badge badgeContent={unreadMessageCount} color="error">
-                <MessageIcon sx={{ fontSize: 28 }} />
-              </Badge>
-            </Box>
-            <TileLabel label="Nachrichten" isActive={false} />
-          </ButtonBase>
         </Box>
 
         {/* Trainer-Bereich */}

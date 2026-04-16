@@ -38,7 +38,6 @@ const mockUseNotifications = useNotifications as jest.MockedFunction<typeof useN
 const theme = createTheme();
 
 const mockOnClose       = jest.fn();
-const mockOpenMessages  = jest.fn();
 const mockOnOpenQRShare = jest.fn();
 
 function renderDrawer(open = true) {
@@ -47,7 +46,6 @@ function renderDrawer(open = true) {
       <NavMobileDrawer
         open={open}
         onClose={mockOnClose}
-        openMessages={mockOpenMessages}
         onOpenQRShare={mockOnOpenQRShare}
       />
     </ThemeProvider>,
@@ -96,25 +94,18 @@ beforeEach(() => {
 describe('open / close', () => {
   it('renders drawer content when open=true', () => {
     renderDrawer(true);
-    // "Mehr"-Drawer always renders content when open
-    expect(screen.getByText('Nachrichten')).toBeInTheDocument();
+    expect(screen.getByText('Neuigkeiten')).toBeInTheDocument();
   });
 
   it('drawer is not visible when open=false', () => {
     renderDrawer(false);
-    // MUI Drawer still mounts content in DOM but the modal is hidden
-    expect(screen.queryByText('Nachrichten')).not.toBeInTheDocument();
+    expect(screen.queryByText('Neuigkeiten')).not.toBeInTheDocument();
   });
 });
 
 // ── Standard navigation tiles ─────────────────────────────────────────────────
 
 describe('standard navigation tiles', () => {
-  it('renders Auswertungen tile', () => {
-    renderDrawer();
-    expect(screen.getByText('Auswertungen')).toBeInTheDocument();
-  });
-
   it('renders Neuigkeiten tile', () => {
     renderDrawer();
     expect(screen.getByText('Neuigkeiten')).toBeInTheDocument();
@@ -130,55 +121,40 @@ describe('standard navigation tiles', () => {
     expect(screen.getByText('Aufgaben')).toBeInTheDocument();
   });
 
-  it('renders Mein Feedback tile', () => {
+  it('renders Spieler-Tipps tile', () => {
     renderDrawer();
-    expect(screen.getByText('Mein Feedback')).toBeInTheDocument();
-  });
-
-  it('renders Nachrichten tile', () => {
-    renderDrawer();
-    expect(screen.getByText('Nachrichten')).toBeInTheDocument();
+    expect(screen.getByText('Spieler-Tipps')).toBeInTheDocument();
   });
 });
 
 // ── Tile navigation ───────────────────────────────────────────────────────────
 
 describe('tile navigation', () => {
-  it('navigates to /reports and closes drawer when Auswertungen is clicked', () => {
-    renderDrawer();
-    fireEvent.click(screen.getByText('Auswertungen'));
-    expect(mockNavigate).toHaveBeenCalledWith('/reports');
-    expect(mockOnClose).toHaveBeenCalled();
-  });
-
   it('navigates to /news when Neuigkeiten is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByText('Neuigkeiten'));
     expect(mockNavigate).toHaveBeenCalledWith('/news');
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('navigates to /surveys when Umfragen is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByText('Umfragen'));
     expect(mockNavigate).toHaveBeenCalledWith('/surveys');
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('navigates to /tasks when Aufgaben is clicked', () => {
     renderDrawer();
     fireEvent.click(screen.getByText('Aufgaben'));
     expect(mockNavigate).toHaveBeenCalledWith('/tasks');
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('navigates to /mein-feedback when "Mein Feedback" is clicked', () => {
+  it('navigates to /player-tips when Spieler-Tipps is clicked', () => {
     renderDrawer();
-    fireEvent.click(screen.getByText('Mein Feedback'));
-    expect(mockNavigate).toHaveBeenCalledWith('/mein-feedback');
-  });
-
-  it('calls openMessages and closes drawer when Nachrichten tile is clicked', () => {
-    renderDrawer();
-    fireEvent.click(screen.getByText('Nachrichten'));
-    expect(mockOpenMessages).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('Spieler-Tipps'));
+    expect(mockNavigate).toHaveBeenCalledWith('/player-tips');
     expect(mockOnClose).toHaveBeenCalled();
   });
 });
@@ -255,19 +231,7 @@ describe('administration section', () => {
 
 // ── Message badge ─────────────────────────────────────────────────────────────
 
-describe('unread message badge', () => {
-  it('shows badge count for unread messages', () => {
-    mockUseNotifications.mockReturnValue({
-      ...baseNotifications,
-      notifications: [
-        { id: '1', type: 'message', title: 'Hello', message: '', timestamp: new Date(), read: false },
-        { id: '2', type: 'message', title: 'World', message: '', timestamp: new Date(), read: false },
-      ],
-    });
-    renderDrawer();
-    expect(screen.getByText('2')).toBeInTheDocument();
-  });
-});
+
 
 // ── QR code ───────────────────────────────────────────────────────────────────
 

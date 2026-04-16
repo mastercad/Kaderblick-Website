@@ -70,7 +70,6 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare, o
           <NavMobileDrawer
             open={mobileMenuOpen}
             onClose={handleMobileMenuClose}
-            openMessages={openMessages}
             onOpenQRShare={onOpenQRShare}
           />
           <NavMobileBottomBar

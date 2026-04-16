@@ -1,9 +1,5 @@
 name: CI/CD Pipeline
 
-# Orchestrator: build → qa → deploy
-# Jeder Schritt wartet auf den vorherigen.
-# Das Deploy verwendet exakt dasselbe Image das in QA getestet wurde (github.sha).
-
 on:
   push:
     branches: [main]

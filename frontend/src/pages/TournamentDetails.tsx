@@ -36,6 +36,7 @@ import { WeatherDisplay } from '../components/WeatherIcons';
 import WeatherModal from '../modals/WeatherModal';
 import { GamesOverviewData, fetchGamesOverview } from '../services/games';
 import { apiRequest } from '../utils/api';
+import EmptyStateHint from '../components/EmptyStateHint';
 
 /** Helper: format date string to "Sa, 15. Mär" style */
 const formatDateShort = (dateString: string) => {
@@ -133,7 +134,11 @@ export default function TournamentDetails() {
   if (!tournament) {
     return (
       <Box sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 2, sm: 3 }, maxWidth: 960, mx: 'auto' }}>
-        <Alert severity="info">Turnier nicht gefunden</Alert>
+        <EmptyStateHint
+          icon={<TournamentIcon />}
+          title="Turnier nicht gefunden"
+          description="Das gesuchte Turnier konnte nicht gefunden werden."
+        />
       </Box>
     );
   }

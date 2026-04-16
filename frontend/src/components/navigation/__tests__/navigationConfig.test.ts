@@ -93,12 +93,12 @@ describe('isNavItemActive', () => {
 // ── navigationItems ───────────────────────────────────────────────────────────
 
 describe('navigationItems', () => {
-  it('contains 13 items', () => {
-    expect(navigationItems).toHaveLength(13);
+  it('contains 6 items', () => {
+    expect(navigationItems).toHaveLength(6);
   });
 
-  it('first item has key "home"', () => {
-    expect(navigationItems[0].key).toBe('home');
+  it('first item has key "dashboard"', () => {
+    expect(navigationItems[0].key).toBe('dashboard');
   });
 
   it('every item has key, label and disabled flag', () => {
@@ -116,7 +116,7 @@ describe('navigationItems', () => {
   it('contains expected keys', () => {
     const keys = navigationItems.map(i => i.key);
     expect(keys).toEqual(
-      expect.arrayContaining(['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag']),
+      expect.arrayContaining(['dashboard', 'calendar', 'spielbetrieb', 'team', 'community', 'tasks']),
     );
   });
 });
@@ -147,7 +147,7 @@ describe('trainerMenuItems', () => {
 // ── navItemIconMap ────────────────────────────────────────────────────────────
 
 describe('navItemIconMap', () => {
-  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'player-tips'];
+  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'player-tips', 'spielbetrieb', 'team', 'community'];
 
   it('defines an icon for every nav key', () => {
     expectedKeys.forEach(key => {

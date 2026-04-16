@@ -38,6 +38,7 @@ import { useAuth } from '../context/AuthContext';
 import Location from '../components/Location';
 import { WeatherDisplay } from '../components/WeatherIcons';
 import WeatherModal from '../modals/WeatherModal';
+import EmptyStateHint from '../components/EmptyStateHint';
 import { formatDateTime, formatTime } from '../utils/formatter';
 
 /** Helper: format date string to "Sa, 15. Mär" style */
@@ -138,7 +139,11 @@ export default function Games() {
   if (!data) {
     return (
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
-        <Alert severity="info">Keine Daten verfügbar</Alert>
+        <EmptyStateHint
+          icon={<SoccerIcon />}
+          title="Keine Spiele verfügbar"
+          description="Aktuell sind keine Spieldaten verfügbar."
+        />
       </Box>
     );
   }

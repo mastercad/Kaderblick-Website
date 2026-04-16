@@ -1,8 +1,5 @@
 name: Demo DB Reset (täglich)
 
-# Setzt die Demo-Datenbank täglich um 0:00 UTC über die Fixtures zurück.
-# NUR die kaderblick_demo-Datenbank wird zurückgesetzt – Production und Staging bleiben unberührt.
-
 on:
   schedule:
     - cron: '0 0 * * *'   # Jeden Tag um 0:00 UTC

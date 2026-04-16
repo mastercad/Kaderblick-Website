@@ -60,22 +60,62 @@ export interface AdminSection {
   items: AdminMenuItem[];
 }
 
+export interface NavGroup {
+  key: string;
+  label: string;
+  icon?: React.ReactNode;
+  color: string;
+  primaryRoute: string;
+  children: { key: string; label: string; route: string }[];
+}
+
 // ── Static data ────────────────────────────────────────────────────────────────
 
+export const navigationGroups: NavGroup[] = [
+  {
+    key: 'spielbetrieb',
+    label: 'Spiele',
+    icon: <SportsSoccerIcon fontSize="small" />,
+    color: '#EF5350',
+    primaryRoute: '/games',
+    children: [
+      { key: 'games',         label: 'Spielplan',     route: '/games' },
+      { key: 'mein-spieltag', label: 'Mein Spieltag', route: '/mein-spieltag' },
+      { key: 'reports',       label: 'Auswertungen',  route: '/reports' },
+    ],
+  },
+  {
+    key: 'team',
+    label: 'Team & Verein',
+    icon: <GroupsIcon fontSize="small" />,
+    color: '#66BB6A',
+    primaryRoute: '/my-team',
+    children: [
+      { key: 'my-team',     label: 'Mein Team',   route: '/my-team' },
+      { key: 'mein-verein', label: 'Mein Verein', route: '/mein-verein' },
+    ],
+  },
+  {
+    key: 'community',
+    label: 'Community',
+    icon: <NewspaperIcon fontSize="small" />,
+    color: '#42A5F5',
+    primaryRoute: '/news',
+    children: [
+      { key: 'news',        label: 'Neuigkeiten', route: '/news' },
+      { key: 'surveys',     label: 'Umfragen',    route: '/surveys' },
+      { key: 'player-tips', label: 'Tipps',       route: '/player-tips' },
+    ],
+  },
+];
+
 export const navigationItems: NavItem[] = [
-  { key: 'home',          label: 'Home',           disabled: false },
-  { key: 'dashboard',     label: 'Dashboard',      disabled: false },
-  { key: 'my-team',       label: 'Mein Team',      disabled: false },
-  { key: 'mein-verein',   label: 'Mein Verein',    disabled: false },
-  { key: 'calendar',      label: 'Kalender',       disabled: false },
-  { key: 'games',         label: 'Spiele',         disabled: false },
-  { key: 'reports',       label: 'Auswertungen',   disabled: false, icon: <BarChartIcon fontSize="small" /> },
-  { key: 'news',          label: 'Neuigkeiten',    disabled: false, icon: <NewspaperIcon fontSize="small" /> },
-  { key: 'surveys',       label: 'Umfragen',       disabled: false, icon: <PollIcon fontSize="small" /> },
-  { key: 'mein-feedback', label: 'Mein Feedback',  disabled: false, icon: <FeedbackIcon fontSize="small" /> },
-  { key: 'tasks',         label: 'Meine Aufgaben', disabled: false, icon: <AssignmentIcon fontSize="small" /> },
-  { key: 'mein-spieltag', label: 'Mein Spieltag',  disabled: false },
-  { key: 'player-tips',   label: 'Spieler-Tipps',  disabled: false, icon: <TipsAndUpdatesIcon fontSize="small" /> },
+  { key: 'dashboard',    label: 'Dashboard',      disabled: false },
+  { key: 'calendar',     label: 'Kalender',       disabled: false },
+  { key: 'spielbetrieb', label: 'Spiele',         disabled: false },
+  { key: 'team',         label: 'Team & Verein',  disabled: false },
+  { key: 'community',    label: 'Community',      disabled: false },
+  { key: 'tasks',        label: 'Meine Aufgaben', disabled: false },
 ];
 
 export const trainerMenuItems: TrainerMenuItem[] = [
@@ -144,8 +184,12 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'surveys':       <PollIcon fontSize="small" />,
   'mein-feedback': <FeedbackIcon fontSize="small" />,
   'tasks':         <AssignmentIcon fontSize="small" />,
-  'mein-spieltag':  <ChecklistIcon fontSize="small" />,
-  'player-tips':     <TipsAndUpdatesIcon fontSize="small" />,
+  'mein-spieltag': <ChecklistIcon fontSize="small" />,
+  'player-tips':   <TipsAndUpdatesIcon fontSize="small" />,
+  // Nav group icons
+  'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
+  'team':          <GroupsIcon fontSize="small" />,
+  'community':     <NewspaperIcon fontSize="small" />,
 };
 
 export const navItemColorMap: Record<string, string> = {
@@ -166,7 +210,11 @@ export const navItemColorMap: Record<string, string> = {
   'players':         '#26A69A',
   'teams':           '#5C6BC0',
   'team-size-guide': '#FFA726',
-  'messages':        '#29B6F6',
+  'messages':     '#29B6F6',
+  // Nav groups
+  'spielbetrieb': '#EF5350',
+  'team':         '#66BB6A',
+  'community':    '#42A5F5',
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -176,7 +224,23 @@ export function isNavItemActive(pathname: string, key: string): boolean {
   if (key === 'home') return pathname === '/' || pathname === '';
   if (key === 'surveys') return pathname === '/surveys' || pathname.startsWith('/surveys/') || pathname.startsWith('/survey/');
   if (key === 'mein-spieltag') return pathname.startsWith('/mein-spieltag');
+  // Group keys: active if any child route is active
+  const group = navigationGroups.find(g => g.key === key);
+  if (group) return group.children.some(c => isNavItemActive(pathname, c.key));
   return pathname === `/${key}` || pathname.startsWith(`/${key}/`);
+}
+
+/** Returns the navigation route for a given nav item key, resolving group keys to their primary route. */
+export function getNavItemRoute(key: string): string {
+  if (key === 'home') return '/';
+  const group = navigationGroups.find(g => g.key === key);
+  if (group) return group.primaryRoute;
+  return `/${key}`;
+}
+
+/** Returns the nav group that includes the given pathname, or undefined. */
+export function findNavGroupForPathname(pathname: string): NavGroup | undefined {
+  return navigationGroups.find(g => g.children.some(c => isNavItemActive(pathname, c.key)));
 }
 
 // ── Hook: assembles role-dependent nav config ──────────────────────────────────

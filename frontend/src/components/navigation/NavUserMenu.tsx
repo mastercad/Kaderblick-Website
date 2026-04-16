@@ -10,6 +10,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import MessageIcon from '@mui/icons-material/Message';
 import LinkIcon from '@mui/icons-material/Link';
+import FeedbackIcon from '@mui/icons-material/Feedback';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUnreadMessageCount } from '../../hooks/useUnreadMessageCount';
 
@@ -28,6 +30,7 @@ export default function NavUserMenu({
 }: NavUserMenuProps) {
   const { user, logout } = useAuth();
   const unreadMessageCount = useUnreadMessageCount();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
@@ -65,6 +68,10 @@ export default function NavUserMenu({
       <MenuItem onClick={() => { onClose(); onOpenQRShare(); }}>
         <QrCode2Icon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
         Registrierungs-QR-Code
+      </MenuItem>
+      <MenuItem onClick={() => { onClose(); navigate('/mein-feedback'); }}>
+        <FeedbackIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+        Mein Feedback
       </MenuItem>
       <MenuItem onClick={() => { onClose(); openMessages(); }}>
         <Badge badgeContent={unreadMessageCount} color="error" sx={{ mr: 1 }}>

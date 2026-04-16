@@ -67,7 +67,8 @@ import { getGameEventIconByCode } from '../constants/gameEventIcons';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import WeatherModal from '../modals/WeatherModal';
 import { WeatherDisplay } from '../components/WeatherIcons';
-import { formatEventTime, formatDateTime } from '../utils/formatter'
+import { formatEventTime, formatDateTime } from '../utils/formatter';
+import EmptyStateHint from '../components/EmptyStateHint';
 import { UserAvatar } from '../components/UserAvatar';
 import { getAvatarFrameUrl } from '../utils/avatarFrame';
 import { calculateCumulativeOffset } from '../utils/videoTimeline';
@@ -600,7 +601,11 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   if (!game) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="info">Spiel nicht gefunden</Alert>
+        <EmptyStateHint
+          icon={<SoccerIcon />}
+          title="Spiel nicht gefunden"
+          description="Das gesuchte Spiel konnte nicht gefunden werden."
+        />
       </Box>
     );
   }

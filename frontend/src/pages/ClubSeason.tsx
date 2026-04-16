@@ -24,6 +24,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import GroupsIcon from '@mui/icons-material/Groups';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import { fetchClubSeasonOverview } from '../services/clubSeason';
+import EmptyStateHint from '../components/EmptyStateHint';
 import {
   ClubSeasonOverview,
   FormResult,
@@ -228,10 +229,12 @@ export default function ClubSeason() {
 
   if (!data || !data.club) {
     return (
-      <Box mt={4}>
-        <Alert severity="info">
-          Du bist keinem Verein zugeordnet. Bitte wende dich an einen Administrator.
-        </Alert>
+      <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
+        <EmptyStateHint
+          icon={<GroupsIcon />}
+          title="Kein Verein gefunden"
+          description="Du bist keinem Verein zugeordnet. Bitte wende dich an einen Administrator."
+        />
       </Box>
     );
   }
@@ -283,9 +286,12 @@ export default function ClubSeason() {
       </Typography>
 
       {data.teams.length === 0 ? (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Keine Teams für diese Saison gefunden.
-        </Alert>
+        <EmptyStateHint
+          icon={<GroupsIcon />}
+          title="Keine Teams"
+          description="Für diese Saison wurden keine Teams gefunden."
+          compact
+        />
       ) : (
         data.teams.map((team) => <TeamCard key={team.id} team={team} />)
       )}
