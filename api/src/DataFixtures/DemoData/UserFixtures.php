@@ -10,18 +10,22 @@ use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Demo-Fixtures: ~10 repräsentative Benutzer pro Verein.
+ * Demo-Fixtures: ~10 repräsentative Benutzer pro Verein + 1 Admin-User pro Verein.
  *
  * Pro Verein:
- *   localIdx 0 → Vereinsadmin (ROLE_CLUB)
- *   localIdx 1 → Cheftrainer-Account (linked über UserRelationFixtures)
- *   localIdx 2 → Co-Trainer-Account  (linked über UserRelationFixtures)
- *   localIdx 3-8 → Spieler-Accounts   (linked über UserRelationFixtures)
- *   localIdx 9 → Elternteil-Account   (linked über UserRelationFixtures)
+ *   localIdx 0 → Vereinsadmin (ROLE_CLUB), E-Mail: admin.{slug}@demo-kaderblick.de
+ *   localIdx 1 → Cheftrainer-Account (ROLE_USER, linked über UserRelationFixtures)
+ *   localIdx 2 → Co-Trainer-Account  (ROLE_USER, linked über UserRelationFixtures)
+ *   localIdx 3-8 → Spieler-Accounts  (ROLE_USER, linked über UserRelationFixtures)
+ *   localIdx 9 → Elternteil-Account  (ROLE_USER, linked über UserRelationFixtures)
+ *   admin      → Plattform-Admin     (ROLE_ADMIN),     E-Mail: superadmin.{slug}@demo-kaderblick.de
+ *   supporter  → Supporter           (ROLE_SUPPORTER), E-Mail: supporter.{slug}@demo-kaderblick.de
  *
- * Referenzschlüssel: demo_user_{clubIdx}_{localIdx}
+ * Referenzschlüssel: demo_user_{clubIdx}_{localIdx}, demo_admin_{clubIdx}, demo_supporter_{clubIdx}
  * Login-Passwort (alle): DemoPass1!
  * Gruppe: demo
+ *
+ * Idempotent: bestehende User werden per Upsert aktualisiert (Rollen werden immer gesetzt).
  */
 class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
 {
@@ -185,49 +189,30 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
 
     public function load(ObjectManager $manager): void
     {
-        $adminEmail = 'admin.sonnenberg@demo-kaderblick.de';
-        $existingAdmin = $manager->getRepository(User::class)->findOneBy(['email' => $adminEmail]);
-
-        if ($existingAdmin) {
-            // Re-register references only
-            foreach (self::USER_NAMES as $clubIdx => $users) {
-                $slug = self::CLUB_SLUGS[$clubIdx];
-                foreach ($users as $localIdx => $nameData) {
-                    $email = $this->buildEmail($localIdx, $slug);
-                    $u = $manager->getRepository(User::class)->findOneBy(['email' => $email]);
-                    if ($u) {
-                        $this->addReference('demo_user_' . $clubIdx . '_' . $localIdx, $u);
-                    }
-                }
-            }
-
-            return;
-        }
-
+        $repo = $manager->getRepository(User::class);
         $batchSize = 50;
         $count = 0;
 
+        // --- Club + regular users (localIdx 0–9) ---
         foreach (self::USER_NAMES as $clubIdx => $users) {
             $slug = self::CLUB_SLUGS[$clubIdx];
 
             foreach ($users as $localIdx => [$firstName, $lastName]) {
                 $email = $this->buildEmail($localIdx, $slug);
 
-                $user = new User();
+                $user = $repo->findOneBy(['email' => $email]) ?? new User();
                 $user->setEmail($email);
                 $user->setFirstName($firstName);
                 $user->setLastName($lastName);
                 $user->setIsEnabled(true);
                 $user->setIsVerified(true);
 
-                match ($localIdx) {
-                    0 => $user->addRole('ROLE_CLUB'),
-                    1, 2 => $user->addRole('ROLE_USER'),
-                    default => $user->addRole('ROLE_USER'),
-                };
+                $role = (0 === $localIdx) ? 'ROLE_CLUB' : 'ROLE_USER';
+                $user->setRoles([$role]);
 
-                $hashedPw = $this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD);
-                $user->setPassword($hashedPw);
+                if (!$user->getPassword()) {
+                    $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
+                }
 
                 $manager->persist($user);
                 $this->addReference('demo_user_' . $clubIdx . '_' . $localIdx, $user);
@@ -235,6 +220,58 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                 if (0 === ++$count % $batchSize) {
                     $manager->flush();
                 }
+            }
+        }
+
+        // --- Admin users (one per club, ROLE_ADMIN) ---
+        foreach (self::CLUB_SLUGS as $clubIdx => $slug) {
+            $email = 'superadmin.' . $slug . '@demo-kaderblick.de';
+
+            $user = $repo->findOneBy(['email' => $email]) ?? new User();
+            $user->setEmail($email);
+
+            [$firstName, $lastName] = self::USER_NAMES[$clubIdx][0];
+            $user->setFirstName('Admin-' . $firstName);
+            $user->setLastName($lastName);
+            $user->setIsEnabled(true);
+            $user->setIsVerified(true);
+            $user->setRoles(['ROLE_ADMIN']);
+
+            if (!$user->getPassword()) {
+                $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
+            }
+
+            $manager->persist($user);
+            $this->addReference('demo_admin_' . $clubIdx, $user);
+
+            if (0 === ++$count % $batchSize) {
+                $manager->flush();
+            }
+        }
+
+        // --- Supporter users (one per club, ROLE_SUPPORTER) ---
+        foreach (self::CLUB_SLUGS as $clubIdx => $slug) {
+            $email = 'supporter.' . $slug . '@demo-kaderblick.de';
+
+            $user = $repo->findOneBy(['email' => $email]) ?? new User();
+            $user->setEmail($email);
+
+            [$firstName, $lastName] = self::USER_NAMES[$clubIdx][1];
+            $user->setFirstName('Support-' . $firstName);
+            $user->setLastName($lastName);
+            $user->setIsEnabled(true);
+            $user->setIsVerified(true);
+            $user->setRoles(['ROLE_SUPPORTER']);
+
+            if (!$user->getPassword()) {
+                $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
+            }
+
+            $manager->persist($user);
+            $this->addReference('demo_supporter_' . $clubIdx, $user);
+
+            if (0 === ++$count % $batchSize) {
+                $manager->flush();
             }
         }
 
