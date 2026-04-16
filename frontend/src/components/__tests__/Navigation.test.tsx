@@ -34,17 +34,6 @@ jest.mock('../navigation/NavAppBar', () => ({
   ),
 }));
 
-jest.mock('../navigation/NavSidebar', () => ({
-  __esModule: true,
-  default: ({ collapsed, onToggle }: any) => (
-    <div data-testid="nav-sidebar" data-collapsed={String(collapsed)}>
-      <button data-testid="sidebar-toggle" onClick={onToggle} />
-    </div>
-  ),
-  SIDEBAR_EXPANDED_WIDTH:  240,
-  SIDEBAR_COLLAPSED_WIDTH: 56,
-  SIDEBAR_STORAGE_KEY:     'kb_sidebar_collapsed',
-}));
 
 jest.mock('../navigation/NavMobileDrawer', () => ({
   __esModule: true,
@@ -74,14 +63,6 @@ jest.mock('../navigation/NavUserMenu', () => ({
   default: () => <div data-testid="nav-user-menu" />,
 }));
 
-jest.mock('../../hooks/useMessagesModal', () => ({
-  useMessagesModal: () => ({
-    openMessages: jest.fn(),
-    closeMessages: jest.fn(),
-    MessagesModal: () => null,
-    isOpen: false,
-  }),
-}));
 
 jest.mock('../../modals/RegistrationContextDialog', () => ({
   __esModule: true,
@@ -113,10 +94,10 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const theme = createTheme();
 
 const defaultProps = {
-  onOpenAuth:         jest.fn(),
-  onOpenProfile:      jest.fn(),
-  onOpenQRShare:      jest.fn(),
-  onSidebarCollapse:  jest.fn(),
+  onOpenAuth:    jest.fn(),
+  onOpenProfile: jest.fn(),
+  onOpenQRShare: jest.fn(),
+  openMessages:  jest.fn(),
 };
 
 const authenticatedUser = {
@@ -166,11 +147,6 @@ describe('desktop layout (isMobile=false, authenticated)', () => {
     mockUseMediaQuery.mockReturnValue(false); // desktop
   });
 
-  it('renders NavSidebar', () => {
-    renderNav();
-    expect(screen.getByTestId('nav-sidebar')).toBeInTheDocument();
-  });
-
   it('does not render NavMobileDrawer', () => {
     renderNav();
     expect(screen.queryByTestId('nav-mobile-drawer')).not.toBeInTheDocument();
@@ -199,10 +175,6 @@ describe('mobile layout (isMobile=true, authenticated)', () => {
     expect(screen.getByTestId('nav-mobile-bottombar')).toBeInTheDocument();
   });
 
-  it('does not render NavSidebar', () => {
-    renderNav();
-    expect(screen.queryByTestId('nav-sidebar')).not.toBeInTheDocument();
-  });
 });
 
 // ── Not authenticated ─────────────────────────────────────────────────────────
@@ -217,60 +189,11 @@ describe('not authenticated', () => {
     });
   });
 
-  it('does not render NavSidebar when not authenticated (desktop)', () => {
-    mockUseMediaQuery.mockReturnValue(false);
-    renderNav();
-    expect(screen.queryByTestId('nav-sidebar')).not.toBeInTheDocument();
-  });
-
   it('does not render mobile components when not authenticated', () => {
     mockUseMediaQuery.mockReturnValue(true);
     renderNav();
     expect(screen.queryByTestId('nav-mobile-drawer')).not.toBeInTheDocument();
     expect(screen.queryByTestId('nav-mobile-bottombar')).not.toBeInTheDocument();
-  });
-});
-
-// ── Sidebar collapse state ────────────────────────────────────────────────────
-
-describe('sidebar collapse state', () => {
-  it('starts expanded by default', () => {
-    renderNav();
-    const sidebar = screen.getByTestId('nav-sidebar');
-    expect(sidebar).toHaveAttribute('data-collapsed', 'false');
-  });
-
-  it('reads initial collapsed state from localStorage', () => {
-    localStorage.setItem('kb_sidebar_collapsed', '1');
-    renderNav();
-    const sidebar = screen.getByTestId('nav-sidebar');
-    expect(sidebar).toHaveAttribute('data-collapsed', 'true');
-  });
-
-  it('toggles collapsed state when toggle button is clicked', () => {
-    renderNav();
-    expect(screen.getByTestId('nav-sidebar')).toHaveAttribute('data-collapsed', 'false');
-    fireEvent.click(screen.getByTestId('sidebar-toggle'));
-    expect(screen.getByTestId('nav-sidebar')).toHaveAttribute('data-collapsed', 'true');
-  });
-
-  it('persists collapsed state to localStorage when toggled', () => {
-    renderNav();
-    fireEvent.click(screen.getByTestId('sidebar-toggle'));
-    expect(localStorage.getItem('kb_sidebar_collapsed')).toBe('1');
-  });
-
-  it('persists expanded state to localStorage on second toggle', () => {
-    localStorage.setItem('kb_sidebar_collapsed', '1');
-    renderNav();
-    fireEvent.click(screen.getByTestId('sidebar-toggle'));
-    expect(localStorage.getItem('kb_sidebar_collapsed')).toBe('0');
-  });
-
-  it('calls onSidebarCollapse with new state when toggled', () => {
-    renderNav();
-    fireEvent.click(screen.getByTestId('sidebar-toggle'));
-    expect(defaultProps.onSidebarCollapse).toHaveBeenCalledWith(true);
   });
 });
 

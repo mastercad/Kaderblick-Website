@@ -1,6 +1,7 @@
 import { useTheme } from './context/ThemeContext';
 import { Suspense, lazy, useState, useEffect } from 'react';
-import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { ThemeProvider as MuiThemeProvider, useTheme as useMuiTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -15,7 +16,7 @@ import AuthModal from './modals/AuthModal';
 import ProfileModal from './modals/ProfileModal';
 import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
-import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
+import NavSidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
 import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
 import Privacy from './pages/Privacy';
@@ -127,6 +128,8 @@ function App() {
   const { user, isLoading } = useAuth();
   const { mode } = useTheme();
   const currentTheme = mode === 'dark' ? darkTheme : lightTheme;
+  const muiTheme = useMuiTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const [showAuth, setShowAuth] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
@@ -140,6 +143,13 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try { return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'; } catch { return false; }
   });
+  const handleSidebarToggle = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOnHeroSection } = useHomeScroll();
@@ -275,9 +285,34 @@ function App() {
                   onOpenAuth={() => { setAuthInitialTab('login'); setShowAuth(true); }}
                   onOpenProfile={() => setShowProfile(true)}
                   onOpenQRShare={() => setShowQRShare(true)}
-                  onSidebarCollapse={setSidebarCollapsed}
+                  openMessages={() => setShowMessages(true)}
                 />
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', ml: { xs: 0, md: user ? `${sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px` : 0 }, transition: 'margin-left 0.22s ease' }}>
+                {/* flex-row: sticky sidebar + content (sidebar endet am Footer) */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row' }}>
+                  {user && !isMobile && (
+                    <Box
+                      sx={{
+                        position: 'sticky',
+                        top: 64,
+                        height: 'calc(100dvh - 64px)',
+                        alignSelf: 'flex-start',
+                        flexShrink: 0,
+                        width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
+                        transition: 'width 0.22s ease',
+                        zIndex: (t) => t.zIndex.appBar - 1,
+                        borderRight: `1px solid ${muiTheme.palette.divider}`,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <NavSidebar
+                        openMessages={() => setShowMessages(true)}
+                        onOpenQRShare={() => setShowQRShare(true)}
+                        collapsed={sidebarCollapsed}
+                        onToggle={handleSidebarToggle}
+                      />
+                    </Box>
+                  )}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 {!isHome && <PushWarningBanner />}
                 {!isHome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
               <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
@@ -373,7 +408,8 @@ function App() {
               ) : (
                 <Footer />
               ))}
-                </Box>{/* end sidebar content wrapper */}
+                </Box>{/* end content column */}
+                </Box>{/* end flex-row sidebar+content */}
             </Box>
             </PullToRefresh>
           </FabStackRoot>

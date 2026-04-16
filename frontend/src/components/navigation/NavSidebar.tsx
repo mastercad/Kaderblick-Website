@@ -85,18 +85,12 @@ export default function NavSidebar({ openMessages, onOpenQRShare, collapsed, onT
     <Box
       component="nav"
       sx={{
-        position: 'fixed',
-        left: 0,
-        top: 64,
-        width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
-        height: 'calc(100dvh - 64px)',
-        zIndex: theme.zIndex.appBar - 1,
+        width: '100%',
+        height: '100%',
         bgcolor: 'background.paper',
-        borderRight: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        transition: theme.transitions.create('width', { duration: 220, easing: theme.transitions.easing.easeInOut }),
       }}
     >
       {/* Scrollable content area */}

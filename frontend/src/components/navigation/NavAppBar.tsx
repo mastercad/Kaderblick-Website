@@ -53,7 +53,7 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
       }}
     >
       <Toolbar sx={{ color: isHome ? '#fff' : 'primary.contrastText' }}>
-        {/* Logo */}
+        {/* Logo — auf Desktop ausgeblendet wenn Sidebar sichtbar (zeigt eigenes Brand) */}
         <Typography
           variant="h6"
           component="div"
