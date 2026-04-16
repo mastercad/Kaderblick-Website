@@ -210,7 +210,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                 $role = (0 === $localIdx) ? 'ROLE_CLUB' : 'ROLE_USER';
                 $user->setRoles([$role]);
 
-                if (!$user->getPassword()) {
+                if (null === $user->getId()) {
                     $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
                 }
 
@@ -237,7 +237,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             $user->setIsVerified(true);
             $user->setRoles(['ROLE_ADMIN']);
 
-            if (!$user->getPassword()) {
+            if (null === $user->getId()) {
                 $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
             }
 
@@ -263,7 +263,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             $user->setIsVerified(true);
             $user->setRoles(['ROLE_SUPPORTER']);
 
-            if (!$user->getPassword()) {
+            if (null === $user->getId()) {
                 $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
             }
 
