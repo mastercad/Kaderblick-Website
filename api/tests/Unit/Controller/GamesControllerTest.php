@@ -4,6 +4,7 @@ namespace App\Tests\Unit\Controller;
 
 use App\Controller\Api\GamesController;
 use App\Service\CoachTeamPlayerService;
+use App\Service\GameSchedulePdfService;
 use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
 use App\Service\VideoTimelineService;
@@ -25,7 +26,8 @@ class GamesControllerTest extends TestCase
         $coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
 
         $goalCountingService = $this->createMock(GoalCountingService::class);
-        $controller = new GamesController($entityManager, $videoTimelineService, $advancementService, $coachTeamPlayerService, $goalCountingService);
+        $gameSchedulePdfService = $this->createMock(GameSchedulePdfService::class);
+        $controller = new GamesController($entityManager, $videoTimelineService, $advancementService, $coachTeamPlayerService, $goalCountingService, $gameSchedulePdfService);
 
         $this->assertInstanceOf(GamesController::class, $controller);
     }

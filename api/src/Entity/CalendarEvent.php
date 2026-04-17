@@ -14,6 +14,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Table(name: 'calendar_events')]
 #[ORM\Index(name: 'idx_calendar_events_calendar_event_type_id', columns: ['calendar_event_type_id'])]
 #[ORM\Index(name: 'idx_calendar_events_location_id', columns: ['location_id'])]
+#[ORM\Index(name: 'idx_calendar_events_meeting_location_id', columns: ['meeting_location_id'])]
 class CalendarEvent
 {
     #[ORM\Id]
@@ -107,6 +108,12 @@ class CalendarEvent
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     #[Groups(['calendar_event:read'])]
     private ?string $meetingPoint = null;
+
+    /** Structured location reference for the meeting point (enables navigation) */
+    #[ORM\ManyToOne(targetEntity: Location::class)]
+    #[ORM\JoinColumn(name: 'meeting_location_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['calendar_event:read'])]
+    private ?Location $meetingLocation = null;
 
     /** Time the team gathers at the meeting point (may differ from event start) */
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
@@ -385,6 +392,18 @@ class CalendarEvent
     public function setMeetingPoint(?string $meetingPoint): self
     {
         $this->meetingPoint = $meetingPoint;
+
+        return $this;
+    }
+
+    public function getMeetingLocation(): ?Location
+    {
+        return $this->meetingLocation;
+    }
+
+    public function setMeetingLocation(?Location $meetingLocation): self
+    {
+        $this->meetingLocation = $meetingLocation;
 
         return $this;
     }

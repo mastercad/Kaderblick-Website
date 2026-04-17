@@ -22,6 +22,7 @@ use App\Security\Voter\GameVoter;
 use App\Security\Voter\MatchPlanVoter;
 use App\Security\Voter\VideoVoter;
 use App\Service\CoachTeamPlayerService;
+use App\Service\GameSchedulePdfService;
 use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
 use App\Service\UserTitleService;
@@ -32,6 +33,7 @@ use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route(path: '/api/games', name: 'api_games_')]
@@ -86,6 +88,7 @@ class GamesController extends ApiController
         private readonly TournamentAdvancementService $advancementService,
         private readonly CoachTeamPlayerService $coachTeamPlayerService,
         private readonly GoalCountingService $goalCountingService,
+        private readonly GameSchedulePdfService $gameSchedulePdfService,
     ) {
         $this->entityManager = $entityManager;
     }
@@ -947,6 +950,45 @@ class GamesController extends ApiController
             'squad' => $squad,
             'allPlayers' => $allPlayers,
             'hasParticipationData' => $hasParticipationData,
+        ]);
+    }
+
+    /**
+     * Generate a PDF game schedule for the given team and season.
+     *
+     * GET /api/games/schedule/pdf?teamId=<int>&season=<int>
+     */
+    #[Route('/schedule/pdf', name: 'schedule_pdf', methods: ['GET'])]
+    public function schedulePdf(Request $request): Response
+    {
+        if (!$this->getUser() instanceof User) {
+            return $this->json(['error' => 'Nicht authentifiziert.'], 401);
+        }
+
+        $teamId = $request->query->getInt('teamId', 0);
+        if (0 === $teamId) {
+            return $this->json(['error' => 'teamId fehlt oder ungültig.'], 400);
+        }
+
+        $team = $this->entityManager->find(Team::class, $teamId);
+        if (!$team) {
+            return $this->json(['error' => 'Team nicht gefunden.'], 404);
+        }
+
+        $season = $request->query->getInt('season', 0);
+        if (0 === $season) {
+            $now = new DateTime();
+            $season = ((int) $now->format('n') >= 7) ? (int) $now->format('Y') : (int) $now->format('Y') - 1;
+        }
+
+        $pdf = $this->gameSchedulePdfService->generateForTeam($team, $season);
+
+        $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $team->getName() ?? 'Team');
+        $filename = 'Spielplan_' . $safeName . '_' . $season . '.pdf';
+
+        return new Response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
     }
 }

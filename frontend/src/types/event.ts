@@ -61,6 +61,8 @@ export interface EventData {
   // Scope selection stored during wizard step (only for series edits)
   trainingEditScope?: 'single' | 'from_here' | 'same_weekday' | 'same_weekday_from_here' | 'series';
   trainingEditScopeUntilDate?: string;
+  // Game round field (optional, for knockout/cup/playoff games, e.g. "Halbfinale", "Viertelfinale")
+  gameRound?: string;
   // Game timing fields (only for Spiel events, not tournaments)
   gameHalfDuration?: number;
   gameHalftimeBreakDuration?: number;
@@ -85,6 +87,7 @@ export interface EventData {
   // Meeting point / gathering info
   meetingPoint?: string;
   meetingTime?: string;   // HH:mm or ISO datetime string
+  meetingLocationId?: string;
 }
 
 export interface SelectOption {

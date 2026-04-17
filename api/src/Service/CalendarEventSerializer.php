@@ -90,6 +90,7 @@ class CalendarEventSerializer
             ],
             'game' => $calendarEvent->getGame() ? [
                 'id' => $calendarEvent->getGame()->getId(),
+                'round' => $calendarEvent->getGame()->getRound(),
                 'homeTeam' => [
                     'id' => $calendarEvent->getGame()->getHomeTeam()?->getId(),
                     'name' => $calendarEvent->getGame()->getHomeTeam()?->getName(),
@@ -154,6 +155,14 @@ class CalendarEventSerializer
             'trainingSeriesId' => $calendarEvent->getTrainingSeriesId(),
             'meetingPoint' => $calendarEvent->getMeetingPoint(),
             'meetingTime' => $calendarEvent->getMeetingTime()?->format('Y-m-d\TH:i:s'),
+            'meetingLocation' => $calendarEvent->getMeetingLocation() ? [
+                'id' => $calendarEvent->getMeetingLocation()->getId(),
+                'name' => $calendarEvent->getMeetingLocation()->getName(),
+                'latitude' => $calendarEvent->getMeetingLocation()->getLatitude(),
+                'longitude' => $calendarEvent->getMeetingLocation()->getLongitude(),
+                'address' => $calendarEvent->getMeetingLocation()->getAddress(),
+                'city' => $calendarEvent->getMeetingLocation()->getCity(),
+            ] : null,
             'cancelled' => $calendarEvent->isCancelled(),
             'cancelReason' => $calendarEvent->getCancelReason(),
             'cancelledBy' => $calendarEvent->getCancelledBy()?->getFullName(),

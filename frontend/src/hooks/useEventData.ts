@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
 import { fetchLeagues } from '../services/leagues';
 import { fetchCups } from '../services/cups';
+import { fetchCupRounds } from '../services/cupRounds';
 import { SelectOption } from '../types/event';
 
 /**
@@ -63,6 +64,21 @@ export const useCups = (open: boolean) => {
   }, [open]);
 
   return cups;
+};
+
+/**
+ * Hook to load global cup round names
+ */
+export const useCupRounds = (open: boolean): string[] => {
+  const [rounds, setRounds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      fetchCupRounds().then(r => setRounds(r.map(x => x.name)));
+    }
+  }, [open]);
+
+  return rounds;
 };
 
 /**

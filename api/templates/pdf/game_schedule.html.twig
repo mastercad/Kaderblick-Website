@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* ─── Reset & Base ─── */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            color: #333;
+            line-height: 1.5;
+            background: #fff;
+            padding: 0 2mm;
+        }
+
+        @page {
+            margin: 18mm 18mm 22mm 18mm;
+            size: A4 portrait;
+        }
+
+        /* ══════════════════════════
+           ACCENT BAR (top edge)
+           ══════════════════════════ */
+        .accent-bar {
+            position: fixed;
+            top: -18mm;
+            left: -18mm;
+            right: -18mm;
+            background: linear-gradient(90deg, #018606, #02a808);
+            height: 6px;
+        }
+
+        /* ══════════════════════════
+           HEADER CARD
+           ══════════════════════════ */
+        .header-card {
+            background: #fafffe;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin: 18px auto 14px auto;
+            text-align: center;
+        }
+        .header-card img.logo {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 8px;
+        }
+        .team-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin: 0 0 3px 0;
+            line-height: 1.2;
+            letter-spacing: -0.3px;
+        }
+        .season-label {
+            font-size: 10pt;
+            color: #777;
+            margin: 0 0 6px 0;
+        }
+        .kaderblick-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #016405;
+            font-size: 7.5pt;
+            font-weight: bold;
+            padding: 3px 12px;
+            border-radius: 12px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        /* ══════════════════════════
+           INFO BAR (game count)
+           ══════════════════════════ */
+        .info-bar {
+            background: #f5f9f5;
+            border: 1px solid #d5e8d5;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 0 12px 0;
+            font-size: 9pt;
+            color: #555;
+        }
+        .info-bar table { width: 100%; border-collapse: collapse; }
+        .info-left  { text-align: left; }
+        .info-right { text-align: right; font-weight: bold; color: #018606; font-size: 9.5pt; }
+        .info-label { font-weight: bold; font-size: 7.5pt; color: #018606; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 3px; }
+        .info-separator { color: #bbb; margin: 0 8px; }
+
+        /* ══════════════════════════
+           SCHEDULE TABLE
+           ══════════════════════════ */
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin: 6px 0 16px 0;
+            font-size: 9pt;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .schedule-table thead th {
+            background: #018606;
+            color: #fff;
+            font-weight: bold;
+            font-size: 8pt;
+            padding: 6px 8px;
+            text-align: left;
+            letter-spacing: 0.2px;
+            overflow: hidden;
+        }
+        .schedule-table thead th:first-child { border-radius: 3px 0 0 0; }
+        .schedule-table thead th:last-child  { border-radius: 0 3px 0 0; }
+        .schedule-table thead th.center { text-align: center; }
+        .schedule-table thead th.right  { text-align: right; }
+
+        .schedule-table tbody tr { background: #fff; }
+        .schedule-table tbody tr:nth-child(even) { background: #f7fbf7; }
+        .schedule-table tbody td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+            overflow: hidden;
+            word-wrap: break-word;
+        }
+
+        /* Column widths — must add up to 100% (table-layout:fixed) */
+        .col-round   { width: 13%; font-size: 8.5pt; color: #555; font-weight: 600; }
+        .col-date    { width: 12%; font-size: 8.5pt; color: #555; white-space: nowrap; }
+        .col-home    { width: 28%; text-align: right; padding-right: 4px; }
+        .col-vs      { width:  4%; text-align: center; color: #bbb; font-size: 8pt; font-weight: bold; padding: 5px 0; }
+        .col-away    { width: 28%; text-align: left;  padding-left: 4px; }
+        .col-kickoff { width:  7%; text-align: center; font-size: 8.5pt; color: #555; }
+        .col-score   { width:  8%; text-align: center; font-weight: bold; font-size: 9.5pt; }
+
+        .own-team      { color: #018606; font-weight: bold; }
+        .score-pending { color: #bbb; font-weight: normal; font-size: 8.5pt; }
+
+        /* ══════════════════════════
+           FOOTER
+           ══════════════════════════ */
+        .footer {
+            position: fixed;
+            bottom: -22mm;
+            left: -18mm;
+            right: -18mm;
+            font-size: 7pt;
+            color: #aaa;
+            border-top: 1px solid #e0e0e0;
+            padding: 5px 18mm 0 18mm;
+        }
+        .footer table { width: 100%; border-collapse: collapse; }
+        .footer td { padding: 0; }
+        .footer-left  { text-align: left; }
+        .footer-right { text-align: right; color: #018606; font-weight: bold; font-size: 7pt; }
+    </style>
+</head>
+<body>
+
+    <div class="accent-bar"></div>
+
+    {# ── Header Card ── #}
+    <div class="header-card">
+        {% if logo_data_uri %}
+            <img class="logo" src="{{ logo_data_uri }}" alt="Kaderblick"><br>
+        {% endif %}
+        <div class="team-name">{{ team.name }}</div>
+        <div class="season-label">Spielplan &middot; Saison {{ season_display }}</div>
+        <span class="kaderblick-badge">Kaderblick</span>
+    </div>
+
+    {# ── Info Bar ── #}
+    <div class="info-bar">
+        <table><tr>
+            <td class="info-left">
+                <span class="info-label">Spielplan</span> Saison {{ season }}/{{ season + 1 }}
+            </td>
+            <td class="info-right">
+                {{ rows|length }} Spiele
+            </td>
+        </tr></table>
+    </div>
+
+    {# ── Schedule Table ── #}
+    {% if rows|length > 0 %}
+        <table class="schedule-table">
+            <thead>
+                <tr>
+                    <th class="col-round">Spieltag</th>
+                    <th class="col-date">Datum</th>
+                    <th class="col-home right">Heim</th>
+                    <th class="col-vs center"></th>
+                    <th class="col-away">Gast</th>
+                    <th class="col-kickoff center">Anstoß</th>
+                    <th class="col-score center">Ergebnis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    {% set isHome = row.is_home %}
+                    <tr>
+                        <td class="col-round">{{ row.round_label }}</td>
+                        <td class="col-date">
+                            {% if row.date %}
+                                {{ row.date|date('d.m.Y') }}
+                            {% else %}
+                                &ndash;
+                            {% endif %}
+                        </td>
+                        <td class="col-home {{ isHome ? 'own-team' : '' }}">{{ row.home_team_name }}</td>
+                        <td class="col-vs">–</td>
+                        <td class="col-away {{ not isHome ? 'own-team' : '' }}">{{ row.away_team_name }}</td>
+                        <td class="col-kickoff">{{ row.kick_off ?? '&ndash;' }}</td>
+                        <td class="col-score {{ row.has_score ? '' : 'score-pending' }}">
+                            {% if row.has_score %}
+                                {{ row.home_score }} : {{ row.away_score }}
+                            {% else %}
+                                &ndash; : &ndash;
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align:center; color:#aaa; padding: 24px 0; font-size:9pt;">
+            Für diese Saison sind keine Spiele vorhanden.
+        </p>
+    {% endif %}
+
+    {# ── Footer ── #}
+    <div class="footer">
+        <table><tr>
+            <td class="footer-left">Erstellt am {{ generated_at }}</td>
+            <td class="footer-right">Kaderblick &middot; kaderblick.de</td>
+        </tr></table>
+    </div>
+
+</body>
+</html>

@@ -81,17 +81,114 @@ class TaskEventGeneratorService
             $assignment->setSubstituteUser($user);
             $assignment->setAssignedDate($startDate);
             $assignment->setStatus('offen');
-            $this->em->persist($assignment);
-
             $aufgabeEvent = new CalendarEvent();
             $aufgabeEvent->setTitle($task->getTitle() . ' - ' . $assignedUser->getFullName());
             $aufgabeEvent->setDescription($task->getDescription());
             $aufgabeEvent->setStartDate($startDate);
             $aufgabeEvent->setCalendarEventType($aufgabeType);
-            $this->em->persist($aufgabeEvent);
-            $this->em->flush();
 
             $assignment->setCalendarEvent($aufgabeEvent);
+            $this->em->persist($aufgabeEvent);
+            $this->em->persist($assignment);
+        }
+
+        $this->em->flush();
+    }
+
+    /**
+     * Adds per-match task occurrences for a single newly-created game CalendarEvent.
+     * Use this in GameEventSubscriber::onGameCreated() instead of regenerating all occurrences.
+     */
+    public function addPerMatchOccurrencesForCalendarEvent(Task $task, User $user, CalendarEvent $spielEvent): void
+    {
+        if ('per_match' !== $task->getRecurrenceMode()) {
+            return;
+        }
+
+        $aufgabeType = $this->calendarEventTypeRepository->findOneBy(['name' => 'Aufgabe']);
+        if (!$aufgabeType) {
+            return;
+        }
+
+        $game = $spielEvent->getGame();
+        if (!$game) {
+            return;
+        }
+
+        $users = $task->getRotationUsers()->toArray();
+        if (0 === count($users)) {
+            $users = [$user];
+        }
+
+        $userGames = [];
+        foreach ($users as $u) {
+            $userRelations = $this->userRelationRepository->findBy(['user' => $u]);
+            $userTeams = [];
+            foreach ($userRelations as $rel) {
+                if ($rel->getPlayer() instanceof Player) {
+                    foreach ($rel->getPlayer()->getPlayerTeamAssignments() as $a) {
+                        $userTeams[$a->getTeam()->getId()] = $a->getTeam();
+                    }
+                }
+                if ($rel->getCoach() instanceof Coach) {
+                    foreach ($rel->getCoach()->getCoachTeamAssignments() as $a) {
+                        $userTeams[$a->getTeam()->getId()] = $a->getTeam();
+                    }
+                }
+            }
+            $userGames[$u->getId()] = ['user' => $u, 'teams' => $userTeams];
+        }
+
+        $eligibleUsers = [];
+        foreach ($userGames as $userData) {
+            $homeTeamId = $game->getHomeTeam()?->getId();
+            $awayTeamId = $game->getAwayTeam()?->getId();
+            foreach ($userData['teams'] as $team) {
+                if ($team->getId() === $homeTeamId || $team->getId() === $awayTeamId) {
+                    $eligibleUsers[] = $userData['user'];
+                    break;
+                }
+            }
+        }
+
+        if (0 === count($eligibleUsers)) {
+            $eligibleUsers = [$user];
+        }
+
+        $offsetDays = $task->getOffsetDays() ?? 0;
+        $rotationCount = $task->getRotationCount() ?? 1;
+        $userIndex = 0;
+
+        for ($i = 0; $i < $rotationCount; ++$i) {
+            if ($userIndex >= count($eligibleUsers)) {
+                $userIndex = 0;
+            }
+            $assignedUser = $eligibleUsers[$userIndex];
+            ++$userIndex;
+
+            $startDateWithOffset = DateTimeImmutable::createFromInterface($spielEvent->getStartDate())
+                ->modify(($offsetDays >= 0 ? '+' : '') . $offsetDays . ' days');
+            $endDateWithOffset = DateTimeImmutable::createFromInterface($spielEvent->getEndDate())
+                ->modify(($offsetDays >= 0 ? '+' : '') . $offsetDays . ' days');
+
+            $assignment = new TaskAssignment();
+            $assignment->setTask($task);
+            $assignment->setUser($assignedUser);
+            $assignment->setSubstituteUser($user);
+            $assignment->setAssignedDate($startDateWithOffset);
+            $assignment->setStatus('offen');
+
+            $aufgabeEvent = new CalendarEvent();
+            $aufgabeEvent->setTitle($task->getTitle() . ' - ' . $assignedUser->getFullName() . ' - ' . $spielEvent->getTitle());
+            $aufgabeEvent->setDescription($task->getDescription());
+            $aufgabeEvent->setStartDate($startDateWithOffset);
+            $aufgabeEvent->setEndDate($endDateWithOffset);
+            $aufgabeEvent->setCalendarEventType($aufgabeType);
+            $aufgabeEvent->setLocation($spielEvent->getLocation());
+
+            $assignment->setCalendarEvent($aufgabeEvent);
+            $this->em->persist($aufgabeEvent);
+            $this->em->persist($assignment);
         }
 
         $this->em->flush();
@@ -190,10 +287,9 @@ class TaskEventGeneratorService
                 $assignedUser = $eligibleUsers[$userIndex];
                 ++$userIndex;
 
-                $startDateWithOffset = (clone $spielEvent->getStartDate())
+                $startDateWithOffset = DateTimeImmutable::createFromInterface($spielEvent->getStartDate())
                     ->modify(($offsetDays >= 0 ? '+' : '') . $offsetDays . ' days');
-
-                $endDateWithOffset = (clone $spielEvent->getEndDate())
+                $endDateWithOffset = DateTimeImmutable::createFromInterface($spielEvent->getEndDate())
                     ->modify(($offsetDays >= 0 ? '+' : '') . $offsetDays . ' days');
 
                 // Erstelle TaskAssignment
@@ -215,13 +311,12 @@ class TaskEventGeneratorService
                 $aufgabeEvent->setCalendarEventType($aufgabeType);
                 $aufgabeEvent->setLocation($spielEvent->getLocation());
 
-                $this->em->persist($aufgabeEvent);
-                $this->em->flush();
-
-                // Link Assignment ↔ CalendarEvent
+                // Link Assignment ↔ CalendarEvent before persist — Doctrine tracks by reference
                 $assignment->setCalendarEvent($aufgabeEvent);
+                $this->em->persist($aufgabeEvent);
             }
         }
+        // Single flush for all persisted entities instead of one per loop iteration
         $this->em->flush();
     }
 

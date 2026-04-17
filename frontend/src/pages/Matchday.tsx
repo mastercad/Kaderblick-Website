@@ -27,6 +27,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import GroupIcon from '@mui/icons-material/Group';
 import { apiJson } from '../utils/api';
+import Location from '../components/Location';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,6 +134,7 @@ interface MatchdayData {
     cancelledBy?: string;
     meetingPoint?: string;
     meetingTime?: string;
+    meetingLocation?: { id: number; name: string; latitude?: number; longitude?: number; address?: string; city?: string };
     weatherData?: { weatherCode?: number };
   };
   role: 'admin' | 'coach' | 'player';
@@ -717,8 +719,20 @@ export default function Matchday() {
           <Stack spacing={0.5}>
             {event.meetingPoint && (
               <Stack direction="row" spacing={1} alignItems="flex-start">
-                <PlaceIcon fontSize="small" color="action" sx={{ mt: 0.1 }} />
-                <Typography variant="body2">{event.meetingPoint}</Typography>
+                {event.meetingLocation ? (
+                  <Location
+                    id={event.meetingLocation.id}
+                    name={event.meetingLocation.name}
+                    latitude={event.meetingLocation.latitude}
+                    longitude={event.meetingLocation.longitude}
+                    address={event.meetingLocation.address}
+                  />
+                ) : (
+                  <>
+                    <PlaceIcon fontSize="small" color="action" sx={{ mt: 0.1 }} />
+                    <Typography variant="body2">{event.meetingPoint}</Typography>
+                  </>
+                )}
               </Stack>
             )}
             {event.meetingTime && (

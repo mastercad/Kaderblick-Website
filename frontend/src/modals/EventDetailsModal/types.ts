@@ -43,6 +43,7 @@ export interface EventGame {
   homeTeam?: { name: string };
   awayTeam?: { name: string };
   gameType?: { name: string };
+  round?: string | null;
 }
 
 export interface EventTask {
@@ -82,6 +83,16 @@ export interface CalendarEvent {
   cancelled?: boolean;
   cancelReason?: string;
   cancelledBy?: string;
+  meetingPoint?: string;
+  meetingTime?: string;
+  meetingLocation?: {
+    id: number;
+    name: string;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    city?: string;
+  };
 }
 
 export interface EventDetailsModalProps {

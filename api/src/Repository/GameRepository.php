@@ -206,4 +206,26 @@ class GameRepository extends ServiceEntityRepository implements OptimizedReposit
             ->getQuery()
             ->getArrayResult();
     }
+
+    public function countByRound(string $round): int
+    {
+        return (int) $this->createQueryBuilder('g')
+            ->select('COUNT(g.id)')
+            ->where('g.round = :round')
+            ->setParameter('round', $round)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function bulkUpdateRound(string $oldRound, string $newRound): int
+    {
+        return $this->createQueryBuilder('g')
+            ->update()
+            ->set('g.round', ':newRound')
+            ->where('g.round = :oldRound')
+            ->setParameter('newRound', $newRound)
+            ->setParameter('oldRound', $oldRound)
+            ->getQuery()
+            ->execute();
+    }
 }

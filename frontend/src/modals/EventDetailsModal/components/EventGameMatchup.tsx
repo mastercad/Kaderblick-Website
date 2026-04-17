@@ -39,6 +39,14 @@ export const EventGameMatchup: React.FC<EventGameMatchupProps> = ({ game, typeCo
           sx={{ position: 'absolute', top: 8, right: 8, fontSize: '0.7rem' }}
         />
       )}
+      {game.round && (
+        <Chip
+          label={game.round}
+          size="small"
+          color="default"
+          sx={{ position: 'absolute', top: 8, left: 8, fontSize: '0.7rem' }}
+        />
+      )}
 
       {/* Home team */}
       <Box sx={{ textAlign: 'center', flex: 1 }}>

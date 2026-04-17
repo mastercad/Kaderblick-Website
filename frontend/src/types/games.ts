@@ -101,6 +101,8 @@ export interface Game {
   /** Nachspielzeit der 2. Halbzeit in Minuten (null = nicht erfasst). */
   secondHalfExtraTime?: number | null;
   matchPlan?: MatchPlan | null;
+  /** Rundenbezeichnung für die PDF-Spielplanansicht (z.B. "Halbfinale"). */
+  round?: string | null;
   permissions?: {
     can_create_videos?: boolean;
     can_view_videos?: boolean;

@@ -9,7 +9,8 @@ jest.mock('../useEventTypeFlags', () => ({
     isTournamentEventType:_eventType === 'turnier',
     isTask:               _eventType === 'aufgabe',
     isTraining:           _eventType === 'training',
-    isGenericEvent:       !['spiel', 'turnier', 'aufgabe', 'training'].includes(_eventType),
+    // '__none__' is a sentinel that makes all flags false (covers else branch at line 96)
+    isGenericEvent:       !['spiel', 'turnier', 'aufgabe', 'training', '__none__'].includes(_eventType),
   }),
 }));
 
@@ -172,5 +173,213 @@ describe('useEventWizard', () => {
     const { result } = renderHook(() => useEventWizard({ ...makeParams(), onClose }));
     act(() => { result.current.handleClose(); });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  // ── Auto-fill gameType for tournament ─────────────────────────────────────
+
+  it('auto-fills gameType when tournament has no gameType and matching entry exists', () => {
+    const onChange = jest.fn();
+    renderHook(() => useEventWizard({
+      ...makeParams({ eventType: 'turnier', gameType: '' }),
+      onChange,
+      gameTypes: [{ value: 'gt-turnier', label: 'Turnier Hauptrunde' }],
+    }));
+    expect(onChange).toHaveBeenCalledWith('gameType', 'gt-turnier');
+  });
+
+  it('does not auto-fill gameType when gameType is already set', () => {
+    const onChange = jest.fn();
+    renderHook(() => useEventWizard({
+      ...makeParams({ eventType: 'turnier', gameType: 'existing-gt' }),
+      onChange,
+      gameTypes: [{ value: 'gt-turnier', label: 'Turnier Hauptrunde' }],
+    }));
+    expect(onChange).not.toHaveBeenCalledWith('gameType', expect.anything());
+  });
+
+  it('does not auto-fill gameType when no matching gameType label found', () => {
+    const onChange = jest.fn();
+    renderHook(() => useEventWizard({
+      ...makeParams({ eventType: 'turnier', gameType: '' }),
+      onChange,
+      gameTypes: [{ value: 'gt-liga', label: 'Liga' }],
+    }));
+    expect(onChange).not.toHaveBeenCalledWith('gameType', expect.anything());
+  });
+
+  // ── genericEvent step (STEP_PERMISSIONS) ─────────────────────────────────
+
+  it('generic event type includes STEP_PERMISSIONS step', () => {
+    const { result } = renderHook(() =>
+      useEventWizard(makeParams({ eventType: 'sonstiges' })),
+    );
+    expect(result.current.steps.map(s => s.key)).toContain('permissions');
+    expect(result.current.steps.find(s => s.key === 'permissions')?.label).toBe('Berechtigungen');
+  });
+
+  it('generic event does NOT include STEP_DETAILS', () => {
+    const { result } = renderHook(() =>
+      useEventWizard(makeParams({ eventType: 'sonstiges' })),
+    );
+    expect(result.current.steps.map(s => s.key)).not.toContain('details');
+  });
+
+  // ── Training series scope step ─────────────────────────────────────────────
+
+  it('training event with trainingSeriesId includes STEP_TRAINING_SCOPE', () => {
+    const { result } = renderHook(() =>
+      useEventWizard(makeParams({ eventType: 'training', trainingSeriesId: 'series-1' })),
+    );
+    expect(result.current.steps.map(s => s.key)).toContain('training_scope');
+    expect(result.current.steps.find(s => s.key === 'training_scope')?.label).toBe('Gültigkeit');
+  });
+
+  it('training event without trainingSeriesId does NOT include STEP_TRAINING_SCOPE', () => {
+    const { result } = renderHook(() =>
+      useEventWizard(makeParams({ eventType: 'training' })),
+    );
+    expect(result.current.steps.map(s => s.key)).not.toContain('training_scope');
+  });
+
+  // ── Step clamp when step list shrinks ─────────────────────────────────────
+
+  it('clamps currentStep when event type changes to one with fewer steps', () => {
+    const spParams = makeParams({
+      eventType: 'spiel',
+      homeTeam: 'team1',
+      awayTeam: 'team2',
+      locationId: 'loc1',
+    });
+    const { result, rerender } = renderHook(
+      ({ p }: { p: ReturnType<typeof makeParams> }) => useEventWizard(p),
+      { initialProps: { p: spParams } },
+    );
+
+    // Navigate to last step of spiel: [base(0), details(1), timing(2), description(3)]
+    act(() => result.current.handleNext()); // 0 → 1
+    act(() => result.current.handleNext()); // 1 → 2 (details validation passes)
+    act(() => result.current.handleNext()); // 2 → 3 (timing has no validation)
+    expect(result.current.currentStep).toBe(3);
+
+    // Switch to training: [base(0), details(1), description(2)] → 3 steps
+    act(() => { rerender({ p: makeParams({ eventType: 'training' }) }); });
+
+    // currentStep must be clamped to steps.length - 1 = 2
+    expect(result.current.currentStep).toBe(2);
+  });
+
+  // ── STEP_DETAILS match validation ─────────────────────────────────────────
+
+  it('sets error on STEP_DETAILS when homeTeam is missing (spiel event)', () => {
+    const params = makeParams({
+      eventType: 'spiel',
+      homeTeam: '',
+      awayTeam: 'team2',
+      locationId: 'loc1',
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+
+    act(() => result.current.handleNext()); // base → 1 (title not required for spiel)
+    act(() => result.current.handleNext()); // details → blocked
+
+    expect(result.current.stepError).toBeTruthy();
+    expect(result.current.currentStep).toBe(1);
+  });
+
+  it('sets error on STEP_DETAILS when awayTeam is missing (spiel event)', () => {
+    const params = makeParams({
+      eventType: 'spiel',
+      homeTeam: 'team1',
+      awayTeam: '',
+      locationId: 'loc1',
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+
+    act(() => result.current.handleNext()); // base → 1
+    act(() => result.current.handleNext()); // details → blocked
+
+    expect(result.current.stepError).toBeTruthy();
+    expect(result.current.currentStep).toBe(1);
+  });
+
+  it('sets error on STEP_DETAILS when locationId is missing (spiel event)', () => {
+    const params = makeParams({
+      eventType: 'spiel',
+      homeTeam: 'team1',
+      awayTeam: 'team2',
+      locationId: '',
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+
+    act(() => result.current.handleNext()); // base → 1
+    act(() => result.current.handleNext()); // details → blocked
+
+    expect(result.current.stepError).toBeTruthy();
+    expect(result.current.currentStep).toBe(1);
+  });
+
+  // ── STEP_PERMISSIONS validation ────────────────────────────────────────────
+
+  it('sets error on STEP_PERMISSIONS when permissionType is missing', () => {
+    const params = makeParams({
+      eventType: 'sonstiges',
+      permissionType: '',
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+
+    // Steps for generic: [base(0), permissions(1), description(2)]
+    act(() => result.current.handleNext()); // base → 1 (passes: title, eventType, date valid)
+    act(() => result.current.handleNext()); // permissions → blocked
+
+    expect(result.current.stepError).toBeTruthy();
+    expect(result.current.currentStep).toBe(1);
+  });
+
+  it('advances from STEP_PERMISSIONS when permissionType is set', () => {
+    const params = makeParams({
+      eventType: 'sonstiges',
+      permissionType: 'public',
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+
+    act(() => result.current.handleNext()); // base → 1
+    act(() => result.current.handleNext()); // permissions → 2 (passes)
+
+    expect(result.current.stepError).toBeNull();
+    expect(result.current.currentStep).toBe(2);
+  });
+
+  it('covers else branch (line 96): unknown event type with all flags false has Details step', () => {
+    // '__none__' makes all flags false (isGenericEvent excluded in mock)
+    const { result } = renderHook(() =>
+      useEventWizard(makeParams({ eventType: '__none__' })),
+    );
+    expect(result.current.steps.map(s => s.key)).toEqual(['base', 'details', 'description']);
+    expect(result.current.steps[1].label).toBe('Details');
+  });
+
+  it('covers line 137 false branch: valid task advances from STEP_DETAILS without error', () => {
+    // A task with valid rotation passes task validation (firstTaskError is falsy)
+    const params = makeParams({
+      eventType: 'aufgabe',
+      taskRotationUsers: ['user1'],
+      taskRotationCount: 1,
+      taskIsRecurring: false,
+    });
+    const { result } = renderHook(() => useEventWizard(params));
+    act(() => { result.current.handleNext(); }); // base → details
+    act(() => { result.current.handleNext(); }); // details → description (no error)
+    expect(result.current.stepError).toBeNull();
+    expect(result.current.currentStep).toBe(2);
+  });
+
+  it('covers line 166 false branch: handleSave returns early when validation fails', () => {
+    // No title → validateCurrentStep returns false on STEP_BASE
+    const onSave = jest.fn();
+    const params = { ...makeParams({ title: '', eventType: 'training', date: '' }), onSave };
+    const { result } = renderHook(() => useEventWizard(params));
+    act(() => { result.current.handleSave(); });
+    expect(onSave).not.toHaveBeenCalled();
+    expect(result.current.stepError).toBeTruthy();
   });
 });

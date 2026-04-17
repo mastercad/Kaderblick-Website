@@ -62,6 +62,9 @@ export function buildCalendarEventPayload(
     permissionTeams: eventFormData.permissionTeams?.map(id => parseInt(id)) || [],
     permissionClubs: eventFormData.permissionClubs?.map(id => parseInt(id)) || [],
     permissionUsers: eventFormData.permissionUsers?.map(id => parseInt(id)) || [],
+    meetingPoint: eventFormData.meetingPoint ?? null,
+    meetingTime: eventFormData.meetingTime || null,
+    meetingLocationId: eventFormData.meetingLocationId ? parseInt(eventFormData.meetingLocationId) : null,
   };
 
   // Always send leagueId/cupId (null = clear) so the backend clears stale values.
@@ -83,6 +86,7 @@ export function buildCalendarEventPayload(
         halftimeBreakDuration: typeof eventFormData.gameHalftimeBreakDuration === 'number' ? eventFormData.gameHalftimeBreakDuration : undefined,
         firstHalfExtraTime: eventFormData.gameFirstHalfExtraTime ?? undefined,
         secondHalfExtraTime: eventFormData.gameSecondHalfExtraTime ?? undefined,
+        round: eventFormData.gameRound || undefined,
       };
     }
     if (eventFormData.gameType) {

@@ -259,7 +259,11 @@ class CalendarEventService
         $calendarEventTypeSpiel = $this->entityManager->getRepository(CalendarEventType::class)->findOneBy(['name' => 'Spiel']);
         $calendarEventTypeTournament = $this->entityManager->getRepository(CalendarEventType::class)->findOneBy(['name' => 'Turnier']);
         $gameEventTypeTournament = $this->entityManager->getRepository(GameEventType::class)->findOneBy(['name' => 'Turnier']);
-        $calendarEvent->setTitle($data['title'] ?? $calendarEvent->getTitle());
+        // Set title only when explicitly provided in payload; game/tournament events auto-generate from teams/name
+        $explicitTitle = (isset($data['title']) && '' !== trim((string) $data['title'])) ? $data['title'] : null;
+        if (null !== $explicitTitle) {
+            $calendarEvent->setTitle($explicitTitle);
+        }
         $calendarEvent->setDescription($data['description'] ?? null);
         $calendarEvent->setStartDate(new DateTime($data['startDate']));
 
@@ -292,6 +296,11 @@ class CalendarEventService
         // Tournament verarbeiten, wenn EventType "Turnier" ODER "Spiel" mit Turnier-Payload
         if ($isTournamentEvent || ($isGameEvent && $isTournamentPayload)) {
             $this->processTournament($calendarEvent, $data);
+            // Auto-generate CalendarEvent title from tournament name when none was provided
+            if (empty($calendarEvent->getTitle())) {
+                $tournamentName = $calendarEvent->getTournament()?->getName();
+                $calendarEvent->setTitle(('' !== ($tournamentName ?? '')) ? (string) $tournamentName : 'Turnier');
+            }
         }
 
         // Nur ein Spiel anlegen, wenn es KEIN Turnier-Payload ist
@@ -356,6 +365,19 @@ class CalendarEventService
                 $val = $data['game']['secondHalfExtraTime'];
                 $calendarEvent->getGame()?->setSecondHalfExtraTime(null !== $val && '' !== $val ? (int) $val : null);
             }
+            if (array_key_exists('round', $data['game'] ?? [])) {
+                $roundVal = $data['game']['round'] ?? '';
+                $calendarEvent->getGame()?->setRound('' !== trim((string) $roundVal) ? (string) $roundVal : null);
+            }
+        }
+
+        // Auto-generate title for game events when none was provided in the payload
+        if ($isGameEvent && !$isTournamentPayload && empty($calendarEvent->getTitle())) {
+            $homeName = $calendarEvent->getGame()?->getHomeTeam()?->getName() ?? '';
+            $awayName = $calendarEvent->getGame()?->getAwayTeam()?->getName() ?? '';
+            $calendarEvent->setTitle(
+                ('' !== $homeName ? $homeName : '?') . ' vs. ' . ('' !== $awayName ? $awayName : '?')
+            );
         }
 
         // Auto-calculate end date for Spiel events if not provided in payload
@@ -381,6 +403,15 @@ class CalendarEventService
 
         if (array_key_exists('meetingPoint', $data)) {
             $calendarEvent->setMeetingPoint('' !== $data['meetingPoint'] ? $data['meetingPoint'] : null);
+        }
+
+        if (array_key_exists('meetingLocationId', $data)) {
+            if (null !== $data['meetingLocationId']) {
+                $meetingLocation = $this->entityManager->getRepository(Location::class)->find((int) $data['meetingLocationId']);
+                $calendarEvent->setMeetingLocation($meetingLocation ?: null);
+            } else {
+                $calendarEvent->setMeetingLocation(null);
+            }
         }
 
         if (array_key_exists('meetingTime', $data)) {

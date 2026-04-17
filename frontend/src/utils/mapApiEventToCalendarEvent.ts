@@ -65,6 +65,10 @@ export function mapApiEventToCalendarEvent(
     tournament: ev.tournament,
     matches: ev.tournament?.matches,
     pendingTournamentMatches: fulfillPendingTournamentMatches(ev.tournament?.matches || [], teams),
+    meetingPoint: ev.meetingPoint || undefined,
+    // API returns meetingTime as full ISO datetime ("2026-04-17T12:00:00") — extract HH:mm only
+    meetingTime: ev.meetingTime ? (ev.meetingTime as string).substring(11, 16) : undefined,
+    meetingLocation: ev.meetingLocation || undefined,
     teamIds,
     tournamentTeams: teamIds,
   } as CalendarEvent;

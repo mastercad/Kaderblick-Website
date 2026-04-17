@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { apiJson } from '../utils/api';
 import { AdminPageLayout, AdminEmptyState, AdminTable, AdminActions, AdminSnackbar, AdminTableColumn } from '../components/AdminPageLayout';
 import CupDeleteConfirmationModal from '../modals/CupDeleteConfirmationModal';
 import CupEditModal from '../modals/CupEditModal';
+import CupRoundsAdminModal from '../modals/CupRoundsAdminModal';
 import CompetitionGamesModal from '../modals/CompetitionGamesModal';
 import { Cup } from '../types/cup';
 
@@ -18,6 +21,7 @@ const Cups = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteCup, setDeleteCup] = useState<Cup | null>(null);
   const [gamesModal, setGamesModal] = useState<{ id: number; name: string } | null>(null);
+  const [roundsModalOpen, setRoundsModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<AdminSnackbar>({ open: false, message: '', severity: 'success' });
 
   const loadCups = async () => {
@@ -79,6 +83,16 @@ const Cups = () => {
       error={error}
       createLabel="Neuer Pokal"
       onCreate={() => { setCupId(null); setCupEditModalOpen(true); }}
+      filterControls={
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ListAltIcon />}
+          onClick={() => setRoundsModalOpen(true)}
+        >
+          Rundennamen verwalten
+        </Button>
+      }
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder="Pokal suchen..."
@@ -100,6 +114,7 @@ const Cups = () => {
 
       <CupEditModal openCupEditModal={cupEditModalOpen} cupId={cupId} onCupEditModalClose={() => setCupEditModalOpen(false)} onCupSaved={() => { setCupEditModalOpen(false); loadCups(); }} />
       <CupDeleteConfirmationModal open={deleteModalOpen} cupName={deleteCup?.name} onClose={() => setDeleteModalOpen(false)} onConfirm={async () => handleDelete(deleteCup!.id)} />
+      <CupRoundsAdminModal open={roundsModalOpen} onClose={() => setRoundsModalOpen(false)} />
       <CompetitionGamesModal
         open={!!gamesModal}
         onClose={() => setGamesModal(null)}

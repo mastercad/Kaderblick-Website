@@ -113,7 +113,8 @@ export function useEventWizard({
     setStepError(null);
 
     if (currentStepKey === STEP_BASE) {
-      if (!event.title || !event.eventType || !event.date) {
+      const titleRequired = !isMatchEvent && !isTournament;
+      if ((titleRequired && !event.title) || !event.eventType || !event.date) {
         setStepError('Bitte Titel, Event-Typ und Start-Datum angeben!');
         return false;
       }

@@ -1,4 +1,4 @@
-import { apiJson } from '../utils/api';
+import { apiJson, apiBlob } from '../utils/api';
 import { Game, GameEvent, GameEventType, MatchPlan, Player, SubstitutionReason, GameWithScore, TournamentOverview, TournamentDetail } from '../types/games';
 
 export interface GamesOverviewData {
@@ -182,4 +182,8 @@ export async function confirmGameMatchPlanSubstitution(gameId: number, phaseId: 
     method: 'POST',
     body: { phaseId },
   });
+}
+
+export async function fetchGameSchedulePdf(teamId: number, season: number): Promise<Blob> {
+  return apiBlob(`/api/games/schedule/pdf?teamId=${teamId}&season=${season}`);
 }

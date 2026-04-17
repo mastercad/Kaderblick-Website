@@ -1,8 +1,11 @@
 import React from 'react';
+import Autocomplete from '@mui/material/Autocomplete';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import ListSubheader from '@mui/material/ListSubheader';
+import TextField from '@mui/material/TextField';
 import { EventData, SelectOption } from '../../types/event';
 
 interface GameEventFieldsProps {
@@ -11,18 +14,66 @@ interface GameEventFieldsProps {
   gameTypes: SelectOption[];
   leagues: SelectOption[];
   cups: SelectOption[];
+  cupRounds: string[];
   isTournament: boolean;
   isTournamentEventType: boolean;
   isLiga: boolean;
   isPokal: boolean;
+  isKnockout: boolean;
   handleChange: (field: string, value: any) => void;
+}
+
+// ── Game-type grouping ────────────────────────────────────────────────────────
+// Maps each known game-type name (lowercase) to a group label.
+// Types in the "System" group (Turnier-Match, Trainingseinheit) are hidden from manual selection.
+const GAME_TYPE_GROUPS: Record<string, string> = {
+  'ligaspiel':              'Liga',
+  'nachholspiel':           'Liga',
+  'pokalspiel':             'Pokal',
+  'freundschaftsspiel':     'Test / Freundschaft',
+  'testspiel':              'Test / Freundschaft',
+  'turnierspiel':           'Turnier',
+  'hallenturnier':          'Turnier',
+  'pokalturnier':           'Turnier',
+  'saisonturnier':          'Turnier',
+  'internationales spiel':  'Sonstiges',
+  'supercup':               'Sonstiges',
+  'playoff-spiel':          'Sonstiges',
+  'internes spiel':         'Sonstiges',
+  'qualifikationsspiel':    'Sonstiges',
+  'vorrundenspiel':         'Sonstiges',
+};
+
+const GROUP_ORDER = ['Liga', 'Pokal', 'Test / Freundschaft', 'Turnier', 'Sonstiges'];
+
+function buildGroupedOptions(gameTypes: SelectOption[]): Array<{ group: string; options: SelectOption[] }> {
+  const grouped: Record<string, SelectOption[]> = {};
+  const ungrouped: SelectOption[] = [];
+
+  for (const opt of gameTypes) {
+    const group = GAME_TYPE_GROUPS[opt.label.toLowerCase()];
+    if (!group) {
+      ungrouped.push(opt);
+      continue;
+    }
+    if (!grouped[group]) grouped[group] = [];
+    grouped[group].push(opt);
+  }
+
+  const result: Array<{ group: string; options: SelectOption[] }> = [];
+  for (const g of GROUP_ORDER) {
+    if (grouped[g]?.length) result.push({ group: g, options: grouped[g] });
+  }
+  if (ungrouped.length) result.push({ group: 'Weitere', options: ungrouped });
+  return result;
 }
 
 /**
  * Form fields specific to game events:
  * - Home/Away Teams (hidden for tournament games)
- * - Game Type
- * - League
+ * - Game Type (grouped by category)
+ * - League / Cup (conditional on game type)
+ * - Round / Runde (optional, for knockout-style game types)
  */
 const GameEventFieldsComponent: React.FC<GameEventFieldsProps> = ({
   formData,
@@ -30,12 +81,16 @@ const GameEventFieldsComponent: React.FC<GameEventFieldsProps> = ({
   gameTypes,
   leagues,
   cups,
+  cupRounds,
   isTournament,
   isTournamentEventType,
   isLiga,
   isPokal,
+  isKnockout,
   handleChange,
 }) => {
+  const groupedGameTypes = React.useMemo(() => buildGroupedOptions(gameTypes), [gameTypes]);
+
   return (
     <>
       {/* For tournament games, teams are selected from tournament-match; hide manual home/away selection */}
@@ -84,9 +139,12 @@ const GameEventFieldsComponent: React.FC<GameEventFieldsProps> = ({
             onChange={e => handleChange('gameType', e.target.value as string)}
           >
             <MenuItem value=""><em>Bitte wählen...</em></MenuItem>
-            {gameTypes.map(opt => (
-              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-            ))}
+            {groupedGameTypes.map(({ group, options }) => [
+              <ListSubheader key={`hdr-${group}`}>{group}</ListSubheader>,
+              ...options.map(opt => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+              )),
+            ])}
           </Select>
         </FormControl>
       )}
@@ -124,8 +182,32 @@ const GameEventFieldsComponent: React.FC<GameEventFieldsProps> = ({
           </Select>
         </FormControl>
       )}
+
+      {isKnockout && !isTournament && (
+          <Autocomplete
+            freeSolo
+            options={cupRounds}
+            value={formData.gameRound ?? null}
+            onChange={(_, newValue) =>
+              handleChange('gameRound', typeof newValue === 'string' ? newValue : '')
+            }
+            onInputChange={(_, newInputValue, reason) => {
+              if (reason === 'input') handleChange('gameRound', newInputValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Runde (optional)"
+                placeholder="Runde frei eingeben oder aus Rundennamen wählen"
+                margin="normal"
+                fullWidth
+              />
+            )}
+          />
+      )}
     </>
   );
 };
 
 export const GameEventFields = React.memo(GameEventFieldsComponent);
+

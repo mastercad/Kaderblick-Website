@@ -13,6 +13,7 @@ import RestoreIcon from '@mui/icons-material/EventAvailable';
 import GroupIcon from '@mui/icons-material/Group';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import BaseModal from '../BaseModal';
 import WeatherModal from '../WeatherModal';
@@ -318,6 +319,39 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   `${event.location.city || ''}, ${event.location.address || ''}`.trim()
                 }
               />
+            </Box>
+          )}
+
+          {/* Meeting Point */}
+          {(event.meetingPoint || event.meetingLocation) && (
+            <Box sx={{ px: 0.5 }}>
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <AccessTimeIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.25, flexShrink: 0 }} />
+                <Box>
+                  {event.meetingTime && (
+                    <Typography variant="body2" fontWeight={600} gutterBottom={false}>
+                      Treffpunkt {event.meetingTime} Uhr
+                    </Typography>
+                  )}
+                  {event.meetingLocation ? (
+                    <Location
+                      id={event.meetingLocation.id}
+                      name={event.meetingLocation.name}
+                      latitude={event.meetingLocation.latitude}
+                      longitude={event.meetingLocation.longitude}
+                      address={
+                        [event.meetingLocation.city, event.meetingLocation.address]
+                          .filter(Boolean)
+                          .join(', ')
+                      }
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      {event.meetingPoint}
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
             </Box>
           )}
 

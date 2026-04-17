@@ -25,6 +25,35 @@ jest.mock('@mui/material/MenuItem', () => (props: any) => {
   return <option value={value}>{content}</option>;
 });
 
+jest.mock('@mui/material/Autocomplete', () => (props: any) => {
+  const input = props.renderInput?.({ inputProps: {}, InputProps: { ref: null }, InputLabelProps: {} });
+  return (
+    <div data-testid="round-autocomplete">
+      {input}
+      <button
+        data-testid="ac-change-string"
+        onClick={() => props.onChange(null, 'Halbfinale')}
+      />
+      <button
+        data-testid="ac-change-non-string"
+        onClick={() => props.onChange(null, null)}
+      />
+      <button
+        data-testid="ac-input-change"
+        onClick={() => props.onInputChange(null, 'Viertelfinale', 'input')}
+      />
+      <button
+        data-testid="ac-input-reset"
+        onClick={() => props.onInputChange(null, 'resetVal', 'reset')}
+      />
+    </div>
+  );
+});
+
+jest.mock('@mui/material/TextField', () => (props: any) => (
+  <input data-testid={`tf-${props.label}`} value={props.value ?? ''} onChange={props.onChange} />
+));
+
 // ── Fixtures ──────────────────────────────────────────────────────────────
 const baseFormData: EventData = {
   title: 'Spiel',
@@ -57,10 +86,12 @@ const baseProps = {
   gameTypes,
   leagues,
   cups,
+  cupRounds: [],
   isTournament: false,
   isTournamentEventType: false,
   isLiga: false,
   isPokal: false,
+  isKnockout: false,
   handleChange: jest.fn(),
 };
 
@@ -181,5 +212,92 @@ describe('GameEventFields', () => {
     render(<GameEventFields {...baseProps} isLiga={false} isPokal={false} />);
     expect(screen.queryByTestId('league-label')).not.toBeInTheDocument();
     expect(screen.queryByTestId('cup-label')).not.toBeInTheDocument();
+  });
+
+  // ── onChange handlers for team and gameType selects ───────────────────────
+
+  it('calls handleChange("homeTeam", ...) on home team select change', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} handleChange={handleChange} />);
+    fireEvent.change(screen.getByTestId('home-team-label'), { target: { value: '1' } });
+    expect(handleChange).toHaveBeenCalledWith('homeTeam', '1');
+  });
+
+  it('calls handleChange("awayTeam", ...) on away team select change', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} handleChange={handleChange} />);
+    fireEvent.change(screen.getByTestId('away-team-label'), { target: { value: '2' } });
+    expect(handleChange).toHaveBeenCalledWith('awayTeam', '2');
+  });
+
+  it('calls handleChange("gameType", ...) on game type select change', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} handleChange={handleChange} />);
+    fireEvent.change(screen.getByTestId('game-type-label'), { target: { value: 'liga' } });
+    expect(handleChange).toHaveBeenCalledWith('gameType', 'liga');
+  });
+
+  // ── Knockout round Autocomplete ───────────────────────────────────────────
+
+  it('shows round autocomplete when isKnockout=true and not a tournament', () => {
+    render(<GameEventFields {...baseProps} isKnockout={true} cupRounds={['Halbfinale', 'Finale']} />);
+    expect(screen.getByTestId('round-autocomplete')).toBeInTheDocument();
+  });
+
+  it('hides round autocomplete when isKnockout=false', () => {
+    render(<GameEventFields {...baseProps} isKnockout={false} />);
+    expect(screen.queryByTestId('round-autocomplete')).not.toBeInTheDocument();
+  });
+
+  it('hides round autocomplete when isKnockout=true but isTournament=true', () => {
+    render(<GameEventFields {...baseProps} isKnockout={true} isTournament={true} />);
+    expect(screen.queryByTestId('round-autocomplete')).not.toBeInTheDocument();
+  });
+
+  it('calls handleChange("gameRound", ...) via Autocomplete onChange (string value)', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} isKnockout={true} handleChange={handleChange} />);
+    fireEvent.click(screen.getByTestId('ac-change-string'));
+    expect(handleChange).toHaveBeenCalledWith('gameRound', 'Halbfinale');
+  });
+
+  it('calls handleChange("gameRound", ...) via Autocomplete onInputChange', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} isKnockout={true} handleChange={handleChange} />);
+    fireEvent.click(screen.getByTestId('ac-input-change'));
+    expect(handleChange).toHaveBeenCalledWith('gameRound', 'Viertelfinale');
+  });
+
+  it('renders game type select with ungrouped option (lines 56-57 ungrouped branch)', () => {
+    const typesWithUnknown = [
+      ...gameTypes,
+      { value: 'xyz', label: 'Unbekannter Spieltyp' },
+    ];
+    render(<GameEventFields {...baseProps} gameTypes={typesWithUnknown} />);
+    // The select renders with labelId="game-type-label" (mock uses labelId as data-testid)
+    expect(screen.getByTestId('game-type-label')).toBeInTheDocument();
+  });
+
+  it('covers line 59 false branch by placing two types in the same group', () => {
+    const typesWithDuplicate = [
+      { value: 'liga', label: 'Ligaspiel' },
+      { value: 'nach', label: 'Nachholspiel' }, // also mapped to 'Liga'
+    ];
+    render(<GameEventFields {...baseProps} gameTypes={typesWithDuplicate} />);
+    expect(screen.getByTestId('game-type-label')).toBeInTheDocument();
+  });
+
+  it('calls handleChange with empty string via Autocomplete onChange non-string value (line 192 false branch)', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} isKnockout={true} handleChange={handleChange} />);
+    fireEvent.click(screen.getByTestId('ac-change-non-string'));
+    expect(handleChange).toHaveBeenCalledWith('gameRound', '');
+  });
+
+  it('does not call handleChange when onInputChange reason is not input (line 195 false branch)', () => {
+    const handleChange = jest.fn();
+    render(<GameEventFields {...baseProps} isKnockout={true} handleChange={handleChange} />);
+    fireEvent.click(screen.getByTestId('ac-input-reset'));
+    expect(handleChange).not.toHaveBeenCalled();
   });
 });

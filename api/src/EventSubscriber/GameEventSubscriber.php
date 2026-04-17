@@ -27,7 +27,21 @@ class GameEventSubscriber implements EventSubscriberInterface
 
     public function onGameCreated(GameCreatedEvent $event): void
     {
-        $this->regeneratePerMatchTasks();
+        $game = $event->getGame();
+        $calendarEvent = $game->getCalendarEvent();
+
+        if (!$calendarEvent) {
+            return;
+        }
+
+        $tasks = $this->em->getRepository(Task::class)->findBy(['recurrenceMode' => 'per_match']);
+        foreach ($tasks as $task) {
+            $this->taskEventGeneratorService->addPerMatchOccurrencesForCalendarEvent(
+                $task,
+                $task->getCreatedBy(),
+                $calendarEvent
+            );
+        }
     }
 
     public function onGameDeleted(GameDeletedEvent $event): void

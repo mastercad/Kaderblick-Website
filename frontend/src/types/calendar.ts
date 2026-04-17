@@ -49,6 +49,14 @@ export type CalendarEvent = {
   trainingSeriesId?: string;
   pendingTournamentMatches?: any[];
   teamIds?: any[];
+  matches?: any[];
+  tournamentId?: number;
+  tournamentType?: TournamentType;
+  tournamentRoundDuration?: number;
+  tournamentBreakTime?: number;
+  tournamentGameMode?: TournamentGameMode;
+  tournamentNumberOfGroups?: number;
+  tournamentTeams?: any[];
   permissions?: {
     canCreate?: boolean;
     canEdit?: boolean;
@@ -60,6 +68,7 @@ export type CalendarEvent = {
   cancelledBy?: string;
   meetingPoint?: string;
   meetingTime?: string;
+  meetingLocation?: { id: number; name: string; latitude?: number; longitude?: number; address?: string; city?: string };
   // Externe Kalender-Events (importiert via iCal)
   isExternal?: boolean;
   externalCalendarId?: number;
@@ -185,9 +194,15 @@ export type EventFormData = {
   // Scope selection set on the wizard "Gültigkeit" step (series edits only)
   trainingEditScope?: 'single' | 'from_here' | 'same_weekday' | 'same_weekday_from_here' | 'series';
   trainingEditScopeUntilDate?: string;
+  // Game round field (optional, for knockout/cup/playoff games)
+  gameRound?: string;
   // Game timing fields (only for Spiel events)
   gameHalfDuration?: number;
   gameHalftimeBreakDuration?: number;
   gameFirstHalfExtraTime?: number | null;
   gameSecondHalfExtraTime?: number | null;
+  // Meeting point/time fields (for Spiel, Training, generic events)
+  meetingPoint?: string;
+  meetingTime?: string;
+  meetingLocationId?: string;
 };

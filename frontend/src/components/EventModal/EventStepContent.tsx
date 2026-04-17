@@ -42,6 +42,7 @@ interface EventStepContentProps {
   tournaments: SelectOption[];
   leagues: SelectOption[];
   cups: SelectOption[];
+  cupRounds: string[];
   users: User[];
   tournamentMatches: any[];
   isMobile: boolean;
@@ -85,6 +86,7 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
   tournaments,
   leagues,
   cups,
+  cupRounds,
   users,
   tournamentMatches,
   isMobile,
@@ -112,8 +114,16 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
   teamDefaultsMap = {},
 }) => {
   const selectedGameTypeLabel = gameTypes.find(gt => gt.value === event.gameType)?.label?.toLowerCase() ?? '';
-  const isLiga  = selectedGameTypeLabel.includes('liga');
-  const isPokal = selectedGameTypeLabel.includes('pokal');
+  const isLiga     = selectedGameTypeLabel.includes('liga');
+  const isPokal    = selectedGameTypeLabel.includes('pokal');
+  const isKnockout = !!event.gameType
+    && !selectedGameTypeLabel.includes('liga')
+    && !selectedGameTypeLabel.includes('nachholspiel')
+    && !selectedGameTypeLabel.includes('freundschaft')
+    && !selectedGameTypeLabel.includes('testspiel')
+    && !selectedGameTypeLabel.includes('trainingseinheit')
+    && !selectedGameTypeLabel.includes('turnier-match')
+    && !selectedGameTypeLabel.includes('internes spiel');
 
   switch (currentStepKey) {
 
@@ -124,6 +134,7 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
           eventTypes={eventTypes}
           locations={locations}
           handleChange={handleChange}
+          titleRequired={!isMatchEvent && !isTournament}
         />
       );
 
@@ -148,10 +159,12 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
                 gameTypes={gameTypes}
                 leagues={leagues}
                 cups={cups}
+                cupRounds={cupRounds}
                 isTournament={isTournament}
                 isTournamentEventType={isTournamentEventType}
                 isLiga={isLiga}
                 isPokal={isPokal}
+                isKnockout={isKnockout}
                 handleChange={handleChange}
               />
               {(isTournament || event.tournamentId) && (
@@ -199,25 +212,49 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
                 freeSolo
                 options={locations}
                 getOptionLabel={(option) => typeof option === 'string' ? option : option.label}
-                value={event.meetingPoint || ''}
-                onInputChange={(_, value) => handleChange('meetingPoint', value)}
+                inputValue={event.meetingPoint ?? ''}
+                onInputChange={(_, newVal, reason) => {
+                  handleChange('meetingPoint', newVal);
+                  // Only clear the location ID when the user is actually typing (not on programmatic reset)
+                  if (reason === 'input') {
+                    handleChange('meetingLocationId', '');
+                  }
+                }}
+                onChange={(_, newVal) => {
+                  if (typeof newVal === 'string') {
+                    handleChange('meetingPoint', newVal);
+                    handleChange('meetingLocationId', '');
+                  } else if (newVal) {
+                    // Valid location selected from list → store ID for navigation
+                    handleChange('meetingPoint', newVal.label);
+                    handleChange('meetingLocationId', newVal.value);
+                  } else {
+                    handleChange('meetingPoint', '');
+                    handleChange('meetingLocationId', '');
+                  }
+                }}
                 filterOptions={(options, { inputValue }) => {
                   if (inputValue.length < 2) return [];
                   return options.filter(opt =>
                     opt.label.toLowerCase().includes(inputValue.toLowerCase()),
                   );
                 }}
-                noOptionsText="Keine Orte gefunden (mindestens 2 Zeichen eingeben)"
                 sx={{ flex: 1 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Treffpunkt"
-                    placeholder="Ort suchen oder frei eingeben…"
-                    size="small"
-                    fullWidth
-                  />
-                )}
+                renderInput={(params) => {
+                  const inputVal = event.meetingPoint ?? '';
+                  const hasNoMatch = inputVal.length >= 2 &&
+                    locations.every(l => !l.label.toLowerCase().includes(inputVal.toLowerCase()));
+                  return (
+                    <TextField
+                      {...params}
+                      label="Treffpunkt"
+                      placeholder="Ort suchen oder frei eingeben…"
+                      size="small"
+                      fullWidth
+                      helperText={hasNoMatch ? 'Kein Ort gefunden – freie Eingabe möglich' : undefined}
+                    />
+                  );
+                }}
               />
               <TextField
                 label="Treffzeit"

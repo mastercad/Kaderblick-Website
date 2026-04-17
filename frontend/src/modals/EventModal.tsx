@@ -14,7 +14,7 @@ import ManualMatchesEditor from './ManualMatchesEditor';
 import TournamentMatchGeneratorDialog from './TournamentMatchGeneratorDialog';
 import { EventStepContent } from '../components/EventModal/EventStepContent';
 import { EventModalActions } from '../components/EventModal/EventModalActions';
-import { useTournamentMatches, useLeagues, useCups, useReloadTournamentMatches } from '../hooks/useEventData';
+import { useTournamentMatches, useLeagues, useCups, useCupRounds, useReloadTournamentMatches } from '../hooks/useEventData';
 import { useEventWizard } from '../hooks/useEventWizard';
 import { useTournamentMatchHandlers } from '../hooks/useTournamentMatchHandlers';
 import { apiRequest } from '../utils/api';
@@ -78,6 +78,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   const { tournamentMatches, setTournamentMatches } = useTournamentMatches(event.tournamentId, open);
   const leagues       = useLeagues(open);
   const cups          = useCups(open);
+  const cupRounds     = useCupRounds(open);
   const reloadMatches = useReloadTournamentMatches();
 
   // ── Fetch tournament settings when an existing tournament is selected ──────
@@ -213,6 +214,7 @@ export const EventModal: React.FC<EventModalProps> = ({
             tournaments={tournaments}
             leagues={leagues}
             cups={cups}
+            cupRounds={cupRounds}
             users={users}
             tournamentMatches={tournamentMatches}
             isMobile={isMobile}

@@ -81,6 +81,15 @@ describe('buildCalendarEventPayload — base fields', () => {
     const result = buildCalendarEventPayload(baseFormData({ permissionType: undefined }), noFlags, null, gameTypesOptions, tournamentTeams);
     expect(result.permissionType).toBe('public');
   });
+
+  it('falls back to empty arrays when permissionTeams/Clubs/Users are undefined', () => {
+    // covers the `|| []` branch of the optional chaining on lines 62-64
+    const form = baseFormData({ permissionTeams: undefined, permissionClubs: undefined, permissionUsers: undefined });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.permissionTeams).toEqual([]);
+    expect(result.permissionClubs).toEqual([]);
+    expect(result.permissionUsers).toEqual([]);
+  });
 });
 
 // ─── DateTime assembly ───────────────────────────────────────────────────────
@@ -268,6 +277,19 @@ describe('buildCalendarEventPayload — isTournament', () => {
     const result = buildCalendarEventPayload(form, flags, null, gameTypesOptions, tournamentTeams);
     expect(result.tournamentBreakTime).toBe(2);
   });
+
+  it('skips null homeTeamId/awayTeamId when building team set from matches', () => {
+    // covers the `if (m.homeTeamId)` / `if (m.awayTeamId)` false branches (lines 102-103)
+    const form = baseFormData({
+      pendingTournamentMatches: [
+        { homeTeamId: null, awayTeamId: null },
+        { homeTeamId: '10', awayTeamId: null },
+      ],
+    });
+    const result = buildCalendarEventPayload(form, flags, null, gameTypesOptions, tournamentTeams);
+    // only '10' was truthy
+    expect(result.teams).toEqual(['10']);
+  });
 });
 
 // ─── Task ─────────────────────────────────────────────────────────────────────
@@ -330,6 +352,33 @@ describe('buildCalendarEventPayload — isTask', () => {
     const result = buildCalendarEventPayload(form, flags, null, gameTypesOptions, tournamentTeams);
     expect(result.task.rotationUsers).toEqual([7, 8]);
   });
+
+  it('defaults taskFreq to WEEKLY and taskInterval to 1 when not provided in classic mode', () => {
+    // covers the `|| 'WEEKLY'` and `|| 1` fallback branches on line 128
+    const form = baseFormData({
+      taskIsRecurring: true,
+      taskRecurrenceMode: 'classic',
+      taskFreq: undefined,
+      taskInterval: undefined,
+    });
+    const result = buildCalendarEventPayload(form, flags, null, gameTypesOptions, tournamentTeams);
+    const rule = JSON.parse(result.task.recurrenceRule);
+    expect(rule.freq).toBe('WEEKLY');
+    expect(rule.interval).toBe(1);
+  });
+
+  it('defaults bymonthday to 1 when taskFreq is MONTHLY but taskByMonthDay is not provided', () => {
+    // covers the `|| 1` fallback branch on line 130
+    const form = baseFormData({
+      taskIsRecurring: true,
+      taskRecurrenceMode: 'classic',
+      taskFreq: 'MONTHLY',
+      taskByMonthDay: undefined,
+    });
+    const result = buildCalendarEventPayload(form, flags, null, gameTypesOptions, tournamentTeams);
+    const rule = JSON.parse(result.task.recurrenceRule);
+    expect(rule.bymonthday).toBe(1);
+  });
 });
 
 // ─── Training ─────────────────────────────────────────────────────────────────
@@ -391,5 +440,102 @@ describe('buildCalendarEventPayload — isTraining', () => {
     });
     const result = buildCalendarEventPayload(form, flags, 10, gameTypesOptions, tournamentTeams);
     expect(result.trainingEditUntilDate).toBe('2025-09-01');
+  });
+
+  it('defaults trainingWeekdays to [] when trainingRecurring=true but weekdays are null', () => {
+    // covers the `?? []` fallback branch on line 144
+    const form = baseFormData({
+      trainingRecurring: true,
+      trainingWeekdays: undefined,
+      trainingEndDate: '2025-12-31',
+    });
+    const result = buildCalendarEventPayload(form, flags, 42, gameTypesOptions, tournamentTeams);
+    expect(result.trainingWeekdays).toEqual([]);
+  });
+
+  it('sets trainingSeriesEndDate to null when trainingEndDate is absent', () => {
+    // covers the `|| null` fallback branch on line 147
+    const form = baseFormData({
+      trainingRecurring: true,
+      trainingWeekdays: [1, 3],
+      trainingEndDate: undefined,
+    });
+    const result = buildCalendarEventPayload(form, flags, 42, gameTypesOptions, tournamentTeams);
+    expect(result.trainingSeriesEndDate).toBeNull();
+  });
+
+  it('defaults trainingEditScope to "single" when trainingSeriesId is set but scope is absent', () => {
+    // covers the `|| 'single'` fallback branch on line 156
+    const form = baseFormData({
+      trainingSeriesId: 'abc',
+      trainingEditScope: undefined,
+    });
+    const result = buildCalendarEventPayload(form, flags, 10, gameTypesOptions, tournamentTeams);
+    expect(result.trainingEditScope).toBe('single');
+  });
+});
+
+// ─── Meeting fields ───────────────────────────────────────────────────────────
+
+describe('buildCalendarEventPayload — meeting fields', () => {
+  it('sends meetingPoint value when defined', () => {
+    const form = baseFormData({ meetingPoint: 'Parkplatz Nord' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingPoint).toBe('Parkplatz Nord');
+  });
+
+  it('sends meetingPoint as null when undefined (nullish coalescing)', () => {
+    const form = baseFormData({ meetingPoint: undefined });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingPoint).toBeNull();
+  });
+
+  it('sends meetingPoint as null when explicitly null', () => {
+    const form = baseFormData({ meetingPoint: null as any });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingPoint).toBeNull();
+  });
+
+  it('sends meetingPoint as empty string when value is empty string', () => {
+    // '' ?? null → '' (empty string is not nullish)
+    const form = baseFormData({ meetingPoint: '' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingPoint).toBe('');
+  });
+
+  it('sends meetingTime value when truthy', () => {
+    const form = baseFormData({ meetingTime: '14:30' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingTime).toBe('14:30');
+  });
+
+  it('sends meetingTime as null when absent (falsy → null)', () => {
+    const form = baseFormData({ meetingTime: undefined });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingTime).toBeNull();
+  });
+
+  it('sends meetingTime as null when empty string (falsy → null)', () => {
+    const form = baseFormData({ meetingTime: '' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingTime).toBeNull();
+  });
+
+  it('parses meetingLocationId as integer when present', () => {
+    const form = baseFormData({ meetingLocationId: '5' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingLocationId).toBe(5);
+  });
+
+  it('sends meetingLocationId as null when absent', () => {
+    const form = baseFormData({ meetingLocationId: undefined });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingLocationId).toBeNull();
+  });
+
+  it('sends meetingLocationId as null for empty string', () => {
+    const form = baseFormData({ meetingLocationId: '' });
+    const result = buildCalendarEventPayload(form, noFlags, null, gameTypesOptions, tournamentTeams);
+    expect(result.meetingLocationId).toBeNull();
   });
 });

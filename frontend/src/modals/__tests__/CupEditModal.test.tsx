@@ -97,7 +97,7 @@ describe('CupEditModal', () => {
     ));
   });
 
-  it('calls onCupSaved after successful save', async () => {
+  it('calls onCupSaved after successful save (res.cup present)', async () => {
     const onCupSaved = jest.fn();
     mockApiJson.mockResolvedValue({ cup: { id: 99, name: 'Neuer Pokal' } });
 
@@ -106,7 +106,31 @@ describe('CupEditModal', () => {
     fireEvent.change(screen.getByTestId('input-name'), { target: { name: 'name', value: 'Neuer Pokal' } });
     fireEvent.submit(screen.getByTestId('input-name').closest('form')!);
 
-    await waitFor(() => expect(onCupSaved).toHaveBeenCalled());
+    await waitFor(() => expect(onCupSaved).toHaveBeenCalledWith({ id: 99, name: 'Neuer Pokal' }));
+  });
+
+  it('falls back to res.data when res.cup is undefined', async () => {
+    const onCupSaved = jest.fn();
+    mockApiJson.mockResolvedValue({ data: { id: 88, name: 'Via Data' } });
+
+    render(<CupEditModal {...baseProps} cupId={null} onCupSaved={onCupSaved} />);
+
+    fireEvent.change(screen.getByTestId('input-name'), { target: { name: 'name', value: 'Via Data' } });
+    fireEvent.submit(screen.getByTestId('input-name').closest('form')!);
+
+    await waitFor(() => expect(onCupSaved).toHaveBeenCalledWith({ id: 88, name: 'Via Data' }));
+  });
+
+  it('falls back to cup state when neither res.cup nor res.data is present', async () => {
+    const onCupSaved = jest.fn();
+    mockApiJson.mockResolvedValue({});
+
+    render(<CupEditModal {...baseProps} cupId={null} onCupSaved={onCupSaved} />);
+
+    fireEvent.change(screen.getByTestId('input-name'), { target: { name: 'name', value: 'Fallback Cup' } });
+    fireEvent.submit(screen.getByTestId('input-name').closest('form')!);
+
+    await waitFor(() => expect(onCupSaved).toHaveBeenCalledWith(expect.objectContaining({ name: 'Fallback Cup' })));
   });
 
   it('calls onCupEditModalClose after successful save', async () => {
@@ -178,5 +202,31 @@ describe('CupEditModal', () => {
     fireEvent.click(screen.getByText('Abbrechen'));
 
     expect(onCupEditModalClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Extra test to cover if(onCupSaved) false branch (lines 57-60)
+describe('CupEditModal – onCupSaved not provided', () => {
+  it('saves without calling onCupSaved when prop is not provided', async () => {
+    mockApiJson.mockResolvedValue({ cup: { id: 1, name: 'Pokal' } });
+    const props = {
+      openCupEditModal: true,
+      cupId: null as number | null,
+      onCupEditModalClose: jest.fn(),
+    };
+    render(<CupEditModal {...props} />);
+    fireEvent.submit(screen.getByTestId('input-name').closest('form')!);
+    await waitFor(() => expect(mockApiJson).toHaveBeenCalled());
+    // onCupSaved is undefined → if(onCupSaved) skipped → no error
+  });
+});
+
+// Extra test to cover err?.message || 'Fehler beim Speichern' fallback (line 60)
+describe('CupEditModal – error without message', () => {
+  it('shows default error text when thrown error has no message', async () => {
+    mockApiJson.mockRejectedValue({}); // error object without .message
+    render(<CupEditModal {...{ openCupEditModal: true, cupId: null, onCupEditModalClose: jest.fn() }} />);
+    fireEvent.submit(screen.getByTestId('input-name').closest('form')!);
+    await waitFor(() => expect(screen.getByTestId('alert-error')).toHaveTextContent('Fehler beim Speichern'));
   });
 });

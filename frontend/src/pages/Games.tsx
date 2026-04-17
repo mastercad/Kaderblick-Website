@@ -31,8 +31,9 @@ import {
   FilterList as FilterIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
-import { fetchGamesOverview, GamesOverviewData } from '../services/games';
+import { fetchGamesOverview, fetchGameSchedulePdf, GamesOverviewData } from '../services/games';
 import { Game, GameWithScore, TournamentOverview } from '../types/games';
 import { useAuth } from '../context/AuthContext';
 import Location from '../components/Location';
@@ -74,10 +75,24 @@ export default function Games() {
     const today = new Date();
     return today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
   });
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const openWeatherModal = (eventId: number | null) => {
     setSelectedEventId(eventId);
     setWeatherModalOpen(true);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (selectedTeamId === 'all') return;
+    setPdfLoading(true);
+    try {
+      const blob = await fetchGameSchedulePdf(selectedTeamId, selectedSeason);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      URL.revokeObjectURL(url);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -597,6 +612,19 @@ export default function Games() {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '1.4rem', sm: '1.8rem' } }}>
           Spiele & Turniere
         </Typography>
+        {selectedTeamId !== 'all' && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={pdfLoading ? <CircularProgress size={14} /> : <PdfIcon />}
+            onClick={handleDownloadPdf}
+            disabled={pdfLoading}
+            sx={{ ml: 'auto', flexShrink: 0 }}
+            aria-label="Spielplan als PDF öffnen"
+          >
+            Spielplan
+          </Button>
+        )}
       </Box>
 
       {/* Season + Team Filter */}

@@ -14,7 +14,12 @@ jest.mock('@mui/material', () => {
     Button: (props: any) => <button onClick={props.onClick} data-testid={props['data-testid']}>{props.children}</button>,
     Skeleton: () => <div data-testid="Skeleton" />,
     Alert: (props: any) => <div data-testid="Alert" role="alert">{props.children}</div>,
-    Snackbar: (props: any) => props.open ? <div data-testid="Snackbar">{props.children}</div> : null,
+    Snackbar: (props: any) => props.open ? (
+      <div data-testid="Snackbar">
+        {props.children}
+        <button data-testid="close-snackbar" onClick={() => props.onClose?.()}>Close</button>
+      </div>
+    ) : null,
     TextField: (props: any) => (
       <input
         data-testid="search-input"
@@ -33,8 +38,21 @@ jest.mock('@mui/material', () => {
     TableContainer: (props: any) => <div>{props.children}</div>,
     TableHead: (props: any) => <thead>{props.children}</thead>,
     TableRow: (props: any) => <tr>{props.children}</tr>,
+    // AdminPageLayout uses the barrel import; give it a non-conflicting testid
+    Chip: (props: any) => (
+      <span data-testid="chip-item-count" data-color={props.color} onClick={props.onClick}>
+        {props.label}
+      </span>
+    ),
   };
 });
+
+// Cups.tsx imports Chip via sub-path; mock it separately so chip-games testid works
+jest.mock('@mui/material/Chip', () => (props: any) => (
+  <span data-testid="chip-games" data-color={props.color} onClick={props.onClick}>
+    {props.label}
+  </span>
+));
 
 jest.mock('@mui/icons-material/WorkspacePremium', () => () => <span>WorkspacePremiumIcon</span>);
 jest.mock('@mui/icons-material/Add', () => () => <span>+</span>);
@@ -46,12 +64,38 @@ jest.mock('@mui/icons-material/InfoOutlined', () => () => <span>ℹ️</span>);
 
 // ────── Mock child modals ──────
 jest.mock('../../modals/CupEditModal', () => (props: any) =>
-  props.openCupEditModal ? <div data-testid="CupEditModal">Edit</div> : null
+  props.openCupEditModal ? (
+    <div data-testid="CupEditModal">
+      Edit
+      <button data-testid="trigger-cup-saved" onClick={() => props.onCupSaved?.({ id: 99, name: 'Saved' })}>
+        Save
+      </button>
+    </div>
+  ) : null
 );
 jest.mock('../../modals/CupDeleteConfirmationModal', () => (props: any) =>
   props.open ? (
     <div data-testid="CupDeleteModal">
       <button data-testid="confirm-delete" onClick={props.onConfirm}>Bestätigen</button>
+    </div>
+  ) : null
+);
+
+jest.mock('@mui/icons-material/ListAlt', () => () => <span>ListAlt</span>);
+
+jest.mock('../../modals/CupRoundsAdminModal', () => (props: any) =>
+  props.open ? (
+    <div data-testid="CupRoundsAdminModal">
+      <button data-testid="close-rounds" onClick={props.onClose}>Schließen</button>
+    </div>
+  ) : null
+);
+
+jest.mock('../../modals/CompetitionGamesModal', () => (props: any) =>
+  props.open ? (
+    <div data-testid="CompetitionGamesModal">
+      <button data-testid="games-changed" onClick={() => props.onGamesChanged(5)}>5 Spiele</button>
+      <button data-testid="close-games" onClick={props.onClose}>Schließen</button>
     </div>
   ) : null
 );
@@ -134,6 +178,19 @@ describe('Cups Page', () => {
       await waitFor(() => {
         expect(screen.getByText('Keine Pokale vorhanden')).toBeInTheDocument();
       });
+    });
+
+    it('opens CupEditModal from AdminEmptyState create button (covers line 103 onCreate)', async () => {
+      mockApiJson.mockResolvedValue({ cups: [] });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByText('Keine Pokale vorhanden')).toBeInTheDocument());
+
+      // With empty state, two "Neuer Pokal" buttons appear (header + AdminEmptyState).
+      // The AdminEmptyState button is the last one in DOM order.
+      const createButtons = screen.getAllByText('Neuer Pokal');
+      await act(async () => { fireEvent.click(createButtons[createButtons.length - 1]); });
+
+      await waitFor(() => expect(screen.getByTestId('CupEditModal')).toBeInTheDocument());
     });
 
     it('shows error message on API failure', async () => {
@@ -294,6 +351,24 @@ describe('Cups Page', () => {
         expect(screen.getByText('Fehler beim Löschen des Pokals.')).toBeInTheDocument();
       });
     });
+
+    it('closes snackbar when close button is clicked (covers onSnackbarClose)', async () => {
+      mockApiJson
+        .mockResolvedValueOnce(mockCupsResponse)
+        .mockResolvedValueOnce({});
+
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => { expect(screen.getByText('DFB-Pokal')).toBeInTheDocument(); });
+
+      const deleteButtons = screen.getAllByText('🗑️');
+      await act(async () => { fireEvent.click(deleteButtons[0]); });
+      await act(async () => { fireEvent.click(screen.getByTestId('confirm-delete')); });
+
+      await waitFor(() => expect(screen.getByTestId('Snackbar')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('close-snackbar')); });
+      await waitFor(() => expect(screen.queryByTestId('Snackbar')).not.toBeInTheDocument());
+    });
   });
 
   describe('Permissions', () => {
@@ -321,6 +396,173 @@ describe('Cups Page', () => {
       await waitFor(() => { expect(screen.getByText('DFB-Pokal')).toBeInTheDocument(); });
 
       expect(screen.queryByText('🗑️')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Spiele Chip', () => {
+    it('renders Chip with color=primary when gameCount > 0', async () => {
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 1, name: 'DFB-Pokal', gameCount: 5, permissions: { canEdit: true, canDelete: true } }],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => {
+        expect(screen.getByTestId('chip-games')).toHaveAttribute('data-color', 'primary');
+      });
+    });
+
+    it('renders Chip with color=default when gameCount is 0', async () => {
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 1, name: 'DFB-Pokal', gameCount: 0, permissions: { canEdit: true, canDelete: true } }],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => {
+        expect(screen.getByTestId('chip-games')).toHaveAttribute('data-color', 'default');
+      });
+    });
+
+    it('opens CompetitionGamesModal when Chip is clicked', async () => {
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 1, name: 'DFB-Pokal', gameCount: 3, permissions: {} }],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByTestId('chip-games')).toBeInTheDocument());
+      expect(screen.queryByTestId('CompetitionGamesModal')).not.toBeInTheDocument();
+
+      await act(async () => { fireEvent.click(screen.getByTestId('chip-games')); });
+
+      await waitFor(() => expect(screen.getByTestId('CompetitionGamesModal')).toBeInTheDocument());
+    });
+
+    it('closes CompetitionGamesModal via onClose', async () => {
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 1, name: 'DFB-Pokal', gameCount: 3, permissions: {} }],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByTestId('chip-games')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('chip-games')); });
+      await waitFor(() => expect(screen.getByTestId('CompetitionGamesModal')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('close-games')); });
+      await waitFor(() => expect(screen.queryByTestId('CompetitionGamesModal')).not.toBeInTheDocument());
+    });
+
+    it('updates cup gameCount via onGamesChanged callback', async () => {
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 1, name: 'DFB-Pokal', gameCount: 0, permissions: {} }],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() =>
+        expect(screen.getByTestId('chip-games')).toHaveAttribute('data-color', 'default'),
+      );
+
+      await act(async () => { fireEvent.click(screen.getByTestId('chip-games')); });
+      await waitFor(() => expect(screen.getByTestId('CompetitionGamesModal')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('games-changed')); });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('chip-games')).toHaveAttribute('data-color', 'primary'),
+      );
+    });
+  });
+
+  describe('Rundennamen verwalten', () => {
+    it('opens CupRoundsAdminModal when button is clicked', async () => {
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByText('DFB-Pokal')).toBeInTheDocument());
+      expect(screen.queryByTestId('CupRoundsAdminModal')).not.toBeInTheDocument();
+
+      await act(async () => { fireEvent.click(screen.getByText('Rundennamen verwalten')); });
+
+      await waitFor(() => expect(screen.getByTestId('CupRoundsAdminModal')).toBeInTheDocument());
+    });
+
+    it('closes CupRoundsAdminModal via onClose callback', async () => {
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByText('DFB-Pokal')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByText('Rundennamen verwalten')); });
+      await waitFor(() => expect(screen.getByTestId('CupRoundsAdminModal')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('close-rounds')); });
+      await waitFor(() => expect(screen.queryByTestId('CupRoundsAdminModal')).not.toBeInTheDocument());
+    });
+  });
+
+  describe('onCupSaved callback', () => {
+    it('closes CupEditModal and reloads cups after save', async () => {
+      mockApiJson
+        .mockResolvedValueOnce(mockCupsResponse)
+        .mockResolvedValueOnce(mockCupsResponse);
+
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByText('DFB-Pokal')).toBeInTheDocument());
+
+      const editButtons = screen.getAllByText('✏️');
+      await act(async () => { fireEvent.click(editButtons[0]); });
+      await waitFor(() => expect(screen.getByTestId('CupEditModal')).toBeInTheDocument());
+
+      await act(async () => { fireEvent.click(screen.getByTestId('trigger-cup-saved')); });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('CupEditModal')).not.toBeInTheDocument();
+        expect(mockApiJson).toHaveBeenCalledTimes(2);
+      });
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('falls back to empty cups array when API returns malformed response (line 32)', async () => {
+      // covers the `[] ` fallback branch: `res && Array.isArray(res.cups) ? res.cups : []`
+      mockApiJson.mockResolvedValue(null);
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => {
+        // No cups → empty state
+        expect(screen.getByText('Keine Pokale vorhanden')).toBeInTheDocument();
+      });
+    });
+
+    it('handles cups with null name in filter and column render (lines 56, 60)', async () => {
+      // covers `c.name || ''` fallback branches
+      mockApiJson.mockResolvedValue({
+        cups: [{ id: 99, name: null, gameCount: 0, permissions: { canEdit: true, canDelete: false } }],
+      });
+      await act(async () => { render(<Cups />); });
+      // Component renders without crash
+      await waitFor(() => expect(screen.getByTestId('chip-games')).toBeInTheDocument());
+
+      // Search with a string that won't match the null-named cup
+      const searchInput = screen.getByTestId('search-input');
+      await act(async () => { fireEvent.change(searchInput, { target: { value: 'xyz' } }); });
+      await waitFor(() => expect(screen.getByText('Keine Pokale vorhanden')).toBeInTheDocument());
+    });
+
+    it('updates only the matching cup in onGamesChanged with multiple cups (line 124 false branch)', async () => {
+      // covers `: c` branch in the map when c.id !== gamesModal.id
+      mockApiJson.mockResolvedValue({
+        cups: [
+          { id: 1, name: 'Alpha Cup', gameCount: 0, permissions: {} },
+          { id: 2, name: 'Beta Cup', gameCount: 0, permissions: {} },
+        ],
+      });
+      await act(async () => { render(<Cups />); });
+      await waitFor(() => expect(screen.getByText('Alpha Cup')).toBeInTheDocument());
+
+      // Click the first chip-games (for cup id=1)
+      const chips = screen.getAllByTestId('chip-games');
+      await act(async () => { fireEvent.click(chips[0]); });
+      await waitFor(() => expect(screen.getByTestId('CompetitionGamesModal')).toBeInTheDocument());
+
+      // Trigger onGamesChanged with count=7 — updates cup 1, cup 2 keeps `: c`
+      await act(async () => { fireEvent.click(screen.getByTestId('games-changed')); });
+
+      // Cup 1 chip should now be primary (count=5 from mock), cup 2 stays default (count=0)
+      await waitFor(() => {
+        const updatedChips = screen.getAllByTestId('chip-games');
+        expect(updatedChips[0]).toHaveAttribute('data-color', 'primary');
+        expect(updatedChips[1]).toHaveAttribute('data-color', 'default');
+      });
     });
   });
 });

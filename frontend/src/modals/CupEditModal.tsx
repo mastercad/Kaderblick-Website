@@ -50,7 +50,7 @@ const CupEditModal: React.FC<CupEditModalProps> = ({ openCupEditModal, cupId, on
             const method = cup?.id ? 'PUT' : 'POST';
             const res = await apiJson(url, {
                 method,
-                body: cup,
+                body: { name: cup?.name },
                 headers: { 'Content-Type': 'application/json' },
             });
 
@@ -80,17 +80,15 @@ const CupEditModal: React.FC<CupEditModalProps> = ({ openCupEditModal, cupId, on
                 <form id="cupEditForm" autoComplete="off" onSubmit={handleCupEditSubmit}>
                     <input type="hidden" name="id" value={cup?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
-                            <TextField
-                                label="Name"
-                                name="name"
-                                value={cup?.name || ''}
-                                onChange={handleCupEditChange}
-                                required
-                                fullWidth
-                                margin="normal"
-                            />
-                        </Box>
+                        <TextField
+                            label="Name"
+                            name="name"
+                            value={cup?.name || ''}
+                            onChange={handleCupEditChange}
+                            required
+                            fullWidth
+                            margin="normal"
+                        />
                     </Box>
                     <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
                         <Button onClick={onCupEditModalClose} variant="outlined" color="secondary">

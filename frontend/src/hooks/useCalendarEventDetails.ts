@@ -20,6 +20,9 @@ type RawCalendarEvent = {
   cancelled?: boolean;
   cancelReason?: string;
   cancelledBy?: string;
+  meetingPoint?: string | null;
+  meetingTime?: string | null;
+  meetingLocation?: EventDetailsCalendarEvent['meetingLocation'];
 };
 
 export function toEventDetailsCalendarEvent(
@@ -45,6 +48,9 @@ export function toEventDetailsCalendarEvent(
     cancelled: event.cancelled || false,
     cancelReason: event.cancelReason || undefined,
     cancelledBy: event.cancelledBy || undefined,
+    meetingPoint: event.meetingPoint || undefined,
+    meetingTime: event.meetingTime || undefined,
+    meetingLocation: event.meetingLocation || undefined,
   };
 }
 

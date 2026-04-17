@@ -12,6 +12,7 @@ interface EventBaseFormProps {
   eventTypes: SelectOption[];
   locations: SelectOption[];
   handleChange: (field: string, value: any) => void;
+  titleRequired?: boolean;
 }
 
 /**
@@ -26,16 +27,17 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
   eventTypes,
   locations,
   handleChange,
+  titleRequired = true,
 }) => {
   return (
     <>
       <TextField
-        label="Titel *"
+        label={titleRequired ? 'Titel *' : 'Titel (optional)'}
         value={formData.title || ''}
         onChange={e => handleChange('title', e.target.value)}
         fullWidth
         margin="normal"
-        required
+        required={titleRequired}
       />
       
       <TextField

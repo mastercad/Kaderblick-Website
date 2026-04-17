@@ -148,6 +148,16 @@ class Game
     private int $halftimeBreakDuration = 15;
 
     /**
+     * Rundenbezeichnung für die PDF-Spielplanansicht.
+     * Für Ligaspiele wird die Runde automatisch berechnet, wenn dieses Feld leer ist.
+     * Für Pokalspiele kann hier z.B. "Halbfinale", "Finale" oder "1. Runde" eingetragen werden.
+     * Wird ausschließlich in der PDF-Ausgabe verwendet.
+     */
+    #[Groups(['game:read', 'game:write'])]
+    #[ORM\Column(type: 'string', length: 100, nullable: true)]
+    private ?string $round = null;
+
+    /**
      * Spielgebundener Matchplan mit Startformation, geplanten Phasen und Live-Status.
      *
      * @var array<string, mixed>|null
@@ -489,6 +499,18 @@ class Game
     public function setMatchPlan(?array $matchPlan): self
     {
         $this->matchPlan = $matchPlan;
+
+        return $this;
+    }
+
+    public function getRound(): ?string
+    {
+        return $this->round;
+    }
+
+    public function setRound(?string $round): self
+    {
+        $this->round = $round;
 
         return $this;
     }
