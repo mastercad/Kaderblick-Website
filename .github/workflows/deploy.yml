@@ -286,7 +286,9 @@ jobs:
             HOST_UID=$(id -u kaderblick-ftp-admin) HOST_GID=$(id -g kaderblick-ftp-admin) \
             docker compose -f docker-compose.yml -p production up -d --no-build --force-recreate api frontend
             mkdir -p api/var
-            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            # /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain kaderblick.de
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain api.kaderblick.de
 
       - name: Production setup (secrets / cache / migrations / JWT)
         if: contains(inputs.target, 'prod')
@@ -453,7 +455,9 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.staging.yml -p staging \
               up -d --no-build --force-recreate api frontend
             mkdir -p api/var
-            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            # /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain staging.kaderblick.de
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain staging-api.kaderblick.de
 
       - name: Staging setup (secrets / cache / migrations / JWT)
         if: contains(inputs.target, 'staging')
@@ -558,7 +562,9 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
               up -d --no-build --force-recreate api frontend
             mkdir -p api/var
-            /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            # /usr/local/psa/admin/sbin/httpdmng --reconfigure-all
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain demo.kaderblick.de
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain demo-api.kaderblick.de
 
       - name: Demo setup (secrets / cache / migrations / JWT)
         if: contains(inputs.target, 'demo')
