@@ -1,6 +1,8 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SaveIcon from '@mui/icons-material/Save';
@@ -44,9 +46,25 @@ export const EventModalActions: React.FC<EventModalActionsProps> = ({
       gap: 1,
     }}
   >
-    {/* Left: Cancel + Delete */}
-    <Box sx={{ display: 'flex', gap: 1 }}>
-      <Button
+    {/* Far left: Delete only – visually isolated */}
+    {showDelete && onDelete ? (
+      <Tooltip title="Event löschen" arrow>
+        <IconButton
+          onClick={onDelete}
+          color="error"
+          disabled={loading}
+          size="small"
+          sx={{ border: '1px solid', borderColor: 'error.main', borderRadius: 1.5, mr: 0.5 }}
+        >
+          <DeleteOutlineIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Box />
+    )}
+
+    {/* Right: Cancel + Back + Next / Save */}
+    <Box sx={{ display: 'flex', gap: 1 }}>      <Button
         onClick={onClose}
         color="secondary"
         variant="outlined"
@@ -55,22 +73,6 @@ export const EventModalActions: React.FC<EventModalActionsProps> = ({
       >
         Abbrechen
       </Button>
-      {showDelete && onDelete && (
-        <Button
-          onClick={onDelete}
-          color="error"
-          variant="outlined"
-          disabled={loading}
-          size="small"
-          startIcon={<DeleteOutlineIcon />}
-        >
-          Löschen
-        </Button>
-      )}
-    </Box>
-
-    {/* Right: Back + Next / Save */}
-    <Box sx={{ display: 'flex', gap: 1 }}>
       {currentStep > 0 && (
         <Button
           onClick={onBack}

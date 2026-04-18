@@ -223,7 +223,7 @@ describe('EventModal', () => {
         />
       );
     });
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(onDelete).toHaveBeenCalled();
   });
 
@@ -272,7 +272,7 @@ describe('EventModal', () => {
       );
     });
     expect(screen.getByText('Abbrechen')).toBeDisabled();
-    expect(screen.getByText('L\u00f6schen')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Event löschen' })).toBeDisabled();
     // When loading is true, the Weiter button is not disabled but Save shows "Wird gespeichert"
     const savingBtn = screen.queryByText('Wird gespeichert \u2026');
     if (savingBtn) expect(savingBtn).toBeDisabled();

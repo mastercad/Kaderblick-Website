@@ -24,7 +24,7 @@ export const ParticipationList: React.FC<ParticipationListProps> = ({
   participations,
   onOpenOverview,
 }) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const grouped: GroupedParticipations = {};
   participations.forEach(p => {
