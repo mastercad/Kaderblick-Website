@@ -52,19 +52,19 @@ describe('EventModalActions', () => {
 
   it('does not render "Löschen" when showDelete is false', () => {
     render(<EventModalActions {...defaults} showDelete={false} />);
-    expect(screen.queryByText('Löschen')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Event löschen' })).not.toBeInTheDocument();
   });
 
   it('renders "Löschen" when showDelete=true and onDelete provided', () => {
     const onDelete = jest.fn();
     render(<EventModalActions {...defaults} showDelete={true} onDelete={onDelete} />);
-    expect(screen.getByText('Löschen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Event löschen' })).toBeInTheDocument();
   });
 
   it('calls onDelete when Löschen is clicked', () => {
     const onDelete = jest.fn();
     render(<EventModalActions {...defaults} showDelete={true} onDelete={onDelete} />);
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByRole('button', { name: 'Event löschen' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
@@ -38,60 +37,40 @@ export const EventInfoCard: React.FC<EventInfoCardProps> = ({
 }) => {
   const theme = useTheme();
 
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: 2,
-        flexDirection: { xs: 'column', sm: 'row' },
-      }}
-    >
-      {/* Date & Time */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <CalendarTodayIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" fontWeight={600}>{dateStr}</Typography>
-        </Stack>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <AccessTimeIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
-            {startTimeStr} – {isSameDay ? endTimeStr : `${endDateStr} ${endTimeStr}`}
-          </Typography>
-        </Stack>
-      </Box>
+  const rideColor =
+    teamRideStatus === 'none'
+      ? theme.palette.text.disabled
+      : teamRideStatus === 'full'
+      ? theme.palette.error.main
+      : theme.palette.success.main;
 
-      {/* Quick-access Icons: Weather + Rides */}
-      <Stack
-        direction="row"
-        spacing={1.5}
-        alignItems="center"
-        justifyContent={{ xs: 'flex-start', sm: 'flex-end' }}
-        sx={{ pt: { xs: 0.5, sm: 0 } }}
-      >
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      {/* Datum */}
+      <Stack direction="row" spacing={1} alignItems="center">
+        <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+        <Typography variant="body2" fontWeight={600}>{dateStr}</Typography>
+      </Stack>
+
+      {/* Zeit + Wetter + Fahrgemeinschaft inline */}
+      <Stack direction="row" spacing={1} alignItems="center">
+        <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+          {startTimeStr} – {isSameDay ? endTimeStr : `${endDateStr} ${endTimeStr}`}
+        </Typography>
+
+        {/* Wetter-Icon */}
         <Tooltip title="Wetterdetails" arrow>
           <Box
             id="weather-information"
             onClick={onWeatherClick}
-            sx={{
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 2,
-              p: 0.75,
-              bgcolor: theme.palette.action.hover,
-              transition: 'background-color 0.2s',
-              '&:hover': { bgcolor: theme.palette.action.selected },
-            }}
+            sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
           >
-            <WeatherDisplay code={weatherCode} theme={theme.palette.mode} size={32} />
+            <WeatherDisplay code={weatherCode} theme={theme.palette.mode} size={22} />
           </Box>
         </Tooltip>
 
+        {/* Fahrgemeinschaft-Icon */}
         {canViewRides && (
           <Tooltip
             title={
@@ -106,49 +85,20 @@ export const EventInfoCard: React.FC<EventInfoCardProps> = ({
             <Box
               id="teamride-information"
               onClick={onRidesClick}
-              sx={{
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 2,
-                p: 0.75,
-                bgcolor: theme.palette.action.hover,
-                transition: 'background-color 0.2s',
-                '&:hover': { bgcolor: theme.palette.action.selected },
-                position: 'relative',
-              }}
+              sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0, position: 'relative' }}
             >
-              <FaCar
-                size={24}
-                style={{
-                  color:
-                    teamRideStatus === 'none'
-                      ? theme.palette.text.disabled
-                      : teamRideStatus === 'full'
-                      ? theme.palette.error.main
-                      : theme.palette.success.main,
-                }}
-              />
+              <FaCar size={16} style={{ color: rideColor }} />
               {teamRideStatus === 'free' && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: 'success.main',
-                    border: '2px solid',
-                    borderColor: 'background.paper',
-                  }}
-                />
+                <Box sx={{
+                  position: 'absolute', top: -2, right: -2,
+                  width: 6, height: 6, borderRadius: '50%',
+                  bgcolor: 'success.main', border: '1px solid', borderColor: 'background.paper',
+                }} />
               )}
             </Box>
           </Tooltip>
         )}
       </Stack>
-    </Paper>
+    </Box>
   );
 };

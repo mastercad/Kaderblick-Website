@@ -29,6 +29,7 @@ export const EventGameMatchup: React.FC<EventGameMatchupProps> = ({ game, typeCo
         bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
         position: 'relative',
         overflow: 'hidden',
+        borderTop: `3px solid ${typeColor}`,
       }}
     >
       {game.gameType?.name && (

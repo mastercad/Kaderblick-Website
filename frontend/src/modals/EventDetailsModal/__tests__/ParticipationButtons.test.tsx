@@ -38,9 +38,9 @@ describe('ParticipationButtons', () => {
         onStatusClick={onStatusClick}
       />,
     );
-    expect(screen.getByText('Zugesagt')).toBeInTheDocument();
-    expect(screen.getByText('Abgesagt')).toBeInTheDocument();
-    expect(screen.getByText('Vielleicht')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zugesagt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Abgesagt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vielleicht' })).toBeInTheDocument();
   });
 
   it('calls onStatusClick with the correct status id when clicked', () => {
@@ -52,7 +52,7 @@ describe('ParticipationButtons', () => {
         onStatusClick={onStatusClick}
       />,
     );
-    fireEvent.click(screen.getByText('Abgesagt'));
+    fireEvent.click(screen.getByRole('button', { name: 'Abgesagt' }));
     expect(onStatusClick).toHaveBeenCalledWith(2);
   });
 
@@ -96,7 +96,7 @@ describe('ParticipationButtons', () => {
         onStatusClick={onStatusClick}
       />,
     );
-    fireEvent.click(screen.getByText('Zugesagt'));
+    fireEvent.click(screen.getByRole('button', { name: 'Zugesagt' }));
     expect(onStatusClick).toHaveBeenCalledWith(1);
   });
 });

@@ -3,8 +3,10 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
@@ -217,68 +219,74 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         }
         maxWidth="sm"
         actions={
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 1 }}
-          >
-            {event.permissions?.canCancel && !event.cancelled && (
-              <Button
-                onClick={() => setCancelDialogOpen(true)}
-                color="warning"
-                variant="outlined"
-                size={isMobile ? 'small' : 'medium'}
-                startIcon={<CancelIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Absagen
-              </Button>
-            )}
-            {event.permissions?.canCancel && event.cancelled && (
-              <Button
-                onClick={reactivateEvent}
-                color="success"
-                variant="outlined"
-                size={isMobile ? 'small' : 'medium'}
-                startIcon={<RestoreIcon />}
-                disabled={reactivating}
-                sx={{ borderRadius: 2 }}
-              >
-                {reactivating ? 'Wird reaktiviert…' : 'Reaktivieren'}
-              </Button>
-            )}
+          <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1 }}>
+            {/* Löschen – ganz links, visuell isoliert */}
             {event.permissions?.canDelete && onDelete && (
-              <Button
-                onClick={onDelete}
-                color="error"
-                variant="outlined"
-                size={isMobile ? 'small' : 'medium'}
-                startIcon={<DeleteIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Löschen
-              </Button>
+              <Tooltip title="Termin löschen" arrow>
+                <IconButton
+                  onClick={onDelete}
+                  color="error"
+                  size="small"
+                  sx={{ border: '1px solid', borderColor: 'error.main', borderRadius: 2, mr: 0.5 }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             )}
-            {event.permissions?.canEdit && onEdit && (
-              <Button
-                onClick={onEdit}
-                variant="outlined"
-                size={isMobile ? 'small' : 'medium'}
-                startIcon={<EditIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Bearbeiten
-              </Button>
-            )}
+
+            {/* Sekundäre Aktionen */}
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              {event.permissions?.canEdit && onEdit && (
+                <Button
+                  onClick={onEdit}
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EditIcon />}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Bearbeiten
+                </Button>
+              )}
+              {event.permissions?.canCancel && !event.cancelled && (
+                <Button
+                  onClick={() => setCancelDialogOpen(true)}
+                  color="warning"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<CancelIcon />}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Absagen
+                </Button>
+              )}
+              {event.permissions?.canCancel && event.cancelled && (
+                <Button
+                  onClick={reactivateEvent}
+                  color="success"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RestoreIcon />}
+                  disabled={reactivating}
+                  sx={{ borderRadius: 2 }}
+                >
+                  {reactivating ? 'Wird reaktiviert…' : 'Reaktivieren'}
+                </Button>
+              )}
+            </Stack>
+
+            {/* Flexibler Abstand */}
+            <Box sx={{ flex: 1 }} />
+
+            {/* Schließen – rechts/primär */}
             <Button
               onClick={onClose}
               variant="contained"
               size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: 2, ml: 'auto' }}
+              sx={{ borderRadius: 2 }}
             >
               Schließen
             </Button>
-          </Stack>
+          </Box>
         }
       >
         {/* Cancelled Banner */}
@@ -365,11 +373,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             <EventDescription description={event.description} />
           )}
 
-          <Divider sx={{ my: 0.5 }} />
-
           {/* ── Participation Section ── */}
           {event.permissions?.canParticipate && (
-            <Box>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
                 <GroupIcon sx={{ fontSize: 22, color: typeColor }} />
                 <Typography variant="subtitle1" fontWeight={700}>
@@ -413,7 +419,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   />
                 </>
               )}
-            </Box>
+            </Paper>
           )}
         </Box>
       </BaseModal>

@@ -147,13 +147,15 @@ describe('EventDetailsModal', () => {
     expect(screen.getByText('SC Gegner')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText('Teilnahme')).toBeInTheDocument();
-      expect(screen.getByText('Zusage')).toBeInTheDocument();
-      expect(screen.getByText('Absage')).toBeInTheDocument();
-      expect(screen.getByText('Max Mustermann')).toBeInTheDocument();
-      expect(screen.getByText('Erika Musterfrau')).toBeInTheDocument();
-      // Participant note should be shown inline in the list
-      expect(screen.getByText('Komme später')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zusage' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Absage' })).toBeInTheDocument();
     });
+    // Expand the participant list to see names
+    fireEvent.click(screen.getByText('Teilnehmer (2)'));
+    expect(screen.getByText('Max Mustermann')).toBeInTheDocument();
+    expect(screen.getByText('Erika Musterfrau')).toBeInTheDocument();
+    // Participant note should be shown inline in the list
+    expect(screen.getByText('Komme später')).toBeInTheDocument();
   });
 
   it('calls onClose when Schließen button is clicked', async () => {
@@ -176,7 +178,7 @@ describe('EventDetailsModal', () => {
     await act(async () => {
       render(<EventDetailsModal {...defaultProps} />);
     });
-    fireEvent.click(screen.getByText('Löschen'));
+    fireEvent.click(screen.getByRole('button', { name: 'Termin löschen' }));
     expect(defaultProps.onDelete).toHaveBeenCalled();
   });
 
@@ -185,12 +187,12 @@ describe('EventDetailsModal', () => {
       render(<EventDetailsModal {...defaultProps} />);
     });
     await waitFor(() => {
-      expect(screen.getByText('Zusage')).toBeInTheDocument();
-      expect(screen.getByText('Absage')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zusage' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Absage' })).toBeInTheDocument();
     });
     // Click a status button → note dialog should open
     await act(async () => {
-      fireEvent.click(screen.getByText('Absage'));
+      fireEvent.click(screen.getByRole('button', { name: 'Absage' }));
     });
     await waitFor(() => {
       expect(screen.getByLabelText('Nachricht (optional)')).toBeInTheDocument();
@@ -209,11 +211,11 @@ describe('EventDetailsModal', () => {
       render(<EventDetailsModal {...defaultProps} />);
     });
     await waitFor(() => {
-      expect(screen.getByText('Zusage')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zusage' })).toBeInTheDocument();
     });
     // Open dialog
     await act(async () => {
-      fireEvent.click(screen.getByText('Zusage'));
+      fireEvent.click(screen.getByRole('button', { name: 'Zusage' }));
     });
     const noteField = await screen.findByLabelText('Nachricht (optional)');
     fireEvent.change(noteField, { target: { value: 'Komme 10 Minuten später' } });
@@ -235,10 +237,10 @@ describe('EventDetailsModal', () => {
       render(<EventDetailsModal {...defaultProps} />);
     });
     await waitFor(() => {
-      expect(screen.getByText('Zusage')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zusage' })).toBeInTheDocument();
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Zusage'));
+      fireEvent.click(screen.getByRole('button', { name: 'Zusage' }));
     });
     await waitFor(() => {
       expect(screen.getByLabelText('Nachricht (optional)')).toBeInTheDocument();
@@ -424,8 +426,8 @@ describe('EventDetailsModal', () => {
     });
     await waitFor(() => {
       expect(screen.getByText('Teilnahme')).toBeInTheDocument();
-      expect(screen.getByText('Zusage')).toBeInTheDocument();
-      expect(screen.getByText('Absage')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zusage' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Absage' })).toBeInTheDocument();
     });
   });
 
