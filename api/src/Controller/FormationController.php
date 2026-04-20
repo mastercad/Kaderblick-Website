@@ -6,6 +6,7 @@ use App\Entity\Formation;
 use App\Entity\FormationType;
 use App\Entity\Team;
 use App\Entity\User;
+use App\Repository\FormationRepository;
 use App\Security\Voter\CoachTeamVoter;
 use App\Security\Voter\FormationVoter;
 use App\Service\CoachTeamPlayerService;
@@ -20,25 +21,45 @@ class FormationController extends AbstractController
 {
     public function __construct(
         private CoachTeamPlayerService $coachTeamPlayerService,
-        private EntityManagerInterface $entityManager
     ) {
     }
 
-    #[Route('/formations', name: 'formations_index')]
-    public function index(EntityManagerInterface $em): Response
+    #[Route('/formations/teams', name: 'formations_all_teams', methods: ['GET'])]
+    public function allTeams(EntityManagerInterface $em): JsonResponse
     {
+        if (!$this->isGranted('ROLE_SUPERADMIN')) {
+            return $this->json(['error' => 'Zugriff verweigert'], 403);
+        }
+
+        $teams = $em->getRepository(Team::class)->findBy([], ['name' => 'ASC']);
+
+        return $this->json([
+            'teams' => array_map(fn (Team $t) => [
+                'id' => $t->getId(),
+                'name' => $t->getName(),
+            ], $teams),
+        ]);
+    }
+
+    #[Route('/formations', name: 'formations_index')]
+    public function index(Request $request, EntityManagerInterface $em): Response
+    {
+        /** @var User|null $user */
         $user = $this->getUser();
 
         if (null === $user) {
-            $user = $this->entityManager->getRepository(User::class)->find(1);
+            return $this->json(['formations' => []]);
         }
 
-        // Nur Aufstellungen des aktuellen Trainers anzeigen
-        $formations = $em->getRepository(Formation::class)->findBy([
-            'user' => $user
-        ]);
+        /** @var FormationRepository $repo */
+        $repo = $em->getRepository(Formation::class);
 
-        $formations = array_filter($formations, fn ($f) => $this->isGranted(FormationVoter::VIEW, $f));
+        $teamIdParam = $request->query->get('teamId');
+        if (null !== $teamIdParam && $this->isGranted('ROLE_SUPERADMIN')) {
+            $formations = $repo->findByTeam((int) $teamIdParam);
+        } else {
+            $formations = $repo->findVisibleFormationsForUser($user);
+        }
 
         return $this->json(['formations' => array_map(fn (Formation $formation) => [
             'id' => $formation->getId(),

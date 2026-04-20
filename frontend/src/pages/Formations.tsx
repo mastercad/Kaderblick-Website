@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, CardActions, CardActionArea,
   Chip, IconButton, Menu, MenuItem, Tooltip, Divider,
+  FormControl, InputLabel, Select, Stack,
 } from '@mui/material';
+import FilterIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/AddCircle';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
@@ -11,6 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SportsIcon from '@mui/icons-material/Sports';
 import PresentToAllIcon from '@mui/icons-material/PresentToAll';
 import { apiJson } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import FormationEditModal from '../modals/FormationEditModal';
 import FormationDeleteConfirmationModal from '../modals/FormationDeleteConfirmationModal';
 import TacticsBoardModal from '../modals/TacticsBoardModal';
@@ -263,7 +266,13 @@ const FormationCard: React.FC<FormationCardProps> = ({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+interface Team {
+  id: number;
+  name: string;
+}
+
 const Formations: React.FC = () => {
+  const { isSuperAdmin } = useAuth();
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -271,12 +280,32 @@ const Formations: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteFormation, setDeleteFormation] = useState<Formation | null>(null);
   const [tacticsFormation, setTacticsFormation] = useState<Formation | null>(null);
+  // SUPERADMIN team filter
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
 
+  // Alle Teams laden (nur für SUPERADMIN)
   useEffect(() => {
-    apiJson<{ formations: Formation[] }>('/formations')
+    if (!isSuperAdmin) return;
+    apiJson<{ teams: Team[] }>('/formations/teams')
+      .then(data => setAllTeams(Array.isArray(data.teams) ? data.teams : []))
+      .catch(() => {});
+  }, [isSuperAdmin]);
+
+  const loadFormations = (teamId?: number) => {
+    setLoading(true);
+    const url = teamId ? `/formations?teamId=${teamId}` : '/formations';
+    apiJson<{ formations: Formation[] }>(url)
       .then(data => setFormations(Array.isArray(data.formations) ? data.formations : []))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadFormations(); }, []);
+
+  const handleTeamChange = (teamId: number | '') => {
+    setSelectedTeamId(teamId);
+    loadFormations(teamId !== '' ? teamId : undefined);
+  };
 
   const openNew = () => { setEditFormationId(null); setEditModalOpen(true); };
 
@@ -292,7 +321,7 @@ const Formations: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={isSuperAdmin && allTeams.length > 0 ? 2 : 4}>
         <Box>
           <Typography variant="h4" fontWeight={700}>Meine Aufstellungen</Typography>
           <Typography variant="body2" color="text.secondary" mt={0.5}>
@@ -306,6 +335,47 @@ const Formations: React.FC = () => {
           Neue Aufstellung
         </Button>
       </Box>
+
+      {/* SUPERADMIN: Team-Filter */}
+      {isSuperAdmin && allTeams.length > 0 && (
+        <Box
+          sx={{
+            position: 'sticky',
+            top: { xs: 56, md: 64 },
+            zIndex: 10,
+            bgcolor: 'background.default',
+            pt: 1.5,
+            pb: 1.5,
+            mb: 3,
+            mx: { xs: -3, sm: -3 },
+            px: { xs: 3, sm: 3 },
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <FormControl size="small" sx={{ width: { xs: '100%', sm: 320 } }}>
+              <InputLabel id="formation-team-filter-label">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <FilterIcon sx={{ fontSize: 16 }} />
+                  Team filtern
+                </Box>
+              </InputLabel>
+              <Select
+                labelId="formation-team-filter-label"
+                label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><FilterIcon sx={{ fontSize: 16 }} />Team filtern</Box>}
+                value={selectedTeamId}
+                onChange={e => handleTeamChange(e.target.value as number | '')}
+              >
+                <MenuItem value="">Alle meinen Teams</MenuItem>
+                {allTeams.map(t => (
+                  <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        </Box>
+      )}
 
       {/* Content */}
       {loading ? (
