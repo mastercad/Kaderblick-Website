@@ -2,9 +2,10 @@
 
 namespace App\Entity;
 
+use App\Repository\FormationRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: FormationRepository::class)]
 #[ORM\Table(name: 'formations')]
 #[ORM\Index(name: 'idx_formation_user_id', columns: ['user_id'])]
 #[ORM\Index(name: 'idx_formation_formation_type_id', columns: ['formation_type_id'])]
