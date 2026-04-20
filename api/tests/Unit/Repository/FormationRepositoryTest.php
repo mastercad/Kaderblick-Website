@@ -5,8 +5,6 @@ namespace App\Tests\Unit\Repository;
 use App\Entity\Coach;
 use App\Entity\CoachTeamAssignment;
 use App\Entity\Formation;
-use App\Entity\Player;
-use App\Entity\PlayerTeamAssignment;
 use App\Entity\RelationType;
 use App\Entity\Team;
 use App\Entity\User;
@@ -45,7 +43,7 @@ class FormationRepositoryTest extends TestCase
         $this->qb = $this->createMock(QueryBuilder::class);
         $this->query = $this->createMock(Query::class);
 
-        foreach (['select', 'from', 'distinct', 'join', 'where', 'andWhere', 'setParameter', 'orderBy', 'addOrderBy'] as $method) {
+        foreach (['select', 'from', 'distinct', 'join', 'leftJoin', 'where', 'andWhere', 'orWhere', 'setParameter', 'orderBy', 'addOrderBy'] as $method) {
             $this->qb->method($method)->willReturnSelf();
         }
         $this->qb->method('getQuery')->willReturn($this->query);
@@ -101,33 +99,6 @@ class FormationRepositoryTest extends TestCase
         return $user;
     }
 
-    /** Baut einen User mit einer self_player-Relation zu einem Team. */
-    private function makePlayerUser(
-        ?DateTimeImmutable $startDate = null,
-        ?DateTimeImmutable $endDate = null,
-    ): User&MockObject {
-        $team = $this->createMock(Team::class);
-        $team->method('getId')->willReturn(3);
-
-        $pta = $this->createMock(PlayerTeamAssignment::class);
-        $pta->method('getTeam')->willReturn($team);
-        $pta->method('getStartDate')->willReturn($startDate);
-        $pta->method('getEndDate')->willReturn($endDate);
-
-        $player = $this->createMock(Player::class);
-        $player->method('getPlayerTeamAssignments')->willReturn(new ArrayCollection([$pta]));
-
-        $relation = $this->createMock(UserRelation::class);
-        $relation->method('getRelationType')->willReturn($this->makeRelationType('self_player'));
-        $relation->method('getPlayer')->willReturn($player);
-        $relation->method('getCoach')->willReturn(null);
-
-        $user = $this->createMock(User::class);
-        $user->method('getUserRelations')->willReturn(new ArrayCollection([$relation]));
-
-        return $user;
-    }
-
     // ─── findVisibleFormationsForUser ─────────────────────────────────────────
 
     public function testFindVisibleFormationsForUserReturnsEmptyArrayWhenUserHasNoTeams(): void
@@ -135,11 +106,29 @@ class FormationRepositoryTest extends TestCase
         $user = $this->createMock(User::class);
         $user->method('getUserRelations')->willReturn(new ArrayCollection());
 
-        // Kein createQueryBuilder-Aufruf erwartet — keine Teams, keine Abfrage
-        $this->em->expects($this->never())->method('createQueryBuilder');
-
+        // Auch ohne Teams wird die DB abgefragt — eigene Formationen werden immer gesucht
         $result = $this->repository->findVisibleFormationsForUser($user);
         $this->assertSame([], $result);
+    }
+
+    public function testFindVisibleFormationsForUserAlwaysSetsCurrentUserParameter(): void
+    {
+        $user = $this->createMock(User::class);
+        $user->method('getUserRelations')->willReturn(new ArrayCollection());
+
+        $setCalls = [];
+        $this->qb->expects($this->atLeastOnce())
+            ->method('setParameter')
+            ->willReturnCallback(function (string $key, mixed $value) use (&$setCalls) {
+                $setCalls[$key] = $value;
+
+                return $this->qb;
+            });
+
+        $this->repository->findVisibleFormationsForUser($user);
+
+        $this->assertArrayHasKey('currentUser', $setCalls);
+        $this->assertSame($user, $setCalls['currentUser']);
     }
 
     public function testFindVisibleFormationsForUserNeverCallsSetParametersWithArray(): void
@@ -222,85 +211,12 @@ class FormationRepositoryTest extends TestCase
         $this->assertSame($formation, $result[0]);
     }
 
-    public function testFindVisibleFormationsForUserWorksWithPlayerTeam(): void
-    {
-        // Spieler-Relation soll ebenfalls als Zugang zu Teams gewertet werden
-        $user = $this->makePlayerUser();
-
-        $setCalls = [];
-        $this->qb->expects($this->atLeastOnce())
-            ->method('setParameter')
-            ->willReturnCallback(function (string $key, mixed $value) use (&$setCalls) {
-                $setCalls[$key] = $value;
-
-                return $this->qb;
-            });
-
-        $this->repository->findVisibleFormationsForUser($user);
-
-        $this->assertArrayHasKey('teamIds', $setCalls);
-        $this->assertContains(3, $setCalls['teamIds']);
-    }
-
     public function testFindVisibleFormationsForUserIgnoresExpiredCoachAssignment(): void
     {
-        // Abgelaufene Trainer-Zuordnung → kein Team → keine DB-Abfrage
+        // Abgelaufene Trainer-Zuordnung → teamIds ist leer → teamId/selfCoach-Parameter werden nicht gesetzt
         $pastEnd = new DateTimeImmutable('yesterday');
         $user = $this->makeCoachUser(null, $pastEnd);
 
-        $this->em->expects($this->never())->method('createQueryBuilder');
-
-        $result = $this->repository->findVisibleFormationsForUser($user);
-        $this->assertSame([], $result);
-    }
-
-    public function testFindVisibleFormationsForUserIgnoresExpiredPlayerAssignment(): void
-    {
-        // Abgelaufene Spieler-Zuordnung → kein Team → keine DB-Abfrage
-        $pastEnd = new DateTimeImmutable('yesterday');
-        $user = $this->makePlayerUser(null, $pastEnd);
-
-        $this->em->expects($this->never())->method('createQueryBuilder');
-
-        $result = $this->repository->findVisibleFormationsForUser($user);
-        $this->assertSame([], $result);
-    }
-
-    public function testFindVisibleFormationsForUserDeduplicatesTeamIds(): void
-    {
-        // User ist Trainer in Team 5 und Spieler in Team 5 → teamIds darf 5 nur einmal enthalten
-        $team = $this->createMock(Team::class);
-        $team->method('getId')->willReturn(5);
-
-        $cta = $this->createMock(CoachTeamAssignment::class);
-        $cta->method('getTeam')->willReturn($team);
-        $cta->method('getStartDate')->willReturn(null);
-        $cta->method('getEndDate')->willReturn(null);
-
-        $coach = $this->createMock(Coach::class);
-        $coach->method('getCoachTeamAssignments')->willReturn(new ArrayCollection([$cta]));
-
-        $pta = $this->createMock(PlayerTeamAssignment::class);
-        $pta->method('getTeam')->willReturn($team);
-        $pta->method('getStartDate')->willReturn(null);
-        $pta->method('getEndDate')->willReturn(null);
-
-        $player = $this->createMock(Player::class);
-        $player->method('getPlayerTeamAssignments')->willReturn(new ArrayCollection([$pta]));
-
-        $coachRelation = $this->createMock(UserRelation::class);
-        $coachRelation->method('getRelationType')->willReturn($this->makeRelationType('self_coach'));
-        $coachRelation->method('getCoach')->willReturn($coach);
-        $coachRelation->method('getPlayer')->willReturn(null);
-
-        $playerRelation = $this->createMock(UserRelation::class);
-        $playerRelation->method('getRelationType')->willReturn($this->makeRelationType('self_player'));
-        $playerRelation->method('getPlayer')->willReturn($player);
-        $playerRelation->method('getCoach')->willReturn(null);
-
-        $user = $this->createMock(User::class);
-        $user->method('getUserRelations')->willReturn(new ArrayCollection([$coachRelation, $playerRelation]));
-
         $setCalls = [];
         $this->qb->expects($this->atLeastOnce())
             ->method('setParameter')
@@ -312,7 +228,9 @@ class FormationRepositoryTest extends TestCase
 
         $this->repository->findVisibleFormationsForUser($user);
 
-        $this->assertSame([5], $setCalls['teamIds']);
+        $this->assertArrayHasKey('currentUser', $setCalls);
+        $this->assertArrayNotHasKey('teamIds', $setCalls);
+        $this->assertArrayNotHasKey('selfCoach', $setCalls);
     }
 
     // ─── findByTeam ───────────────────────────────────────────────────────────

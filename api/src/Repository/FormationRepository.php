@@ -20,44 +20,42 @@ class FormationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gibt alle Formationen zurück, die für den Benutzer sichtbar sind.
+     * Gibt alle Formationen zurück, die für den Benutzer sichtbar sind:
+     * eigene Formationen sowie Formationen von Trainern in denselben Teams.
      *
-     * Sichtbar sind Formationen von Trainern, die aktuell einem Team zugeordnet sind,
-     * dem der Benutzer selbst ebenfalls angehört — entweder als Trainer oder als Spieler.
-     *
-     * Pfade zur Team-Ermittlung:
+     * Pfad zur Team-Ermittlung:
      *   Benutzer → UserRelation (self_coach) → Coach → CoachTeamAssignment → Team
-     *   Benutzer → UserRelation (self_player) → Player → PlayerTeamAssignment → Team
      *
      * @return Formation[]
      */
     public function findVisibleFormationsForUser(User $user): array
     {
         $teamIds = $this->resolveAccessibleTeamIds($user);
-
-        if (empty($teamIds)) {
-            return [];
-        }
-
         $today = new DateTimeImmutable();
 
-        // Formationen von Trainern laden, die in denselben Teams aktiv sind
-        return $this->createQueryBuilder('f')
+        $qb = $this->createQueryBuilder('f')
             ->distinct()
-            ->join('f.user', 'fu')
-            ->join('fu.userRelations', 'fur')
-            ->join('fur.relationType', 'furt')
-            ->join('fur.coach', 'fc')
-            ->join('fc.coachTeamAssignments', 'fcta')
-            ->where('furt.identifier = :selfCoach')
-            ->andWhere('fcta.team IN (:teamIds)')
-            ->andWhere('(fcta.startDate IS NULL OR fcta.startDate <= :today)')
-            ->andWhere('(fcta.endDate IS NULL OR fcta.endDate >= :today)')
+            ->leftJoin('f.user', 'fu')
+            ->leftJoin('fu.userRelations', 'fur')
+            ->leftJoin('fur.relationType', 'furt')
+            ->leftJoin('fur.coach', 'fc')
+            ->leftJoin('fc.coachTeamAssignments', 'fcta')
+            ->where('f.user = :currentUser')
+            ->setParameter('currentUser', $user);
+
+        if (!empty($teamIds)) {
+            $qb->orWhere(
+                'furt.identifier = :selfCoach'
+                . ' AND fcta.team IN (:teamIds)'
+                . ' AND (fcta.startDate IS NULL OR fcta.startDate <= :today)'
+                . ' AND (fcta.endDate IS NULL OR fcta.endDate >= :today)'
+            )
             ->setParameter('selfCoach', 'self_coach')
             ->setParameter('teamIds', $teamIds)
-            ->setParameter('today', $today)
-            ->getQuery()
-            ->getResult();
+            ->setParameter('today', $today);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
@@ -90,8 +88,7 @@ class FormationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Sammelt alle Team-IDs, zu denen der Benutzer aktuell Zugang hat
-     * (als aktiver Trainer oder aktiver Spieler).
+     * Sammelt alle Team-IDs, denen der Benutzer als aktiver Trainer zugeordnet ist.
      *
      * @return int[]
      */
@@ -101,21 +98,18 @@ class FormationRepository extends ServiceEntityRepository
         $teamIds = [];
 
         foreach ($user->getUserRelations() as $relation) {
-            $identifier = $relation->getRelationType()->getIdentifier();
-
-            if (($coach = $relation->getCoach()) && 'self_coach' === $identifier) {
-                foreach ($coach->getCoachTeamAssignments() as $cta) {
-                    if ($this->isActiveOnDate($cta->getStartDate(), $cta->getEndDate(), $now)) {
-                        $teamIds[] = $cta->getTeam()->getId();
-                    }
-                }
+            if ('self_coach' !== $relation->getRelationType()->getIdentifier()) {
+                continue;
             }
 
-            if (($player = $relation->getPlayer()) && 'self_player' === $identifier) {
-                foreach ($player->getPlayerTeamAssignments() as $pta) {
-                    if ($this->isActiveOnDate($pta->getStartDate(), $pta->getEndDate(), $now)) {
-                        $teamIds[] = $pta->getTeam()->getId();
-                    }
+            $coach = $relation->getCoach();
+            if (null === $coach) {
+                continue;
+            }
+
+            foreach ($coach->getCoachTeamAssignments() as $cta) {
+                if ($this->isActiveOnDate($cta->getStartDate(), $cta->getEndDate(), $now)) {
+                    $teamIds[] = $cta->getTeam()->getId();
                 }
             }
         }
