@@ -170,6 +170,11 @@ export function useFormationData(open: boolean, formationId: number | null, init
           setCurrentTemplateCode(typeof f.formationData?.code === 'string' ? f.formationData.code : null);
           setName(f.name);
 
+          // Team der Formation vorauswählen, wenn vom Backend geliefert
+          if (typeof f.teamId === 'number') {
+            setSelectedTeam(f.teamId);
+          }
+
           const usedIds = new Set<number>();
           const fieldPlayers: PlayerData[] = Array.isArray(f.formationData?.players)
             ? normalizeLocalPlayerIds(f.formationData.players.map((p: any) => ({ ...p })), usedIds)

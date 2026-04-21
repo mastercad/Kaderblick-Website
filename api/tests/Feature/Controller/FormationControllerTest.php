@@ -4,6 +4,7 @@ namespace App\Tests\Feature\Controller;
 
 use App\Entity\Formation;
 use App\Entity\FormationType;
+use App\Entity\Team;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -24,21 +25,80 @@ class FormationControllerTest extends WebTestCase
 
     public function testIndexOnlyReturnsOwnFormations(): void
     {
-        $user1 = $this->loadUser('user6@example.com');
-        $user2 = $this->loadUser('user7@example.com');
+        // user11 ist aktiver Trainer von Team 1
+        $user = $this->loadUser('user11@example.com');
         $type = $this->getFormationType();
+        $team = $this->loadFirstTeamForUser($user);
 
-        $this->createFormation($user1, $type, 'voter-test-Own Formation');
-        $this->createFormation($user2, $type, 'voter-test-Other Formation');
+        if (null === $team) {
+            $this->markTestSkipped('user11 hat kein aktives Trainer-Team in den Fixtures.');
+        }
 
-        $this->client->loginUser($user1);
+        // Formation MIT team_id erscheint im Index
+        $this->createFormation($user, $type, 'voter-test-Team Formation', $team);
+        // Formation OHNE team_id: nach Backfill-Migration wird team_id befüllt, aber
+        // eine im Test neu angelegte Formation mit team=null und formationData=[] hat
+        // keine Spieler → kein Backfill möglich → bleibt unsichtbar.
+        $this->createFormation($user, $type, 'voter-test-No-Team Formation', null);
+
+        $this->client->loginUser($user);
         $this->client->request('GET', '/formations');
 
         $this->assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true);
         $formationNames = array_column($data['formations'], 'name');
-        $this->assertContains('voter-test-Own Formation', $formationNames);
-        $this->assertNotContains('voter-test-Other Formation', $formationNames);
+        $this->assertContains('voter-test-Team Formation', $formationNames);
+        $this->assertNotContains('voter-test-No-Team Formation', $formationNames);
+    }
+
+    public function testIndexIncludesTeamIdAndTeamNameInResponse(): void
+    {
+        // user11 ist aktiver Trainer von Team 1
+        $user = $this->loadUser('user11@example.com');
+        $type = $this->getFormationType();
+        $team = $this->loadFirstTeamForUser($user);
+
+        if (null === $team) {
+            $this->markTestSkipped('user11 hat kein aktives Trainer-Team in den Fixtures.');
+        }
+
+        $this->createFormation($user, $type, 'voter-test-Team Formation', $team);
+
+        $this->client->loginUser($user);
+        $this->client->request('GET', '/formations');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+
+        $found = null;
+        foreach ($data['formations'] as $f) {
+            if ('voter-test-Team Formation' === $f['name']) {
+                $found = $f;
+                break;
+            }
+        }
+
+        $this->assertNotNull($found, 'Formation not found in response');
+        $this->assertArrayHasKey('teamId', $found);
+        $this->assertArrayHasKey('teamName', $found);
+        $this->assertSame($team->getId(), $found['teamId']);
+        $this->assertSame($team->getName(), $found['teamName']);
+    }
+
+    public function testIndexReturnsEmptyListForNonCoachUser(): void
+    {
+        // user6 ist kein Trainer (ROLE_USER, nur Elternteil eines Spielers).
+        // collectCoachTeams() liefert [] → findVisibleForUser([]) liefert [] → leere Liste.
+        $user = $this->loadUser('user6@example.com');
+        $type = $this->getFormationType();
+        $this->createFormation($user, $type, 'voter-test-No-Team Formation', null);
+
+        $this->client->loginUser($user);
+        $this->client->request('GET', '/formations');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertEmpty($data['formations']);
     }
 
     public function testEditDeniesAccessToOtherUsersFormation(): void
@@ -78,6 +138,27 @@ class FormationControllerTest extends WebTestCase
         );
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testEditResponseIncludesTeamId(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+        $type = $this->getFormationType();
+        $formation = $this->createFormation($user, $type, 'voter-test-My Formation');
+
+        $this->client->loginUser($user);
+        $this->client->request(
+            'POST',
+            '/formation/' . $formation->getId() . '/edit',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['name' => 'voter-test-Updated', 'formationData' => []])
+        );
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('teamId', $data['formation']);
     }
 
     public function testDeleteDeniesAccessToOtherUsersFormation(): void
@@ -125,12 +206,100 @@ class FormationControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    // ─── new() – Eingabevalidierung ───────────────────────────────────────────
+
+    public function testNewReturnsWith422WhenNameIsEmpty(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+
+        $this->client->loginUser($user);
+        $this->client->request(
+            'POST',
+            '/formation/new',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['name' => '', 'formationData' => []])
+        );
+
+        $this->assertResponseStatusCodeSame(422);
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertNotEmpty($data['error']);
+    }
+
+    public function testNewReturnsWith422WhenNameIsAbsent(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+
+        $this->client->loginUser($user);
+        $this->client->request(
+            'POST',
+            '/formation/new',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['formationData' => []])
+        );
+
+        $this->assertResponseStatusCodeSame(422);
+    }
+
+    public function testNewCreatesFormationAndReturnsTeamId(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+
+        $this->client->loginUser($user);
+        $this->client->request(
+            'POST',
+            '/formation/new',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['name' => 'voter-test-New Formation', 'formationData' => []])
+        );
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertTrue($data['success']);
+        $this->assertArrayHasKey('teamId', $data['formation']);
+        $this->assertArrayHasKey('id', $data['formation']);
+    }
+
+    // ─── duplicate() – Team wird mitkopiert ──────────────────────────────────
+
+    public function testDuplicateResponseIncludesTeamId(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+        $type = $this->getFormationType();
+        $formation = $this->createFormation($user, $type, 'voter-test-Original');
+
+        $this->client->loginUser($user);
+        $this->client->request('POST', '/formation/' . $formation->getId() . '/duplicate');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('teamId', $data['formation']);
+        $this->assertSame($formation->getTeam()?->getId(), $data['formation']['teamId']);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
     private function loadUser(string $email): User
     {
         $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
         self::assertNotNull($user, sprintf('Fixture user "%s" not found. Please load fixtures.', $email));
 
         return $user;
+    }
+
+    private function loadFirstTeamForUser(User $user): ?Team
+    {
+        // Gibt das erste aktive Trainer-Team des Users zurück
+        $accessService = static::getContainer()->get(\App\Service\UserTeamAccessService::class);
+        $coachTeams = $accessService->getSelfCoachTeams($user);
+
+        return !empty($coachTeams) ? array_values($coachTeams)[0] : null;
     }
 
     private function getFormationType(): FormationType
@@ -141,13 +310,14 @@ class FormationControllerTest extends WebTestCase
         return $type;
     }
 
-    private function createFormation(User $user, FormationType $type, string $name): Formation
+    private function createFormation(User $user, FormationType $type, string $name, ?Team $team = null): Formation
     {
         $formation = new Formation();
         $formation->setUser($user);
         $formation->setFormationType($type);
         $formation->setName($name);
         $formation->setFormationData([]);
+        $formation->setTeam($team);
 
         $this->entityManager->persist($formation);
         $this->entityManager->flush();

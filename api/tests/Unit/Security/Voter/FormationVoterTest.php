@@ -3,10 +3,14 @@
 namespace App\Tests\Unit\Security\Voter;
 
 use App\Entity\Formation;
+use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\FormationVoter;
+use App\Service\UserTeamAccessService;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
@@ -15,109 +19,249 @@ class FormationVoterTest extends TestCase
 {
     private FormationVoter $voter;
 
+    /** @var UserTeamAccessService&MockObject */
+    private UserTeamAccessService $teamAccessService;
+
     protected function setUp(): void
     {
-        $this->voter = new FormationVoter();
+        $this->teamAccessService = $this->createMock(UserTeamAccessService::class);
+        $this->voter = new FormationVoter($this->teamAccessService);
     }
 
-    public function testViewOwnFormationReturnsTrue(): void
+    // ─── Anonymous user ───────────────────────────────────────────────────────
+
+    public function testAnonymousUserIsDenied(): void
     {
-        $user = $this->createUser(1);
-        $formation = $this->createFormation(1);
-        $token = $this->createToken($user);
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn(null);
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::VIEW]);
-
-        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
-    }
-
-    public function testViewOtherFormationReturnsFalse(): void
-    {
-        $user = $this->createUser(1);
-        $formation = $this->createFormation(2);
-        $token = $this->createToken($user);
+        $formation = $this->createFormationWithTeam($this->createTeam(1));
 
         $result = $this->voter->vote($token, $formation, [FormationVoter::VIEW]);
 
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
-    public function testViewAsAdminReturnsTrue(): void
-    {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
-        $formation = $this->createFormation(2);
-        $token = $this->createToken($admin);
+    // ─── Admin always wins ────────────────────────────────────────────────────
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::VIEW]);
+    public function testAdminCanViewAnyFormation(): void
+    {
+        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $formation = $this->createFormationWithTeam($this->createTeam(1));
+
+        $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::VIEW]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testEditOwnFormationReturnsTrue(): void
+    public function testAdminCanEditAnyFormation(): void
     {
-        $user = $this->createUser(1);
-        $formation = $this->createFormation(1);
-        $token = $this->createToken($user);
+        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $formation = $this->createFormationWithTeam($this->createTeam(1));
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::EDIT]);
+        $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::EDIT]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testEditOtherFormationReturnsFalse(): void
+    public function testAdminCanDeleteAnyFormation(): void
     {
-        $user = $this->createUser(1);
-        $formation = $this->createFormation(2);
-        $token = $this->createToken($user);
+        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $formation = $this->createFormationWithTeam($this->createTeam(1));
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::EDIT]);
-
-        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
-    }
-
-    public function testEditAsAdminReturnsTrue(): void
-    {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
-        $formation = $this->createFormation(2);
-        $token = $this->createToken($admin);
-
-        $result = $this->voter->vote($token, $formation, [FormationVoter::EDIT]);
+        $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::DELETE]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testDeleteOwnFormationReturnsTrue(): void
+    public function testSuperadminCanEditAnyFormation(): void
     {
-        $user = $this->createUser(1);
-        $formation = $this->createFormation(1);
-        $token = $this->createToken($user);
+        $superadmin = $this->createUser(99, ['ROLE_SUPERADMIN']);
+        $formation = $this->createFormationWithTeam($this->createTeam(1));
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::DELETE]);
+        $result = $this->voter->vote($this->createToken($superadmin), $formation, [FormationVoter::EDIT]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testDeleteAsAdminReturnsTrue(): void
-    {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
-        $formation = $this->createFormation(2);
-        $token = $this->createToken($admin);
+    // ─── CREATE is always granted ─────────────────────────────────────────────
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::DELETE]);
-
-        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
-    }
-
-    public function testCreateReturnsTrueForAuthenticatedUser(): void
+    public function testCreateIsAlwaysGrantedForAuthenticatedUser(): void
     {
         $user = $this->createUser(1);
         $formation = new Formation();
-        $token = $this->createToken($user);
 
-        $result = $this->voter->vote($token, $formation, [FormationVoter::CREATE]);
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::CREATE]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
+
+    // ─── Formation WITH team – team-based access ──────────────────────────────
+
+    public function testViewGrantedIfUserIsCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->with($user)
+            ->willReturn([10 => $team]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testViewDeniedIfUserIsNotCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        // User coaches a *different* team
+        $otherTeam = $this->createTeam(99);
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->with($user)
+            ->willReturn([99 => $otherTeam]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testViewDeniedIfUserHasNoCoachTeamsAtAll(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->willReturn([]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditGrantedIfUserIsCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->willReturn([10 => $team]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testEditDeniedIfUserIsNotCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(2);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->willReturn([]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testDeleteGrantedIfUserIsCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->willReturn([10 => $team]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testDeleteDeniedIfUserIsNotCoachOfFormationTeam(): void
+    {
+        $user = $this->createUser(2);
+        $team = $this->createTeam(10);
+        $formation = $this->createFormationWithTeam($team);
+
+        $this->teamAccessService
+            ->method('getSelfCoachTeams')
+            ->willReturn([]);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    // ─── Formation WITHOUT team – legacy user-ID fallback ─────────────────────
+
+    public function testViewGrantedForCreatorWhenNoTeamSet(): void
+    {
+        $user = $this->createUser(5);
+        $formation = $this->createFormationWithoutTeam($user);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testViewDeniedForOtherUserWhenNoTeamSet(): void
+    {
+        $creator = $this->createUser(5);
+        $otherUser = $this->createUser(9);
+        $formation = $this->createFormationWithoutTeam($creator);
+
+        $result = $this->voter->vote($this->createToken($otherUser), $formation, [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditGrantedForCreatorWhenNoTeamSet(): void
+    {
+        $user = $this->createUser(5);
+        $formation = $this->createFormationWithoutTeam($user);
+
+        $result = $this->voter->vote($this->createToken($user), $formation, [FormationVoter::EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testEditDeniedForOtherUserWhenNoTeamSet(): void
+    {
+        $creator = $this->createUser(5);
+        $otherUser = $this->createUser(9);
+        $formation = $this->createFormationWithoutTeam($creator);
+
+        $result = $this->voter->vote($this->createToken($otherUser), $formation, [FormationVoter::EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    // ─── Unsupported subject is abstained ─────────────────────────────────────
+
+    public function testVoteAbstainsForUnsupportedSubject(): void
+    {
+        $user = $this->createUser(1);
+        $result = $this->voter->vote($this->createToken($user), new stdClass(), [FormationVoter::VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_ABSTAIN, $result);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**
      * @param array<string> $roles
@@ -131,12 +275,27 @@ class FormationVoterTest extends TestCase
         return $user;
     }
 
-    private function createFormation(int $userId): Formation
+    private function createTeam(int $id): Team
     {
-        $user = $this->createUser($userId);
+        $team = $this->createMock(Team::class);
+        $team->method('getId')->willReturn($id);
 
+        return $team;
+    }
+
+    private function createFormationWithTeam(Team $team): Formation
+    {
         $formation = $this->createMock(Formation::class);
-        $formation->method('getUser')->willReturn($user);
+        $formation->method('getTeam')->willReturn($team);
+
+        return $formation;
+    }
+
+    private function createFormationWithoutTeam(User $creator): Formation
+    {
+        $formation = $this->createMock(Formation::class);
+        $formation->method('getTeam')->willReturn(null);
+        $formation->method('getUser')->willReturn($creator);
 
         return $formation;
     }

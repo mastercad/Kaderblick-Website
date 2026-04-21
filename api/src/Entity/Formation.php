@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: FormationRepository::class)]
 #[ORM\Table(name: 'formations')]
 #[ORM\Index(name: 'idx_formation_user_id', columns: ['user_id'])]
+#[ORM\Index(name: 'idx_formation_team_id', columns: ['team_id'])]
 #[ORM\Index(name: 'idx_formation_formation_type_id', columns: ['formation_type_id'])]
 class Formation
 {
@@ -41,6 +42,15 @@ class Formation
         onDelete: 'SET NULL'
     )]
     private ?FormationType $formationType = null;
+
+    #[ORM\ManyToOne(targetEntity: Team::class)]
+    #[ORM\JoinColumn(
+        name: 'team_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        onDelete: 'SET NULL'
+    )]
+    private ?Team $team = null;
 
     public function getId(): ?int
     {
@@ -97,6 +107,18 @@ class Formation
     public function setFormationType(?FormationType $formationType): self
     {
         $this->formationType = $formationType;
+
+        return $this;
+    }
+
+    public function getTeam(): ?Team
+    {
+        return $this->team;
+    }
+
+    public function setTeam(?Team $team): self
+    {
+        $this->team = $team;
 
         return $this;
     }

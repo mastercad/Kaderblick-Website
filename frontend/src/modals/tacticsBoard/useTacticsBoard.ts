@@ -1,7 +1,7 @@
 // ─── TacticsBoard – main state hook ───────────────────────────────────────────
 import { useRef, useState, useCallback, useEffect, useId } from 'react';
 import React from 'react';
-import { apiJson } from '../../utils/api';
+import { apiJson, getApiErrorMessage } from '../../utils/api';
 import type { Formation, PlayerData } from '../formation/types';
 import {
   Tool, DrawElement, FieldZone, FieldArrow, OpponentToken, TacticEntry, TacticsBoardData,
@@ -747,8 +747,9 @@ export function useTacticsBoard(
       showTransientSaveMsg({ ok: true, text: 'Taktik gespeichert ✓' });
       setIsDirty(false);
       if (resp?.formation) onBoardSaved?.(resp.formation);
-    } catch {
-      showTransientSaveMsg({ ok: false, text: 'Fehler beim Speichern' });
+    } catch (err: unknown) {
+      const msg = getApiErrorMessage(err, 'Die Taktik konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      showTransientSaveMsg({ ok: false, text: msg });
     } finally {
       setSaving(false);
     }

@@ -11,16 +11,21 @@ use App\Security\Voter\CoachTeamVoter;
 use App\Security\Voter\FormationVoter;
 use App\Service\CoachTeamPlayerService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 class FormationController extends AbstractController
 {
     public function __construct(
         private CoachTeamPlayerService $coachTeamPlayerService,
+        private EntityManagerInterface $entityManager,
+        private FormationRepository $formationRepository,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -51,19 +56,21 @@ class FormationController extends AbstractController
             return $this->json(['formations' => []]);
         }
 
-        /** @var FormationRepository $repo */
-        $repo = $em->getRepository(Formation::class);
-
+        // SUPERADMIN kann Formationen eines bestimmten Teams filtern
+        /** @var User $user */
         $teamIdParam = $request->query->get('teamId');
         if (null !== $teamIdParam && $this->isGranted('ROLE_SUPERADMIN')) {
-            $formations = $repo->findByTeam((int) $teamIdParam);
+            $formations = $this->formationRepository->findByTeam((int) $teamIdParam);
         } else {
-            $formations = $repo->findVisibleFormationsForUser($user);
+            $coachTeams = $this->coachTeamPlayerService->collectCoachTeams($user);
+            $formations = $this->formationRepository->findVisibleForUser($coachTeams);
         }
 
         return $this->json(['formations' => array_map(fn (Formation $formation) => [
             'id' => $formation->getId(),
             'name' => $formation->getName(),
+            'teamId' => $formation->getTeam()?->getId(),
+            'teamName' => $formation->getTeam()?->getName(),
             'formationData' => $formation->getFormationData(),
             'formationType' => [
                 'id' => $formation->getFormationType()->getId(),
@@ -81,19 +88,46 @@ class FormationController extends AbstractController
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {
-            $formationType = $em->getRepository(FormationType::class)->findOneBy(['name' => 'fußball']);
             $data = json_decode($request->getContent(), true);
-            $formation = new Formation();
-            $formation->setUser($user);
-            $formation->setFormationType($formationType);
-            $formation->setName($data['name']);
-            $formation->setFormationData($data['formationData']);
-            $em->persist($formation);
-            $em->flush();
+
+            if (empty($data['name'])) {
+                return $this->json(['error' => 'Der Name der Aufstellung darf nicht leer sein.'], 422);
+            }
+
+            $formationType = $em->getRepository(FormationType::class)->findOneBy(['name' => 'fußball']);
+
+            $team = null;
+            if (!empty($data['team'])) {
+                $team = $em->getRepository(Team::class)->find((int) $data['team']);
+                if ($team && !$this->isGranted(CoachTeamVoter::ACCESS, $team)) {
+                    return $this->json(['error' => 'Keine aktive Trainerzuordnung für dieses Team.'], 403);
+                }
+            }
+
+            try {
+                $formation = new Formation();
+                $formation->setUser($user);
+                $formation->setTeam($team);
+                $formation->setFormationType($formationType);
+                $formation->setName($data['name']);
+                $formation->setFormationData($data['formationData']);
+                $em->persist($formation);
+                $em->flush();
+            } catch (Throwable $e) {
+                $this->logger->error('Formation konnte nicht gespeichert werden', [
+                    'userId' => $user->getId(),
+                    'name' => $data['name'] ?? null,
+                    'teamId' => $team?->getId(),
+                    'exception' => $e,
+                ]);
+
+                return $this->json(['error' => 'Die Aufstellung konnte nicht gespeichert werden. Bitte versuche es erneut.'], 500);
+            }
 
             return $this->json(['success' => true, 'formation' => [
                 'id' => $formation->getId(),
                 'name' => $formation->getName(),
+                'teamId' => $formation->getTeam()?->getId(),
                 'formationData' => $formation->getFormationData(),
                 'formationType' => [
                     'id' => $formation->getFormationType()->getId(),
@@ -118,17 +152,38 @@ class FormationController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            $formationType = $em->getRepository(FormationType::class)->findOneBy(['name' => 'fußball']);
             $data = json_decode($request->getContent(), true);
-            $formation->setUser($user);
+
+            if (!empty($data['team'])) {
+                $team = $em->getRepository(Team::class)->find((int) $data['team']);
+                if ($team && !$this->isGranted(CoachTeamVoter::ACCESS, $team)) {
+                    return $this->json(['error' => 'Keine aktive Trainerzuordnung für dieses Team.'], 403);
+                }
+                $formation->setTeam($team ?? $formation->getTeam());
+            }
+
+            $formationType = $em->getRepository(FormationType::class)->findOneBy(['name' => 'fußball']);
             $formation->setFormationType($formationType);
             $formation->setName($data['name']);
             $formation->setFormationData($data['formationData']);
-            $em->flush();
+
+            try {
+                $em->flush();
+            } catch (Throwable $e) {
+                $this->logger->error('Formation konnte nicht aktualisiert werden', [
+                    'formationId' => $formation->getId(),
+                    'userId' => $user->getId(),
+                    'name' => $data['name'] ?? null,
+                    'exception' => $e,
+                ]);
+
+                return $this->json(['error' => 'Die Aufstellung konnte nicht gespeichert werden. Bitte versuche es erneut.'], 500);
+            }
 
             return $this->json(['success' => true, 'formation' => [
                 'id' => $formation->getId(),
                 'name' => $formation->getName(),
+                'teamId' => $formation->getTeam()?->getId(),
                 'formationData' => $formation->getFormationData(),
                 'formationType' => [
                     'id' => $formation->getFormationType()->getId(),
@@ -147,6 +202,7 @@ class FormationController extends AbstractController
             'formation' => [
                 'id' => $formation->getId(),
                 'name' => $formation->getName(),
+                'teamId' => $formation->getTeam()?->getId(),
                 'formationData' => $formation->getFormationData(),
                 'formationType' => [
                     'id' => $formation->getFormationType()->getId(),
@@ -219,6 +275,7 @@ class FormationController extends AbstractController
         $user = $this->getUser();
         $copy = new Formation();
         $copy->setUser($user);
+        $copy->setTeam($formation->getTeam());
         $copy->setFormationType($formation->getFormationType());
         $copy->setName($formation->getName());
         $copy->setFormationData($formation->getFormationData());
@@ -228,6 +285,7 @@ class FormationController extends AbstractController
         return $this->json(['formation' => [
             'id' => $copy->getId(),
             'name' => $copy->getName(),
+            'teamId' => $copy->getTeam()?->getId(),
             'formationData' => $copy->getFormationData(),
             'formationType' => [
                 'id' => $copy->getFormationType()->getId(),
