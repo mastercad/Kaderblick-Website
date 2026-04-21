@@ -13,6 +13,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { BACKEND_URL } from '../../config';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import BaseModal from './BaseModal';
 import RegistrationContextDialog from './RegistrationContextDialog';
 import CalendarIntegrationsTab from '../components/CalendarIntegrationsTab';
@@ -47,6 +48,8 @@ import { ApiTokenTab } from './ProfileModal/tabs/ApiTokenTab';
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, initialTab = 0 }) => {
   const { mode, toggleTheme } = useTheme();
+  const { user } = useAuth();
+  const userRoles = Object.values(user?.roles ?? {});
 
   // ── Hooks ────────────────────────────────────────────────────────────────
   const {
@@ -159,6 +162,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, init
           relationsCount={relations.length}
           onOpenRelations={() => relations.length > 0 ? setRelationsOpen(true) : setShowRelationEditModal(true)}
           onRequestRelation={() => setShowRelationEditModal(true)}
+          roles={userRoles}
         />
 
         {/* ── Tabs ───────────────────────────────────────────────────────── */}

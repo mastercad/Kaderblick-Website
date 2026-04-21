@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -36,18 +37,24 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class FormationControllerTest extends TestCase
 {
     private FormationController $controller;
+    private CoachTeamPlayerService&MockObject $coachTeamPlayerService;
     private EntityManagerInterface&MockObject $em;
     private FormationRepository&MockObject $formationRepo;
     private AuthorizationCheckerInterface&MockObject $authChecker;
 
     protected function setUp(): void
     {
-        $coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
-        $this->controller = new FormationController($coachTeamPlayerService);
-
+        $this->coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->formationRepo = $this->createMock(FormationRepository::class);
+        $logger = $this->createMock(LoggerInterface::class);
         $this->authChecker = $this->createMock(AuthorizationCheckerInterface::class);
+
+        $this->controller = new FormationController(
+            $this->coachTeamPlayerService,
+            $this->formationRepo,
+            $logger,
+        );
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -101,14 +108,21 @@ class FormationControllerTest extends TestCase
         $formation->method('getFormationData')->willReturn(['code' => '4-3-3']);
         $formation->method('getFormationType')->willReturn($formationType);
 
+        $team = $this->createMock(Team::class);
+        $team->method('getId')->willReturn(1);
+        $team->method('getName')->willReturn('Test Team');
+        $formation->method('getTeam')->willReturn($team);
+
         return $formation;
     }
 
-    private function wireFormationRepo(): void
+    /** @param array<Team> $teams */
+    private function mockCollectCoachTeams(User&MockObject $user, array $teams = []): void
     {
-        $this->em->method('getRepository')
-            ->with(Formation::class)
-            ->willReturn($this->formationRepo);
+        $this->coachTeamPlayerService
+            ->method('collectCoachTeams')
+            ->with($user)
+            ->willReturn($teams);
     }
 
     // ─── index() ──────────────────────────────────────────────────────────────
@@ -129,11 +143,11 @@ class FormationControllerTest extends TestCase
     {
         $user = $this->makeUser();
         $this->wireUser($user, false);
-        $this->wireFormationRepo();
+        $this->mockCollectCoachTeams($user);
 
         $this->formationRepo->expects($this->once())
-            ->method('findVisibleFormationsForUser')
-            ->with($user)
+            ->method('findVisibleForUser')
+            ->with([])
             ->willReturn([]);
 
         $this->formationRepo->expects($this->never())
@@ -146,7 +160,6 @@ class FormationControllerTest extends TestCase
     {
         $user = $this->makeUser();
         $this->wireUser($user, true);
-        $this->wireFormationRepo();
 
         $this->formationRepo->expects($this->once())
             ->method('findByTeam')
@@ -154,7 +167,7 @@ class FormationControllerTest extends TestCase
             ->willReturn([]);
 
         $this->formationRepo->expects($this->never())
-            ->method('findVisibleFormationsForUser');
+            ->method('findVisibleForUser');
 
         $request = Request::create('/', 'GET', ['teamId' => '5']);
         $this->controller->index($request, $this->em);
@@ -164,11 +177,11 @@ class FormationControllerTest extends TestCase
     {
         $user = $this->makeUser();
         $this->wireUser($user, false); // kein SUPERADMIN
-        $this->wireFormationRepo();
+        $this->mockCollectCoachTeams($user);
 
         $this->formationRepo->expects($this->once())
-            ->method('findVisibleFormationsForUser')
-            ->with($user)
+            ->method('findVisibleForUser')
+            ->with([])
             ->willReturn([]);
 
         // findByTeam darf NICHT aufgerufen werden, auch wenn teamId übergeben wurde
@@ -183,10 +196,10 @@ class FormationControllerTest extends TestCase
     {
         $user = $this->makeUser();
         $this->wireUser($user, false);
-        $this->wireFormationRepo();
+        $this->mockCollectCoachTeams($user);
 
         $formation = $this->makeFormation(42);
-        $this->formationRepo->method('findVisibleFormationsForUser')->willReturn([$formation]);
+        $this->formationRepo->method('findVisibleForUser')->willReturn([$formation]);
 
         $response = $this->controller->index(new Request(), $this->em);
         $body = json_decode((string) $response->getContent(), true);
@@ -197,6 +210,8 @@ class FormationControllerTest extends TestCase
         $f = $body['formations'][0];
         $this->assertSame(42, $f['id']);
         $this->assertSame('Formation 42', $f['name']);
+        $this->assertArrayHasKey('teamId', $f);
+        $this->assertArrayHasKey('teamName', $f);
         $this->assertArrayHasKey('formationData', $f);
         $this->assertArrayHasKey('formationType', $f);
         $this->assertArrayHasKey('id', $f['formationType']);
@@ -209,7 +224,6 @@ class FormationControllerTest extends TestCase
     {
         $user = $this->makeUser();
         $this->wireUser($user, true);
-        $this->wireFormationRepo();
 
         // teamId kommt als String via Query-String
         $this->formationRepo->expects($this->once())
@@ -223,14 +237,14 @@ class FormationControllerTest extends TestCase
 
     public function testIndexSuperAdminWithoutTeamIdParamUsesVisibleFormations(): void
     {
-        // SUPERADMIN ohne teamId-Param soll weiterhin findVisibleFormationsForUser nutzen
+        // SUPERADMIN ohne teamId-Param soll weiterhin findVisibleForUser nutzen
         $user = $this->makeUser();
         $this->wireUser($user, true);
-        $this->wireFormationRepo();
+        $this->mockCollectCoachTeams($user);
 
         $this->formationRepo->expects($this->once())
-            ->method('findVisibleFormationsForUser')
-            ->with($user)
+            ->method('findVisibleForUser')
+            ->with([])
             ->willReturn([]);
 
         $this->formationRepo->expects($this->never())

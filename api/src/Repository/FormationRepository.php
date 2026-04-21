@@ -3,9 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Formation;
-use App\Entity\User;
-use DateTimeImmutable;
-use DateTimeInterface;
+use App\Entity\Team;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -20,46 +18,33 @@ class FormationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gibt alle Formationen zurück, die für den Benutzer sichtbar sind:
-     * eigene Formationen sowie Formationen von Trainern in denselben Teams.
+     * Gibt alle Formationen zurück, die für den User sichtbar sind.
      *
-     * Pfad zur Team-Ermittlung:
-     *   Benutzer → UserRelation (self_coach) → Coach → CoachTeamAssignment → Team
+     * Sichtbar sind ausschließlich Formationen, deren team_id einem der Teams entspricht,
+     * in denen der User aktuell aktiv als Trainer eingetragen ist.
+     * Legacy-Formationen ohne team_id werden durch die Backfill-Migration Version20260421120000
+     * nachträglich mit der korrekten team_id versehen und sind danach ebenfalls über diese
+     * Abfrage erreichbar.
+     *
+     * @param Team[] $coachTeams Aktuell aktive Trainer-Teams des Users
      *
      * @return Formation[]
      */
-    public function findVisibleFormationsForUser(User $user): array
+    public function findVisibleForUser(array $coachTeams): array
     {
-        $teamIds = $this->resolveAccessibleTeamIds($user);
-        $today = new DateTimeImmutable();
-
-        $qb = $this->createQueryBuilder('f')
-            ->distinct()
-            ->leftJoin('f.user', 'fu')
-            ->leftJoin('fu.userRelations', 'fur')
-            ->leftJoin('fur.relationType', 'furt')
-            ->leftJoin('fur.coach', 'fc')
-            ->leftJoin('fc.coachTeamAssignments', 'fcta')
-            ->where('f.user = :currentUser')
-            ->setParameter('currentUser', $user);
-
-        if (!empty($teamIds)) {
-            $qb->orWhere(
-                'furt.identifier = :selfCoach'
-                . ' AND fcta.team IN (:teamIds)'
-                . ' AND (fcta.startDate IS NULL OR fcta.startDate <= :today)'
-                . ' AND (fcta.endDate IS NULL OR fcta.endDate >= :today)'
-            )
-            ->setParameter('selfCoach', 'self_coach')
-            ->setParameter('teamIds', $teamIds)
-            ->setParameter('today', $today);
+        if (empty($coachTeams)) {
+            return [];
         }
 
-        return $qb->getQuery()->getResult();
+        return $this->createQueryBuilder('f')
+            ->where('f.team IN (:teams)')
+            ->setParameter('teams', $coachTeams)
+            ->getQuery()
+            ->getResult();
     }
 
     /**
-     * Gibt alle Formationen zurück, die von aktiven Trainern eines bestimmten Teams angelegt wurden.
+     * Gibt alle Formationen zurück, die einem bestimmten Team zugeordnet sind.
      * Wird ausschließlich für SUPERADMIN/ADMIN genutzt — kein zusätzlicher Zugriffscheck nötig,
      * da der Aufrufer dies sicherstellen muss.
      *
@@ -67,65 +52,10 @@ class FormationRepository extends ServiceEntityRepository
      */
     public function findByTeam(int $teamId): array
     {
-        $today = new DateTimeImmutable();
-
         return $this->createQueryBuilder('f')
-            ->distinct()
-            ->join('f.user', 'fu')
-            ->join('fu.userRelations', 'fur')
-            ->join('fur.relationType', 'furt')
-            ->join('fur.coach', 'fc')
-            ->join('fc.coachTeamAssignments', 'fcta')
-            ->where('furt.identifier = :selfCoach')
-            ->andWhere('IDENTITY(fcta.team) = :teamId')
-            ->andWhere('(fcta.startDate IS NULL OR fcta.startDate <= :today)')
-            ->andWhere('(fcta.endDate IS NULL OR fcta.endDate >= :today)')
-            ->setParameter('selfCoach', 'self_coach')
+            ->where('IDENTITY(f.team) = :teamId')
             ->setParameter('teamId', $teamId)
-            ->setParameter('today', $today)
             ->getQuery()
             ->getResult();
-    }
-
-    /**
-     * Sammelt alle Team-IDs, denen der Benutzer als aktiver Trainer zugeordnet ist.
-     *
-     * @return int[]
-     */
-    private function resolveAccessibleTeamIds(User $user): array
-    {
-        $now = new DateTimeImmutable();
-        $teamIds = [];
-
-        foreach ($user->getUserRelations() as $relation) {
-            if ('self_coach' !== $relation->getRelationType()->getIdentifier()) {
-                continue;
-            }
-
-            $coach = $relation->getCoach();
-            if (null === $coach) {
-                continue;
-            }
-
-            foreach ($coach->getCoachTeamAssignments() as $cta) {
-                if ($this->isActiveOnDate($cta->getStartDate(), $cta->getEndDate(), $now)) {
-                    $teamIds[] = $cta->getTeam()->getId();
-                }
-            }
-        }
-
-        return array_unique($teamIds);
-    }
-
-    private function isActiveOnDate(
-        ?DateTimeInterface $startDate,
-        ?DateTimeInterface $endDate,
-        DateTimeImmutable $checkDate
-    ): bool {
-        if (null !== $endDate && $endDate < $checkDate) {
-            return false;
-        }
-
-        return null === $startDate || $startDate <= $checkDate;
     }
 }

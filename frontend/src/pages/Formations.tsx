@@ -12,6 +12,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SportsIcon from '@mui/icons-material/Sports';
 import PresentToAllIcon from '@mui/icons-material/PresentToAll';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import FormationEditModal from '../modals/FormationEditModal';
@@ -54,6 +55,8 @@ interface Formation {
   name: string;
   formationType: FormationType;
   formationData: FormationData;
+  teamId?: number | null;
+  teamName?: string | null;
 }
 
 // ─── Mini pitch preview on the card ──────────────────────────────────────────
@@ -309,6 +312,19 @@ const Formations: React.FC = () => {
 
   const openNew = () => { setEditFormationId(null); setEditModalOpen(true); };
 
+  // Gruppierung nach Team – nur wenn Formationen von mehr als einem Team vorliegen
+  const teamGroups = React.useMemo(() => {
+    const map = new Map<number | null, { teamName: string | null; formations: Formation[] }>();
+    for (const f of formations) {
+      const key = f.teamId ?? null;
+      if (!map.has(key)) map.set(key, { teamName: f.teamName ?? null, formations: [] });
+      map.get(key)!.formations.push(f);
+    }
+    return Array.from(map.entries()).map(([teamId, val]) => ({ teamId, ...val }));
+  }, [formations]);
+
+  const multipleTeams = teamGroups.length > 1;
+
   const handleDuplicate = async (formation: Formation) => {
     try {
       const data = await apiJson<{ formation: Formation }>(`/formation/${formation.id}/duplicate`, { method: 'POST' });
@@ -381,18 +397,48 @@ const Formations: React.FC = () => {
       {loading ? (
         <Typography color="text.secondary">Lade Aufstellungen…</Typography>
       ) : formations.length > 0 ? (
-        <Box display="flex" flexWrap="wrap" gap={3}>
-          {formations.map(formation => (
-            <FormationCard
-              key={formation.id}
-              formation={formation}
-              onEdit={() => { setEditFormationId(formation.id); setEditModalOpen(true); }}
-              onDuplicate={() => handleDuplicate(formation)}
-              onDelete={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
-              onTactics={() => setTacticsFormation(formation)}
-            />
-          ))}
-        </Box>
+        <>
+          {multipleTeams ? teamGroups.map(group => (
+            <Box key={group.teamId ?? 'none'} mb={4}>
+              {/* Team-Überschrift */}
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <GroupsIcon color="action" />
+                <Typography variant="h6" fontWeight={700}>
+                  {group.teamName ?? 'Kein Team'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ({group.formations.length} Aufstellung{group.formations.length !== 1 ? 'en' : ''})
+                </Typography>
+              </Box>
+              <Box display="flex" flexWrap="wrap" gap={3}>
+                {group.formations.map(formation => (
+                  <FormationCard
+                    key={formation.id}
+                    formation={formation}
+                    onEdit={() => { setEditFormationId(formation.id); setEditModalOpen(true); }}
+                    onDuplicate={() => handleDuplicate(formation)}
+                    onDelete={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
+                    onTactics={() => setTacticsFormation(formation)}
+                  />
+                ))}
+              </Box>
+              <Divider sx={{ mt: 4 }} />
+            </Box>
+          )) : (
+            <Box display="flex" flexWrap="wrap" gap={3}>
+              {formations.map(formation => (
+                <FormationCard
+                  key={formation.id}
+                  formation={formation}
+                  onEdit={() => { setEditFormationId(formation.id); setEditModalOpen(true); }}
+                  onDuplicate={() => handleDuplicate(formation)}
+                  onDelete={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
+                  onTactics={() => setTacticsFormation(formation)}
+                />
+              ))}
+            </Box>
+          )}
+        </>
       ) : (
         <Box
           mt={4}

@@ -12,8 +12,10 @@ import type { Formation, PlayerData } from '../types';
 
 jest.mock('../../../utils/api', () => ({
   apiJson: jest.fn(),
+  getApiErrorMessage: jest.requireActual('../../../utils/api').getApiErrorMessage,
+  ApiError: jest.requireActual('../../../utils/api').ApiError,
 }));
-import { apiJson } from '../../../utils/api';
+import { apiJson, ApiError } from '../../../utils/api';
 const mockApiJson = apiJson as jest.MockedFunction<typeof apiJson>;
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -191,5 +193,121 @@ describe('useFormationSave – Fallback wenn kein formation-Objekt zurückgegebe
     expect(onSaved).toHaveBeenCalledWith(
       expect.objectContaining({ id: 99, name: 'Neue Taktik' }),
     );
+  });
+});
+
+// ─── Neue Branches: Eingabevalidierung ───────────────────────────────────────
+
+describe('useFormationSave – Eingabevalidierung (vor API-Aufruf)', () => {
+  it('setzt Fehler wenn name leer ist', async () => {
+    const { result, setError } = setup({ name: '', selectedTeam: 3 });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith('Bitte gib der Aufstellung einen Namen.');
+  });
+
+  it('setzt Fehler wenn name nur Leerzeichen enthält', async () => {
+    const { result, setError } = setup({ name: '   ', selectedTeam: 3 });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith('Bitte gib der Aufstellung einen Namen.');
+  });
+
+  it('setzt Fehler wenn kein Team gewählt (selectedTeam ist leer)', async () => {
+    const { result, setError } = setup({ name: 'Gültige Formation', selectedTeam: '' });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith('Bitte wähle ein Team aus.');
+  });
+
+  it('ruft apiJson NICHT auf bei leerem Namen', async () => {
+    const { result } = setup({ name: '', selectedTeam: 3 });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(mockApiJson).not.toHaveBeenCalled();
+  });
+
+  it('ruft apiJson NICHT auf wenn kein Team gewählt', async () => {
+    const { result } = setup({ name: 'OK', selectedTeam: '' });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(mockApiJson).not.toHaveBeenCalled();
+  });
+
+  it('setzt loading NICHT auf true bei leerem Namen', async () => {
+    const { result, setLoading } = setup({ name: '', selectedTeam: 3 });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setLoading).not.toHaveBeenCalled();
+  });
+
+  it('setzt loading NICHT auf true wenn kein Team gewählt', async () => {
+    const { result, setLoading } = setup({ name: 'OK', selectedTeam: '' });
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setLoading).not.toHaveBeenCalled();
+  });
+});
+
+// ─── Neue Branches: ApiError-Klassen-Mapping ─────────────────────────────────
+
+describe('useFormationSave – ApiError HTTP-Status-Mapping', () => {
+  it('zeigt 403-spezifische Meldung (keine Berechtigung)', async () => {
+    mockApiJson.mockRejectedValueOnce(new ApiError('Forbidden', 403));
+    const { result, setError } = setup();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith(
+      'Sie haben keine Berechtigung für diese Aktion.',
+    );
+  });
+
+  it('zeigt 500-spezifische Meldung (Serverfehler)', async () => {
+    mockApiJson.mockRejectedValueOnce(new ApiError('Internal Server Error', 500));
+    const { result, setError } = setup();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith(
+      'Ein Serverfehler ist aufgetreten. Bitte versuchen Sie es später erneut.',
+    );
+  });
+
+  it('zeigt Servermeldung für 422 (unverarbeitbar)', async () => {
+    mockApiJson.mockRejectedValueOnce(new ApiError('Der Name darf nicht leer sein.', 422));
+    const { result, setError } = setup();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith('Der Name darf nicht leer sein.');
+  });
+
+  it('zeigt Fallback bei komplett unbekanntem Fehlertyp', async () => {
+    mockApiJson.mockRejectedValueOnce('kein-echtes-error-objekt');
+    const { result, setError } = setup();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(setError).toHaveBeenCalledWith(
+      'Die Aufstellung konnte nicht gespeichert werden. Bitte versuche es erneut.',
+    );
+  });
+
+  it('setzt loading nach jedem Fehler auf false', async () => {
+    mockApiJson.mockRejectedValueOnce(new ApiError('Forbidden', 403));
+    const { result, setLoading } = setup();
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const lastCall = setLoading.mock.calls.at(-1);
+    expect(lastCall?.[0]).toBe(false);
   });
 });

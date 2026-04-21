@@ -3,6 +3,8 @@ import { useTacticsBoard } from '../useTacticsBoard';
 
 jest.mock('../../../utils/api', () => ({
   apiJson: jest.fn(),
+  getApiErrorMessage: jest.requireActual('../../../utils/api').getApiErrorMessage,
+  ApiError: jest.requireActual('../../../utils/api').ApiError,
 }));
 
 // Minimal formation stub
@@ -1502,5 +1504,101 @@ describe('useTacticsBoard – undo / redo stack', () => {
     expect(result.current.canRedo).toBe(false);
     act(() => result.current.handleRedo()); // must not throw
     expect(result.current.opponents).toHaveLength(0);
+  });
+});
+
+// ─── handleSave – Fehlertext aus getApiErrorMessage ──────────────────────────
+
+describe('useTacticsBoard – handleSave Fehlertext-Branches', () => {
+  const getApiJson = () => jest.requireMock('../../../utils/api').apiJson as jest.Mock;
+  const getApiError = (): typeof import('../../../utils/api').ApiError =>
+    jest.requireActual('../../../utils/api').ApiError;
+
+  it('zeigt 403-spezifische Meldung im saveMsg wenn Speichern fehlschlägt', async () => {
+    const ApiError = getApiError();
+    getApiJson().mockRejectedValueOnce(new ApiError('Forbidden', 403));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.saveMsg).toEqual({
+      ok: false,
+      text: 'Sie haben keine Berechtigung für diese Aktion.',
+    });
+  });
+
+  it('zeigt 500-spezifische Meldung im saveMsg bei Serverfehler', async () => {
+    const ApiError = getApiError();
+    getApiJson().mockRejectedValueOnce(new ApiError('Internal Server Error', 500));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.saveMsg).toEqual({
+      ok: false,
+      text: 'Ein Serverfehler ist aufgetreten. Bitte versuchen Sie es später erneut.',
+    });
+  });
+
+  it('zeigt Netzwerk-Fehlermeldung bei generischem Error', async () => {
+    getApiJson().mockRejectedValueOnce(new Error('Network error'));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.saveMsg).toEqual({
+      ok: false,
+      text: 'Network error',
+    });
+  });
+
+  it('zeigt Fallback-Meldung bei komplett unbekanntem Fehlertyp', async () => {
+    getApiJson().mockRejectedValueOnce('kein-fehler-objekt');
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.saveMsg).toEqual({
+      ok: false,
+      text: 'Die Taktik konnte nicht gespeichert werden. Bitte versuche es erneut.',
+    });
+  });
+
+  it('setzt saving nach Fehler auf false zurück', async () => {
+    getApiJson().mockRejectedValueOnce(new Error('fail'));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.saving).toBe(false);
+  });
+
+  it('bleibt dirty nach fehlgeschlagenem Save', async () => {
+    getApiJson().mockRejectedValueOnce(new Error('fail'));
+
+    const { result } = renderHook(() =>
+      useTacticsBoard(true, makeFormation() as any));
+
+    act(() => result.current.handleClear());
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(result.current.isDirty).toBe(true);
   });
 });

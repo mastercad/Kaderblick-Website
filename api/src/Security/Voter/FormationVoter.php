@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Formation;
 use App\Entity\User;
+use App\Service\UserTeamAccessService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
@@ -16,6 +17,10 @@ final class FormationVoter extends Voter
     public const EDIT = 'FORMATION_EDIT';
     public const VIEW = 'FORMATION_VIEW';
     public const DELETE = 'FORMATION_DELETE';
+
+    public function __construct(private readonly UserTeamAccessService $teamAccessService)
+    {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -37,18 +42,25 @@ final class FormationVoter extends Voter
 
         switch ($attribute) {
             case self::VIEW:
-                // Eigene Formations oder Admins
-                return $formation->getUser()->getId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
-                    || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::EDIT:
             case self::DELETE:
-                // Nur Ersteller oder Admins
-                return $formation->getUser()->getId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
-                    || in_array('ROLE_SUPERADMIN', $user->getRoles());
+                if (
+                    in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
+                ) {
+                    return true;
+                }
+                $team = $formation->getTeam();
+                if (null === $team) {
+                    // Noch kein Team gesetzt (Altdaten): Ersteller-Fallback
+                    return $formation->getUser()?->getId() === $user->getId();
+                }
+                // Nur Trainer, die aktiv diesem Team zugeordnet sind
+                $coachTeams = $this->teamAccessService->getSelfCoachTeams($user);
+
+                return isset($coachTeams[$team->getId()]);
             case self::CREATE:
-                return true; // Alle authentifizierten User können Aufstellungen erstellen
+                return true;
         }
 
         return false;

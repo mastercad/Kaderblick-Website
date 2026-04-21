@@ -6,7 +6,7 @@
  * - Fehler- und Ladezustand setzen
  * - Erfolgsmeldung anzeigen und Modal schließen
  */
-import { apiJson } from '../../utils/api';
+import { apiJson, getApiErrorMessage } from '../../utils/api';
 import type { Formation, FormationData, FormationEditorDraft, PlayerData } from './types';
 
 interface UseFormationSaveParams {
@@ -45,6 +45,16 @@ export function useFormationSave({
   saveSuccessMessage,
 }: UseFormationSaveParams) {
   const handleSave = async () => {
+    // Eingabevalidierung – bevor wir irgendwas ans Backend schicken
+    if (!name.trim()) {
+      setError('Bitte gib der Aufstellung einen Namen.');
+      return;
+    }
+    if (selectedTeam === '') {
+      setError('Bitte wähle ein Team aus.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -77,8 +87,7 @@ export function useFormationSave({
       if (response?.error) {
         setError(response.error);
         return;
-      }
-      showToast(saveSuccessMessage ?? 'Formation erfolgreich gespeichert!', 'success');
+      }      showToast(saveSuccessMessage ?? 'Formation erfolgreich gespeichert!', 'success');
       const saved: Formation = response?.formation ?? {
         id: response?.id ?? Date.now(),
         name,
@@ -91,8 +100,9 @@ export function useFormationSave({
       };
       onSaved?.(saved);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Fehler beim Speichern');
+    } catch (err: unknown) {
+      const msg = getApiErrorMessage(err, 'Die Aufstellung konnte nicht gespeichert werden. Bitte versuche es erneut.');
+      setError(msg);
     } finally {
       setLoading(false);
     }

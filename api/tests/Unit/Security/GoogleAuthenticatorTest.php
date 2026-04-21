@@ -349,6 +349,7 @@ class GoogleAuthenticatorTest extends TestCase
         $existingUser = new User();
         $existingUser->setEmail('existing@gmail.com');
         $existingUser->setGoogleId($googleId);
+        $existingUser->setIsVerified(true);
 
         $googleUserData = [
             'email' => 'existing@gmail.com',
@@ -378,6 +379,7 @@ class GoogleAuthenticatorTest extends TestCase
         $existingUser = new User();
         $existingUser->setEmail('nophoto@gmail.com');
         $existingUser->setGoogleId($googleId);
+        $existingUser->setIsVerified(true);
 
         // Google returns no picture field
         $googleUserData = [

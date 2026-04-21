@@ -9,11 +9,26 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import StarIcon from '@mui/icons-material/Star';
 import EditIcon from '@mui/icons-material/Edit';
 import LinkIcon from '@mui/icons-material/Link';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import BadgeIcon from '@mui/icons-material/Badge';
 import { FaTrashAlt } from 'react-icons/fa';
 import { alpha } from '@mui/material/styles';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
 import { ProfileCompletionBar } from './ProfileCompletionBar';
 import type { CompletionItem } from '../hooks/useProfileCompletion';
+
+const ROLE_LABELS: Record<string, { label: string; color: 'default' | 'primary' | 'secondary' | 'info' | 'warning' | 'error' }> = {
+  ROLE_GUEST:      { label: 'Gast',       color: 'default' },
+  ROLE_USER:       { label: 'Mitglied',   color: 'default' },
+  ROLE_SUPPORTER:  { label: 'Supporter',  color: 'secondary' },
+  ROLE_CLUB:       { label: 'Verein',     color: 'info' },
+  ROLE_ADMIN:      { label: 'Admin',      color: 'warning' },
+  ROLE_SUPERADMIN: { label: 'Superadmin', color: 'error' },
+};
+
+function isAdminRole(role: string) {
+  return role === 'ROLE_ADMIN' || role === 'ROLE_SUPERADMIN';
+}
 
 interface ProfileHeroHeaderProps {
   avatarSrc: string | undefined;
@@ -35,6 +50,7 @@ interface ProfileHeroHeaderProps {
   relationsCount: number;
   onOpenRelations: () => void;
   onRequestRelation: () => void;
+  roles?: string[];
 }
 
 export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
@@ -45,7 +61,13 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
     completionPercent, completionColor, missingItems, onNavigateToTab, onOpenXpModal,
     hasAvatar, isGoogleAvatar, onEditAvatar, onRemoveAvatar, onDisableGoogleAvatar,
     relationsCount, onOpenRelations, onRequestRelation,
+    roles = [],
   } = props;
+
+  // Filter ROLE_USER nur weg wenn spezifischere Rollen vorhanden sind
+  const displayRoles = roles.filter(r => r !== 'ROLE_USER').length > 0
+    ? roles.filter(r => r !== 'ROLE_USER')
+    : roles.filter(r => r === 'ROLE_USER');
 
   return (
     <Box sx={{
@@ -131,6 +153,21 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
               sx={{ fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer' }}
             />
           )}
+          {displayRoles.map(role => {
+            const cfg = ROLE_LABELS[role] ?? { label: role.replace('ROLE_', ''), color: 'default' as const };
+            return (
+              <Tooltip key={role} title={`Systemrolle: ${role}`}>
+                <Chip
+                  icon={isAdminRole(role) ? <AdminPanelSettingsIcon /> : <BadgeIcon />}
+                  label={cfg.label}
+                  size="small"
+                  color={cfg.color}
+                  variant="outlined"
+                  sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                />
+              </Tooltip>
+            );
+          })}
         </Box>
 
         <ProfileCompletionBar

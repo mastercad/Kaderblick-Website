@@ -128,9 +128,26 @@ class GoogleAuthenticator extends AbstractAuthenticator
                     $mailer->send($email);
                 }
 
+                // A user who signs in via Google SSO has proven ownership of this email address.
+                // If the account was created via email/password but never verified, verify it now.
+                $needsFlush = false;
+
+                if (!$user->isVerified()) {
+                    $user->setIsVerified(true);
+                    $user->setVerificationToken(null);
+                    $user->setVerificationExpires(null);
+                    $user->setEmailVerificationToken(null);
+                    $user->setEmailVerificationTokenExpiresAt(null);
+                    $needsFlush = true;
+                }
+
                 // Always keep the stored Google avatar URL up to date (runs for every login)
                 if (!empty($googleUserData['picture'])) {
                     $user->setGoogleAvatarUrl($googleUserData['picture']);
+                    $needsFlush = true;
+                }
+
+                if ($needsFlush) {
                     $this->em->flush();
                 }
 
