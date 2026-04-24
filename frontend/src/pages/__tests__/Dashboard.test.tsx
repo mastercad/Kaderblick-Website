@@ -85,8 +85,9 @@ jest.mock('../../services/reorderWidgets', () => ({
 jest.mock('@mui/icons-material/Add', () => () => <span>+</span>);
 
 jest.mock('../../components/DashboardWidget', () => ({
-  DashboardWidget: ({ id, onSettings, onDelete, onRefresh, onEditReport, children }: any) => (
+  DashboardWidget: ({ id, title, onSettings, onDelete, onRefresh, onEditReport, children }: any) => (
     <div data-testid={`widget-${id}`}>
+      {title && <span data-testid={`widget-title-${id}`}>{title}</span>}
       {children}
       <button data-testid={`settings-btn-${id}`} onClick={onSettings}>Settings</button>
       <button data-testid={`delete-btn-${id}`} onClick={onDelete}>Delete</button>
@@ -134,12 +135,18 @@ jest.mock('../../modals/AddWidgetModal', () => ({
 }));
 
 jest.mock('../../modals/SelectReportModal', () => ({
-  SelectReportModal: ({ open, onAdd, onClose, children }: any) =>
+  SelectReportModal: ({ open, onAdd, onClose, onCreateNew, children }: any) =>
     open ? (
       <div data-testid="SelectReportModal">
         {children}
         <button data-testid="select-reports-add-btn" onClick={onAdd}>Add Selected</button>
         <button data-testid="select-reports-close-btn" onClick={onClose}>Close</button>
+        {onCreateNew && (
+          <>
+            <button data-testid="create-guided-btn" onClick={() => onCreateNew('guided')}>Einfacher Assistent</button>
+            <button data-testid="create-builder-btn" onClick={() => onCreateNew('builder')}>Detaillierter Builder</button>
+          </>
+        )}
       </div>
     ) : null,
 }));
@@ -155,11 +162,12 @@ jest.mock('../../modals/DynamicConfirmationModal', () => ({
 }));
 
 jest.mock('../../modals/ReportBuilder', () => ({
-  // Passes the received report back unmodified so handleEditReportSave runs its own logic
-  ReportBuilderModal: ({ open, onSave, onClose, report }: any) =>
+  // Passes the received report back unmodified so handleEditReportSave runs its own logic.
+  // Also exposes initialMode so tests can assert which mode was requested.
+  ReportBuilderModal: ({ open, onSave, onClose, report, initialMode }: any) =>
     open ? (
-      <div data-testid="ReportBuilderModal">
-        <button data-testid="report-builder-save-btn" onClick={() => onSave(report)}>
+      <div data-testid="ReportBuilderModal" data-initial-mode={initialMode ?? ''}>
+        <button data-testid="report-builder-save-btn" onClick={() => onSave(report ?? { name: 'Neue Auswertung', config: {}, isTemplate: false })}>
           Save
         </button>
         <button data-testid="report-builder-close-btn" onClick={onClose}>
@@ -595,5 +603,335 @@ describe('Dashboard — edit report as template copy: targeted state update, no 
 
     await waitFor(() => expect(mockSaveReport).toHaveBeenCalled());
     expect(mockFetchWidgets).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Tests: Leerer Dashboard-Zustand ───────────────────────────────────────────
+
+describe('Dashboard — leerer Zustand (keine Widgets)', () => {
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([]);
+  });
+
+  async function renderEmpty() {
+    await act(async () => {
+      render(<Dashboard />);
+    });
+    await waitFor(() => expect(mockFetchWidgets).toHaveBeenCalled());
+  }
+
+  it('zeigt das Onboarding-Panel wenn keine Widgets vorhanden sind', async () => {
+    await renderEmpty();
+    expect(screen.getByText(/dein dashboard ist noch leer/i)).toBeInTheDocument();
+  });
+
+  it('zeigt die Karte "Einfacher Assistent" im Onboarding-Panel', async () => {
+    await renderEmpty();
+    expect(screen.getByText('Einfacher Assistent')).toBeInTheDocument();
+  });
+
+  it('zeigt die Karte "Detaillierter Builder" im Onboarding-Panel', async () => {
+    await renderEmpty();
+    expect(screen.getByText('Detaillierter Builder')).toBeInTheDocument();
+  });
+
+  it('zeigt keinen DnD-Wrapper wenn keine Widgets vorhanden sind', async () => {
+    await renderEmpty();
+    expect(screen.queryByTestId('DndWrapper')).toBeInTheDocument(); // Wrapper wird immer gerendert, aber ohne Kinder
+    expect(screen.queryByTestId(/^widget-/)).not.toBeInTheDocument();
+  });
+
+  it('öffnet ReportBuilderModal mit initialMode="guided" wenn "Einfacher Assistent" geklickt wird', async () => {
+    await renderEmpty();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Einfacher Assistent'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+    expect(screen.getByTestId('ReportBuilderModal')).toHaveAttribute('data-initial-mode', 'guided');
+  });
+
+  it('öffnet ReportBuilderModal mit initialMode="builder" wenn "Detaillierter Builder" geklickt wird', async () => {
+    await renderEmpty();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Detaillierter Builder'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+    expect(screen.getByTestId('ReportBuilderModal')).toHaveAttribute('data-initial-mode', 'builder');
+  });
+});
+
+// ── Tests: Create-Report-Flow (von leerem Zustand / SelectReportModal) ─────────
+
+describe('Dashboard — neue Auswertung erstellen via Erstellen-Button', () => {
+  const NEW_REPORT = { id: 55, name: 'Neue Auswertung', config: {}, isTemplate: false };
+  const NEW_WIDGET = {
+    id: 'w99',
+    type: 'report',
+    reportId: 55,
+    width: 6,
+    position: 0,
+    config: {},
+    enabled: true,
+    default: false,
+  };
+
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([]);
+    mockSaveReport.mockResolvedValue(NEW_REPORT);
+    mockCreateWidget.mockResolvedValue(NEW_WIDGET);
+  });
+
+  async function renderAndOpenGuided() {
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(mockFetchWidgets).toHaveBeenCalled());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Einfacher Assistent'));
+    });
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+  }
+
+  it('ruft saveReport auf wenn der neue Report gespeichert wird', async () => {
+    await renderAndOpenGuided();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(mockSaveReport).toHaveBeenCalledTimes(1));
+  });
+
+  it('ruft createWidget mit dem neuen reportId auf', async () => {
+    await renderAndOpenGuided();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(mockCreateWidget).toHaveBeenCalledWith({ type: 'report', reportId: 55 }));
+  });
+
+  it('fügt das neue Widget dem Dashboard hinzu ohne vollständigen Reload', async () => {
+    await renderAndOpenGuided();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('widget-w99')).toBeInTheDocument());
+    // Kein zweiter fetchDashboardWidgets-Aufruf
+    expect(mockFetchWidgets).toHaveBeenCalledTimes(1);
+  });
+
+  it('schließt den ReportBuilderModal nach dem Speichern', async () => {
+    await renderAndOpenGuided();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(screen.queryByTestId('ReportBuilderModal')).not.toBeInTheDocument());
+  });
+});
+
+// ── Tests: Erstellen über SelectReportModal-onCreateNew ───────────────────────
+
+describe('Dashboard — neue Auswertung erstellen via SelectReportModal', () => {
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([]);
+    mockFetchAvailableReports.mockResolvedValue([]);
+  });
+
+  async function openSelectReportModal() {
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(mockFetchWidgets).toHaveBeenCalled());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Widget hinzufügen'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-flow-btn'));
+    });
+    await waitFor(() => expect(screen.getByTestId('SelectReportModal')).toBeInTheDocument());
+  }
+
+  it('öffnet ReportBuilderModal mit guided-Modus über SelectReportModal-Erstellen-Button', async () => {
+    await openSelectReportModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('create-guided-btn'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+    expect(screen.getByTestId('ReportBuilderModal')).toHaveAttribute('data-initial-mode', 'guided');
+  });
+
+  it('öffnet ReportBuilderModal mit builder-Modus über SelectReportModal-Erstellen-Button', async () => {
+    await openSelectReportModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('create-builder-btn'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+    expect(screen.getByTestId('ReportBuilderModal')).toHaveAttribute('data-initial-mode', 'builder');
+  });
+
+  it('schließt SelectReportModal wenn Erstellen-Button geklickt wird', async () => {
+    await openSelectReportModal();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('create-guided-btn'));
+    });
+
+    await waitFor(() => expect(screen.queryByTestId('SelectReportModal')).not.toBeInTheDocument());
+  });
+});
+
+// ── Tests: Widget-Titel — name-Propagation ────────────────────────────────────
+
+describe('Dashboard — widget title: name propagation and || fallback', () => {
+  it('shows the report name as widget title when widget.name is set', async () => {
+    mockFetchWidgets.mockResolvedValue([
+      {
+        ...WIDGET_REPORT,
+        name: 'Mein Report',
+      },
+    ]);
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(screen.getByTestId('widget-w2')).toBeInTheDocument());
+    expect(screen.getByText('Mein Report')).toBeInTheDocument();
+  });
+
+  it('falls back to "Report" when widget.name is empty string (|| fix)', async () => {
+    mockFetchWidgets.mockResolvedValue([
+      {
+        ...WIDGET_REPORT,
+        name: '',
+      },
+    ]);
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(screen.getByTestId('widget-w2')).toBeInTheDocument());
+    expect(screen.getByText('Report')).toBeInTheDocument();
+  });
+
+  it('falls back to "Report" when widget.name is undefined', async () => {
+    mockFetchWidgets.mockResolvedValue([
+      {
+        ...WIDGET_REPORT,
+        name: undefined,
+      },
+    ]);
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(screen.getByTestId('widget-w2')).toBeInTheDocument());
+    expect(screen.getByText('Report')).toBeInTheDocument();
+  });
+});
+
+// ── Tests: handleEditReportSave — name-Update im State ───────────────────────
+
+describe('Dashboard — handleEditReportSave: name is updated in widget state', () => {
+  const UPDATED_NAME = 'Umbenannter Report';
+
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([
+      { ...WIDGET_REPORT, name: 'Alter Name' },
+    ]);
+    mockFetchReportById.mockResolvedValue({ id: 10, name: 'Alter Name', isTemplate: false });
+    mockSaveReport.mockResolvedValue({ id: 10, name: UPDATED_NAME, isTemplate: false });
+  });
+
+  it('updates widget.name in state after saving an own report', async () => {
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(screen.getByTestId('widget-w2')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('editreport-btn-w2'));
+    });
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(mockSaveReport).toHaveBeenCalledTimes(1));
+    // The widget title should reflect the new name
+    expect(screen.getByText(UPDATED_NAME)).toBeInTheDocument();
+  });
+});
+
+// ── Tests: handleEditReportSave template copy — name + reportId ───────────────
+
+describe('Dashboard — handleEditReportSave template copy: name and reportId updated', () => {
+  const COPY_NAME = 'Meine Kopie';
+
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([
+      { ...WIDGET_REPORT, name: 'Template Report' },
+    ]);
+    mockFetchReportById.mockResolvedValue({ id: 10, name: 'Template Report', isTemplate: true });
+    // saveReport returns a new id (the copy)
+    mockSaveReport.mockResolvedValue({ id: 99, name: COPY_NAME, isTemplate: false });
+    mockUpdateWidgetWidth.mockResolvedValue(undefined);
+  });
+
+  it('updates widget.name with savedReport.name after template copy', async () => {
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(screen.getByTestId('widget-w2')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('editreport-btn-w2'));
+    });
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(mockSaveReport).toHaveBeenCalledTimes(1));
+    expect(screen.getByText(COPY_NAME)).toBeInTheDocument();
+  });
+});
+
+// ── Tests: handleCreateReportSave — name im neu eingefügten Widget ────────────
+
+describe('Dashboard — handleCreateReportSave: new widget gets name from savedReport', () => {
+  const NEW_REPORT = { id: 77, name: 'Brandneuer Report', config: {}, isTemplate: false };
+  const NEW_WIDGET = {
+    id: 'w99',
+    type: 'report',
+    reportId: 77,
+    width: 6,
+    position: 2,
+    config: {},
+    enabled: true,
+    default: false,
+    // Intentionally no name field (mimics old backend behaviour without name in response)
+  };
+
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([]);
+    mockSaveReport.mockResolvedValue(NEW_REPORT);
+    mockCreateWidget.mockResolvedValue(NEW_WIDGET);
+  });
+
+  it('new widget is added with name from savedReport, not from createWidget response', async () => {
+    await act(async () => { render(<Dashboard />); });
+    await waitFor(() => expect(mockFetchWidgets).toHaveBeenCalled());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Einfacher Assistent'));
+    });
+    await waitFor(() => expect(screen.getByTestId('ReportBuilderModal')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-builder-save-btn'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('widget-w99')).toBeInTheDocument());
+    // The title shown for the new widget should use savedReport.name
+    expect(screen.getByText('Brandneuer Report')).toBeInTheDocument();
   });
 });

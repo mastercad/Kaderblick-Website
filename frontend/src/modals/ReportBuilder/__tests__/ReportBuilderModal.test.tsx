@@ -402,3 +402,114 @@ describe('ReportBuilderModal — openBuilder und HelpDialog', () => {
     expect(setHelpOpen).toHaveBeenCalledWith(false);
   });
 });
+
+// ── Tests: initialMode-Prop ────────────────────────────────────────────────────
+//
+// Sicherstellt, dass das neue initialMode-Prop den gewünschten Modus erzwingt,
+// unabhängig davon, ob der Report wizard-kompatibel ist oder nicht.
+
+describe('ReportBuilderModal — initialMode', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('öffnet den Builder-Modus wenn initialMode="builder" bei wizard-kompatiblem Report', () => {
+    // BASE_REPORT ist wizard-kompatibel (bar/player/goals) → würde normalerweise GuidedWizard zeigen
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    render(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={BASE_REPORT}
+        initialMode="builder"
+      />,
+    );
+
+    expect(screen.getByTestId('DesktopLayout')).toBeInTheDocument();
+    expect(screen.queryByTestId('GuidedWizard')).not.toBeInTheDocument();
+  });
+
+  it('zeigt "Manuelle Konfiguration" als Titel wenn initialMode="builder" und kein Report', () => {
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    render(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={null}
+        initialMode="builder"
+      />,
+    );
+
+    expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Manuelle Konfiguration');
+  });
+
+  it('öffnet den Guided-Modus wenn initialMode="guided" bei nicht-wizard-kompatiblem Report', () => {
+    // BUILDER_REPORT ist nicht wizard-kompatibel → würde normalerweise DesktopLayout/Builder zeigen
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    render(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={BUILDER_REPORT}
+        initialMode="guided"
+      />,
+    );
+
+    expect(screen.getByTestId('GuidedWizard')).toBeInTheDocument();
+    expect(screen.queryByTestId('DesktopLayout')).not.toBeInTheDocument();
+  });
+
+  it('zeigt "Auswertung erstellen" als Titel wenn initialMode="guided" und kein Report', () => {
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    render(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={null}
+        initialMode="guided"
+      />,
+    );
+
+    expect(screen.getByTestId('DialogTitle')).toHaveTextContent('Auswertung erstellen');
+  });
+
+  it('setzt den Modus beim Schließen und Wiederöffnen zurück (initialMode wird neu ausgewertet)', () => {
+    mockUseReportBuilder.mockReturnValue(makeState({ isMobile: false }));
+    const { rerender } = render(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={null}
+        initialMode="builder"
+      />,
+    );
+    expect(screen.getByTestId('DesktopLayout')).toBeInTheDocument();
+
+    // Modal schließen und mit guided wieder öffnen
+    rerender(
+      <ReportBuilderModal
+        open={false}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={null}
+        initialMode="guided"
+      />,
+    );
+    rerender(
+      <ReportBuilderModal
+        open={true}
+        onClose={NOOP}
+        onSave={NOOP}
+        report={null}
+        initialMode="guided"
+      />,
+    );
+
+    expect(screen.getByTestId('GuidedWizard')).toBeInTheDocument();
+    expect(screen.queryByTestId('DesktopLayout')).not.toBeInTheDocument();
+  });
+});
+

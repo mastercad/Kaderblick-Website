@@ -192,8 +192,11 @@ describe('FacetedChart', () => {
   // ── Mobile behavior ──
 
   it('renders on mobile without errors', () => {
+    // On mobile with grid layout, FacetedChart forces interactive mode (single visible panel).
     render(<FacetedChart {...baseProps} isMobile={true} />);
-    expect(screen.getAllByTestId('chart-Bar').length).toBe(3);
+    expect(screen.getAllByTestId('chart-Bar').length).toBe(1);
+    // Toggle buttons for all 3 panels should still be rendered
+    expect(screen.getAllByTestId('ToggleButton').length).toBe(3);
   });
 
   it('renders on tablet without errors', () => {

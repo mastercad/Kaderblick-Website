@@ -20,17 +20,25 @@ export interface ChartOptionsDeps {
   cfgShowLegend: boolean;
   /** Data-label visibility from config */
   cfgShowLabels: boolean;
+  /**
+   * When true (horizontal bar), labels are on the Y-axis and the chart
+   * grows vertically – no horizontal scrolling needed.
+   */
+  isHorizontalBar?: boolean;
 }
 
 /**
- * Returns { options, chartHeight, isMobile, isTablet, dataLabelsPlugin }.
+ * Returns { options, chartHeight, isMobile, isTablet, dataLabelsPlugin, scrollMinWidth }.
+ *
+ * scrollMinWidth: when > 0 the chart canvas should be rendered inside a
+ * horizontally-scrollable container at least this wide (in px).
  */
 export function useChartOptions(deps: ChartOptionsDeps) {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(muiTheme.breakpoints.between('sm', 'md'));
 
-  const { type, labelCount, datasetCount, safeLabels, cfgShowLegend, cfgShowLabels } = deps;
+  const { type, labelCount, datasetCount, safeLabels, cfgShowLegend, cfgShowLabels, isHorizontalBar } = deps;
 
   const isPieType = ['pie', 'doughnut', 'polararea'].includes(type);
   const isRadarType = ['radar', 'radaroverlay'].includes(type);
@@ -47,11 +55,18 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     const pieLegendPosition = isMobile ? ('bottom' as const) : ('right' as const);
 
     const xTickRotation = isMobile && hasManylabels ? 45 : isTablet && hasManylabels ? 30 : 0;
-    const maxTicksLimit = isMobile
-      ? Math.min(labelCount, 8)
-      : isTablet
-        ? Math.min(labelCount, 12)
-        : undefined;
+    // When horizontal-scroll is active, don't limit ticks – all labels are visible by scrolling.
+    // Compute scroll threshold here (mirrors scrollMinWidth logic) to avoid circular dependency.
+    const willScroll =
+      !isPieType && !isRadarType && !isHorizontalBar && isMobile && labelCount > 8;
+    const maxTicksLimit =
+      willScroll
+        ? undefined
+        : isMobile
+          ? Math.min(labelCount, 8)
+          : isTablet
+            ? Math.min(labelCount, 12)
+            : undefined;
 
     return {
       responsive: true,
@@ -107,31 +122,46 @@ export function useChartOptions(deps: ChartOptionsDeps) {
       },
       ...(!isPieType && !isRadarType
         ? {
+            ...(isHorizontalBar ? { indexAxis: 'y' as const } : {}),
             scales: {
               x: {
                 ticks: {
                   font: { size: tickFontSize },
-                  maxRotation: xTickRotation,
-                  minRotation: xTickRotation > 0 ? xTickRotation : 0,
-                  ...(maxTicksLimit ? { maxTicksLimit } : {}),
-                  callback: function (this: any, value: any, index: number) {
-                    const label = this.getLabelForValue
-                      ? this.getLabelForValue(value)
-                      : safeLabels[index] || value;
-                    if (typeof label !== 'string') return label;
-                    const maxLen = isMobile ? 10 : isTablet ? 16 : 30;
-                    return truncateLabel(label, maxLen);
-                  },
+                  ...(isHorizontalBar ? {} : {
+                    maxRotation: xTickRotation,
+                    minRotation: xTickRotation > 0 ? xTickRotation : 0,
+                    ...(maxTicksLimit ? { maxTicksLimit } : {}),
+                    callback: function (this: any, value: any, index: number) {
+                      const label = this.getLabelForValue
+                        ? this.getLabelForValue(value)
+                        : safeLabels[index] || value;
+                      if (typeof label !== 'string') return label;
+                      const maxLen = isMobile ? 10 : isTablet ? 16 : 30;
+                      return truncateLabel(label, maxLen);
+                    },
+                  }),
                 },
-                grid: { display: !isMobile },
+                grid: { display: isHorizontalBar ? true : !isMobile },
               },
               y: {
                 ticks: {
                   font: { size: tickFontSize },
-                  ...(isMobile ? { maxTicksLimit: 6 } : {}),
+                  ...(isHorizontalBar
+                    ? {
+                        callback: function (this: any, value: any, index: number) {
+                          const label = this.getLabelForValue
+                            ? this.getLabelForValue(value)
+                            : safeLabels[index] || value;
+                          if (typeof label !== 'string') return label;
+                          // Horizontal bar: Y labels are category names – truncate more on mobile
+                          const maxLen = isMobile ? 14 : isTablet ? 20 : 30;
+                          return truncateLabel(label, maxLen);
+                        },
+                      }
+                    : { ...(isMobile ? { maxTicksLimit: 6 } : {}) }),
                 },
                 grid: {
-                  ...(isMobile ? { color: 'rgba(0,0,0,0.05)' } : {}),
+                  ...(isMobile && !isHorizontalBar ? { color: 'rgba(0,0,0,0.05)' } : {}),
                 },
               },
             },
@@ -159,17 +189,43 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     type,
     cfgShowLegend,
     cfgShowLabels,
+    isHorizontalBar,
   ]);
 
   const chartHeight = useMemo(() => {
     if (isMobile) {
       if (isPieType) return Math.max(320, 280 + Math.min(datasetCount, labelCount) * 5);
       if (isRadarType) return 320;
+      // Horizontal bar: height grows with number of labels
+      if (isHorizontalBar) return Math.max(280, labelCount * 28 + 60);
       return 300;
     }
-    if (isTablet) return 340;
+    if (isTablet) {
+      if (isHorizontalBar) return Math.max(320, labelCount * 28 + 60);
+      return 340;
+    }
+    if (isHorizontalBar) return Math.max(360, labelCount * 28 + 60);
     return 400;
-  }, [isMobile, isTablet, isPieType, isRadarType, datasetCount, labelCount]);
+  }, [isMobile, isTablet, isPieType, isRadarType, datasetCount, labelCount, isHorizontalBar]);
+
+  /**
+   * Minimum canvas width (px) for horizontal-scroll mode.
+   * Only set for cartesian, non-horizontal-bar charts on mobile/tablet with many labels.
+   * 0 means no scrolling needed.
+   */
+  const scrollMinWidth = useMemo(() => {
+    const isCartesian = !isPieType && !isRadarType && type !== 'pitchheatmap' && !isHorizontalBar;
+    if (!isCartesian) return 0;
+    const PX_PER_LABEL = 40; // comfortable min width per label bucket
+    const MIN_TRIGGER = 8;   // only scroll when there are more labels than this
+    if (isMobile && labelCount > MIN_TRIGGER) {
+      return Math.max(0, labelCount * PX_PER_LABEL);
+    }
+    if (isTablet && labelCount > 14) {
+      return Math.max(0, labelCount * 32);
+    }
+    return 0;
+  }, [isMobile, isTablet, isPieType, isRadarType, type, isHorizontalBar, labelCount]);
 
   const dataLabelsPlugin = useMemo(
     () => ({
@@ -209,5 +265,5 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     [cfgShowLabels, isMobile],
   );
 
-  return { options, chartHeight, isMobile, isTablet, dataLabelsPlugin };
+  return { options, chartHeight, isMobile, isTablet, dataLabelsPlugin, scrollMinWidth };
 }

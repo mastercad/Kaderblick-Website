@@ -5,10 +5,18 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
+import CardContent from '@mui/material/CardContent';
+import Divider from '@mui/material/Divider';
+import CircularProgress from '@mui/material/CircularProgress';
 import AddIcon from '@mui/icons-material/Add';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventIcon from '@mui/icons-material/Event';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import BuildIcon from '@mui/icons-material/Build';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { Link as RouterLink } from 'react-router-dom';
 import { DashboardWidget } from '../components/DashboardWidget';
 import { UpcomingEventsWidget } from '../widgets/UpcomingEventsWidget';
@@ -79,6 +87,10 @@ function DashboardContent() {
   const [editReportWidgetId, setEditReportWidgetId] = useState<string | null>(null);
   const [editReport, setEditReport] = useState<Report | null>(null);
 
+  // ── Create report flow (new report widget from scratch) ──
+  const [createReportOpen, setCreateReportOpen] = useState(false);
+  const [createReportMode, setCreateReportMode] = useState<'guided' | 'builder'>('guided');
+
   useEffect(() => {
     setLoading(true);
     fetchDashboardWidgets()
@@ -136,12 +148,17 @@ function DashboardContent() {
       // Only update the affected widget in state, then refresh its chart
       setWidgets(prev =>
         prev.map(w =>
-          w.id === editReportWidgetId ? { ...w, reportId: savedReport.id } : w
+          w.id === editReportWidgetId ? { ...w, reportId: savedReport.id, name: savedReport.name } : w
         )
       );
       triggerRefresh(widget.id);
     } else {
-      // Own report updated in place — just refresh the chart
+      // Own report updated in place — update name and refresh
+      setWidgets(prev =>
+        prev.map(w =>
+          w.id === editReportWidgetId ? { ...w, name: savedReport.name } : w
+        )
+      );
       triggerRefresh(widget.id);
     }
 
@@ -149,6 +166,23 @@ function DashboardContent() {
     setEditReport(null);
     setEditReportWidgetId(null);
   };
+
+  const handleOpenCreateReport = (mode: 'guided' | 'builder') => {
+    setReportModalOpen(false);
+    setCreateReportMode(mode);
+    setCreateReportOpen(true);
+  };
+
+  const handleCreateReportSave = async (newReport: Report) => {
+    const savedReport = await saveReport(newReport);
+    if (savedReport.id) {
+      const newWidget = await createWidget({ type: 'report', reportId: savedReport.id });
+      // Merge the report name since the widget API may not include it yet
+      setWidgets(prev => [...prev, { ...newWidget, name: savedReport.name }]);
+    }
+    setCreateReportOpen(false);
+  };
+
   const handleDelete = (id: string) => {
     setDeleteWidgetId(id);
     setDeleteModalOpen(true);
@@ -309,6 +343,8 @@ function DashboardContent() {
           setWidgets(prev => [...prev, ...newWidgets]);
         }}
         loading={reportsLoading}
+        reportCount={reports.length}
+        onCreateNew={handleOpenCreateReport}
       >
         <div style={{ maxHeight: 400, overflowY: 'auto' }}>
           {reports.map(report => (
@@ -334,6 +370,83 @@ function DashboardContent() {
       </SelectReportModal>
       </Box>
 
+      {/* ── Empty dashboard state ── */}
+      {!loading && widgets.length === 0 && (
+        <Paper
+          variant="outlined"
+          sx={{
+            mt: 4,
+            p: { xs: 3, md: 6 },
+            borderRadius: 3,
+            textAlign: 'center',
+            borderStyle: 'dashed',
+            borderColor: 'divider',
+          }}
+        >
+          <BarChartIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            Dein Dashboard ist noch leer
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: 'auto' }}>
+            Füge dein erstes Widget hinzu. Erstelle eine eigene Statistik-Auswertung oder wähle ein Standard-Widget wie Kalender oder Nachrichten.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mb: 3 }}>
+            <Card
+              variant="outlined"
+              sx={{
+                width: 220,
+                cursor: 'pointer',
+                borderColor: 'primary.main',
+                '&:hover': { bgcolor: 'action.hover' },
+                transition: 'background 0.15s',
+              }}
+            >
+              <CardActionArea onClick={() => handleOpenCreateReport('guided')} sx={{ height: '100%' }}>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
+                  <AutoFixHighIcon color="primary" sx={{ fontSize: 40 }} />
+                  <Typography variant="subtitle1" fontWeight={700}>Einfacher Assistent</Typography>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Geführt in wenigen Schritten eine Auswertung erstellen
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+
+            <Card
+              variant="outlined"
+              sx={{
+                width: 220,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+                transition: 'background 0.15s',
+              }}
+            >
+              <CardActionArea onClick={() => handleOpenCreateReport('builder')} sx={{ height: '100%' }}>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
+                  <BuildIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
+                  <Typography variant="subtitle1" fontWeight={700}>Detaillierter Builder</Typography>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Volle Kontrolle mit allen Einstellungen – für erfahrene Nutzer
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Box>
+
+          <Divider sx={{ my: 2, maxWidth: 300, mx: 'auto' }}>oder</Divider>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setAddModalOpen(true)}>
+            Anderes Widget hinzufügen
+          </Button>
+        </Paper>
+      )}
+
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
       <DashboardDndKitWrapper
         widgets={[...widgets].sort((a, b) => a.position - b.position)}
         onReorder={async (newOrder) => {
@@ -350,7 +463,7 @@ function DashboardContent() {
               widget.type === 'news' ? 'Neuigkeiten' :
               widget.type === 'messages' ? 'Nachrichten' :
               widget.type === 'calendar' ? 'Kalender' :
-              widget.type === 'report' ? widget.name ?? 'Report' :
+              widget.type === 'report' ? widget.name || 'Report' :
               widget.type}
             loading={isRefreshing(widget.id)}
             onRefresh={() => handleRefresh(widget.id)}
@@ -428,6 +541,15 @@ function DashboardContent() {
         }}
         onSave={handleEditReportSave}
         report={editReport}
+      />
+
+      {/* Report create modal (new report → new widget) */}
+      <ReportBuilderModal
+        open={createReportOpen}
+        onClose={() => setCreateReportOpen(false)}
+        onSave={handleCreateReportSave}
+        report={null}
+        initialMode={createReportMode}
       />
     </Box>
   );

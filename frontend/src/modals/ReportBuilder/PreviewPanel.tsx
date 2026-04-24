@@ -144,7 +144,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
 
         {!isEmpty && (
           <WidgetRefreshProvider>
-            <ReportWidget config={previewData} />
+            <ReportWidget config={previewData} previewMode />
           </WidgetRefreshProvider>
         )}
       </Box>

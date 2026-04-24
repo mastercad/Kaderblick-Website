@@ -41,7 +41,9 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
 
   switch (type) {
     case 'bar':
-      return <Bar {...chartProps} />;
+      // key changes when indexAxis changes → forces Chart.js remount because
+      // indexAxis cannot be updated on an existing chart instance.
+      return <Bar key={options?.indexAxis ?? 'x'} {...chartProps} />;
 
     case 'line': {
       const lineData = {

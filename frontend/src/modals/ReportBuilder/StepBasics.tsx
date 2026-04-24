@@ -28,6 +28,7 @@ export const StepBasics: React.FC<StepBasicsProps> = ({ state }) => {
           value={currentReport.name}
           onChange={(e) => setCurrentReport(prev => ({ ...prev, name: e.target.value }))}
           placeholder="z.B. Torschüsse pro Spieltag"
+          InputLabelProps={{ shrink: true }}
           helperText={!currentReport.name ? 'Pflichtfeld' : undefined}
           error={!currentReport.name && activeStep > 0}
         />

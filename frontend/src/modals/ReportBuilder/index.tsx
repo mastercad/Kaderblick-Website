@@ -23,6 +23,7 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
   onClose,
   onSave,
   report,
+  initialMode,
 }) => {
   const state = useReportBuilder(open, report, onSave, onClose);
   const [mode, setMode] = useState<Mode>('guided');
@@ -30,10 +31,15 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
   // Reset to correct mode whenever the modal opens
   useEffect(() => {
     if (open) {
-      if (report && !isWizardCompatible(report.config)) setMode('builder');
-      else setMode('guided');
+      if (initialMode) {
+        setMode(initialMode);
+      } else if (report && !isWizardCompatible(report.config)) {
+        setMode('builder');
+      } else {
+        setMode('guided');
+      }
     }
-  }, [open, report]);
+  }, [open, report, initialMode]);
 
   const openBuilder = (presetConfig?: Partial<ReportConfig>, presetName?: string) => {
     if (presetConfig) {

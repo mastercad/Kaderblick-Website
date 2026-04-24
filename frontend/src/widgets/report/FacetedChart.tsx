@@ -189,8 +189,11 @@ export const FacetedChart: React.FC<FacetedChartProps> = ({
 }) => {
   const isRadarSub = facetSubType === 'radar';
 
+  // On mobile, grid layout becomes unreadable – force interactive mode instead.
+  const effectiveLayout = isMobile && facetLayout === 'grid' ? 'interactive' : facetLayout;
+
   // ── Interactive layout ──
-  if (facetLayout === 'interactive') {
+  if (effectiveLayout === 'interactive') {
     const safeIdx = Math.min(activePanelIdx, panels.length - 1);
     const activePanel = panels[safeIdx];
     const singlePanelHeight = isMobile ? 300 : isTablet ? 400 : isRadarSub ? 480 : 440;
@@ -230,7 +233,7 @@ export const FacetedChart: React.FC<FacetedChartProps> = ({
   }
 
   // ── Vertical layout ──
-  if (facetLayout === 'vertical') {
+  if (effectiveLayout === 'vertical') {
     return (
       <Box
         sx={{

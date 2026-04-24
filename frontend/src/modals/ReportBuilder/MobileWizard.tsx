@@ -97,6 +97,7 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state }) => {
           overflowY: 'auto',
           pb: 10,
           px: 0.5,
+          pt: 1.5, // headroom for TextField floating labels, which extend ~10px above the input border
         }}
       >
         {stepComponents[activeStep]}

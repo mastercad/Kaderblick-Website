@@ -181,6 +181,43 @@ class DashboardEndToEndTest extends ApiWebTestCase
         $this->assertStringContainsString('success', $client->getResponse()->getContent());
     }
 
+    public function testCreateReportWidgetReturnsNameInResponse(): void
+    {
+        $client = $this->client;
+        $this->authenticateUser($client, 'user1@example.com');
+
+        $report = new ReportDefinition();
+        $report->setName('Mein Test-Report');
+        $this->em->persist($report);
+        $this->em->flush();
+
+        $payload = [
+            'type' => 'report',
+            'reportId' => $report->getId(),
+        ];
+
+        $client->jsonRequest('PUT', '/widget', $payload);
+        $this->assertResponseIsSuccessful();
+
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('widget', $body);
+        $this->assertSame('Mein Test-Report', $body['widget']['name']);
+        $this->assertSame($report->getId(), $body['widget']['reportId']);
+    }
+
+    public function testCreateNonReportWidgetReturnsNullName(): void
+    {
+        $client = $this->client;
+        $this->authenticateUser($client, 'user1@example.com');
+
+        $client->jsonRequest('PUT', '/widget', ['type' => 'news']);
+        $this->assertResponseIsSuccessful();
+
+        $body = json_decode($client->getResponse()->getContent(), true);
+        $this->assertArrayHasKey('widget', $body);
+        $this->assertNull($body['widget']['name']);
+    }
+
     public function testCopyDefaultReportWidgetLosesReportDefinition(): void
     {
         $client = $this->client;

@@ -79,6 +79,8 @@ export interface ReportBuilderModalProps {
   onClose: () => void;
   onSave: (report: Report) => Promise<void>;
   report?: Report | null;
+  /** Force the modal to open in a specific mode. Defaults to auto-detect. */
+  initialMode?: 'guided' | 'builder';
 }
 
 /* ───────────────────────── Hook return type ───────────────────────── */
