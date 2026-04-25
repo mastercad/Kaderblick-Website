@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import TacticsBoardModal from '../TacticsBoardModal';
 
 // ── Mock FabStackProvider ──────────────────────────────────────────────────────
@@ -28,7 +28,13 @@ jest.mock('../tacticsBoard/TacticsToolbar', () => ({
     </div>
   ),
 }));
-jest.mock('../tacticsBoard/TacticsBar',  () => ({ TacticsBar:  () => <div>Tactics Bar</div> }));
+jest.mock('../tacticsBoard/TacticsBar', () => ({
+  TacticsBar: (props: any) => (
+    <div data-testid="tactics-bar" data-presentation-mode={String(props.presentationMode ?? false)}>
+      Tactics Bar
+    </div>
+  ),
+}));
 jest.mock('../tacticsBoard/PitchCanvas', () => ({ PitchCanvas: () => null }));
 jest.mock('../tacticsBoard/StatusBar',   () => ({ StatusBar:   () => <div>Status Bar</div> }));
 
@@ -143,13 +149,18 @@ describe('TacticsBoardModal – sidebar toggle strips', () => {
     expect(screen.queryByText('Tactics Bar')).not.toBeInTheDocument();
   });
 
-  it('toggle strips are not rendered in presentation mode', () => {
+  it('left toggle strip is not rendered in presentation mode', () => {
     render(<TacticsBoardModal {...defaultProps} />);
     enterPresentationMode();
     expect(screen.queryByLabelText('Linke Werkzeugleiste schließen')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Linke Werkzeugleiste öffnen')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Rechte Taktikleiste öffnen')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Rechte Taktikleiste schließen')).not.toBeInTheDocument();
+  });
+
+  it('right toggle strip remains visible in presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    enterPresentationMode();
+    // Right strip is always shown so trainers can switch tactics during presentation
+    expect(screen.getByLabelText('Rechte Taktikleiste öffnen')).toBeInTheDocument();
   });
 });
 
@@ -212,12 +223,12 @@ describe('TacticsBoardModal – presentation mode', () => {
     expect(screen.queryByText('Tactics Toolbar')).not.toBeInTheDocument();
   });
 
-  it('hides TacticsBar in presentation mode', () => {
+  it('keeps TacticsBar visible in presentation mode when right sidebar is open', () => {
     render(<TacticsBoardModal {...defaultProps} />);
-    // open right sidebar first
     fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
     enterPresentationMode();
-    expect(screen.queryByText('Tactics Bar')).not.toBeInTheDocument();
+    // TacticsBar stays so trainers can switch tactics without leaving presentation mode
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
   });
 
   it('shows exactly one "Präsentation beenden" pill in presentation mode', () => {
@@ -433,10 +444,10 @@ describe('TacticsBoardModal – sidebar strip labels', () => {
     expect(screen.queryByText('TOOLS')).not.toBeInTheDocument();
   });
 
-  it('"TAKTIKEN" label is hidden in presentation mode', () => {
+  it('"TAKTIKEN" label stays visible in presentation mode (right strip always shown)', () => {
     render(<TacticsBoardModal {...defaultProps} />);
     enterPresentationMode();
-    expect(screen.queryByText('TAKTIKEN')).not.toBeInTheDocument();
+    expect(screen.getByText('TAKTIKEN')).toBeInTheDocument();
   });
 
   it('"TOOLS" label remains after the left sidebar is toggled closed', () => {
@@ -478,5 +489,165 @@ describe('TacticsBoardModal – close button stays in DOM with right panel open'
     fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
     fireEvent.click(screen.getByLabelText('Rechte Taktikleiste schließen'));
     expect(screen.getByLabelText('Board schließen')).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Right sidebar in presentation mode
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – right sidebar in presentation mode', () => {
+  it('right sidebar toggle strip stays visible in presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    enterPresentationMode();
+    expect(screen.getByLabelText('Rechte Taktikleiste öffnen')).toBeInTheDocument();
+  });
+
+  it('right sidebar can be opened during presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    enterPresentationMode();
+    fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
+  });
+
+  it('TacticsBar receives presentationMode=true in presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    enterPresentationMode();
+    fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
+    expect(screen.getByTestId('tactics-bar')).toHaveAttribute('data-presentation-mode', 'true');
+  });
+
+  it('TacticsBar receives presentationMode=false outside presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
+    expect(screen.getByTestId('tactics-bar')).toHaveAttribute('data-presentation-mode', 'false');
+  });
+
+  it('TacticsBar stays open when entering presentation mode mid-session', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    fireEvent.click(screen.getByLabelText('Rechte Taktikleiste öffnen'));
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
+    enterPresentationMode();
+    expect(screen.getByText('Tactics Bar')).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Presentation mode resets when board is closed and reopened
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – presentation mode resets on close', () => {
+  it('presentation mode is off when board reopens after being closed', () => {
+    const { rerender } = render(<TacticsBoardModal {...defaultProps} open={true} />);
+    enterPresentationMode();
+    expect(screen.getByText('Präsentation beenden')).toBeInTheDocument();
+
+    // Close the board
+    rerender(<TacticsBoardModal {...defaultProps} open={false} />);
+    // Reopen
+    rerender(<TacticsBoardModal {...defaultProps} open={true} />);
+
+    expect(screen.queryByText('Präsentation beenden')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Board schließen')).toBeInTheDocument();
+  });
+
+  it('left toolbar is visible again after close-and-reopen', () => {
+    const { rerender } = render(<TacticsBoardModal {...defaultProps} open={true} />);
+    enterPresentationMode();
+
+    rerender(<TacticsBoardModal {...defaultProps} open={false} />);
+    rerender(<TacticsBoardModal {...defaultProps} open={true} />);
+
+    expect(screen.getByText('Tactics Toolbar')).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "Los geht's!" via TeamBriefing closes both presentation and board
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – "Los geht\'s!" closes presentation and board', () => {
+  it('calls onClose when "Los geht\'s!" is clicked in TeamBriefing', () => {
+    const onClose = jest.fn();
+    render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
+    enterPresentationMode();
+
+    // Open the TeamBriefing overlay
+    fireEvent.click(screen.getByLabelText('Team-Briefing öffnen'));
+    fireEvent.click(screen.getByText(/Los geht/i));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('exits presentation mode when "Los geht\'s!" is clicked', () => {
+    const { rerender } = render(<TacticsBoardModal {...defaultProps} open={true} />);
+    enterPresentationMode();
+
+    fireEvent.click(screen.getByLabelText('Team-Briefing öffnen'));
+    fireEvent.click(screen.getByText(/Los geht/i));
+
+    // Simulate the board closing and reopening (presentation mode should not persist)
+    rerender(<TacticsBoardModal {...defaultProps} open={false} />);
+    rerender(<TacticsBoardModal {...defaultProps} open={true} />);
+
+    expect(screen.queryByText('Präsentation beenden')).not.toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Browser back button (history / popstate)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – browser back button', () => {
+  let originalPushState: typeof history.pushState;
+
+  beforeEach(() => {
+    originalPushState = history.pushState.bind(history);
+    jest.spyOn(history, 'pushState');
+    jest.spyOn(history, 'back').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    (history.pushState as jest.Mock).mockRestore?.();
+    (history.back as jest.Mock).mockRestore?.();
+    history.pushState = originalPushState;
+  });
+
+  it('pushes a history entry when the board opens', () => {
+    render(<TacticsBoardModal {...defaultProps} open={true} />);
+    expect(history.pushState).toHaveBeenCalledWith({ tacticsBoardOpen: true }, '');
+  });
+
+  it('does not push a history entry when board starts closed', () => {
+    render(<TacticsBoardModal {...defaultProps} open={false} />);
+    expect(history.pushState).not.toHaveBeenCalled();
+  });
+
+  it('calls onClose when popstate is fired (back button)', () => {
+    const onClose = jest.fn();
+    render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
+
+    // Simulate browser back
+    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows close warning on popstate when board is dirty', () => {
+    mockBoardDirty();
+    const onClose = jest.fn();
+    render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
+
+    // Wrap in act() so the React state update (setShowCloseWarning) is flushed
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Ungespeicherte Änderungen')).toBeInTheDocument();
+  });
+
+  it('calls history.back() when board is closed by the parent (not back button)', () => {
+    // history.back() is called in the effect cleanup when open transitions
+    // from true→false without the popstate path (closedByHistoryRef stays false)
+    const { rerender } = render(<TacticsBoardModal {...defaultProps} open={true} />);
+    rerender(<TacticsBoardModal {...defaultProps} open={false} />);
+    expect(history.back).toHaveBeenCalledTimes(1);
   });
 });

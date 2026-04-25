@@ -10,7 +10,7 @@
  *   tacticsBoard/TacticsBar.tsx      Taktik-Tab-Leiste
  *   tacticsBoard/StatusBar.tsx       Statuszeile
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog, Box, Typography,
   DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
@@ -75,6 +75,14 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     }
   }, [open, fabStack]);
 
+  // Präsentationsmodus beim Schließen zurücksetzen
+  useEffect(() => {
+    if (!open) {
+      setPresentationMode(false);
+      setHideFullscreenChrome(false);
+    }
+  }, [open]);
+
   useEffect(() => {
     if (presentationMode) {
       board.setSelectedId?.(null);
@@ -88,6 +96,41 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     }
     return () => { document.body.classList.remove('tactics-board-open'); };
   }, [open, isMobile]);
+
+  // Browser-Zurück-Button schließt zuerst das Board (verhält sich wie eine eigene Seite)
+  const closedByHistoryRef = useRef(false);
+  const isDirtyRef = useRef(board.isDirty);
+  isDirtyRef.current = board.isDirty;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+
+    closedByHistoryRef.current = false;
+    history.pushState({ tacticsBoardOpen: true }, '');
+
+    const handlePopState = () => {
+      if (isDirtyRef.current) {
+        // History-Eintrag zurückschieben, damit Zurück weiter greift wenn
+        // der Nutzer im Warning-Dialog „Weiter bearbeiten" wählt
+        history.pushState({ tacticsBoardOpen: true }, '');
+        setShowCloseWarning(true);
+      } else {
+        closedByHistoryRef.current = true;
+        onCloseRef.current();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // Modal wurde per Button geschlossen → unseren History-Eintrag bereinigen
+      if (!closedByHistoryRef.current) {
+        history.back();
+      }
+    };
+  }, [open]);
 
   const togglePresentationMode = useCallback(() => {
     setPresentationMode(prev => {
@@ -361,21 +404,19 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         )}
 
         {/* Right sidebar toggle strip – inner (left) edge, away from screen corners */}
-        {!isPresentationMode && (
-          <Box
-            role="button"
-            aria-label={rightBarOpen ? 'Rechte Taktikleiste schließen' : 'Rechte Taktikleiste öffnen'}
-            onClick={() => setRightBarOpen(v => !v)}
-            sx={{ position: 'absolute', right: rightBarOpen ? 180 : 0, top: 0, bottom: 0, width: 22, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, cursor: 'pointer', bgcolor: rightBarOpen ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)', borderRight: '1px solid rgba(255,255,255,0.12)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }, transition: 'background 0.15s, right 0.2s' }}
-          >
-            <Typography sx={{ writingMode: 'vertical-rl', fontSize: '0.5rem', fontWeight: 700, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', userSelect: 'none' }}>TAKTIKEN</Typography>
-            <ChevronRightIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', transform: rightBarOpen ? 'scaleX(-1)' : 'none', transition: 'transform 0.2s' }} />
-          </Box>
-        )}
+        <Box
+          role="button"
+          aria-label={rightBarOpen ? 'Rechte Taktikleiste schließen' : 'Rechte Taktikleiste öffnen'}
+          onClick={() => setRightBarOpen(v => !v)}
+          sx={{ position: 'absolute', right: rightBarOpen ? 180 : 0, top: isPresentationMode ? 44 : 0, bottom: 0, width: 22, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, cursor: 'pointer', bgcolor: rightBarOpen ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)', borderRight: '1px solid rgba(255,255,255,0.12)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }, transition: 'background 0.15s, right 0.2s' }}
+        >
+          <Typography sx={{ writingMode: 'vertical-rl', fontSize: '0.5rem', fontWeight: 700, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', userSelect: 'none' }}>TAKTIKEN</Typography>
+          <ChevronRightIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', transform: rightBarOpen ? 'scaleX(-1)' : 'none', transition: 'transform 0.2s' }} />
+        </Box>
 
         {/* Right sidebar (tactics) – overlay, does not affect pitch size */}
-        {!isPresentationMode && rightBarOpen && (
-          <Box sx={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 180, zIndex: 40, display: 'flex', flexDirection: 'column', bgcolor: 'rgba(10,14,10,0.88)', borderLeft: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>
+        {rightBarOpen && (
+          <Box sx={{ position: 'absolute', right: 0, top: isPresentationMode ? 44 : 0, bottom: 0, width: 180, zIndex: 40, display: 'flex', flexDirection: 'column', bgcolor: 'rgba(10,14,10,0.88)', borderLeft: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>
             <TacticsBar
               vertical
               tactics={board.tactics}
@@ -391,6 +432,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
               onCancelRename={() => board.setRenamingId(null)}
               onLoadPreset={board.handleLoadPreset}
               activeTactic={board.activeTactic}
+              presentationMode={isPresentationMode}
             />
           </Box>
         )}
@@ -533,7 +575,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         )}
 
         {/* ── Team-Briefing (button + overlay) ─────────────────────────── */}
-        {isPresentationMode && <TeamBriefing />}
+        {isPresentationMode && <TeamBriefing onLosgehts={() => { handlePresentationModeOff(); onClose(); }} />}
       </Box>
     </Dialog>
 

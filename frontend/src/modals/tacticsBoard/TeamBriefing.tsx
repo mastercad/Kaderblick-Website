@@ -38,7 +38,11 @@ const MOTIVATION_QUOTES = [
  * pointerEvents: none` inside the presentation-mode container; interactive
  * parts opt back in via `pointerEvents: auto`.
  */
-export const TeamBriefing: React.FC = () => {
+interface TeamBriefingProps {
+  onLosgehts?: () => void;
+}
+
+export const TeamBriefing: React.FC<TeamBriefingProps> = ({ onLosgehts }) => {
   const [open, setOpen] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
 
@@ -116,7 +120,7 @@ export const TeamBriefing: React.FC = () => {
           </Box>
 
           <Button
-            onClick={() => setOpen(false)}
+            onClick={() => { setOpen(false); onLosgehts?.(); }}
             variant="contained"
             size="large"
             startIcon={<WhatshotIcon />}

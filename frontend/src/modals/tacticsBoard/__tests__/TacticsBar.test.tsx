@@ -204,3 +204,72 @@ describe('TacticsBar – vertical mode (TacticItem)', () => {
     expect(onCancelRename).toHaveBeenCalledTimes(1);
   });
 });
+
+// ─── Presentation mode ────────────────────────────────────────────────────────
+
+describe('TacticsBar – presentationMode=true (vertical)', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const presProps = {
+    ...defaultProps,
+    vertical: true as const,
+    onLoadPreset: jest.fn(),
+    presentationMode: true,
+  };
+
+  it('hides "Neue Taktik" button', () => {
+    render(<TacticsBar {...presProps} />);
+    expect(screen.queryByText('+ Neue Taktik')).not.toBeInTheDocument();
+  });
+
+  it('hides "Vorlagen" button', () => {
+    render(<TacticsBar {...presProps} />);
+    expect(screen.queryByText('Vorlagen')).not.toBeInTheDocument();
+  });
+
+  it('still renders all tactic names', () => {
+    render(<TacticsBar {...presProps} />);
+    expect(screen.getByText('Pressing')).toBeInTheDocument();
+    expect(screen.getByText('Konter')).toBeInTheDocument();
+  });
+
+  it('hides delete (×) buttons', () => {
+    render(<TacticsBar {...presProps} />);
+    expect(screen.queryByText('×')).not.toBeInTheDocument();
+  });
+
+  it('does NOT call onStartRename on double-click', () => {
+    const onStartRename = jest.fn();
+    render(<TacticsBar {...presProps} onStartRename={onStartRename} />);
+    fireEvent.doubleClick(screen.getByText('Pressing'));
+    expect(onStartRename).not.toHaveBeenCalled();
+  });
+
+  it('does NOT call onStartRename after long-press', () => {
+    const onStartRename = jest.fn();
+    render(<TacticsBar {...presProps} onStartRename={onStartRename} />);
+    fireEvent.pointerDown(screen.getByText('Pressing'));
+    act(() => { jest.advanceTimersByTime(600); });
+    fireEvent.pointerUp(screen.getByText('Pressing'));
+    expect(onStartRename).not.toHaveBeenCalled();
+  });
+
+  it('still allows tactic selection via click', () => {
+    const onSelect = jest.fn();
+    render(<TacticsBar {...presProps} onSelect={onSelect} />);
+    fireEvent.click(screen.getByText('Konter'));
+    expect(onSelect).toHaveBeenCalledWith('b');
+  });
+
+  it('shows "Neue Taktik" when presentationMode is false (sanity check)', () => {
+    render(<TacticsBar {...presProps} presentationMode={false} />);
+    expect(screen.getByText('+ Neue Taktik')).toBeInTheDocument();
+  });
+});

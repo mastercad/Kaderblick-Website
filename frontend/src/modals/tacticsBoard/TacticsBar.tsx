@@ -128,6 +128,8 @@ export interface TacticsBarProps {
   onLoadPreset?: (preset: TacticPreset) => void;
   /** Used only in vertical mode: current tactic data for saving presets */
   activeTactic?: TacticEntry;
+  /** Hides editing controls (new tactic, presets) */
+  presentationMode?: boolean;
 
   onSelect: (id: string) => void;
   onNew: () => void;
@@ -142,7 +144,7 @@ export interface TacticsBarProps {
 
 export const TacticsBar: React.FC<TacticsBarProps> = ({
   tactics, activeTacticId, renamingId, renameValue, vertical = false,
-  onLoadPreset, activeTactic,
+  onLoadPreset, activeTactic, presentationMode = false,
   onSelect, onNew, onDelete,
   onStartRename, onRenameChange, onConfirmRename, onCancelRename,
 }) => {
@@ -167,9 +169,9 @@ export const TacticsBar: React.FC<TacticsBarProps> = ({
               isActive={tactic.id === activeTacticId}
               isRenaming={renamingId === tactic.id}
               renameValue={renameValue}
-              canDelete={tactics.length > 1}
+              canDelete={!presentationMode && tactics.length > 1}
               onSelect={() => onSelect(tactic.id)}
-              onStartRename={() => onStartRename(tactic.id, tactic.name)}
+              onStartRename={presentationMode ? () => undefined : () => onStartRename(tactic.id, tactic.name)}
               onRenameChange={onRenameChange}
               onConfirmRename={onConfirmRename}
               onCancelRename={onCancelRename}
@@ -178,7 +180,8 @@ export const TacticsBar: React.FC<TacticsBarProps> = ({
           ))}
         </Box>
 
-        {/* Add tactic button */}
+        {/* Add tactic button – hidden in presentation mode */}
+        {!presentationMode && (
         <Box
           onClick={onNew}
           sx={{
@@ -192,9 +195,10 @@ export const TacticsBar: React.FC<TacticsBarProps> = ({
         >
           + Neue Taktik
         </Box>
+        )}
 
-        {/* Preset picker button – only when handler is provided */}
-        {onLoadPreset && (
+        {/* Preset picker button – hidden in presentation mode, only when handler is provided */}
+        {!presentationMode && onLoadPreset && (
           <>
             <Box sx={{ mx: 0.75, mt: 0.25, borderTop: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }} />
             <Tooltip title="Taktik-Vorlagen laden / speichern" placement="left" arrow>
