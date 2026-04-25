@@ -24,6 +24,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { TeamBriefing } from './tacticsBoard/TeamBriefing';
 import { useFabStack }      from '../components/FabStackProvider';
 import PortraitHint         from '../components/PortraitHint';
 import { useTacticsBoard }  from './tacticsBoard/useTacticsBoard';
@@ -530,6 +531,9 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           isBrowserFS={board.isBrowserFS}
         />
         )}
+
+        {/* ── Team-Briefing (button + overlay) ─────────────────────────── */}
+        {isPresentationMode && <TeamBriefing />}
       </Box>
     </Dialog>
 
