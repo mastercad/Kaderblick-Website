@@ -49,9 +49,10 @@ class PlayerStatsRecalcServiceTest extends TestCase
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     /**
-     * @return Game&MockObject
-     * @param array<mixed>|null $matchPlan
+     * @param array<mixed>|null        $matchPlan
      * @param array<int, Substitution> $substitutions
+     *
+     * @return Game&MockObject
      */
     private function makeGame(
         int $halfDuration = 45,

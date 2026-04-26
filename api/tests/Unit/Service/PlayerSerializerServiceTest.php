@@ -108,10 +108,10 @@ class PlayerSerializerServiceTest extends TestCase
 
         foreach (
             ['id', 'firstName', 'lastName', 'fullName', 'birthdate',
-            'height', 'weight', 'strongFeet', 'mainPosition',
-            'alternativePositions', 'clubAssignments', 'nationalityAssignments',
-            'teamAssignments', 'fussballDeUrl', 'fussballDeId',
-            'stats', 'permissions'] as $key
+                'height', 'weight', 'strongFeet', 'mainPosition',
+                'alternativePositions', 'clubAssignments', 'nationalityAssignments',
+                'teamAssignments', 'fussballDeUrl', 'fussballDeId',
+                'stats', 'permissions'] as $key
         ) {
             $this->assertArrayHasKey($key, $result, "Missing key: $key");
         }

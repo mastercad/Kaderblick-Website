@@ -52,8 +52,8 @@ class CoachSerializerServiceTest extends TestCase
 
         foreach (
             ['id', 'firstName', 'lastName', 'email', 'birthdate',
-            'clubAssignments', 'teamAssignments', 'licenseAssignments',
-            'nationalityAssignments', 'permissions'] as $key
+                'clubAssignments', 'teamAssignments', 'licenseAssignments',
+                'nationalityAssignments', 'permissions'] as $key
         ) {
             $this->assertArrayHasKey($key, $result, "Missing key: $key");
         }
