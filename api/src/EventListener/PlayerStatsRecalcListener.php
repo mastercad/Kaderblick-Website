@@ -3,7 +3,7 @@
 namespace App\EventListener;
 
 use App\Entity\Game;
-use App\Entity\Substitution;
+use App\Entity\GameEvent;
 use App\Message\RecalcPlayerStatsMessage;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Event\PostFlushEventArgs;
@@ -14,7 +14,7 @@ use Doctrine\ORM\Events;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * Lauscht auf Änderungen an Game (matchPlan, Halbzeitdauer) und Substitution
+ * Lauscht auf Änderungen an Game (matchPlan, Halbzeitdauer) und GameEvent (Auswechslungen)
  * und dispatched asynchron eine RecalcPlayerStatsMessage an den Messenger-Worker.
  *
  * Das Dispatching erfolgt in postFlush (nach Abschluss der ORM-Transaktion),
@@ -56,7 +56,7 @@ final class PlayerStatsRecalcListener
             return;
         }
 
-        if ($entity instanceof Substitution) {
+        if ($entity instanceof GameEvent && $this->isSubstitutionEvent($entity)) {
             $this->buffer((int) $entity->getGame()->getId());
         }
     }
@@ -65,7 +65,7 @@ final class PlayerStatsRecalcListener
     {
         $entity = $args->getObject();
 
-        if ($entity instanceof Substitution) {
+        if ($entity instanceof GameEvent && $this->isSubstitutionEvent($entity)) {
             $this->buffer((int) $entity->getGame()->getId());
         }
     }
@@ -74,7 +74,7 @@ final class PlayerStatsRecalcListener
     {
         $entity = $args->getObject();
 
-        if ($entity instanceof Substitution) {
+        if ($entity instanceof GameEvent && $this->isSubstitutionEvent($entity)) {
             // gameId hier merken, bevor die Relation entfernt wird
             $this->buffer((int) $entity->getGame()->getId());
         }
@@ -98,5 +98,14 @@ final class PlayerStatsRecalcListener
     private function buffer(int $gameId): void
     {
         $this->pendingGameIds[] = $gameId;
+    }
+
+    private function isSubstitutionEvent(GameEvent $event): bool
+    {
+        return in_array(
+            $event->getGameEventType()?->getCode(),
+            ['substitution', 'substitution_in', 'substitution_out', 'substitution_injury'],
+            true
+        );
     }
 }

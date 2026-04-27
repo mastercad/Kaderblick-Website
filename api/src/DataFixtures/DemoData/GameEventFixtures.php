@@ -57,7 +57,8 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
         }
 
         $needed = ['goal', 'header_goal', 'freekick_goal', 'penalty_goal', 'corner_goal',
-            'yellow_card', 'shot_on_target', 'shot_off_target', 'corner', 'assist'];
+            'yellow_card', 'shot_on_target', 'shot_off_target', 'corner', 'assist',
+            'substitution_in', 'substitution_out', 'substitution_injury'];
         foreach ($needed as $code) {
             if (!isset($eventTypeIds[$code])) {
                 throw new RuntimeException("Fehlender GameEventType: '{$code}'. MasterData zuerst laden.");
@@ -71,12 +72,26 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
              WHERE pta.endDate IS NULL'
         )->getArrayResult();
 
+        // Torwart-IDs ermitteln, damit Torwarte nicht für Torschüsse/Vorlagen/Ecken ausgewählt werden
+        $gkRows = $manager->createQuery(
+            'SELECT p.id FROM App\Entity\Player p JOIN p.mainPosition pos WHERE pos.shortName = :tw'
+        )->setParameter('tw', 'TW')->getArrayResult();
+        $gkIds = array_flip(array_column($gkRows, 'id'));
+        unset($gkRows);
+
         /** @var array<int, int[]> $teamPlayerMap teamId => [playerId, ...] */
         $teamPlayerMap = [];
+        /** @var array<int, int[]> $teamFieldPlayerMap teamId => [Feldspieler-IDs ohne Torwarte] */
+        $teamFieldPlayerMap = [];
         foreach ($ptaRows as $row) {
-            $teamPlayerMap[(int) $row['teamId']][] = (int) $row['playerId'];
+            $pid = (int) $row['playerId'];
+            $tid = (int) $row['teamId'];
+            $teamPlayerMap[$tid][] = $pid;
+            if (!isset($gkIds[$pid])) {
+                $teamFieldPlayerMap[$tid][] = $pid;
+            }
         }
-        unset($ptaRows);
+        unset($ptaRows, $gkIds);
 
         // ── Bereits verarbeitete Spiele überspringen (Idempotenz) ────────────
         $existingGameIds = [];
@@ -117,6 +132,9 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
 
             $homePlayers = $teamPlayerMap[$homeTeamId] ?? [];
             $awayPlayers = $teamPlayerMap[$awayTeamId] ?? [];
+            // Feldspieler-Pool ohne Torwarte (für Tore, Vorlagen, Ecken, Torschüsse)
+            $homeFieldPlayers = $teamFieldPlayerMap[$homeTeamId] ?? $homePlayers;
+            $awayFieldPlayers = $teamFieldPlayerMap[$awayTeamId] ?? $awayPlayers;
 
             /** @var Game $gameProxy */
             $gameProxy = $manager->getReference(Game::class, $gameId);
@@ -144,8 +162,8 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             for ($i = 0; $i < $homeScore; ++$i) {
                 $minute = min($minute + random_int(4, 20), 90);
                 $code = $goalCodes[$i % 4];
-                $scorer = $pickPlayer($homePlayers);
-                $assister = $pickPlayer(array_filter($homePlayers, fn ($id) => null === $scorer || $id !== $scorer->getId()));
+                $scorer = $pickPlayer($homeFieldPlayers);
+                $assister = $pickPlayer(array_filter($homeFieldPlayers, fn ($id) => null === $scorer || $id !== $scorer->getId()));
 
                 $goal = $this->makeEvent(
                     $gameProxy,
@@ -176,8 +194,8 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             for ($i = 0; $i < $awayScore; ++$i) {
                 $minute = min($minute + random_int(4, 20), 90);
                 $code = $goalCodes[$i % 4];
-                $scorer = $pickPlayer($awayPlayers);
-                $assister = $pickPlayer(array_filter($awayPlayers, fn ($id) => null === $scorer || $id !== $scorer->getId()));
+                $scorer = $pickPlayer($awayFieldPlayers);
+                $assister = $pickPlayer(array_filter($awayFieldPlayers, fn ($id) => null === $scorer || $id !== $scorer->getId()));
 
                 $goal = $this->makeEvent(
                     $gameProxy,
@@ -234,7 +252,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                     $homeProxy,
                     $shotOffTarget,
                     $makeTs(random_int(5, 90)),
-                    $pickPlayer($homePlayers)
+                    $pickPlayer($homeFieldPlayers)
                 );
                 $manager->persist($shot);
                 ++$eventCount;
@@ -245,7 +263,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                     $awayProxy,
                     $shotOffTarget,
                     $makeTs(random_int(5, 90)),
-                    $pickPlayer($awayPlayers)
+                    $pickPlayer($awayFieldPlayers)
                 );
                 $manager->persist($shot);
                 ++$eventCount;
@@ -256,7 +274,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             $totalCorners = random_int(3, 8);
             for ($c = 0; $c < $totalCorners; ++$c) {
                 $cornerTeam = (0 === $c % 2) ? $homeProxy : $awayProxy;
-                $cornerPlayers = (0 === $c % 2) ? $homePlayers : $awayPlayers;
+                $cornerPlayers = (0 === $c % 2) ? $homeFieldPlayers : $awayFieldPlayers;
                 $corner = $this->makeEvent(
                     $gameProxy,
                     $cornerTeam,
@@ -266,6 +284,64 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                 );
                 $manager->persist($corner);
                 ++$eventCount;
+            }
+
+            // ── Auswechslungen (2-3 je Mannschaft) ──────────────────────────
+            // Typen: substitution_out (normal), substitution_injury (verletzungsbedingt, ~25%)
+            // Jede Auswechslung = Paar aus _out/_injury + _in mit relatedPlayer
+            $subInType = $manager->getReference(GameEventType::class, $eventTypeIds['substitution_in']);
+            $subOutType = $manager->getReference(GameEventType::class, $eventTypeIds['substitution_out']);
+            $subInjType = $manager->getReference(GameEventType::class, $eventTypeIds['substitution_injury']);
+
+            foreach ([$homeProxy, $awayProxy] as $subTeam) {
+                $subPool = ($subTeam === $homeProxy) ? $homeFieldPlayers : $awayFieldPlayers;
+                if (count($subPool) < 2) {
+                    continue;
+                }
+                $used = [];
+                $subCount = random_int(2, 3);
+                $available = $subPool;
+                shuffle($available);
+                $subMinutes = [46, 60, 70, 80, 85];
+
+                for ($sub = 0; $sub < $subCount; ++$sub) {
+                    $remaining = array_values(array_diff($available, $used));
+                    if (count($remaining) < 2) {
+                        break;
+                    }
+                    $playerOutId = $remaining[0];
+                    $playerInId = $remaining[1];
+                    $used[] = $playerOutId;
+                    $used[] = $playerInId;
+
+                    $playerOut = $manager->getReference(Player::class, $playerOutId);
+                    $playerIn = $manager->getReference(Player::class, $playerInId);
+                    $subMinute = $subMinutes[$sub];
+                    $ts = $makeTs($subMinute);
+
+                    // ~25% der Auswechslungen sind verletzungsbedingt
+                    $outType = (1 === random_int(1, 4)) ? $subInjType : $subOutType;
+
+                    $evOut = new GameEvent();
+                    $evOut->setGame($gameProxy);
+                    $evOut->setTeam($subTeam);
+                    $evOut->setGameEventType($outType);
+                    $evOut->setTimestamp($ts);
+                    $evOut->setPlayer($playerOut);
+                    $evOut->setRelatedPlayer($playerIn);
+                    $manager->persist($evOut);
+                    ++$eventCount;
+
+                    $evIn = new GameEvent();
+                    $evIn->setGame($gameProxy);
+                    $evIn->setTeam($subTeam);
+                    $evIn->setGameEventType($subInType);
+                    $evIn->setTimestamp($ts);
+                    $evIn->setPlayer($playerIn);
+                    $evIn->setRelatedPlayer($playerOut);
+                    $manager->persist($evIn);
+                    ++$eventCount;
+                }
             }
 
             if (0 === $eventCount % self::BATCH_SIZE) {

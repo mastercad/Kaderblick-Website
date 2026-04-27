@@ -118,7 +118,7 @@ describe('SystemAlertDetail', () => {
 
   it('zeigt Breadcrumb-Navigation zurück zur Liste', async () => {
     await renderAndWait();
-    expect(screen.getByText('System-Alerts')).toBeInTheDocument();
+    expect(screen.getByText('System-Wartung')).toBeInTheDocument();
   });
 
   it('zeigt Resolve-Button bei offenem Alert', async () => {

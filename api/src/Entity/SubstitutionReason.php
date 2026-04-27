@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\SubstitutionReasonRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -39,16 +37,6 @@ class SubstitutionReason
 
     #[ORM\Column(type: 'boolean')]
     private bool $active = true;
-
-    /** @var Collection<int, Substitution> */
-    #[Groups(['substitution_reason:read'])]
-    #[ORM\OneToMany(targetEntity: Substitution::class, mappedBy: 'substitutionReason')]
-    private Collection $substitutions;
-
-    public function __construct()
-    {
-        $this->substitutions = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -87,33 +75,6 @@ class SubstitutionReason
     public function setActive(bool $active): self
     {
         $this->active = $active;
-
-        return $this;
-    }
-
-    /** @return Collection<int, Substitution> */
-    public function getSubstitutions(): Collection
-    {
-        return $this->substitutions;
-    }
-
-    public function addSubstitution(Substitution $substitution): self
-    {
-        if (!$this->substitutions->contains($substitution)) {
-            $this->substitutions[] = $substitution;
-            $substitution->setSubstitutionReason($this);
-        }
-
-        return $this;
-    }
-
-    public function removeSubstitution(Substitution $substitution): self
-    {
-        if ($this->substitutions->removeElement($substitution)) {
-            if ($substitution->getSubstitutionReason() === $this) {
-                $substitution->setSubstitutionReason(null);
-            }
-        }
 
         return $this;
     }

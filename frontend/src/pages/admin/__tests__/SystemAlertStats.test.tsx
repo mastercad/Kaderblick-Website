@@ -187,13 +187,13 @@ describe('SystemAlertStats', () => {
 
   it('zeigt Breadcrumb zurück zur Liste', async () => {
     await renderAndWait();
-    expect(screen.getByText('System-Alerts')).toBeInTheDocument();
+    expect(screen.getByText('System-Wartung')).toBeInTheDocument();
   });
 
   it('navigiert zur Listen-Seite beim Klick auf Breadcrumb', async () => {
     await renderAndWait();
-    fireEvent.click(screen.getByText('System-Alerts'));
-    expect(mockNavigate).toHaveBeenCalledWith('/admin/system-alerts');
+    fireEvent.click(screen.getByText('System-Wartung'));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/system-maintenance?tab=alerts');
   });
 
   it('zeigt Hinweis wenn keine Zeitreihendaten vorhanden', async () => {

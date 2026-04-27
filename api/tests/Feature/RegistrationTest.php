@@ -468,5 +468,9 @@ class RegistrationTest extends WebTestCase
         // Verify status was reset
         $this->assertFalse($updatedUser->isVerified());
         $this->assertFalse($updatedUser->isEnabled());
+
+        // Cleanup
+        $em->remove($updatedUser);
+        $em->flush();
     }
 }

@@ -69,10 +69,6 @@ class GamesController extends ApiController
             'type' => 4,
             'label_fields' => ['gameEventType.name']
         ],
-        'substitutions' => [
-            'entityName' => 'Substitution',
-            'type' => 4
-        ],
         'calendarEvents' => [
             'entityName' => 'CalendarEvent',
             'type' => 1,

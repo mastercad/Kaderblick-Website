@@ -56,7 +56,8 @@
         "doctrine/doctrine-fixtures-bundle": "^4.3",
         "symfony/uid": "^7.4",
         "spomky-labs/otphp": "^11.4",
-        "bacon/bacon-qr-code": "^3.0"
+        "bacon/bacon-qr-code": "^3.0",
+        "druidfi/mysqldump-php": "^2.0"
     },
     "autoload": {
         "psr-4": {

@@ -3,11 +3,9 @@
 namespace App\Command;
 
 use App\Repository\SurveyRepository;
-use App\Service\HeartbeatService;
 use App\Service\SurveyNotificationService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -17,18 +15,17 @@ use Throwable;
     name: 'app:surveys:send-reminders',
     description: 'Send reminder notifications for surveys approaching their due date'
 )]
-class SendSurveyRemindersCommand extends Command
+class SendSurveyRemindersCommand extends AbstractCronCommand
 {
     public function __construct(
         private SurveyRepository $surveyRepository,
         private SurveyNotificationService $surveyNotificationService,
         private LoggerInterface $logger,
-        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function doCronExecute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
@@ -74,8 +71,6 @@ class SendSurveyRemindersCommand extends Command
             $totalReminded
         ));
 
-        $this->heartbeatService->beat('app:surveys:send-reminders');
-
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

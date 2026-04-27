@@ -41,8 +41,8 @@ class SendUnsentNotificationsCommandTest extends TestCase
             $this->repo,
             $this->pushService,
             $this->logger,
-            $this->heartbeatService,
         );
+        $command->setHeartbeatService($this->heartbeatService);
 
         $application = new Application();
         $application->addCommand($command);

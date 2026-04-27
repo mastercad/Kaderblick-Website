@@ -114,6 +114,9 @@ RUN echo "SHELL=/bin/bash" > /etc/cron.d/symfony-crons \
     && echo "" >> /etc/cron.d/symfony-crons \
     && echo "# Send survey reminder notifications (every 30 minutes)" >> /etc/cron.d/symfony-crons \
     && echo "*/30 * * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:surveys:send-reminders' 2>&1" >> /etc/cron.d/symfony-crons \
+    && echo "" >> /etc/cron.d/symfony-crons \
+    && echo "# System health monitor (every 5 minutes)" >> /etc/cron.d/symfony-crons \
+    && echo "*/5 * * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:health:monitor' 2>&1" >> /etc/cron.d/symfony-crons \
     && chmod 0644 /etc/cron.d/symfony-crons
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -84,13 +84,13 @@ class GameEventRepository extends ServiceEntityRepository implements OptimizedRe
     public function findSubstitutions(Game $game): array
     {
         return $this->createQueryBuilder('e')
-            ->join('e.type', 't')
+            ->join('e.gameEventType', 'get')
             ->leftJoin('e.substitutionReason', 'sr')
             ->leftJoin('e.relatedPlayer', 'rp')
             ->where('e.game = :game')
-            ->andWhere('t.code IN (:codes)')
+            ->andWhere('get.code IN (:codes)')
             ->setParameter('game', $game)
-            ->setParameter('codes', ['substitution_in', 'substitution_out'])
+            ->setParameter('codes', ['substitution', 'substitution_in', 'substitution_out', 'substitution_injury'])
             ->orderBy('e.timestamp', 'ASC')
             ->getQuery()
             ->getResult();

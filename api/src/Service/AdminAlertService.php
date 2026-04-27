@@ -445,32 +445,40 @@ class AdminAlertService
         string $message,
         array $data
     ): SystemAlert {
-        $alert = $this->systemAlertRepository->findOpenByFingerprint($fingerprint);
-
-        if (null !== $alert) {
-            $alert->incrementOccurrence();
-        } else {
-            $alert = new SystemAlert($category, $fingerprint, $message);
-            $alert->setRequestUri($data['requestUri']);
-            $alert->setHttpMethod($data['httpMethod']);
-            $alert->setClientIp($data['clientIp']);
-            $alert->setExceptionClass($data['exceptionClass']);
-            $alert->setStackTrace($data['stackTrace']);
-            $alert->setContext($data['context']);
-            $this->entityManager->persist($alert);
-        }
-
-        // Jede einzelne Auslösung als Occurrence-Eintrag für Zeitreihen-Auswertungen
-        $occurrence = new SystemAlertOccurrence($alert);
-        $this->entityManager->persist($occurrence);
-
         try {
+            $alert = $this->systemAlertRepository->findOpenByFingerprint($fingerprint);
+
+            if (null !== $alert) {
+                $alert->incrementOccurrence();
+            } else {
+                $alert = new SystemAlert($category, $fingerprint, $message);
+                $alert->setRequestUri($data['requestUri']);
+                $alert->setHttpMethod($data['httpMethod']);
+                $alert->setClientIp($data['clientIp']);
+                $alert->setExceptionClass($data['exceptionClass']);
+                $alert->setStackTrace($data['stackTrace']);
+                $alert->setContext($data['context']);
+                $this->entityManager->persist($alert);
+            }
+
+            // Jede einzelne Auslösung als Occurrence-Eintrag für Zeitreihen-Auswertungen
+            $occurrence = new SystemAlertOccurrence($alert);
+            $this->entityManager->persist($occurrence);
+
             $this->entityManager->flush();
+        } catch (\Doctrine\ORM\Exception\EntityManagerClosed $e) {
+            $this->securityLogger->error(
+                sprintf('AdminAlertService: EntityManager geschlossen, Alert nicht persistiert: %s', $message)
+            );
+
+            return new SystemAlert($category, $fingerprint, $message);
         } catch (Throwable $e) {
             $this->securityLogger->error(
                 sprintf('AdminAlertService: Alert konnte nicht persistiert werden: %s', $e->getMessage()),
                 ['exception' => $e]
             );
+
+            return new SystemAlert($category, $fingerprint, $message);
         }
 
         return $alert;

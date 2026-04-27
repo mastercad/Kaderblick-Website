@@ -64,10 +64,10 @@ const MyFeedbackDetail = lazy(() => import('./pages/MyFeedbackDetail'));
 const AdminTitleXpOverview = lazy(() => import('./pages/admin/AdminTitleXpOverview'));
 const ActivityOverview = lazy(() => import('./pages/admin/ActivityOverview'));
 const SystemSettings = lazy(() => import('./pages/admin/SystemSettings'));
-const SystemAlerts = lazy(() => import('./pages/admin/SystemAlerts'));
 const SystemAlertDetail = lazy(() => import('./pages/admin/SystemAlertDetail'));
 const SystemAlertStats = lazy(() => import('./pages/admin/SystemAlertStats'));
 const XpConfig = lazy(() => import('./pages/admin/XpConfig'));
+const SystemMaintenance = lazy(() => import('./pages/admin/SystemMaintenance'));
 const Locations = lazy(() => import('./pages/Locations'));
 const Clubs = lazy(() => import('./pages/Clubs'));
 const Players = lazy(() => import('./pages/Players'));
@@ -356,9 +356,10 @@ function App() {
                     <Route path="/admin/xp-config" element={<ProtectedRoute><XpConfig /></ProtectedRoute>} />
                     <Route path="/admin/system-settings" element={<ProtectedRoute><SystemSettings /></ProtectedRoute>} />
                     <Route path="/admin/activity" element={<ProtectedRoute><ActivityOverview /></ProtectedRoute>} />
-                    <Route path="/admin/system-alerts" element={<ProtectedRoute><SystemAlerts /></ProtectedRoute>} />
+                    <Route path="/admin/system-alerts" element={<Navigate to="/admin/system-maintenance?tab=alerts" replace />} />
                     <Route path="/admin/system-alerts/stats" element={<ProtectedRoute><SystemAlertStats /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts/:id" element={<ProtectedRoute><SystemAlertDetail /></ProtectedRoute>} />
+                    <Route path="/admin/system-maintenance" element={<ProtectedRoute><SystemMaintenance /></ProtectedRoute>} />
                     <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
                     <Route path="/news/:id" element={<ProtectedRoute><NewsDetail /></ProtectedRoute>} />
                     <Route path="locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />

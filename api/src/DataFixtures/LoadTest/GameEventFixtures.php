@@ -69,12 +69,26 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
              WHERE pta.endDate IS NULL'
         )->getArrayResult();
 
+        // Torwart-IDs ermitteln – Torwarte werden bei Torschüssen, Vorlagen und Ecken ausgeschlossen
+        $gkRows = $manager->createQuery(
+            'SELECT p.id FROM App\Entity\Player p JOIN p.mainPosition pos WHERE pos.shortName = :tw'
+        )->setParameter('tw', 'TW')->getArrayResult();
+        $gkIds = array_flip(array_column($gkRows, 'id'));
+        unset($gkRows);
+
         /** @var array<int, int[]> $teamPlayerMap teamId => [playerId, ...] */
         $teamPlayerMap = [];
+        /** @var array<int, int[]> $teamFieldPlayerMap teamId => [Feldspieler-IDs ohne Torwarte] */
+        $teamFieldPlayerMap = [];
         foreach ($ptaRows as $row) {
-            $teamPlayerMap[(int) $row['teamId']][] = (int) $row['playerId'];
+            $pid = (int) $row['playerId'];
+            $tid = (int) $row['teamId'];
+            $teamPlayerMap[$tid][] = $pid;
+            if (!isset($gkIds[$pid])) {
+                $teamFieldPlayerMap[$tid][] = $pid;
+            }
         }
-        unset($ptaRows);
+        unset($ptaRows, $gkIds);
 
         // ------------------------------------------------------------------
         // 3. Load all finished game data as scalar arrays (no entity objects)
@@ -129,6 +143,9 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
 
             $homePlayers = $teamPlayerMap[$homeTeamId] ?? [];
             $awayPlayers = $teamPlayerMap[$awayTeamId] ?? [];
+            // Feldspieler-Pool ohne Torwarte (für Tore, Vorlagen, Ecken, Torschüsse)
+            $homeFieldPlayers = $teamFieldPlayerMap[$homeTeamId] ?? $homePlayers;
+            $awayFieldPlayers = $teamFieldPlayerMap[$awayTeamId] ?? $awayPlayers;
 
             // Helper: random player proxy from a team
             $pickPlayer = static function (array $playerIds, EntityManagerInterface $mgr): ?Player {
@@ -160,7 +177,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                     $gameProxy,
                     $homeProxy,
                     $manager->getReference(GameEventType::class, $typeId),
-                    $pickPlayer($homePlayers, $manager),
+                    $pickPlayer($homeFieldPlayers, $manager),
                     $makeTimestamp($half)
                 );
                 $manager->persist($event);
@@ -169,7 +186,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                 // Assist for non-penalty goals
                 if (0 !== $minute % 3 && 'penalty_goal' !== $goalCodes[$i % 4]) {
                     $assistTypeId = $eventTypeIds['assist'];
-                    $assister = $pickPlayer($homePlayers, $manager);
+                    $assister = $pickPlayer($homeFieldPlayers, $manager);
                     if (null !== $assister) {
                         $assist = $this->makeEvent(
                             $gameProxy,
@@ -193,7 +210,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
                     $gameProxy,
                     $awayProxy,
                     $manager->getReference(GameEventType::class, $typeId),
-                    $pickPlayer($awayPlayers, $manager),
+                    $pickPlayer($awayFieldPlayers, $manager),
                     $makeTimestamp($half)
                 );
                 $manager->persist($event);
@@ -270,7 +287,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             $cornerCount = random_int(1, 5);
             for ($i = 0; $i < $cornerCount; ++$i) {
                 $teamPick = (0 === $i % 2) ? $homeProxy : $awayProxy;
-                $playerPick = (0 === $i % 2) ? $homePlayers : $awayPlayers;
+                $playerPick = (0 === $i % 2) ? $homeFieldPlayers : $awayFieldPlayers;
                 $event = $this->makeEvent(
                     $gameProxy,
                     $teamPick,
@@ -286,7 +303,7 @@ class GameEventFixtures extends Fixture implements FixtureGroupInterface, Depend
             $shotCount = random_int(1, 4);
             for ($i = 0; $i < $shotCount; ++$i) {
                 $teamPick = (0 === $i % 2) ? $homeProxy : $awayProxy;
-                $playerPick = (0 === $i % 2) ? $homePlayers : $awayPlayers;
+                $playerPick = (0 === $i % 2) ? $homeFieldPlayers : $awayFieldPlayers;
                 $event = $this->makeEvent(
                     $gameProxy,
                     $teamPick,

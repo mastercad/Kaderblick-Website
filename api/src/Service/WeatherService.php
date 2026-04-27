@@ -10,7 +10,7 @@ use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Client;
 
-final class WeatherService
+class WeatherService
 {
     /** @var array<string> */
     private array $hourlySettings = [

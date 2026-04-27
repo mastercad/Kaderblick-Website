@@ -5,11 +5,9 @@ namespace App\Command;
 use App\Entity\GameEvent;
 use App\Entity\PlayerTitle;
 use App\Service\GoalCountingService;
-use App\Service\HeartbeatService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -19,12 +17,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'app:xp:award-titles',
     description: 'Award top scorer titles (team and platform) retroactively.'
 )]
-class AwardTitlesCommand extends Command
+class AwardTitlesCommand extends AbstractCronCommand
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
         private TitleCalculationService $titleCalculationService,
-        private HeartbeatService $heartbeatService,
         private GoalCountingService $goalCountingService,
     ) {
         parent::__construct();
@@ -37,7 +34,7 @@ class AwardTitlesCommand extends Command
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show what would be awarded, but do not persist changes');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function doCronExecute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $season = $input->getOption('season') ?? $this->titleCalculationService->retrieveCurrentSeason();
@@ -128,13 +125,13 @@ class AwardTitlesCommand extends Command
         }
 
         if ($dryRun) {
+            $this->suppressHeartbeat(); // Dry-Run: keine echte Arbeit geleistet
             $io->success('DRY-RUN complete. No titles were persisted.');
             $this->entityManager->clear();
         } else {
             $io->success('Titles awarded and persisted.');
-            $this->heartbeatService->beat('app:xp:award-titles');
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

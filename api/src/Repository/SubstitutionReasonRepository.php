@@ -25,10 +25,6 @@ class SubstitutionReasonRepository extends ServiceEntityRepository implements Op
     public function fetchFullList(?UserInterface $user = null): array
     {
         return $this->createQueryBuilder('sr')
-            ->select('sr', 's', 'g', 't')
-            ->leftJoin('sr.substitutions', 's')
-            ->leftJoin('s.game', 'g')
-            ->leftJoin('s.team', 't')
             ->where('sr.active = true')
             ->orderBy('sr.name', 'ASC')
             ->getQuery()
@@ -42,10 +38,7 @@ class SubstitutionReasonRepository extends ServiceEntityRepository implements Op
     {
         return $this->createQueryBuilder('sr')
             ->select('sr.id, sr.name, sr.description')
-            ->addSelect('COUNT(s.id) as substitutionCount')
-            ->leftJoin('sr.substitutions', 's')
             ->where('sr.active = true')
-            ->groupBy('sr.id')
             ->orderBy('sr.name', 'ASC')
             ->getQuery()
             ->getResult();
@@ -57,10 +50,6 @@ class SubstitutionReasonRepository extends ServiceEntityRepository implements Op
     public function fetchFullEntry(int $id, ?UserInterface $user = null): ?array
     {
         return $this->createQueryBuilder('sr')
-            ->select('sr', 's', 'g', 't')
-            ->leftJoin('sr.substitutions', 's')
-            ->leftJoin('s.game', 'g')
-            ->leftJoin('s.team', 't')
             ->where('sr.id = :id')
             ->setParameter('id', $id)
             ->getQuery()
@@ -73,13 +62,7 @@ class SubstitutionReasonRepository extends ServiceEntityRepository implements Op
     public function fetchOptimizedEntry(int $id, ?UserInterface $user = null): ?array
     {
         return $this->createQueryBuilder('sr')
-            ->select('sr.id, sr.name, sr.code')
-            ->addSelect('s.id as substitution_id, s.minute')
-            ->addSelect('g.date as game_date')
-            ->addSelect('t.name as team_name')
-            ->leftJoin('sr.substitutions', 's')
-            ->leftJoin('s.game', 'g')
-            ->leftJoin('s.team', 't')
+            ->select('sr.id, sr.name, sr.description')
             ->where('sr.id = :id')
             ->setParameter('id', $id)
             ->getQuery()

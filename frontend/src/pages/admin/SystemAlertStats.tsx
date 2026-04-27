@@ -216,11 +216,11 @@ export default function SystemAlertStats() {
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/system-alerts')}
+          onClick={() => navigate('/admin/system-maintenance?tab=alerts')}
           underline="hover"
           color="inherit"
         >
-          System-Alerts
+          System-Wartung
         </Link>
         <Typography variant="body2" color="text.primary">Trend-Analyse</Typography>
       </Breadcrumbs>

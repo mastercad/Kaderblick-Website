@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Unit\EventListener;
 
 use App\Entity\Game;
-use App\Entity\Substitution;
+use App\Entity\GameEvent;
+use App\Entity\GameEventType;
 use App\EventListener\PlayerStatsRecalcListener;
 use App\Message\RecalcPlayerStatsMessage;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,11 +28,11 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * Getestete Branches:
  * - postUpdate(Game) mit relevantem Feldwechsel → puffert gameId
  * - postUpdate(Game) mit irrelevantem Feldwechsel → puffert NICHT
- * - postUpdate(Substitution) → puffert gameId
+ * - postUpdate(GameEvent/Auswechslung) → puffert gameId
  * - postUpdate(beliebiges anderes Entity) → puffert NICHT
- * - postPersist(Substitution) → puffert gameId
+ * - postPersist(GameEvent/Auswechslung) → puffert gameId
  * - postPersist(beliebiges anderes Entity) → puffert NICHT
- * - preRemove(Substitution) → puffert gameId vor dem Löschen
+ * - preRemove(GameEvent/Auswechslung) → puffert gameId vor dem Löschen
  * - preRemove(beliebiges anderes Entity) → puffert NICHT
  * - postFlush mit gepufferten IDs → dispatcht eine Message pro eindeutiger gameId
  * - postFlush mit leerm Puffer → dispatcht nichts
@@ -70,13 +71,17 @@ class PlayerStatsRecalcListenerTest extends TestCase
         return $game;
     }
 
-    /** @return Substitution&MockObject */
-    private function makeSub(Game $game): Substitution
+    /** @return GameEvent&MockObject */
+    private function makeSub(Game $game, string $code = 'substitution'): GameEvent
     {
-        $sub = $this->createMock(Substitution::class);
-        $sub->method('getGame')->willReturn($game);
+        $type = $this->createMock(GameEventType::class);
+        $type->method('getCode')->willReturn($code);
 
-        return $sub;
+        $event = $this->createMock(GameEvent::class);
+        $event->method('getGame')->willReturn($game);
+        $event->method('getGameEventType')->willReturn($type);
+
+        return $event;
     }
 
     private function flush(): void

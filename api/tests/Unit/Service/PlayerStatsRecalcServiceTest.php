@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Entity\CalendarEvent;
 use App\Entity\Game;
+use App\Entity\GameEvent;
+use App\Entity\GameEventType;
 use App\Entity\Player;
 use App\Entity\PlayerGameStats;
-use App\Entity\Substitution;
+use App\Repository\GameEventRepository;
 use App\Repository\PlayerRepository;
 use App\Service\PlayerStatsRecalcService;
-use Doctrine\Common\Collections\ArrayCollection;
+use DateTime;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -37,20 +41,22 @@ class PlayerStatsRecalcServiceTest extends TestCase
 {
     private EntityManagerInterface&MockObject $em;
     private PlayerRepository&MockObject $playerRepository;
+    private GameEventRepository&MockObject $gameEventRepository;
     private PlayerStatsRecalcService $service;
 
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->playerRepository = $this->createMock(PlayerRepository::class);
-        $this->service = new PlayerStatsRecalcService($this->em, $this->playerRepository);
+        $this->gameEventRepository = $this->createMock(GameEventRepository::class);
+        $this->service = new PlayerStatsRecalcService($this->em, $this->playerRepository, $this->gameEventRepository);
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     /**
-     * @param array<mixed>|null        $matchPlan
-     * @param array<int, Substitution> $substitutions
+     * @param array<mixed>|null      $matchPlan
+     * @param DateTimeInterface|null $startDate startDate des CalendarEvent (null = kein CalendarEvent)
      *
      * @return Game&MockObject
      */
@@ -59,16 +65,50 @@ class PlayerStatsRecalcServiceTest extends TestCase
         ?int $firstExtraTime = null,
         ?int $secondExtraTime = null,
         ?array $matchPlan = null,
-        array $substitutions = [],
+        ?DateTimeInterface $startDate = null,
     ): Game {
         $game = $this->createMock(Game::class);
         $game->method('getHalfDuration')->willReturn($halfDuration);
         $game->method('getFirstHalfExtraTime')->willReturn($firstExtraTime);
         $game->method('getSecondHalfExtraTime')->willReturn($secondExtraTime);
         $game->method('getMatchPlan')->willReturn($matchPlan);
-        $game->method('getSubstitutions')->willReturn(new ArrayCollection($substitutions));
+        $game->method('isFinished')->willReturn(true);
+
+        if (null !== $startDate) {
+            $calendarEvent = $this->createMock(CalendarEvent::class);
+            $calendarEvent->method('getStartDate')->willReturn($startDate);
+            $game->method('getCalendarEvent')->willReturn($calendarEvent);
+        } else {
+            $game->method('getCalendarEvent')->willReturn(null);
+        }
 
         return $game;
+    }
+
+    /**
+     * Erstellt ein GameEvent-Mock für Auswechslungen.
+     * startDate ist Epoch 0, daher gilt: Minute X = Timestamp X*60.
+     *
+     * @param string $code 'substitution'|'substitution_in'|'substitution_out'|'substitution_injury'
+     *
+     * @return GameEvent&MockObject
+     */
+    private function makeGameEvent(
+        int $minute,
+        ?Player $player,
+        ?Player $relatedPlayer = null,
+        string $code = 'substitution',
+    ): GameEvent {
+        $type = $this->createMock(GameEventType::class);
+        $type->method('getCode')->willReturn($code);
+
+        $event = $this->createMock(GameEvent::class);
+        $event->method('getGameEventType')->willReturn($type);
+        $event->method('getPlayer')->willReturn($player);
+        $event->method('getRelatedPlayer')->willReturn($relatedPlayer);
+        $event->method('getTimestamp')->willReturn(new DateTime('@' . ($minute * 60)));
+
+        return $event;
     }
 
     /** @return Player&MockObject */
@@ -127,7 +167,7 @@ class PlayerStatsRecalcServiceTest extends TestCase
 
     public function testEmptyMatchPlanAndNoSubstitutionsDoesNotPersistAnything(): void
     {
-        $game = $this->makeGame(matchPlan: null, substitutions: []);
+        $game = $this->makeGame(matchPlan: null);
         $this->setupDeleteQuery();
 
         $this->playerRepository->expects(self::never())->method('findBy');
@@ -151,8 +191,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
             ]],
         ];
 
-        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->with(['id' => [1, 2]])->willReturn([$player1, $player2]);
 
         $stats = $this->capturePersistedStats($game);
@@ -165,8 +206,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
         $player1 = $this->makePlayer(1);
         $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => [['playerId' => 1, 'isRealPlayer' => true]]]]];
 
-        $game = $this->makeGame(halfDuration: 30, matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(halfDuration: 30, matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->willReturn([$player1]);
 
         $stats = $this->capturePersistedStats($game);
@@ -179,8 +221,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
         $player1 = $this->makePlayer(1);
         $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => [['playerId' => 1, 'isRealPlayer' => true]]]]];
 
-        $game = $this->makeGame(halfDuration: 45, firstExtraTime: 3, secondExtraTime: 5, matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(halfDuration: 45, firstExtraTime: 3, secondExtraTime: 5, matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->willReturn([$player1]);
 
         $stats = $this->capturePersistedStats($game);
@@ -193,8 +236,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
         $player1 = $this->makePlayer(1);
         $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => [['playerId' => 1, 'isRealPlayer' => true]]]]];
 
-        $game = $this->makeGame(halfDuration: 0, matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(halfDuration: 0, matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->willReturn([$player1]);
 
         $stats = $this->capturePersistedStats($game);
@@ -208,14 +252,13 @@ class PlayerStatsRecalcServiceTest extends TestCase
         $player1 = $this->makePlayer(1);
         $player2 = $this->makePlayer(2);
 
-        $sub = $this->createMock(Substitution::class);
-        $sub->method('getMinute')->willReturn(60);
-        $sub->method('getPlayerOut')->willReturn($player1);
-        $sub->method('getPlayerIn')->willReturn($player2);
+        // startDate = Epoch 0; Minute 60 = Timestamp 3600
+        $event = $this->makeGameEvent(60, $player1, $player2, 'substitution');
 
         $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => [['playerId' => 1, 'isRealPlayer' => true]]]]];
-        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, substitutions: [$sub]);
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, startDate: new DateTime('@0'));
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([$event]);
         $this->playerRepository->method('findBy')->with(['id' => [1, 2]])->willReturn([$player1, $player2]);
 
         $stats = $this->capturePersistedStats($game);
@@ -226,17 +269,18 @@ class PlayerStatsRecalcServiceTest extends TestCase
 
     public function testSubstitutedOutPlayerNotInStartElfGetsFromZero(): void
     {
-        // Player 1 wird ausgewechselt, war aber NICHT in der Startelf (fehlender matchPlan)
+        // Player 1 wird ausgewechselt, war aber NICHT in der Startelf (leere start-Phase)
         $player1 = $this->makePlayer(1);
         $player2 = $this->makePlayer(2);
 
-        $sub = $this->createMock(Substitution::class);
-        $sub->method('getMinute')->willReturn(45);
-        $sub->method('getPlayerOut')->willReturn($player1);
-        $sub->method('getPlayerIn')->willReturn($player2);
+        // startDate = Epoch 0; Minute 45 = Timestamp 2700
+        $event = $this->makeGameEvent(45, $player1, $player2, 'substitution');
 
-        $game = $this->makeGame(halfDuration: 45, matchPlan: null, substitutions: [$sub]);
+        // matchPlan mit leerer start-Phase: kein Spieler in der Startelf
+        $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => []]]];
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, startDate: new DateTime('@0'));
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([$event]);
         $this->playerRepository->method('findBy')->with(['id' => [1, 2]])->willReturn([$player1, $player2]);
 
         $stats = $this->capturePersistedStats($game);
@@ -247,36 +291,29 @@ class PlayerStatsRecalcServiceTest extends TestCase
 
     public function testSubstitutionsAreSortedByMinuteBeforeProcessing(): void
     {
-        // Substitutions werden ungeordnet übergeben: zuerst Minute 70, dann Minute 45
+        // findSubstitutions() liefert Events chronologisch sortiert (ORDER BY timestamp ASC)
         $player1 = $this->makePlayer(1);
         $player2 = $this->makePlayer(2);
         $player3 = $this->makePlayer(3);
 
-        $sub70 = $this->createMock(Substitution::class);
-        $sub70->method('getMinute')->willReturn(70);
-        $sub70->method('getPlayerOut')->willReturn($player2);
-        $sub70->method('getPlayerIn')->willReturn($player3);
-
-        $sub45 = $this->createMock(Substitution::class);
-        $sub45->method('getMinute')->willReturn(45);
-        $sub45->method('getPlayerOut')->willReturn($player1);
-        $sub45->method('getPlayerIn')->willReturn($player2);
+        // startDate = Epoch 0; Minute 45 = @2700, Minute 70 = @4200
+        $event45 = $this->makeGameEvent(45, $player1, $player2, 'substitution');
+        $event70 = $this->makeGameEvent(70, $player2, $player3, 'substitution');
 
         $matchPlan = [
             'phases' => [['sourceType' => 'start', 'players' => [
                 ['playerId' => 1, 'isRealPlayer' => true],
-                ['playerId' => 2, 'isRealPlayer' => true],
             ]]],
         ];
 
-        // sub70 kommt zuerst im Array – Sortierung muss trotzdem korrekt sein
-        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, substitutions: [$sub70, $sub45]);
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, startDate: new DateTime('@0'));
         $this->setupDeleteQuery();
+        // Repository liefert bereits korrekt sortierte Events
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([$event45, $event70]);
         $this->playerRepository->method('findBy')->willReturn([$player1, $player2, $player3]);
 
         $stats = $this->capturePersistedStats($game);
 
-        // Nach Sortierung: sub45 zuerst, dann sub70
         // Player1: 0–45 = 45 Min
         // Player2: kam rein bei 45, geht raus bei 70 → 45–70 = 25 Min
         // Player3: kam rein bei 70, bleibt bis 90 → 70–90 = 20 Min
@@ -295,8 +332,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
             ]]],
         ];
 
-        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->willReturn([$player1]); // player 99 fehlt
 
         $stats = $this->capturePersistedStats($game);
@@ -316,8 +354,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
             ]]],
         ];
 
-        $game = $this->makeGame(matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
 
         $this->playerRepository->expects(self::never())->method('findBy');
         $this->em->expects(self::never())->method('persist');
@@ -338,8 +377,9 @@ class PlayerStatsRecalcServiceTest extends TestCase
             ],
         ];
 
-        $game = $this->makeGame(matchPlan: $matchPlan, substitutions: []);
+        $game = $this->makeGame(matchPlan: $matchPlan);
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([]);
         $this->playerRepository->method('findBy')->with(['id' => [1]])->willReturn([$player1]);
 
         $stats = $this->capturePersistedStats($game);
@@ -357,21 +397,16 @@ class PlayerStatsRecalcServiceTest extends TestCase
         $player3 = $this->makePlayer(3);
 
         // player2 geht raus bei 60, player3 kommt rein – player3 geht direkt wieder raus bei 60
-        $sub1 = $this->createMock(Substitution::class);
-        $sub1->method('getMinute')->willReturn(60);
-        $sub1->method('getPlayerOut')->willReturn($player2);
-        $sub1->method('getPlayerIn')->willReturn($player3);
-
-        $sub2 = $this->createMock(Substitution::class);
-        $sub2->method('getMinute')->willReturn(60);
-        $sub2->method('getPlayerOut')->willReturn($player3); // direkt wieder raus
-        $sub2->method('getPlayerIn')->willReturn($player1);
+        // startDate = Epoch 0; beide Events haben Minute 60 = Timestamp 3600
+        $event1 = $this->makeGameEvent(60, $player2, $player3, 'substitution');
+        $event2 = $this->makeGameEvent(60, $player3, $player1, 'substitution'); // player3 direkt wieder raus
 
         $matchPlan = ['phases' => [['sourceType' => 'start', 'players' => [
             ['playerId' => 2, 'isRealPlayer' => true],
         ]]]];
-        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, substitutions: [$sub1, $sub2]);
+        $game = $this->makeGame(halfDuration: 45, matchPlan: $matchPlan, startDate: new DateTime('@0'));
         $this->setupDeleteQuery();
+        $this->gameEventRepository->method('findSubstitutions')->willReturn([$event1, $event2]);
         $this->playerRepository->method('findBy')->willReturn([$player1, $player2, $player3]);
 
         $stats = $this->capturePersistedStats($game);

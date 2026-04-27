@@ -3,12 +3,10 @@
 namespace App\Command;
 
 use App\Repository\NotificationRepository;
-use App\Service\HeartbeatService;
 use App\Service\PushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -16,14 +14,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
 #[AsCommand(name: 'app:notifications:send-unsent', description: 'Send unsent notifications via PushNotificationService')]
-class SendUnsentNotificationsCommand extends Command
+class SendUnsentNotificationsCommand extends AbstractCronCommand
 {
     public function __construct(
         private EntityManagerInterface $em,
         private NotificationRepository $notificationRepository,
         private PushNotificationService $pushNotificationService,
         private LoggerInterface $logger,
-        private HeartbeatService $heartbeatService,
     ) {
         parent::__construct();
     }
@@ -34,7 +31,7 @@ class SendUnsentNotificationsCommand extends Command
         $this->addOption('batch', null, InputOption::VALUE_OPTIONAL, 'Batch size for DB flush', 20);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    protected function doCronExecute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
@@ -49,7 +46,7 @@ class SendUnsentNotificationsCommand extends Command
         if (0 === $count) {
             $io->success('No unsent notifications found.');
 
-            return Command::SUCCESS;
+            return self::SUCCESS;
         }
 
         $io->progressStart($count);
@@ -96,8 +93,6 @@ class SendUnsentNotificationsCommand extends Command
         $io->progressFinish();
         $io->success(sprintf('Processed %d notifications, flushed %d.', $processed, $flushed ?: $processed));
 
-        $this->heartbeatService->beat('app:notifications:send-unsent');
-
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

@@ -14,7 +14,6 @@ use App\Entity\GameType;
 use App\Entity\League;
 use App\Entity\Location;
 use App\Entity\Participation;
-use App\Entity\Substitution;
 use App\Entity\Task;
 use App\Entity\TaskAssignment;
 use App\Entity\Team;
@@ -68,10 +67,9 @@ class CalendarEventService
         if ('Turnier' === $calendarEvent->getCalendarEventType()?->getName()) {
             $tournament = $this->entityManager->getRepository(Tournament::class)->findOneBy(['calendarEvent' => $calendarEvent]);
             if ($tournament) {
-                // Lösche Abhängigkeiten der Match-Games (game_events, substitutions, videos),
+                // Lösche Abhängigkeiten der Match-Games (game_events, videos),
                 // dann die Matches, das Tournament und zuletzt die Games selbst.
                 $gameEventRepo = $this->entityManager->getRepository(GameEvent::class);
-                $substitutionRepo = $this->entityManager->getRepository(Substitution::class);
                 $videoRepo = $this->entityManager->getRepository(Video::class);
                 $matchGames = [];
 
@@ -81,9 +79,6 @@ class CalendarEventService
                         $matchGames[] = $matchGame;
                         foreach ($gameEventRepo->findBy(['game' => $matchGame]) as $ge) {
                             $this->entityManager->remove($ge);
-                        }
-                        foreach ($substitutionRepo->findBy(['game' => $matchGame]) as $sub) {
-                            $this->entityManager->remove($sub);
                         }
                         foreach ($videoRepo->findBy(['game' => $matchGame]) as $video) {
                             $this->entityManager->remove($video);
@@ -124,12 +119,6 @@ class CalendarEventService
             $gameEvents = $gameEventRepo->findBy(['game' => $game]);
             foreach ($gameEvents as $gameEvent) {
                 $this->entityManager->remove($gameEvent);
-            }
-
-            $substitutionRepo = $this->entityManager->getRepository(Substitution::class);
-            $substitutions = $substitutionRepo->findBy(['game' => $game]);
-            foreach ($substitutions as $substitution) {
-                $this->entityManager->remove($substitution);
             }
 
             $videoRepo = $this->entityManager->getRepository(Video::class);

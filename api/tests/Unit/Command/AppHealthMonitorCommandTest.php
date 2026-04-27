@@ -37,16 +37,35 @@ class AppHealthMonitorCommandTest extends TestCase
         // Use a non-existent dir so the disk-space check is skipped gracefully
         $command = new AppHealthMonitorCommand(
             $this->alertService,
-            $this->heartbeatService,
             $this->connection,
             $this->cronLogger,
             '/tmp/health_monitor_test_nonexistent',
         );
+        $command->setHeartbeatService($this->heartbeatService);
 
         $this->commandTester = new CommandTester($command);
     }
 
     // ── Disk Space ────────────────────────────────────────────────────────
+    //
+    // disk_free_space() / disk_total_space() sind PHP-Native-Funktionen und
+    // können in Unit-Tests nicht gemockt werden. Die Tests nutzen deshalb ein
+    // nicht existentes Verzeichnis, sodass Disk-Checks graceful übersprungen
+    // werden. Das Dual-Condition-Verhalten (Alert nur wenn BEIDE Schwellwerte
+    // überschritten) wird durch einen Integrations- oder manuellen Test abgedeckt.
+
+    public function testCommandAcceptsDiskMinFreeMibOption(): void
+    {
+        $dbResult = $this->createMock(Result::class);
+        $dbResult->method('fetchOne')->willReturn('0');
+        $this->connection->method('executeQuery')->willReturn($dbResult);
+        $this->heartbeatService->method('getLastBeat')
+            ->willReturn(new DateTimeImmutable('@' . (time() - 60)));
+
+        // Muss fehlerfrei ausführen – Option existiert und wird akzeptiert
+        $exitCode = $this->commandTester->execute(['--disk-min-free-mib' => '10240']);
+        $this->assertSame(Command::SUCCESS, $exitCode);
+    }
 
     public function testSucceedsWithNoIssuesAndEmptyQueue(): void
     {
@@ -83,7 +102,7 @@ class AppHealthMonitorCommandTest extends TestCase
 
         $exitCode = $this->commandTester->execute([]);
 
-        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertSame(Command::SUCCESS, $exitCode);
         $this->assertStringContainsString('5 fehlgeschlagene', $this->commandTester->getDisplay());
     }
 

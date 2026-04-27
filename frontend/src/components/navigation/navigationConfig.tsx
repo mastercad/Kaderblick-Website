@@ -32,6 +32,7 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import BuildIcon from '@mui/icons-material/Build';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -162,6 +163,7 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
         ...(isSuperAdmin ? [{ label: 'XP-Konfiguration',     page: 'admin/xp-config',       icon: <EmojiEventsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'Nutzeraktivität',      page: 'admin/activity',        icon: <BarChartIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'System-Einstellungen', page: 'admin/system-settings', icon: <SettingsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
+        ...(isSuperAdmin ? [{ label: 'System-Wartung',       page: 'admin/system-maintenance', icon: <BuildIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
       ],
     },
     {

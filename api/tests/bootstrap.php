@@ -36,6 +36,12 @@ passthru(sprintf(
     $projectDir
 ));
 
+echo "Clear Cache...\n";
+passthru(sprintf(
+    'php "%s/bin/console" cache:clear --env=test --no-warmup --ansi 2>&1',
+    $projectDir
+));
+
 echo "Load Fixtures...\n";
 passthru(sprintf(
     'php "%s/bin/console" doctrine:fixtures:load --no-interaction --group=master --group=test --env=test --ansi 2>&1',

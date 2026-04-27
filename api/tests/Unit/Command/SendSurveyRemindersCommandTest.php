@@ -37,8 +37,8 @@ class SendSurveyRemindersCommandTest extends TestCase
             $this->surveyRepository,
             $this->notificationService,
             $this->logger,
-            $this->heartbeatService,
         );
+        $command->setHeartbeatService($this->heartbeatService);
 
         $application = new Application();
         $application->addCommand($command);
@@ -151,8 +151,8 @@ class SendSurveyRemindersCommandTest extends TestCase
             $this->surveyRepository,
             $this->notificationService,
             $this->logger,
-            $this->heartbeatService,
         );
+        $command->setHeartbeatService($this->heartbeatService);
 
         $this->assertEquals('app:surveys:send-reminders', $command->getName());
     }

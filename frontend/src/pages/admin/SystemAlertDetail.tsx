@@ -131,11 +131,11 @@ export default function SystemAlertDetail() {
         <Link
           component="button"
           variant="body2"
-          onClick={() => navigate('/admin/system-alerts')}
+          onClick={() => navigate('/admin/system-maintenance?tab=alerts')}
           underline="hover"
           color="inherit"
         >
-          System-Alerts
+          System-Wartung
         </Link>
         <Typography variant="body2" color="text.primary">Alert #{alert.id}</Typography>
       </Breadcrumbs>

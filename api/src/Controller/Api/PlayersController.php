@@ -232,7 +232,9 @@ class PlayersController extends AbstractController
 
         if (isset($data['mainPosition']['id'])) {
             $mainPosition = $this->entityManager->getRepository(Position::class)->find($data['mainPosition']['id']);
-            $player->setMainPosition($mainPosition);
+            if (null !== $mainPosition) {
+                $player->setMainPosition($mainPosition);
+            }
         }
 
         if (isset($data['strongFeet']['id'])) {
@@ -350,7 +352,9 @@ class PlayersController extends AbstractController
 
             if (isset($data['mainPosition']['id'])) {
                 $mainPosition = $this->entityManager->getRepository(Position::class)->find($data['mainPosition']['id']);
-                $player->setMainPosition($mainPosition);
+                if (null !== $mainPosition) {
+                    $player->setMainPosition($mainPosition);
+                }
             }
 
             if (isset($data['strongFeet']['id'])) {

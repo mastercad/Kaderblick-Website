@@ -68,11 +68,6 @@ class Game
     #[ORM\OneToMany(targetEntity: GameEvent::class, mappedBy: 'game')]
     private Collection $gameEvents;
 
-    /** @var Collection<int, Substitution> */
-    #[Groups(['game:read', 'game:write'])]
-    #[ORM\OneToMany(targetEntity: Substitution::class, mappedBy: 'game')]
-    private Collection $substitutions;
-
     #[Groups(['game:read', 'game:write'])]
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $homeScore = null;
@@ -175,7 +170,6 @@ class Game
     public function __construct()
     {
         $this->gameEvents = new ArrayCollection();
-        $this->substitutions = new ArrayCollection();
         $this->videos = new ArrayCollection();
     }
 
@@ -289,34 +283,6 @@ class Game
             // set the owning side to null (unless already changed)
             if ($gameEvent->getGame() === $this) {
                 $gameEvent->setGame(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /** @return Collection<int, Substitution> */
-    public function getSubstitutions(): Collection
-    {
-        return $this->substitutions;
-    }
-
-    public function addSubstitution(Substitution $substitution): self
-    {
-        if (!$this->substitutions->contains($substitution)) {
-            $this->substitutions[] = $substitution;
-            $substitution->setGame($this);
-        }
-
-        return $this;
-    }
-
-    public function removeSubstitution(Substitution $substitution): self
-    {
-        if ($this->substitutions->removeElement($substitution)) {
-            // set the owning side to null (unless already changed)
-            if ($substitution->getGame() === $this) {
-                $substitution->setGame(null);
             }
         }
 
