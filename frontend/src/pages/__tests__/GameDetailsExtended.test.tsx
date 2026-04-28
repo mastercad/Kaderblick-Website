@@ -258,7 +258,7 @@ describe('GameDetails – Live banner', () => {
   it('does NOT show live banner when game is in the future', async () => {
     mockFetchGameDetails.mockResolvedValue(defaultResponse());
     renderGame({ gameId: 42 });
-    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     expect(screen.queryByText('Live')).not.toBeInTheDocument();
   });
 });
@@ -268,7 +268,7 @@ describe('GameDetails – Date/Time chips', () => {
     // 2025-05-01T15:00:00Z → "Do, 1. Mai 2025" + "17:00" (or depending on local timezone)
     mockFetchGameDetails.mockResolvedValue(defaultResponse());
     renderGame({ gameId: 42 });
-    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     // Date chip: contains the weekday abbreviation
     const dateLike = screen.queryByText(/20\d\d/);
     // Time chip exists (just check there's a chip with hours:minutes pattern)
@@ -291,7 +291,7 @@ describe('GameDetails – Location', () => {
   it('does not render Location when game.location is null', async () => {
     mockFetchGameDetails.mockResolvedValue(defaultResponse({ location: null }));
     renderGame({ gameId: 42 });
-    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     expect(screen.queryByTestId('location-component')).not.toBeInTheDocument();
   });
 });
@@ -310,7 +310,7 @@ describe('GameDetails – FussballDe sync button', () => {
   it('does NOT render sync button when fussballDeUrl is null', async () => {
     mockFetchGameDetails.mockResolvedValue(defaultResponse({ fussballDeUrl: null }));
     renderGame({ gameId: 42 });
-    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /Synchronisieren/i })).not.toBeInTheDocument();
   });
 });
@@ -325,7 +325,7 @@ describe('GameDetails – isFinished badge', () => {
   it('does NOT show "Spiel beendet" badge when isFinished is false', async () => {
     mockFetchGameDetails.mockResolvedValue(defaultResponse({ isFinished: false }));
     renderGame({ gameId: 42 });
-    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     expect(screen.queryByText('Spiel beendet')).not.toBeInTheDocument();
   });
 });
@@ -335,7 +335,7 @@ describe('GameDetails – Navigation', () => {
     mockFetchGameDetails.mockResolvedValue(defaultResponse());
     const onBack = jest.fn();
     renderGame({ gameId: 42, onBack });
-    await waitFor(() => screen.getByText('FC Home'));
+    await waitFor(() => screen.getAllByText('FC Home'));
     fireEvent.click(screen.getByRole('button', { name: '' })); // ArrowBackIcon button
     expect(onBack).toHaveBeenCalled();
   });

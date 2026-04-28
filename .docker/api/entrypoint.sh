@@ -8,7 +8,7 @@ if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
     usermod -u "$HOST_UID" --non-unique www-data
 fi
 
-mkdir -p /var/www/symfony/var/cache /var/www/symfony/var/log
+mkdir -p /var/www/symfony/var/cache /var/www/symfony/var/log /var/www/symfony/var/backups
 chown -R www-data:www-data /var/www/symfony/var
 chmod -R 775 /var/www/symfony/var
 

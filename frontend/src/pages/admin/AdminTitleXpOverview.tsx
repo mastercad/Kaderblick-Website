@@ -243,7 +243,7 @@ const AdminTitleXpOverview: React.FC = () => {
           <Box sx={{ mb: 4 }}>
             <Box sx={{
               position: 'sticky',
-              top: { xs: 56, md: 64 },
+              top: 'var(--app-header-height)',
               zIndex: 9,
               px: 3, py: 2,
               display: 'flex', alignItems: 'center', gap: 1.5,
@@ -321,7 +321,7 @@ const AdminTitleXpOverview: React.FC = () => {
           <Box>
             <Box sx={{
               position: 'sticky',
-              top: { xs: 56, md: 64 },
+              top: 'var(--app-header-height)',
               zIndex: 9,
               px: 3, py: 2,
               display: 'flex', alignItems: 'center', gap: 1.5,

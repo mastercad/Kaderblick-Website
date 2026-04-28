@@ -27,6 +27,10 @@ inputs:
     description: 'SSH-Timeout'
     required: false
     default: '30m'
+  database_url:
+    description: 'Überschreibt DATABASE_URL in .env.{env}.local vor fixtures:load (Pflicht für Demo)'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -41,7 +45,13 @@ runs:
         script: |
           set -e
           cd "${{ inputs.work_dir }}"
-          docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
-            exec -T --user www-data api \
+          DC="docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }}"
+          if [ -n "${{ inputs.database_url }}" ]; then
+            $DC exec -T api sh -c \
+              "sed -i 's|^DATABASE_URL=.*|DATABASE_URL=${{ inputs.database_url }}|' \
+               /var/www/symfony/.env.${{ inputs.env }}.local"
+            echo "DATABASE_URL in .env.${{ inputs.env }}.local auf Instanz-DB gesetzt."
+          fi
+          $DC exec -T --user www-data api \
             bin/console doctrine:fixtures:load \
             --env=${{ inputs.env }} --no-interaction --append --group=master

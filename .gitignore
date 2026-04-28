@@ -1,5 +1,8 @@
 .env
 public/uploads
+backups/
+staging_backups/
+demo_backups/
 api/var/cache/
 api/var/logs/
 nginx.conf.example

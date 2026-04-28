@@ -6,6 +6,9 @@
 }
 
 :root {
+  --app-header-height: 56px;
+  --app-header-height-transition: height 0.25s ease;
+  --sidebar-width: 0px;
   font-family: 'Roboto flex', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 300;
@@ -22,6 +25,22 @@
   /* Touch optimization */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --app-header-height: 64px;
+  }
+}
+
+body.app-scrolled {
+  --app-header-height: 36px;
+}
+
+@media (min-width: 900px) {
+  body.app-scrolled {
+    --app-header-height: 40px;
+  }
 }
 
 * {

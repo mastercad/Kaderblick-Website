@@ -1702,8 +1702,8 @@ describe('Matchday', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Zusagen' })).toBeInTheDocument());
     // Zusagen (sort_order 1) should appear before Absagen (sort_order 2)
     const buttons = screen.getAllByRole('button');
-    const zusagenIdx = buttons.findIndex(b => b.textContent === 'Zusagen');
-    const absagenIdx = buttons.findIndex(b => b.textContent === 'Absagen');
+    const zusagenIdx = buttons.findIndex(b => b.getAttribute('aria-label') === 'Zusagen');
+    const absagenIdx = buttons.findIndex(b => b.getAttribute('aria-label') === 'Absagen');
     expect(zusagenIdx).toBeLessThan(absagenIdx);
   });
 

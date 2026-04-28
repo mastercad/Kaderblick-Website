@@ -57,7 +57,7 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare, o
 
   return (
     <>
-      {!isHome && <Box sx={{ height: { xs: 56, md: 64 } }} />}
+      {!isHome && <Box sx={{ height: 'var(--app-header-height)', transition: 'height 0.25s ease' }} />}
 
       <NavAppBar
         onOpenAuth={onOpenAuth}

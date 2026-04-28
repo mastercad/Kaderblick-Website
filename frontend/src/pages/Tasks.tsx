@@ -401,7 +401,7 @@ const Tasks: React.FC = () => {
       <Box
         sx={{
           position: 'sticky',
-          top: { xs: 56, md: 64 },
+          top: 'var(--app-header-height)',
           zIndex: 10,
           bgcolor: 'background.default',
           pt: 1.5,

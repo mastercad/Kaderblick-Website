@@ -1,6 +1,5 @@
 import React from 'react';
 import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -16,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useHomeScroll } from '../../context/HomeScrollContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useUnreadMessageCount } from '../../hooks/useUnreadMessageCount';
+import { useScrollShrink } from '../../hooks/useScrollShrink';
 import { isPublicSeoPath } from '../../seo/siteConfig';
 import UserAvatar from '../UserAvatar';
 
@@ -34,6 +34,7 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
+  const isScrolled = useScrollShrink(10);
 
   const isHome = location.pathname === '/' || location.pathname === '';
   const isPublicSeoRoute = isPublicSeoPath(location.pathname);
@@ -49,10 +50,20 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
         backgroundColor: 'transparent',
         boxShadow: 'none',
         color: isHome ? '#fff' : 'primary.contrastText',
-        transition: 'background 0.3s',
+        transition: 'background 0.3s, min-height 0.25s ease',
       }}
     >
-      <Toolbar sx={{ color: isHome ? '#fff' : 'primary.contrastText' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          color: isHome ? '#fff' : 'primary.contrastText',
+          px: { xs: 1, sm: 2 },
+          height: 'var(--app-header-height)',
+          transition: 'height 0.25s ease',
+          overflow: 'hidden',
+        }}
+      >
         {/* Logo — auf Desktop ausgeblendet wenn Sidebar sichtbar (zeigt eigenes Brand) */}
         <Typography
           variant="h6"
@@ -60,7 +71,11 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
           sx={{ flexGrow: 1, cursor: 'pointer', userSelect: 'none' }}
           onClick={() => navigate('/')}
           title="Zur Startseite"
-          style={{ fontFamily: 'ImpactWeb, Impact, "Arial Black", sans-serif', fontSize: '2rem' }}
+          style={{
+            fontFamily: 'ImpactWeb, Impact, "Arial Black", sans-serif',
+            fontSize: isScrolled ? '1.1rem' : '2rem',
+            transition: 'font-size 0.25s ease',
+          }}
         >
           {location.pathname !== '/' && (
             <>
@@ -73,9 +88,8 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Tooltip title="Benachrichtigungen">
               <IconButton
-                size="large"
                 onClick={onOpenNotifications}
-                sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.75 }}
+                sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.75, transition: 'padding 0.25s ease' }}
               >
                 <Badge
                   badgeContent={unreadCount}
@@ -84,17 +98,19 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
                   overlap="circular"
                   sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 16, height: 16 } }}
                 >
-                  {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
+                  {unreadCount > 0
+                    ? <NotificationsIcon sx={{ fontSize: isScrolled ? '1.2rem' : '1.5rem', transition: 'font-size 0.25s ease' }} />
+                    : <NotificationsNoneIcon sx={{ fontSize: isScrolled ? '1.2rem' : '1.5rem', transition: 'font-size 0.25s ease' }} />
+                  }
                 </Badge>
               </IconButton>
             </Tooltip>
             <IconButton
-              size="large"
               aria-label="Benutzerkonto"
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={onOpenUserMenu}
-              sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.5 }}
+              sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.5, transition: 'padding 0.25s ease' }}
             >
               <Badge
                 variant="dot"
@@ -106,8 +122,8 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
                 <UserAvatar
                   icon={(user?.useGoogleAvatar && user?.googleAvatarUrl) ? user.googleAvatarUrl : (user?.avatarFile || undefined)}
                   name=""
-                  avatarSize={32}
-                  fontSize={16}
+                  avatarSize={isScrolled ? 22 : 32}
+                  fontSize={isScrolled ? 11 : 16}
                   titleObj={user?.title?.hasTitle ? user.title : undefined}
                   svgFrameOffsetY={0}
                   level={user?.level?.level}
@@ -165,7 +181,7 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
             )}
           </Box>
         )}
-      </Toolbar>
+      </Box>
     </AppBar>
   );
 }

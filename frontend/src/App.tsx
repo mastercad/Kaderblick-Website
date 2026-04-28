@@ -152,6 +152,13 @@ function App() {
       return next;
     });
   };
+
+  useEffect(() => {
+    const width = (user && !isMobile)
+      ? (sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH)
+      : 0;
+    document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+  }, [user, isMobile, sidebarCollapsed]);
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOnHeroSection } = useHomeScroll();
@@ -295,12 +302,12 @@ function App() {
                     <Box
                       sx={{
                         position: 'sticky',
-                        top: 64,
-                        height: 'calc(100dvh - 64px)',
+                        top: 'var(--app-header-height)',
+                        height: 'calc(100dvh - var(--app-header-height))',
                         alignSelf: 'flex-start',
                         flexShrink: 0,
                         width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
-                        transition: 'width 0.22s ease',
+                        transition: 'width 0.22s ease, top 0.25s ease, height 0.25s ease',
                         zIndex: (t) => t.zIndex.appBar - 1,
                         borderRight: `1px solid ${muiTheme.palette.divider}`,
                         overflow: 'hidden',

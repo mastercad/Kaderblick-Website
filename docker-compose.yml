@@ -17,6 +17,10 @@ services:
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
       - ./public/uploads:/var/www/symfony/public/uploads
+      # Persistentes Backup-Verzeichnis: bleibt über Container-Restarts und Deployments hinweg
+      # erhalten. Auf dem Server verweist ./backups auf ein umgebungsspezifisches shared-Dir
+      # (production_current/backups → $MAIN_PROJECT_PATH/backups etc.).
+      - ./backups:/var/www/symfony/var/backups
     environment:
       DATABASE_URL: ${DATABASE_URL:-mysql://kaderblick:kaderblick@db:3306/kaderblick}
       XDEBUG_MODE: ${XDEBUG_MODE:-off}

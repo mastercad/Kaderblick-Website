@@ -28,6 +28,10 @@ inputs:
   main_project_path:
     description: 'Basis-Projektpfad auf dem Server (für JWT-Key-Backup)'
     required: true
+  database_url:
+    description: 'Überschreibt DATABASE_URL in .env.{env}.local nach secrets:decrypt-to-local (Pflicht für Demo, um prod-Secrets nicht zu verwenden)'
+    required: false
+    default: ''
   command_timeout:
     description: 'SSH-Timeout'
     required: false
@@ -57,6 +61,12 @@ runs:
           if echo "$DECRYPT_OUT" | grep -qiE 'permission denied|failed to open stream|error'; then
             echo "FEHLER: secrets:decrypt-to-local schlug fehl – Berechtigungsproblem!"
             exit 1
+          fi
+          if [ -n "${{ inputs.database_url }}" ]; then
+            $DC exec -T api sh -c \
+              "sed -i 's|^DATABASE_URL=.*|DATABASE_URL=${{ inputs.database_url }}|' \
+               /var/www/symfony/.env.${{ inputs.env }}.local"
+            echo "DATABASE_URL in .env.${{ inputs.env }}.local auf Instanz-DB gesetzt."
           fi
           $DC exec -T --user www-data api bin/console cache:clear --no-warmup --env=${{ inputs.env }}
           $DC exec -T --user www-data api bin/console cache:warmup --env=${{ inputs.env }}

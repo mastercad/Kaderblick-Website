@@ -17,3 +17,15 @@ jest.mock('../config', () => ({
 // JSDOM does not implement URL.createObjectURL / revokeObjectURL
 Object.defineProperty(global.URL, 'createObjectURL', { writable: true, value: jest.fn(() => 'blob:mock-url') });
 Object.defineProperty(global.URL, 'revokeObjectURL', { writable: true, value: jest.fn() });
+
+// JSDOM does not implement IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = '';
+  readonly thresholds: ReadonlyArray<number> = [];
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+};

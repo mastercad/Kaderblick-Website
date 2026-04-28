@@ -530,12 +530,9 @@ describe('GameDetails – Permission Constellations', () => {
         expect(screen.getAllByText('Tor').length).toBeGreaterThanOrEqual(2);
       });
 
-      // Jedes Event hat einen "Ereignis bearbeiten" und "Ereignis löschen" Button
-      const editButtons = screen.getAllByRole('button', { name: /Ereignis bearbeiten/i });
-      const deleteButtons = screen.getAllByRole('button', { name: /Ereignis löschen/i });
-
-      expect(editButtons).toHaveLength(2);
-      expect(deleteButtons).toHaveLength(2);
+      // Jedes Event hat einen "Ereignis-Optionen" Button (3-Punkte-Kontextmenü)
+      const optionsButtons = screen.getAllByRole('button', { name: /Ereignis-Optionen/i });
+      expect(optionsButtons).toHaveLength(2);
     });
 
     it('sind NICHT sichtbar bei can_create_game_events=false (auch mit Events)', async () => {
@@ -567,11 +564,20 @@ describe('GameDetails – Permission Constellations', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Ereignis bearbeiten/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Ereignis-Optionen/i })).toBeInTheDocument();
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /Ereignis bearbeiten/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Ereignis-Optionen/i }));
+      });
+
+      // Klick auf "Bearbeiten" im Dropdown-Menü
+      await waitFor(() => {
+        expect(screen.getByText('Bearbeiten')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Bearbeiten'));
       });
 
       expect(screen.getByText('GameEventModalOpen')).toBeInTheDocument();

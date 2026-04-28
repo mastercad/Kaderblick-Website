@@ -289,7 +289,7 @@ const SurveyList: React.FC = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}
         sx={{
           position: 'sticky',
-          top: { xs: 56, md: 64 },
+          top: 'var(--app-header-height)',
           zIndex: 10,
           bgcolor: 'background.default',
           pt: 1.5,

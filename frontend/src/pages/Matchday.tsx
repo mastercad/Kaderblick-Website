@@ -28,6 +28,8 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import GroupIcon from '@mui/icons-material/Group';
 import { apiJson } from '../utils/api';
 import Location from '../components/Location';
+import { ParticipationButtons } from '../components/ParticipationButtons';
+import type { ParticipationStatus } from '../types/participation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -152,13 +154,7 @@ interface MatchdayData {
   squadReadiness: SquadTeam[] | null;
 }
 
-interface ParticipationStatus {
-  id: number;
-  name: string;
-  color?: string;
-  icon?: string;
-  sort_order?: number;
-}
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -775,33 +771,12 @@ export default function Matchday() {
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
           Meine Rückmeldung:
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
-          {[...participationStatuses]
-            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map(status => {
-              const isActive = myParticipation?.statusId === status.id;
-              return (
-                <Button
-                  key={status.id}
-                  variant={isActive ? 'contained' : 'outlined'}
-                  size="small"
-                  disabled={savingParticipation}
-                  onClick={() => handleParticipation(status.id)}
-                  sx={{
-                    borderRadius: 5,
-                    textTransform: 'none',
-                    fontWeight: isActive ? 700 : 500,
-                    bgcolor: isActive ? (status.color ?? undefined) : undefined,
-                    color: isActive ? '#fff' : (status.color ?? undefined),
-                    borderColor: status.color ?? undefined,
-                    '&:hover': { opacity: 0.85 },
-                  }}
-                >
-                  {status.name}
-                </Button>
-              );
-            })}
-        </Stack>
+        <ParticipationButtons
+          statuses={participationStatuses}
+          currentParticipation={myParticipation ? { statusId: myParticipation.statusId, statusName: myParticipation.status } : null}
+          saving={savingParticipation}
+          onStatusClick={handleParticipation}
+        />
 
         {/* Full participant list (coaches / admins) */}
         {isCoachOrAdmin && participants.length > 0 && (

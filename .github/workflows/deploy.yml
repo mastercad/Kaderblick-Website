@@ -192,6 +192,30 @@ jobs:
               ln -s "$SHARED" "$DIR/public/uploads"
             done
 
+      - name: Prepare shared backups symlinks
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            ROOT="${{ secrets.MAIN_PROJECT_PATH }}"
+            # Jede Umgebung hat ein eigenes persistentes Backup-Verzeichnis.
+            # Der Container mountet ./backups → /var/www/symfony/var/backups.
+            # Das Release-Dir enthält einen Symlink auf das umgebungsspezifische shared-Dir.
+            declare -A BACKUP_DIRS
+            BACKUP_DIRS["${{ steps.release.outputs.prod_dir }}"]="$ROOT/backups"
+            BACKUP_DIRS["${{ steps.release.outputs.staging_dir }}"]="$ROOT/staging_backups"
+            BACKUP_DIRS["${{ steps.release.outputs.demo_dir }}"]="$ROOT/demo_backups"
+            for RELEASE_DIR in "${!BACKUP_DIRS[@]}"; do
+              SHARED="${BACKUP_DIRS[$RELEASE_DIR]}"
+              mkdir -p "$SHARED"
+              chmod 750 "$SHARED"
+              rm -rf "$RELEASE_DIR/backups"
+              ln -s "$SHARED" "$RELEASE_DIR/backups"
+            done
+
       # ============================================================
       # INFRASTRUKTUR: DB + Maintenance-Container
       # ============================================================
@@ -578,6 +602,7 @@ jobs:
           compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
           work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_current
           main_project_path: ${{ secrets.MAIN_PROJECT_PATH }}
+          database_url: ${{ secrets.DEMO_DATABASE_URL }}
 
       - name: Load fixtures on demo
         if: contains(inputs.target, 'demo')
@@ -590,6 +615,7 @@ jobs:
           compose_project: demo
           compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
           work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_current
+          database_url: ${{ secrets.DEMO_DATABASE_URL }}
 
       - name: Disable demo maintenance
         if: always() && contains(inputs.target, 'demo')

@@ -1,13 +1,7 @@
 // ─── Shared Types for EventDetailsModal ─────────────────────────────────────
 
-export interface ParticipationStatus {
-  id: number;
-  name: string;
-  color?: string;
-  icon?: string;
-  code: string;
-  sort_order: number;
-}
+import type { ParticipationStatus, CurrentParticipation } from '../../types/participation';
+export type { ParticipationStatus, CurrentParticipation };
 
 export interface Participation {
   user_id: number;
@@ -21,14 +15,6 @@ export interface Participation {
     icon?: string;
     code: string;
   };
-}
-
-export interface CurrentParticipation {
-  statusId: number;
-  statusName: string;
-  color?: string;
-  icon?: string;
-  note?: string;
 }
 
 export interface EventLocation {

@@ -19,9 +19,6 @@ export function PageTabBar() {
         borderBottom: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
-        position: 'sticky',
-        top: { xs: 56, md: 64 },
-        zIndex: 10,
       }}
     >
       <Tabs
