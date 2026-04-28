@@ -20,6 +20,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CheckroomIcon from '@mui/icons-material/Checkroom';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNavConfig, isNavItemActive, navItemColorMap } from './navigationConfig';
@@ -113,10 +114,11 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
             <SectionHeader title="Trainer" />
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
               {([
-                { key: 'formations',      label: 'Aufstellungen', icon: <GroupWorkIcon sx={{ fontSize: 28 }} />,  color: navItemColorMap['formations'] },
-                { key: 'players',         label: 'Spieler',       icon: <PersonIcon sx={{ fontSize: 28 }} />,     color: navItemColorMap['players'] },
-                { key: 'teams',           label: 'Teams',         icon: <GroupsIcon sx={{ fontSize: 28 }} />,     color: navItemColorMap['teams'] },
-                { key: 'team-size-guide', label: 'Team Size',     icon: <CheckroomIcon sx={{ fontSize: 28 }} />,  color: navItemColorMap['team-size-guide'] },
+                { key: 'formations',      label: 'Aufstellungen',    icon: <GroupWorkIcon sx={{ fontSize: 28 }} />,       color: navItemColorMap['formations'] },
+                { key: 'players',         label: 'Spieler',          icon: <PersonIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['players'] },
+                { key: 'teams',           label: 'Teams',            icon: <GroupsIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['teams'] },
+                { key: 'team-size-guide', label: 'Team Size',        icon: <CheckroomIcon sx={{ fontSize: 28 }} />,      color: navItemColorMap['team-size-guide'] },
+                { key: 'watchlist',       label: 'Beobachtung',      icon: <BookmarkBorderIcon sx={{ fontSize: 28 }} />, color: navItemColorMap['watchlist'] },
               ] as { key: string; label: string; icon: React.ReactElement; color: string }[]).map((tile) => {
                 const isActive = active(tile.key);
                 return (

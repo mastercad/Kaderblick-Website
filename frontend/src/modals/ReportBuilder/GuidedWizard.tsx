@@ -2,9 +2,13 @@ import React from 'react';
 import {
   Box,
   Button,
+  Checkbox,
+  Chip,
   CircularProgress,
+  FormControlLabel,
   LinearProgress,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -15,6 +19,7 @@ import { OptionCard } from './OptionCard';
 import { StepContext } from './StepContext';
 import { useWizardState } from './useWizardState';
 import { SUBJECT_OPTIONS, TIME_OPTIONS } from './wizardTypes';
+import { getSuggestedTypes, WIZARD_DIAGRAM_TYPE_LABELS } from './wizardLogic';
 
 export interface GuidedWizardProps {
   state: ReportBuilderState;
@@ -170,6 +175,66 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
             inputRef={wiz.nameRef}
             onKeyDown={e => { if (e.key === 'Enter' && wiz.reportName.trim()) wiz.handleSave(); }}
           />
+
+          {/* ── Chart-Typ Auswahl: nur sinnvolle Alternativen ── */}
+          {subject && topic && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block' }}>
+                Darstellungsart
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {getSuggestedTypes(subject, topic).map(type => {
+                  const isActive = (props.state.currentReport.config.diagramType ?? 'bar') === type;
+                  return (
+                    <Tooltip key={type} title={WIZARD_DIAGRAM_TYPE_LABELS[type] ?? type}>
+                      <Chip
+                        label={WIZARD_DIAGRAM_TYPE_LABELS[type] ?? type}
+                        size="small"
+                        onClick={() => {
+                          const isComparison = subject === 'player_comparison' || subject === 'team_comparison';
+                          const isTeamDist = subject === 'team';
+                          const needsMultiColor = type === 'bar' && (isComparison || isTeamDist);
+                          props.state.setCurrentReport(prev => ({
+                            ...prev,
+                            config: {
+                              ...prev.config,
+                              diagramType: type,
+                              multiColor: needsMultiColor ? true : undefined,
+                              showLegend: ['doughnut', 'pie'].includes(type),
+                            },
+                          }));
+                        }}
+                        color={isActive ? 'primary' : 'default'}
+                        variant={isActive ? 'filled' : 'outlined'}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    </Tooltip>
+                  );
+                })}
+              </Box>
+              <FormControlLabel
+                sx={{ mt: 0.5 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={!!(props.state.currentReport.config as any).hideEmpty}
+                    onChange={(e) =>
+                      props.state.setCurrentReport(prev => ({
+                        ...prev,
+                        config: { ...prev.config, hideEmpty: e.target.checked || undefined },
+                      }))
+                    }
+                  />
+                }
+                label={
+                  <Typography variant="caption" color="text.secondary">
+                    Einträge ohne Wert ausblenden
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
+
           <Box
             sx={{
               border: 1,

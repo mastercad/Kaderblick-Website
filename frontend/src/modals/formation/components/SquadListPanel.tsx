@@ -6,7 +6,6 @@ import {
   Button,
   List,
   ListItem,
-  ListItemText,
   IconButton,
   Tooltip,
   InputAdornment,
@@ -18,7 +17,9 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import EventSeatIcon from '@mui/icons-material/EventSeat';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { getPositionColor } from '../helpers';
 import type { Player, PlayerData } from '../types';
 
@@ -61,6 +62,54 @@ const buildPlayerTooltip = (
         </Box>
       )}
     </Box>
+  );
+};
+
+/** Avatar-Kreis für einen Kader-Spieler.
+ *  Registriert einen non-passive touchstart-Listener, damit e.preventDefault()
+ *  Kontext-Menü und Textauswahl beim LongPress unterdrückt
+ *  (React's onTouchStart ist passive und kann das nicht). */
+const SquadPlayerAvatar: React.FC<{
+  player: Player;
+  isActive: boolean;
+  onSquadDragStart?: (player: Player) => void;
+}> = ({ player, isActive, onSquadDragStart }) => {
+  const avatarRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (isActive) return;
+    const el = avatarRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener('touchstart', prevent, { passive: false });
+    return () => el.removeEventListener('touchstart', prevent);
+  }, [isActive]);
+
+  return (
+    <Tooltip
+      title={buildPlayerTooltip(player.name, player.shirtNumber, player.position ?? undefined, player.alternativePositions)}
+      placement="right"
+      disableInteractive
+    >
+      <Box
+        ref={avatarRef}
+        sx={{
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+          bgcolor: isActive ? 'action.disabled' : getPositionColor(player.position ?? null),
+          color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 800, fontSize: '0.6rem', letterSpacing: 0.3,
+          cursor: isActive ? 'default' : 'grab',
+          touchAction: isActive ? 'auto' : 'none',
+          userSelect: 'none',
+          WebkitTouchCallout: 'none',
+        }}
+        onTouchStart={isActive ? undefined : () => onSquadDragStart?.(player)}
+        onContextMenu={isActive ? undefined : e => e.preventDefault()}
+      >
+        {player.position ?? '?'}
+      </Box>
+    </Tooltip>
   );
 };
 
@@ -168,105 +217,58 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
               draggable={!isActive}
               onDragStart={isActive ? undefined : event => handleDragStart(event, player)}
               onDragEnd={() => onSquadDragEnd?.()}
-              onTouchStart={isActive ? undefined : () => onSquadDragStart?.(player)}
-              sx={{ opacity: isActive ? 0.55 : 1, py: 0.35 }}
+              sx={{ py: 0.2 }}
             >
-              <Tooltip
-                title={buildPlayerTooltip(player.name, player.shirtNumber, player.position ?? undefined, player.alternativePositions)}
-                placement="right"
-                disableInteractive
+              <Box
+                display="flex"
+                alignItems="center"
+                gap={1}
+                sx={{
+                  width: '100%',
+                  px: 0.75,
+                  py: 0.5,
+                  borderRadius: 2,
+                  opacity: isActive ? 0.55 : 1,
+                  bgcolor: isActive ? 'action.selected' : 'transparent',
+                  cursor: isActive ? 'default' : 'grab',
+                  '&:hover': isActive ? {} : { bgcolor: 'action.hover' },
+                }}
               >
-                <Box
-                  display="flex"
-                  width="100%"
-                  gap={0.75}
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: isActive ? 'divider' : 'transparent',
-                    bgcolor: isActive ? 'action.selected' : 'background.paper',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'flex-start', sm: 'center' },
-                    cursor: isActive ? 'default' : 'grab',
-                    '&:hover': isActive ? {} : { bgcolor: 'action.hover' },
-                    '&:active': isActive ? {} : { cursor: 'grabbing' },
-                  }}
-                >
-                  <Box display="flex" alignItems="center" gap={0.75} width={{ xs: '100%', sm: 'auto' }}>
-                    <DragIndicatorIcon
-                      fontSize="small"
-                      sx={{ color: isActive ? 'transparent' : 'text.disabled', flexShrink: 0, fontSize: '1rem' }}
-                    />
-                    {player.position && (
-                      <Chip
-                        label={player.position}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.62rem',
-                          fontWeight: 700,
-                          minWidth: 30,
-                          px: 0.25,
-                          bgcolor: 'primary.main',
-                          color: 'white',
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
-                    {isActive && (
-                      <Chip
-                        size="small"
-                        label="Im Einsatz"
-                        variant="outlined"
-                        color="success"
-                        sx={{ ml: 'auto', display: { xs: 'inline-flex', sm: 'none' } }}
-                      />
-                    )}
-                  </Box>
+                {/* Avatar – drag handle for touch (touchAction:none only here) */}
+                <SquadPlayerAvatar
+                  player={player}
+                  isActive={isActive}
+                  onSquadDragStart={onSquadDragStart}
+                />
 
-                  <ListItemText
-                    primary={player.name}
-                    secondary={[
-                      player.shirtNumber != null ? `#${player.shirtNumber}` : null,
-                      player.alternativePositions?.length ? `Alt: ${player.alternativePositions.join(', ')}` : null,
-                    ].filter(Boolean).join(' · ') || undefined}
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                    sx={{ flex: 1, minWidth: 0, mr: 0, my: 0 }}
-                  />
-
-                  <Box display="flex" gap={0.5} flexShrink={0} width={{ xs: '100%', sm: 'auto' }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: { xs: 0, sm: 44 }, flex: { xs: 1, sm: 'none' }, fontSize: '0.72rem', px: 0.9 }}
-                      onClick={() => onAddToField(player)}
-                      disabled={isActive}
-                    >
-                      Feld
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="secondary"
-                      sx={{ minWidth: { xs: 0, sm: 44 }, flex: { xs: 1, sm: 'none' }, fontSize: '0.72rem', px: 0.9 }}
-                      onClick={() => onAddToBench(player)}
-                      disabled={isActive}
-                    >
-                      Bank
-                    </Button>
-                    {isActive && (
-                      <Chip
-                        size="small"
-                        label="Im Einsatz"
-                        variant="outlined"
-                        color="success"
-                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                      />
-                    )}
-                  </Box>
+                {/* Name + meta */}
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={600} noWrap>
+                    {player.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                    {[player.shirtNumber != null ? `#${player.shirtNumber}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
+                  </Typography>
                 </Box>
-              </Tooltip>
+
+                {/* Actions */}
+                {isActive ? (
+                  <CheckCircleOutlineIcon fontSize="small" sx={{ color: 'success.main', flexShrink: 0 }} />
+                ) : (
+                  <Box display="flex" flexShrink={0}>
+                    <Tooltip title="Auf Spielfeld setzen">
+                      <IconButton size="small" onClick={() => onAddToField(player)}>
+                        <SportsSoccerIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Auf Bank setzen">
+                      <IconButton size="small" onClick={() => onAddToBench(player)}>
+                        <EventSeatIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+              </Box>
             </ListItem>
           );
         })}
@@ -304,56 +306,43 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
 
       <List dense disablePadding>
         {fieldPlayers.map(player => (
-          <ListItem key={player.id} disablePadding sx={{ py: 0.35 }}>
-            <Tooltip
-              title={buildPlayerTooltip(player.name, player.number, player.position, player.alternativePositions)}
-              placement="right"
-              disableInteractive
+          <ListItem key={player.id} disablePadding sx={{ py: 0.2 }}>
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={1}
+              sx={{
+                width: '100%',
+                px: 0.75,
+                py: 0.5,
+                borderRadius: 2,
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
             >
-              <Box
-                display="flex"
-                width="100%"
-                gap={0.75}
-                sx={{
-                  p: 1,
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                }}
-              >
-                <ListItemText
-                  primary={player.name}
-                  secondary={[
-                    `#${player.number}`,
-                    player.position ?? null,
-                    player.alternativePositions?.length ? `Alt: ${player.alternativePositions.join(', ')}` : null,
-                  ].filter(Boolean).join(' · ')}
-                  primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
-                  sx={{ flex: 1, minWidth: 0, mr: 0, my: 0 }}
-                />
-
-                <Box display="flex" gap={0.5} flexShrink={0} width={{ xs: '100%', sm: 'auto' }}>
-                  <Tooltip title="Auf die Bank setzen">
-                    <Button
-                      size="small"
-                      sx={{ minWidth: { xs: 0, sm: 40 }, flex: { xs: 1, sm: 'none' }, fontSize: '0.7rem', px: 0.75 }}
-                      onClick={() => onSendToBench(player.id)}
-                    >
-                      Bank
-                    </Button>
-                  </Tooltip>
-                  <IconButton
-                    size="small"
-                    onClick={() => onRemoveFromField(player.id)}
-                    sx={{ p: 0.5, alignSelf: { xs: 'flex-end', sm: 'center' } }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+              <Box sx={{
+                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                bgcolor: getPositionColor(player.position ?? null),
+                color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '0.6rem',
+              }}>
+                {player.position ?? '?'}
               </Box>
-            </Tooltip>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" fontWeight={600} noWrap>{player.name}</Typography>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                  {[player.number != null ? `#${player.number}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
+                </Typography>
+              </Box>
+              <Tooltip title="Auf die Bank setzen">
+                <IconButton size="small" onClick={() => onSendToBench(player.id)}>
+                  <EventSeatIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Tooltip>
+              <IconButton size="small" onClick={() => onRemoveFromField(player.id)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </ListItem>
         ))}
       </List>

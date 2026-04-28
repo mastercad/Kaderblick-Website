@@ -9,6 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Contracts\Service\Attribute\Required;
+use Throwable;
 
 /**
  * Basisklasse für alle als Cron-Job betriebenen Symfony-Commands.
@@ -53,16 +54,27 @@ abstract class AbstractCronCommand extends Command
     final protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->suppressBeat = false;
+        $commandName = (string) $this->getName();
 
         try {
             $result = $this->doCronExecute($input, $output);
+        } catch (Throwable $e) {
+            // Fehler im Heartbeat-Service persistieren, damit die Admin-UI ihn anzeigen kann
+            $this->heartbeatService->beatError(
+                $commandName,
+                get_class($e) . ': ' . $e->getMessage()
+            );
+            throw $e;
         } finally {
             // Running-State immer löschen – unabhängig von Erfolg, Fehler oder Exception
-            $this->heartbeatService->clearRunning((string) $this->getName());
+            // (beatError/beat rufen clearRunning intern ebenfalls auf – doppeltes Löschen ist harmlos)
+            $this->heartbeatService->clearRunning($commandName);
         }
 
         if (Command::SUCCESS === $result && !$this->suppressBeat) { // @phpstan-ignore booleanNot.alwaysTrue
-            $this->heartbeatService->beat((string) $this->getName());
+            $this->heartbeatService->beat($commandName);
+        } elseif (Command::SUCCESS !== $result) {
+            $this->heartbeatService->beatError($commandName, 'Job beendet mit Fehler-Statuscode.');
         }
 
         return $result;

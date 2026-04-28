@@ -51,28 +51,55 @@ describe('buildConfig — diagramType', () => {
     expect(cfg.diagramType).toBe('radaroverlay');
   });
 
-  it('player + goals → bar, yField=goals', () => {
+  it('player + goals → bar by month, xField=month, yField=goals, showLabels', () => {
     const cfg = buildConfig('player', 'goals', 'all', NO_DATES);
     expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('month');
     expect(cfg.yField).toBe('goals');
+    expect(cfg.showLabels).toBe(true);
   });
 
-  it('player + assists → bar, yField=assists', () => {
+  it('player + assists → bar by month, xField=month, yField=assists', () => {
     const cfg = buildConfig('player', 'assists', 'all', NO_DATES);
     expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('month');
     expect(cfg.yField).toBe('assists');
   });
 
-  it('player + cards → bar, yField=yellowCards', () => {
+  it('player + cards → bar by month, xField=month, yField=yellowCards', () => {
     const cfg = buildConfig('player', 'cards', 'all', NO_DATES);
     expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('month');
     expect(cfg.yField).toBe('yellowCards');
   });
 
-  it('player + trend → line, xField=month', () => {
-    const cfg = buildConfig('player', 'trend', 'all', NO_DATES);
+  it('team + trend → line, xField=month', () => {
+    const cfg = buildConfig('team', 'trend', 'all', NO_DATES);
     expect(cfg.diagramType).toBe('line');
     expect(cfg.xField).toBe('month');
+  });
+
+  it('team + goals → doughnut (Anteil), xField=player, showLegend', () => {
+    const cfg = buildConfig('team', 'goals', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('doughnut');
+    expect(cfg.xField).toBe('player');
+    expect(cfg.showLegend).toBe(true);
+  });
+
+  it('player_comparison + goals → bar, xField=player, multiColor', () => {
+    const cfg = buildConfig('player_comparison', 'goals', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('player');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
+  });
+
+  it('team_comparison + goals → bar, xField=team, multiColor', () => {
+    const cfg = buildConfig('team_comparison', 'goals', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('team');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
   });
 
   it('team_comparison + trend → line, xField=month, groupBy=team', () => {
@@ -80,6 +107,56 @@ describe('buildConfig — diagramType', () => {
     expect(cfg.diagramType).toBe('line');
     expect(cfg.xField).toBe('month');
     expect(cfg.groupBy).toBe('team');
+  });
+
+  it('player + minutesPlayed → bar by month, yField=minutesPlayed', () => {
+    const cfg = buildConfig('player', 'minutesPlayed', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('month');
+    expect(cfg.yField).toBe('minutesPlayed');
+    expect(cfg.showLabels).toBe(true);
+  });
+
+  it('player + distance → bar by month, yField=distanceCovered', () => {
+    const cfg = buildConfig('player', 'distance', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('month');
+    expect(cfg.yField).toBe('distanceCovered');
+    expect(cfg.showLabels).toBe(true);
+  });
+
+  it('team + minutesPlayed → bar, xField=player, yField=minutesPlayed, multiColor', () => {
+    const cfg = buildConfig('team', 'minutesPlayed', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('player');
+    expect(cfg.yField).toBe('minutesPlayed');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
+  });
+
+  it('team + distance → bar, xField=player, yField=distanceCovered, multiColor', () => {
+    const cfg = buildConfig('team', 'distance', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.xField).toBe('player');
+    expect(cfg.yField).toBe('distanceCovered');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
+  });
+
+  it('player_comparison + minutesPlayed → bar, yField=minutesPlayed, multiColor', () => {
+    const cfg = buildConfig('player_comparison', 'minutesPlayed', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.yField).toBe('minutesPlayed');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
+  });
+
+  it('player_comparison + distance → bar, yField=distanceCovered, multiColor', () => {
+    const cfg = buildConfig('player_comparison', 'distance', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('bar');
+    expect(cfg.yField).toBe('distanceCovered');
+    expect(cfg.multiColor).toBe(true);
+    expect(cfg.showLegend).toBe(false);
   });
 });
 
@@ -153,12 +230,13 @@ describe('buildConfig — Kontext-IDs in filters', () => {
     expect(cfg.filters?.team).toBe('5');
   });
 
-  it('team_comparison mit topic=cards → Standard-Balkendiagramm (xField=team, yField=goals)', () => {
-    // topic='assists' ist für team_comparison nicht vorgesehen und fällt daher zum Default-Zweig
+  it('team_comparison mit ungültigem topic → Bar-Default (xField=team, yField=goals, multiColor)', () => {
+    // topic='assists' existiert nicht als eigener Branch für team_comparison → fällt zum goals-Default
     const cfg = buildConfig('team_comparison', 'assists' as any, 'all', NO_DATES, null, null, []);
     expect(cfg.diagramType).toBe('bar');
     expect(cfg.xField).toBe('team');
     expect(cfg.yField).toBe('goals');
+    expect(cfg.multiColor).toBe(true);
   });
 
   it('subject=player ohne selectedPlayerId → kein filters.player', () => {
@@ -230,9 +308,26 @@ describe('reverseMapWizardConfig — Topic-Erkennung', () => {
     expect(r?.topic).toBe('overview');
   });
 
-  it('xField=month → trend', () => {
+  it('xField=month (kein player-Filter) → trend', () => {
     const r = reverseMapWizardConfig(cfg({ xField: 'month', diagramType: 'line' }), NO_DATES);
     expect(r?.topic).toBe('trend');
+  });
+
+  it('xField=month + filters.player → topic aus yField (nicht trend)', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ xField: 'month', diagramType: 'bar', yField: 'goals', filters: { player: '5' } }),
+      NO_DATES,
+    );
+    expect(r?.topic).toBe('goals');
+    expect(r?.subject).toBe('player');
+  });
+
+  it('xField=month + filters.player + yField=assists → assists', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ xField: 'month', diagramType: 'bar', yField: 'assists', filters: { player: '5' } }),
+      NO_DATES,
+    );
+    expect(r?.topic).toBe('assists');
   });
 
   it('yField=goals → goals', () => {
@@ -248,6 +343,32 @@ describe('reverseMapWizardConfig — Topic-Erkennung', () => {
   it('yField=yellowCards → cards', () => {
     const r = reverseMapWizardConfig(cfg({ yField: 'yellowCards' }), NO_DATES);
     expect(r?.topic).toBe('cards');
+  });
+
+  it('yField=minutesPlayed → minutesPlayed', () => {
+    const r = reverseMapWizardConfig(cfg({ diagramType: 'doughnut', xField: 'player', yField: 'minutesPlayed' }), NO_DATES);
+    expect(r?.topic).toBe('minutesPlayed');
+  });
+
+  it('yField=distanceCovered → distance', () => {
+    const r = reverseMapWizardConfig(cfg({ diagramType: 'doughnut', xField: 'player', yField: 'distanceCovered' }), NO_DATES);
+    expect(r?.topic).toBe('distance');
+  });
+
+  it('xField=month + filters.player + yField=minutesPlayed → minutesPlayed', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ xField: 'month', diagramType: 'bar', yField: 'minutesPlayed', filters: { player: '5' } }),
+      NO_DATES,
+    );
+    expect(r?.topic).toBe('minutesPlayed');
+  });
+
+  it('xField=month + filters.player + yField=distanceCovered → distance', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ xField: 'month', diagramType: 'bar', yField: 'distanceCovered', filters: { player: '5' } }),
+      NO_DATES,
+    );
+    expect(r?.topic).toBe('distance');
   });
 });
 
@@ -363,9 +484,14 @@ describe('isWizardCompatible', () => {
   it('bar + player + shots → kompatibel (Wizard kann shots erzeugen)', () => yes({ yField: 'shots' }));
   it('bar + player + fouls → kompatibel (Wizard kann fouls erzeugen)', () => yes({ yField: 'fouls' }));
   it('bar + player + passes → kompatibel (Wizard kann passes erzeugen)', () => yes({ yField: 'passes' }));
+  it('bar + player + minutesPlayed → kompatibel (PlayerGameStats)', () => yes({ yField: 'minutesPlayed' }));
+  it('bar + player + distanceCovered → kompatibel (PlayerGameStats)', () => yes({ yField: 'distanceCovered' }));
   it('line + month + goals → kompatibel', () => yes({ diagramType: 'line', xField: 'month' }));
   it('bar + team + goals → kompatibel', () => yes({ xField: 'team' }));
   it('bar + team + shots → kompatibel (team_comparison shots)', () => yes({ xField: 'team', yField: 'shots' }));
+  it('doughnut + player + goals → kompatibel (neue Wizard-Ausgabe)', () => yes({ diagramType: 'doughnut' }));
+  it('doughnut + team + goals → kompatibel (team-Verteilung)', () => yes({ diagramType: 'doughnut', xField: 'team' }));
+  it('bar + month + goals → kompatibel (Spieler über Zeit)', () => yes({ diagramType: 'bar', xField: 'month' }));
   it('radaroverlay + player → kompatibel (yField wird ignoriert)', () => yes({ diagramType: 'radaroverlay' }));
   it('radaroverlay + unbekanntes yField → trotzdem kompatibel', () => yes({ diagramType: 'radaroverlay', yField: 'shots' }));
 

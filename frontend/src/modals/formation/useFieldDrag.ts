@@ -20,9 +20,6 @@ import { appendBenchPlayerUnique } from './playerIdentity';
 import { getBestFreeTemplateSlot, getBestFreeformGuideTarget, getDragGuideProfile } from './templateGuidance';
 import type { DragSource, PlayerData } from './types';
 
-/** In % der Felddimensionen – Token gilt als "Ziel" wenn Abstand kleiner. */
-const SWAP_THRESHOLD = 13;
-
 interface UseFieldDragParams {
   autoSnapEnabled: boolean;
   currentTemplateCode: string | null;
@@ -66,6 +63,10 @@ export function useFieldDrag({
   const swapThresholdRef = useRef<number>(8);
   /** Pending requestAnimationFrame-ID – verhindert mehrfach-Scheduling. */
   const rafRef = useRef<number | null>(null);
+  /** Ghost-Element für Bank-Drag: folgt dem Finger über das Feld (kein React-State). */
+  const benchGhostRef = useRef<HTMLDivElement | null>(null);
+  /** Spielerdaten des aktuell von der Bank gezogenen Spielers. */
+  const benchDragPlayerRef = useRef<PlayerData | null>(null);
 
   useEffect(() => {
     playersRef.current = players;
@@ -111,7 +112,7 @@ export function useFieldDrag({
     const pitchEl = pitchRef.current;
     const tokenEl = tokenRefs.current.get(id);
     if (!pitchEl || !tokenEl) {
-      swapThresholdRef.current = 8;
+      swapThresholdRef.current = 6;
       return;
     }
 
@@ -119,7 +120,9 @@ export function useFieldDrag({
     const tokenRect = tokenEl.getBoundingClientRect();
     const widthPercent = (tokenRect.width / pitchRect.width) * 100;
     const heightPercent = (tokenRect.height / pitchRect.height) * 100;
-    swapThresholdRef.current = Math.max(6, Math.max(widthPercent, heightPercent) * 0.95);
+    // Threshold = halbe Token-Größe in %, gedeckelt auf 8 damit auf Mobile
+    // (kleines Pitch, große Tokens) der Swap nicht schon aus einem Icon-Abstand triggt.
+    swapThresholdRef.current = Math.min(8, Math.max(5, Math.max(widthPercent, heightPercent) * 0.5));
   }, [pitchRef, tokenRefs]);
 
   const findNearestSwapTarget = useCallback((list: PlayerData[], draggedId: number, x: number, y: number) => {
@@ -201,12 +204,13 @@ export function useFieldDrag({
     updateSwapTarget(null);
     setDraggedPlayerId(id);
     updateDraggedFrom('field');
-    e.preventDefault();
     e.stopPropagation();
   }, [calibrateSwapThreshold, pitchRef, updateDraggedTokenPreview]);
 
   const startDragFromBench = useCallback((id: number, e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault(); // Verhindert Textmarkierung beim Ziehen
+    const benched = benchPlayersRef.current.find(p => p.id === id);
+    if (!benched) return;
+    benchDragPlayerRef.current = benched;
     draggedPlayerIdRef.current = id;
     dragOriginRef.current = null;
     dragPosRef.current = null;
@@ -225,18 +229,25 @@ export function useFieldDrag({
     const currentFrom = draggedFromRef.current;
 
     if (currentFrom === 'bench') {
-      // Bank→Feld: erst den Spieler von der Bank nehmen (einmalig via React),
-      // dann normal als Feld-Token behandeln
-      const benched = benchPlayersRef.current.find(p => p.id === id);
-      if (benched) {
-        draggedFromRef.current = 'field';
-        setDraggedFrom('field');
-        dragOriginRef.current = null;
-        dragPosRef.current = pointerPos;
-        setBenchPlayers(prev => prev.filter(p => p.id !== id));
-        setPlayers(prev => [...prev, { ...benched, ...pointerPos }]);
-        // DOM-Element ist jetzt neu gemountet – nächster Move-Event setzt es direkt
+      // Ghost dem Pointer nachführen; Feldposition speichern falls über dem Pitch.
+      const rect = pitchRef.current.getBoundingClientRect();
+      const rawX = ((clientX - rect.left) / rect.width) * 100;
+      const rawY = ((clientY - rect.top) / rect.height) * 100;
+      const overPitch = rawX >= 0 && rawX <= 100 && rawY >= 0 && rawY <= 100;
+
+      if (benchGhostRef.current) {
+        if (overPitch) {
+          benchGhostRef.current.style.display = 'flex';
+          benchGhostRef.current.style.left = clientX + 'px';
+          benchGhostRef.current.style.top  = clientY + 'px';
+        } else {
+          benchGhostRef.current.style.display = 'none';
+        }
       }
+
+      dragPosRef.current = overPitch
+        ? { x: clampPercent(rawX), y: clampPercent(rawY) }
+        : null;
       return;
     }
 
@@ -280,7 +291,7 @@ export function useFieldDrag({
    *   Falls ja → Feld-Spieler geht auf die Bank, Bank-Spieler übernimmt seine Position.
    */
   const finalizeDrop = useCallback(() => {
-    // Pending rAF abbrechen – wir setzen gleich den State mit der finalen Position
+    // Pending rAF abbrechen
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -291,12 +302,89 @@ export function useFieldDrag({
     const finalPos = dragPosRef.current;
     const currentSwapTargetId = swapTargetIdRef.current;
 
+    // ── Bank → Feld ───────────────────────────────────────────────────────
+    if (currentFrom === 'bench') {
+      // Ghost ausblenden
+      if (benchGhostRef.current) {
+        benchGhostRef.current.style.display = 'none';
+      }
+
+      const benched = benchDragPlayerRef.current;
+      benchDragPlayerRef.current = null;
+
+      if (id !== null && finalPos !== null && benched) {
+        setPlayers(prev => {
+          const withNew = [...prev, { ...benched, x: finalPos.x, y: finalPos.y }];
+          const dragged = withNew.find(p => p.id === id)!;
+
+          // Kollision: liegt ein Feldspieler an der Ablagestelle?
+          let nearest: PlayerData | null = null;
+          let minDist = swapThresholdRef.current;
+          for (const p of prev) {
+            const d = Math.hypot(p.x - finalPos.x, p.y - finalPos.y);
+            if (d < minDist) { minDist = d; nearest = p; }
+          }
+
+          if (nearest) {
+            const targetPos = { x: nearest.x, y: nearest.y };
+            setBenchPlayers(pb => appendBenchPlayerUnique(pb.filter(p => p.id !== id), { ...nearest! }));
+            return withNew
+              .filter(p => p.id !== nearest!.id)
+              .map(p => p.id === id ? { ...p, ...targetPos } : p);
+          }
+
+          if (!autoSnapEnabled) {
+            setBenchPlayers(pb => pb.filter(p => p.id !== id));
+            return withNew;
+          }
+
+          const dragProfile = getDragGuideProfile(dragged);
+          const snappedSlot = getBestFreeTemplateSlot({
+            templateCode: currentTemplateCode,
+            profile: dragProfile,
+            players: withNew,
+            movingPlayerId: id,
+            anchorPosition: finalPos,
+          });
+
+          if (snappedSlot) {
+            setBenchPlayers(pb => pb.filter(p => p.id !== id));
+            return withNew.map(p => p.id === id
+              ? { ...p, x: snappedSlot.slot.x, y: snappedSlot.slot.y }
+              : p);
+          }
+
+          const fallbackTarget = getBestFreeformGuideTarget(dragProfile, finalPos);
+          if (fallbackTarget) {
+            setBenchPlayers(pb => pb.filter(p => p.id !== id));
+            return withNew.map(p => p.id === id
+              ? { ...p, x: fallbackTarget.x, y: fallbackTarget.y }
+              : p);
+          }
+
+          setBenchPlayers(pb => pb.filter(p => p.id !== id));
+          return withNew;
+        });
+      }
+
+      // Refs zurücksetzen
+      draggedPlayerIdRef.current = null;
+      dragPosRef.current = null;
+      dragOriginRef.current = null;
+      draggedFromRef.current = null;
+      dragOffsetRef.current = { x: 0, y: 0 };
+      updateSwapTarget(null);
+      setDraggedPlayerId(null);
+      setDraggedFrom(null);
+      return;
+    }
+
+    // ── Feld → Feld ───────────────────────────────────────────────────────
     if (id !== null && currentFrom === 'field') {
       const origin = dragOriginRef.current;
-      if (origin) {
         // Field-to-field: Positionen tauschen
         setPlayers(prev => {
-          const actualPos = readPreviewPosition(id, finalPos ?? origin);
+          const actualPos = readPreviewPosition(id, finalPos ?? origin ?? { x: 0, y: 0 });
 
           // State auf finale DOM-Position bringen
           const withFinal = prev.map(p => p.id === id ? { ...p, ...actualPos } : p);
@@ -345,65 +433,6 @@ export function useFieldDrag({
             return p;
           });
         });
-      } else {
-        // Bank→Feld: verdränge Feldspieler auf die Bank
-        setPlayers(prev => {
-          const draggedPlayer = prev.find(p => p.id === id);
-          const actualPos = readPreviewPosition(id, finalPos ?? {
-            x: draggedPlayer?.x ?? 50,
-            y: draggedPlayer?.y ?? 50,
-          });
-
-          const withFinal = prev.map(p => p.id === id ? { ...p, ...actualPos } : p);
-          const dragged = withFinal.find(p => p.id === id);
-          if (!dragged) return prev;
-
-          let nearest: PlayerData | null = null;
-          let minDist = SWAP_THRESHOLD;
-          for (const p of withFinal) {
-            if (p.id === id) continue;
-            const d = Math.hypot(p.x - dragged.x, p.y - dragged.y);
-            if (d < minDist) { minDist = d; nearest = p; }
-          }
-
-          if (!nearest) {
-            if (!autoSnapEnabled) return withFinal;
-
-            const dragProfile = getDragGuideProfile(dragged);
-            const snappedSlot = getBestFreeTemplateSlot({
-              templateCode: currentTemplateCode,
-              profile: dragProfile,
-              players: withFinal,
-              movingPlayerId: id,
-              anchorPosition: actualPos,
-            });
-
-            if (!snappedSlot) {
-              const fallbackTarget = getBestFreeformGuideTarget(dragProfile, actualPos);
-              if (!fallbackTarget) return withFinal;
-
-              return withFinal.map(player => (
-                player.id === id
-                  ? { ...player, x: fallbackTarget.x, y: fallbackTarget.y }
-                  : player
-              ));
-            }
-
-            return withFinal.map(player => (
-              player.id === id
-                ? { ...player, x: snappedSlot.slot.x, y: snappedSlot.slot.y }
-                : player
-            ));
-          }
-
-          // Feldspieler geht auf die Bank, Bank-Spieler übernimmt seine Position
-          const targetPos = { x: nearest.x, y: nearest.y };
-          setBenchPlayers(previousBench => appendBenchPlayerUnique(previousBench, { ...nearest! }));
-          return withFinal
-            .filter(p => p.id !== nearest!.id)
-            .map(p => p.id === id ? { ...p, ...targetPos } : p);
-        });
-      }
     }
 
     // Refs zurücksetzen
@@ -471,6 +500,8 @@ export function useFieldDrag({
 
   return {
     draggedPlayerId,
+    isDraggingFromBench: draggedFrom === 'bench',
+    benchGhostRef,
     startDragFromField,
     startDragFromBench,
     handlePitchMouseMove,

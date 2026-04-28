@@ -9,6 +9,38 @@ import { TOPIC_OPTIONS } from './wizardTypes';
 import type { ReportConfig } from './types';
 import { DEFAULT_REPORT } from './types';
 
+// ── Suggested diagram types ───────────────────────────────────────────────────
+
+/** Labels for the subset of chart types shown in the wizard type-switcher. */
+export const WIZARD_DIAGRAM_TYPE_LABELS: Record<string, string> = {
+  bar:          'Balken',
+  doughnut:     'Donut',
+  pie:          'Kreis',
+  line:         'Linie',
+  area:         'Fläche',
+  radaroverlay: 'Radar',
+};
+
+/**
+ * Returns an ordered list of chart types that make sense for the given subject + topic.
+ * First entry = recommended default (used by buildConfig).
+ * The list is shown as a type-switcher on the wizard confirm step.
+ */
+export function getSuggestedTypes(subject: Subject, topic: Topic): string[] {
+  if (topic === 'overview') return ['radaroverlay'];
+  if (topic === 'trend')    return ['line', 'area', 'bar'];
+  if (subject === 'player') return ['bar', 'line', 'area'];
+
+  // For team distribution: proportional topics (who scored what share?) → doughnut first
+  const proportional: Topic[] = ['goals', 'assists', 'shots'];
+  if (subject === 'team' && proportional.includes(topic)) {
+    return ['doughnut', 'bar', 'pie'];
+  }
+
+  // Everything else (absolute metrics, comparisons) → bar is most readable
+  return ['bar', 'doughnut', 'pie'];
+}
+
 // ── Config builder ────────────────────────────────────────────────────────────
 
 /** @visibleForTesting */
@@ -80,44 +112,63 @@ export function buildConfig(
         filters,
       };
     }
-    if (topic === 'assists') return { ...base, diagramType: 'bar', xField: 'player', yField: 'assists',     showLegend: false, filters };
-    if (topic === 'cards')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'yellowCards', showLegend: false, filters };
-    if (topic === 'shots')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'shots',       showLegend: false, filters };
-    if (topic === 'fouls')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'fouls',       showLegend: false, filters };
-    if (topic === 'passes')  return { ...base, diagramType: 'bar', xField: 'player', yField: 'passes',      showLegend: false, filters };
-    /* goals (default) */     return { ...base, diagramType: 'bar', xField: 'player', yField: 'goals',       showLegend: false, filters };
+    // Bar chart, one bar per player, each bar gets its own colour via multiColor
+    if (topic === 'assists')      return { ...base, diagramType: 'bar', xField: 'player', yField: 'assists',         multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'cards')        return { ...base, diagramType: 'bar', xField: 'player', yField: 'yellowCards',     multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'shots')        return { ...base, diagramType: 'bar', xField: 'player', yField: 'shots',           multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'fouls')        return { ...base, diagramType: 'bar', xField: 'player', yField: 'fouls',           multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'passes')       return { ...base, diagramType: 'bar', xField: 'player', yField: 'passes',          multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'minutesPlayed') return { ...base, diagramType: 'bar', xField: 'player', yField: 'minutesPlayed',  multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'distance')     return { ...base, diagramType: 'bar', xField: 'player', yField: 'distanceCovered', multiColor: true, showLegend: false, showLabels: true, filters };
+    /* goals (default) */          return { ...base, diagramType: 'bar', xField: 'player', yField: 'goals',           multiColor: true, showLegend: false, showLabels: true, filters };
   }
 
   if (subject === 'team_comparison') {
-    if (topic === 'goals')  return { ...base, diagramType: 'bar',  xField: 'team',  yField: 'goals',       showLegend: false, filters };
-    if (topic === 'cards')  return { ...base, diagramType: 'bar',  xField: 'team',  yField: 'yellowCards', showLegend: false, filters };
-    if (topic === 'shots')  return { ...base, diagramType: 'bar',  xField: 'team',  yField: 'shots',       showLegend: false, filters };
-    if (topic === 'fouls')  return { ...base, diagramType: 'bar',  xField: 'team',  yField: 'fouls',       showLegend: false, filters };
+    // Bar chart, one bar per team, each bar gets its own colour via multiColor
+    if (topic === 'cards')  return { ...base, diagramType: 'bar', xField: 'team', yField: 'yellowCards', multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'shots')  return { ...base, diagramType: 'bar', xField: 'team', yField: 'shots',       multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'fouls')  return { ...base, diagramType: 'bar', xField: 'team', yField: 'fouls',       multiColor: true, showLegend: false, showLabels: true, filters };
     if (topic === 'trend')  return { ...base, diagramType: 'line', xField: 'month', yField: 'goals', groupBy: 'team', showLegend: true, filters };
-    return { ...base, diagramType: 'bar', xField: 'team', yField: 'goals', showLegend: false, filters };
+    /* goals (default) */    return { ...base, diagramType: 'bar', xField: 'team', yField: 'goals',       multiColor: true, showLegend: false, showLabels: true, filters };
   }
 
-  if (topic === 'trend') {
-    return { ...base, diagramType: 'line', xField: 'month', yField: 'goals', showLegend: false, filters };
+  // subject === 'player': show the metric over time (bar per month) — one colour is fine
+  // since it's a single player's progression, not a comparison.
+  if (subject === 'player') {
+    if (topic === 'overview') {
+      return {
+        ...base,
+        diagramType: 'radaroverlay',
+        xField: 'player',
+        yField: 'goals',
+        metrics: ['goals', 'assists', 'shots', 'dribbles', 'duelsWonPercent', 'passes'],
+        radarNormalize: true,
+        showLegend: true,
+        filters,
+      };
+    }
+    if (topic === 'assists')       return { ...base, diagramType: 'bar', xField: 'month', yField: 'assists',         showLegend: false, showLabels: true, filters };
+    if (topic === 'shots')         return { ...base, diagramType: 'bar', xField: 'month', yField: 'shots',           showLegend: false, showLabels: true, filters };
+    if (topic === 'cards')         return { ...base, diagramType: 'bar', xField: 'month', yField: 'yellowCards',     showLegend: false, showLabels: true, filters };
+    if (topic === 'fouls')         return { ...base, diagramType: 'bar', xField: 'month', yField: 'fouls',           showLegend: false, showLabels: true, filters };
+    if (topic === 'passes')        return { ...base, diagramType: 'bar', xField: 'month', yField: 'passes',          showLegend: false, showLabels: true, filters };
+    if (topic === 'minutesPlayed') return { ...base, diagramType: 'bar', xField: 'month', yField: 'minutesPlayed',   showLegend: false, showLabels: true, filters };
+    if (topic === 'distance')      return { ...base, diagramType: 'bar', xField: 'month', yField: 'distanceCovered', showLegend: false, showLabels: true, filters };
+    /* goals (default) */           return { ...base, diagramType: 'bar', xField: 'month', yField: 'goals',           showLegend: false, showLabels: true, filters };
   }
-  if (topic === 'overview') {
-    return {
-      ...base,
-      diagramType: 'radaroverlay',
-      xField: 'player',
-      yField: 'goals',
-      metrics: ['goals', 'assists', 'shots', 'dribbles', 'duelsWonPercent', 'passes'],
-      radarNormalize: true,
-      showLegend: true,
-      filters,
-    };
-  }
-  if (topic === 'assists') return { ...base, diagramType: 'bar', xField: 'player', yField: 'assists',     showLegend: false, filters };
-  if (topic === 'cards')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'yellowCards', showLegend: false, filters };
-  if (topic === 'shots')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'shots',       showLegend: false, filters };
-  if (topic === 'fouls')   return { ...base, diagramType: 'bar', xField: 'player', yField: 'fouls',       showLegend: false, filters };
-  if (topic === 'passes')  return { ...base, diagramType: 'bar', xField: 'player', yField: 'passes',      showLegend: false, filters };
-  /* goals (default) */     return { ...base, diagramType: 'bar', xField: 'player', yField: 'goals',       showLegend: false, filters };
+
+  // subject === 'team': distribution among players
+  // Proportional topics (part-of-whole) → doughnut; absolute metrics → bar+multiColor
+  if (topic === 'trend')         return { ...base, diagramType: 'line',     xField: 'month',  yField: 'goals',           showLegend: false, filters };
+  if (topic === 'goals')         return { ...base, diagramType: 'doughnut', xField: 'player', yField: 'goals',            showLegend: true,  filters };
+  if (topic === 'assists')       return { ...base, diagramType: 'doughnut', xField: 'player', yField: 'assists',          showLegend: true,  filters };
+  if (topic === 'shots')         return { ...base, diagramType: 'doughnut', xField: 'player', yField: 'shots',            showLegend: true,  filters };
+  if (topic === 'cards')         return { ...base, diagramType: 'bar',      xField: 'player', yField: 'yellowCards',      multiColor: true, showLegend: false, showLabels: true, filters };
+  if (topic === 'fouls')         return { ...base, diagramType: 'bar',      xField: 'player', yField: 'fouls',            multiColor: true, showLegend: false, showLabels: true, filters };
+  if (topic === 'passes')        return { ...base, diagramType: 'bar',      xField: 'player', yField: 'passes',           multiColor: true, showLegend: false, showLabels: true, filters };
+  if (topic === 'minutesPlayed') return { ...base, diagramType: 'bar',      xField: 'player', yField: 'minutesPlayed',    multiColor: true, showLegend: false, showLabels: true, filters };
+  if (topic === 'distance')      return { ...base, diagramType: 'bar',      xField: 'player', yField: 'distanceCovered',  multiColor: true, showLegend: false, showLabels: true, filters };
+  /* goals (default) */           return { ...base, diagramType: 'doughnut', xField: 'player', yField: 'goals',            showLegend: true,  filters };
 }
 
 // ── Config reverse-mapper ─────────────────────────────────────────────────────
@@ -150,14 +201,29 @@ export function reverseMapWizardConfig(
 
   // ── Topic
   let topic: Topic;
-  if (config.diagramType === 'radaroverlay')  topic = 'overview';
-  else if (config.xField === 'month')         topic = 'trend';
-  else if (config.yField === 'goals')         topic = 'goals';
-  else if (config.yField === 'assists')       topic = 'assists';
-  else if (config.yField === 'yellowCards')   topic = 'cards';
-  else if (config.yField === 'shots')         topic = 'shots';
-  else if (config.yField === 'fouls')         topic = 'fouls';
-  else if (config.yField === 'passes')        topic = 'passes';
+  if (config.diagramType === 'radaroverlay') {
+    topic = 'overview';
+  } else if (config.xField === 'month' && f.player) {
+    // New wizard format: single player metric displayed as bars-by-month
+    if      (config.yField === 'goals')          topic = 'goals';
+    else if (config.yField === 'assists')        topic = 'assists';
+    else if (config.yField === 'yellowCards')    topic = 'cards';
+    else if (config.yField === 'shots')          topic = 'shots';
+    else if (config.yField === 'fouls')          topic = 'fouls';
+    else if (config.yField === 'passes')         topic = 'passes';
+    else if (config.yField === 'minutesPlayed')  topic = 'minutesPlayed';
+    else if (config.yField === 'distanceCovered') topic = 'distance';
+    else return null;
+  } else if (config.xField === 'month') {
+    topic = 'trend';
+  } else if (config.yField === 'goals')           topic = 'goals';
+  else if (config.yField === 'assists')          topic = 'assists';
+  else if (config.yField === 'yellowCards')      topic = 'cards';
+  else if (config.yField === 'shots')            topic = 'shots';
+  else if (config.yField === 'fouls')            topic = 'fouls';
+  else if (config.yField === 'passes')           topic = 'passes';
+  else if (config.yField === 'minutesPlayed')    topic = 'minutesPlayed';
+  else if (config.yField === 'distanceCovered')  topic = 'distance';
   else return null;
 
   // Validate topic exists for this subject
@@ -196,10 +262,12 @@ export function reverseMapWizardConfig(
  * @visibleForTesting
  */
 export function isWizardCompatible(config: ReportConfig): boolean {
-  if (!['bar', 'line', 'radaroverlay'].includes(config.diagramType)) return false;
+  // Accept bar and line (new wizard output) as well as doughnut (legacy wizard output before the fix)
+  // and radaroverlay (overview topic).
+  if (!['bar', 'line', 'radaroverlay', 'doughnut'].includes(config.diagramType)) return false;
   if (!['player', 'team', 'month'].includes(config.xField ?? '')) return false;
   if (config.diagramType !== 'radaroverlay' &&
-      !['goals', 'assists', 'yellowCards', 'shots', 'fouls', 'passes'].includes(config.yField ?? '')) return false;
+      !['goals', 'assists', 'yellowCards', 'shots', 'fouls', 'passes', 'minutesPlayed', 'distanceCovered'].includes(config.yField ?? '')) return false;
   return true;
 }
 
@@ -212,7 +280,7 @@ export function buildName(
   contextLabel?: string,
 ): string {
   const subjectLabel: Record<Subject, string>   = { team: 'Mannschaft', player: 'Spieler', team_comparison: 'Vergleich', player_comparison: 'Spielervergleich' };
-  const topicLabel:   Record<Topic, string>     = { goals: 'Tore', assists: 'Vorlagen', cards: 'Karten', trend: 'Saisonverlauf', overview: 'Stärken-Profil', shots: 'Torschüsse', fouls: 'Fouls', passes: 'Pässe' };
+  const topicLabel:   Record<Topic, string>     = { goals: 'Tore', assists: 'Vorlagen', cards: 'Karten', trend: 'Saisonverlauf', overview: 'Stärken-Profil', shots: 'Torschüsse', fouls: 'Fouls', passes: 'Pässe', minutesPlayed: 'Spielminuten', distance: 'Laufleistung' };
   const timeLabel:    Record<TimeRange, string> = { season: 'diese Saison', last10: 'letzte 10 Spiele', last_month: 'letzter Monat', all: '' };
   const time = timeLabel[timeRange];
   const label = contextLabel || subjectLabel[subject];

@@ -1,39 +1,46 @@
 import React from 'react';
-import { Paper, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@mui/material';
 
 interface Props {
   label: string;
   value: number;
-  color: 'success' | 'error' | 'default';
+  color: 'success' | 'error' | 'warning' | 'default';
+  icon?: React.ReactNode;
   onClick?: () => void;
   active?: boolean;
 }
 
-const bgMap    = { success: 'success.50', error: 'error.50', default: 'grey.100' } as const;
-const colorMap = { success: 'success.main', error: 'error.main', default: 'text.primary' } as const;
+const bgMap    = { success: 'success.50', error: 'error.50', warning: 'warning.50', default: 'grey.50' } as const;
+const colorMap = { success: 'success.main', error: 'error.main', warning: 'warning.main', default: 'text.secondary' } as const;
 
-export default function SummaryCard({ label, value, color, onClick, active }: Props) {
+export default function SummaryCard({ label, value, color, icon, onClick, active }: Props) {
   return (
     <Paper
       variant="outlined"
       onClick={onClick}
       sx={{
-        px: 2.5,
-        py: 1.5,
-        minWidth: 140,
-        bgcolor: bgMap[color],
+        p: 2,
+        flex: '1 1 0',
+        minWidth: 0,
+        bgcolor: active ? bgMap[color] : 'background.paper',
+        borderColor: active ? colorMap[color] : 'divider',
+        borderWidth: active ? 2 : 1,
         cursor: onClick ? 'pointer' : 'default',
-        outline: active ? '2px solid' : 'none',
-        outlineColor: active ? colorMap[color] : undefined,
-        outlineOffset: 2,
-        transition: 'outline 0.1s, box-shadow 0.1s',
-        '&:hover': onClick ? { boxShadow: 3 } : undefined,
+        transition: 'background-color 0.15s, border-color 0.15s, box-shadow 0.15s',
+        '&:hover': onClick ? { boxShadow: 2, borderColor: colorMap[color] } : undefined,
       }}
     >
-      <Typography variant="h4" fontWeight={700} color={colorMap[color]}>
-        {value}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="h5" fontWeight={700} color={active ? colorMap[color] : 'text.primary'} lineHeight={1}>
+          {value.toLocaleString('de-DE')}
+        </Typography>
+        {icon && (
+          <Box sx={{ color: colorMap[color], opacity: active ? 1 : 0.4, mt: '2px', ml: 1, display: 'flex' }}>
+            {icon}
+          </Box>
+        )}
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.3 }}>
         {label}
       </Typography>
     </Paper>

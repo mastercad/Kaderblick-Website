@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, IconButton, Tooltip, Paper, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getPositionColor, truncateName } from '../helpers';
+import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import { getPositionColor } from '../helpers';
 import type { PlayerData } from '../types';
 
 interface BenchProps {
@@ -25,8 +26,53 @@ const buildBenchTooltip = (player: PlayerData): React.ReactNode => {
       {posLine && (
         <Box component="div" sx={{ fontSize: '0.72rem', opacity: 0.9, mt: 0.25 }}>{posLine}</Box>
       )}
-      <Box component="div" sx={{ fontSize: '0.7rem', opacity: 0.65, mt: 0.5 }}>Klicken → aufs Feld</Box>
+      <Box component="div" sx={{ fontSize: '0.7rem', opacity: 0.65, mt: 0.5 }}>⚽ Auf Feld · Ziehen: gezielt platzieren</Box>
     </Box>
+  );
+};
+
+/** Avatar-Kreis für einen Bankspieler.
+ *  Registriert einen non-passive touchstart-Listener, damit e.preventDefault()
+ *  Kontext-Menü und Textauswahl beim LongPress unterdrückt
+ *  (React's onTouchStart ist passive und kann das nicht). */
+const BenchPlayerAvatar: React.FC<{
+  player: PlayerData;
+  onMouseDown: (id: number, e: React.MouseEvent) => void;
+  onTouchStart: (id: number, e: React.TouchEvent) => void;
+}> = ({ player, onMouseDown, onTouchStart }) => {
+  const avatarRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const el = avatarRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener('touchstart', prevent, { passive: false });
+    return () => el.removeEventListener('touchstart', prevent);
+  }, []);
+
+  return (
+    <Tooltip title="Ziehen zum gezielten Platzieren" placement="left" disableInteractive>
+      <Box
+        ref={avatarRef}
+        sx={{
+          width: 32, height: 32, flexShrink: 0,
+          borderRadius: '50%',
+          bgcolor: getPositionColor(player.position),
+          color: 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 700, fontSize: 13,
+          cursor: 'grab',
+          touchAction: 'none',
+          WebkitTouchCallout: 'none',
+          '&:active': { cursor: 'grabbing' },
+        }}
+        onMouseDown={e => onMouseDown(player.id, e)}
+        onTouchStart={e => onTouchStart(player.id, e)}
+        onContextMenu={e => e.preventDefault()}
+      >
+        {player.number}
+      </Box>
+    </Tooltip>
   );
 };
 
@@ -67,59 +113,60 @@ const Bench: React.FC<BenchProps> = ({
           Ersatzbank
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Antippen setzt einen Spieler zurück aufs Feld, Ziehen erlaubt gezieltes Platzieren.
+          ⚽-Button setzt auf Feld · Avatar ziehen für gezieltes Platzieren.
         </Typography>
       </Box>
       <Chip size="small" label={`${benchPlayers.length} bereit`} />
     </Box>
 
-    <Box display="flex" flexWrap="wrap" gap={0.75}>
+    <Box display="flex" flexDirection="column" gap={0.5}>
       {benchPlayers.map(player => (
         <Tooltip key={player.id} title={buildBenchTooltip(player)} placement="top">
           <Box
             sx={{
-              display: 'flex', alignItems: 'center', gap: 0.5,
+              display: 'flex', alignItems: 'center', gap: 1.25,
               bgcolor: 'background.default',
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 2,
-              px: 1,
+              px: 1.25,
               py: 0.75,
-              cursor: 'grab',
-              touchAction: 'none',
               userSelect: 'none',
-              minHeight: 42,
-              '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' },
+              '&:hover': { bgcolor: 'action.hover' },
             }}
-            onClick={() => onSendToField(player.id)}
-            onMouseDown={e => onMouseDown(player.id, e)}
-            onTouchStart={e => onTouchStart(player.id, e)}
           >
-            {/* Mini shirt number */}
-            <Box sx={{
-              width: 28, height: 28,
-              borderRadius: '50%',
-              bgcolor: getPositionColor(player.position),
-              color: 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 700, fontSize: 12, flexShrink: 0,
-            }}>
-              {player.number}
-            </Box>
+            {/* Avatar – einziger Drag-Handle (touch + mouse) */}
+            <BenchPlayerAvatar
+              player={player}
+              onMouseDown={onMouseDown}
+              onTouchStart={onTouchStart}
+            />
 
-            <Typography variant="caption" fontWeight={600} sx={{
-              maxWidth: { xs: 92, sm: 72 }, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {truncateName(player.name, 10)}
+            {/* Name */}
+            <Typography variant="body2" fontWeight={600} sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {player.name}
             </Typography>
 
+            {/* Auf Feld */}
+            <Tooltip title="Auf Spielfeld setzen">
+              <IconButton
+                size="small"
+                sx={{ p: 0.5, flexShrink: 0 }}
+                onClick={() => onSendToField(player.id)}
+                aria-label={`${player.name} aufs Feld`}
+              >
+                <SportsSoccerIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+
+            {/* Entfernen */}
             <IconButton
               size="small"
-              sx={{ p: 0.25 }}
-              onClick={e => { e.stopPropagation(); onRemove(player.id); }}
+              sx={{ p: 0.5, flexShrink: 0 }}
+              onClick={() => onRemove(player.id)}
               aria-label={`${player.name} von der Bank entfernen`}
             >
-              <DeleteIcon sx={{ fontSize: 14 }} />
+              <DeleteIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Box>
         </Tooltip>

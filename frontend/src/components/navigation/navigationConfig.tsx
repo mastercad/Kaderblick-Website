@@ -214,7 +214,8 @@ export const navItemColorMap: Record<string, string> = {
   'players':         '#26A69A',
   'teams':           '#5C6BC0',
   'team-size-guide': '#FFA726',
-  'messages':     '#29B6F6',
+  'watchlist':       '#EC407A',
+  'messages':        '#29B6F6',
   // Nav groups
   'spielbetrieb': '#EF5350',
   'team':         '#66BB6A',

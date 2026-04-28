@@ -48,26 +48,27 @@ export default function SystemMaintenance() {
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v as number)}
-          sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ borderBottom: 1, borderColor: 'divider', px: { xs: 1, sm: 2 } }}
         >
-          {TABS.map((t, i) => (
-            <Tab
-              key={i}
-              icon={t.icon}
-              iconPosition="start"
-              sx={{ minHeight: 48 }}
-              label={
-                t.key === 'alerts' && openAlertCount > 0
-                  ? <Badge badgeContent={openAlertCount} color="error"
-                      sx={{ '& .MuiBadge-badge': { position: 'relative', top: -1, ml: 0.5, transform: 'none', transformOrigin: 'unset' } }}>
-                      {t.label}
-                    </Badge>
-                  : t.label
-              }
-            />
-          ))}
+          {TABS.map((t, i) => {
+            const hasAlertBadge = t.key === 'alerts' && openAlertCount > 0;
+            return (
+              <Tab
+                key={i}
+                icon={hasAlertBadge
+                  ? <Badge badgeContent={openAlertCount} color="error">{t.icon}</Badge>
+                  : t.icon}
+                iconPosition="start"
+                sx={{ minHeight: 48 }}
+                label={<Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{t.label}</Box>}
+              />
+            );
+          })}
         </Tabs>
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
           {tab === 0 && <GameStatsTab />}
           {tab === 1 && <CronJobsTab />}
           {tab === 2 && <DatabaseTab />}

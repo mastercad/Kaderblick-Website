@@ -1,18 +1,18 @@
 {
     "phpcs.enable": true,
-    "phpcs.executablePath": "api/vendor/bin/phpcs",
+    "phpcs.executablePath": "bin/docker-phpcs",
     "phpcs.standard": "PSR12",
-    
+
     "phpcbf.enable": true,
-    "phpcbf.executablePath": "api/vendor/bin/phpcbf",
+    "phpcbf.executablePath": "bin/docker-phpcbf",
     "phpcbf.standard": "PSR12",
-    
-    "php-cs-fixer.executablePath": "/media/Austausch/Projekte/fussballverein/webapp/api/vendor/bin/php-cs-fixer",
+
+    "php-cs-fixer.executablePath": "${workspaceFolder}/bin/docker-php-cs-fixer",
     "php-cs-fixer.onsave": true,
 
-    "phpstan.executablePath": "api/vendor/bin/phpstan",
+    "phpstan.executablePath": "bin/docker-phpstan",
     "symfony-vscode.phpExecutablePath": "php",
-    "php-cs-fixer.executable": "/media/Austausch/Projekte/fussballverein/webapp/api/vendor/bin/php-cs-fixer",
+    "php-cs-fixer.executable": "${workspaceFolder}/bin/docker-php-cs-fixer",
     "chat.tools.terminal.autoApprove": {
         "npx tsc": true,
         "/^php vendor/bin/phpunit tests/Unit/Security/Voter/CalendarEventVoterTest\\.php --no-configuration --bootstrap vendor/autoload\\.php 2>&1 \\| tail -10$/": {

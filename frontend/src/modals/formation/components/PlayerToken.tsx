@@ -47,10 +47,34 @@ const buildTooltip = (player: PlayerData): React.ReactNode => {
  * `domRef` is passed by the formation editor to directly mutate `left`/`top`
  * during drag without triggering React re-renders.
  */
-const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ playerId, player, isDragging, isHighlighted, onStartDrag, domRef }) => (
+const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ playerId, player, isDragging, isHighlighted, onStartDrag, domRef }) => {
+  const nodeRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Non-passive listener so e.preventDefault() suppresses the long-press
+  // context menu and text selection (React's onTouchStart is passive).
+  React.useEffect(() => {
+    const el = nodeRef.current;
+    if (!el) return;
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener('touchstart', prevent, { passive: false });
+    return () => el.removeEventListener('touchstart', prevent);
+  }, []);
+
+  // Merge the parent's domRef (used for direct style mutation during drag)
+  // with our internal nodeRef.
+  const combinedRef = React.useCallback((node: HTMLDivElement | null) => {
+    nodeRef.current = node;
+    if (typeof domRef === 'function') {
+      domRef(node);
+    } else if (domRef && 'current' in domRef) {
+      (domRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [domRef]);
+
+  return (
   <Tooltip title={buildTooltip(player)} placement="top" disableInteractive>
     <Box
-      ref={domRef}
+      ref={combinedRef}
       sx={{
         '--token-size': 'clamp(24px, 7.4vw, 44px)',
         '--token-number-size': 'clamp(10px, 2.6vw, 15px)',
@@ -90,6 +114,7 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ playerId, player, 
       }}
       onMouseDown={e => onStartDrag(playerId, e)}
       onTouchStart={e => onStartDrag(playerId, e)}
+      onContextMenu={e => e.preventDefault()}
     >
       {/* Numbered circle */}
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
@@ -173,7 +198,8 @@ const PlayerToken: React.FC<PlayerTokenProps> = React.memo(({ playerId, player, 
       </Box>
     </Box>
   </Tooltip>
-));
+  );
+});
 
 PlayerToken.displayName = 'PlayerToken';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getApiErrorMessage } from '../utils/api';
 import {
   Button,
@@ -13,6 +13,8 @@ import {
   Alert,
   Chip,
 } from '@mui/material';
+import Autocomplete from '@mui/material/Autocomplete';
+import ReplayIcon from '@mui/icons-material/Replay';
 import {
   fetchGameEventTypes,
   fetchSubstitutionReasons,
@@ -33,6 +35,77 @@ import {
   isNearHalfEnd,
   DEFAULT_HALF_DURATION,
 } from '../utils/gameEventTime';
+
+// ── Event-Typ Gruppen & Schnellzugriff ───────────────────────────────────────
+
+type EventTypeWithGroup = GameEventType & { group: string; groupOrder: number };
+
+interface LastEventCtx {
+  team: string;
+  eventType: string;
+  player: string;
+  relatedPlayer: string;
+  label: string;
+}
+
+/** Codes die in der Gruppe "★ Häufig genutzt" erscheinen */
+const FAVORITE_CODES = new Set([
+  'goal', 'own_goal', 'penalty_goal', 'freekick_goal', 'header_goal',
+  'assist',
+  'yellow_card', 'red_card', 'yellow_red_card',
+  'substitution', 'substitution_in', 'substitution_out', 'substitution_injury',
+  'foul', 'penalty_foul',
+  'shot_on_target', 'corner',
+]);
+
+function getGroupInfo(code: string): { group: string; groupOrder: number } {
+  if (FAVORITE_CODES.has(code)) return { group: '★ Häufig genutzt', groupOrder: 0 };
+  if (/_goal$/.test(code) || code === 'own_goal_attempt') return { group: 'Tore', groupOrder: 1 };
+  if (code.includes('_card') || code === 'dangerous_play' ||
+      (code.startsWith('foul') && code !== 'foul') ||
+      ['handball', 'unsporting', 'obstruct_keeper', 'dive', 'time_wasting',
+       'bad_throw_in', 'delay_of_game', 'technical_offense', 'offside'].includes(code))
+    return { group: 'Karten & Fouls', groupOrder: 2 };
+  if (code.startsWith('substitution') || code === 'sub_goal') return { group: 'Auswechslungen', groupOrder: 3 };
+  if (code.startsWith('shot') || ['header_on_target', 'header_off_target', 'volley',
+      'bicycle_kick', 'long_shot', 'shot_post', 'shot_bar'].includes(code))
+    return { group: 'Schüsse & Kopfbälle', groupOrder: 4 };
+  if (code.startsWith('keeper') || code === 'save' || code === 'penalty_save')
+    return { group: 'Torhüter', groupOrder: 5 };
+  if (code.startsWith('pass') || ['cross', 'chip_ball', 'long_ball', 'switch_play', 'header_pass',
+      'throw_in_pass', 'ball_control', 'bad_control', 'first_touch',
+      'dribble_success', 'dribble_fail'].includes(code))
+    return { group: 'Pässe & Dribbling', groupOrder: 6 };
+  if (['ball_win', 'ball_loss_unforced', 'ball_loss_forced'].includes(code))
+    return { group: 'Ballgewinn/-verlust', groupOrder: 7 };
+  if (code.startsWith('tackle') || code.startsWith('block') || code.startsWith('def_') ||
+      ['clearance', 'interception', 'intercept_cross', 'positioning'].includes(code))
+    return { group: 'Defensiv', groupOrder: 8 };
+  if (code.startsWith('corner') || code.startsWith('freekick') || code.startsWith('penalty') ||
+      ['throw_in', 'long_throw_in', 'kickoff', 'goal_kick_2', 'referee_ball', 'backpass_to_keeper'].includes(code))
+    return { group: 'Standardsituationen', groupOrder: 9 };
+  if (code.startsWith('halftime') || code.startsWith('var') || code.startsWith('match') ||
+      ['extra_time', 'injury_break', 'drink_break', 'penalty_shootout',
+       'advantage', 'advantage_shown'].includes(code))
+    return { group: 'Spielverlauf', groupOrder: 10 };
+  return { group: 'Sonstiges', groupOrder: 11 };
+}
+
+const GAME_CTX_KEY = (gid: number) => `kb_evt_ctx_${gid}`;
+const LAST_EVT_KEY = (gid: number) => `kb_evt_last_${gid}`;
+
+function loadCtx(gid: number): Partial<{ team: string; eventType: string }> {
+  try { return JSON.parse(sessionStorage.getItem(GAME_CTX_KEY(gid)) ?? '{}'); } catch { return {}; }
+}
+function saveCtx(gid: number, ctx: { team: string; eventType: string }) {
+  try { sessionStorage.setItem(GAME_CTX_KEY(gid), JSON.stringify(ctx)); } catch { /* noop */ }
+}
+function loadLastEvent(gid: number): LastEventCtx | null {
+  try { return JSON.parse(sessionStorage.getItem(LAST_EVT_KEY(gid)) ?? 'null'); } catch { return null; }
+}
+function saveLastEvent(gid: number, ev: LastEventCtx) {
+  try { sessionStorage.setItem(LAST_EVT_KEY(gid), JSON.stringify(ev)); } catch { /* noop */ }
+}
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -89,9 +162,10 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         teamId: existingEvent.teamId || 0,
       };
     }
+    const ctx = loadCtx(gameId);
     return {
-      team: '',
-      eventType: '',
+      team: ctx.team ?? '',
+      eventType: ctx.eventType ?? '',
       player: '',
       relatedPlayer: '',
       minute: initialMinute !== undefined ? String(secondsToMinute(initialMinute)) : '',
@@ -114,6 +188,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   /** Alle aktiven Teamspieler pro teamId */
   const [allPlayersByTeam, setAllPlayersByTeam] = useState<Record<number, SquadPlayer[]>>({});
   const [hasParticipationData, setHasParticipationData] = useState(false);
+  const [lastEvent, setLastEvent] = useState<LastEventCtx | null>(null);
   const prevOpen = useRef(false);
 
   // ── Uhr ───────────────────────────────────────────────────────────────────
@@ -139,6 +214,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   useEffect(() => {
     if (open && !prevOpen.current) {
       setFormData(getInitialFormData());
+      setLastEvent(existingEvent ? null : loadLastEvent(gameId));
     }
     prevOpen.current = open;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,6 +272,18 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
       console.error('Error loading initial data:', error);
     }
   };
+
+  // ── Event-Typ Gruppierung ────────────────────────────────────────────────
+  const eventTypesWithGroup: EventTypeWithGroup[] = useMemo(() =>
+    [...eventTypes]
+      .map(et => ({ ...et, ...getGroupInfo(et.code) }))
+      .sort((a, b) => a.groupOrder !== b.groupOrder
+        ? a.groupOrder - b.groupOrder
+        : a.name.localeCompare(b.name, 'de')),
+    [eventTypes]
+  );
+
+  const selectedEventType = eventTypesWithGroup.find(et => et.id === Number(formData.eventType)) ?? null;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const handleInputChange = (field: string, value: string | number) => {
@@ -292,6 +380,19 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         await updateGameEvent(gameId, existingEvent.id, submitData);
       } else {
         await createGameEvent(gameId, submitData);
+        // Kontext für nächstes Event im selben Spiel persistieren
+        const savedEt = eventTypes.find(et => et.id === Number(formData.eventType));
+        const tId = Number(formData.team);
+        const allForTeam = [...(squadByTeam[tId] ?? []), ...(allPlayersByTeam[tId] ?? [])];
+        const playerObj = allForTeam.find(p => p.id === Number(formData.player));
+        saveCtx(gameId, { team: formData.team, eventType: formData.eventType });
+        saveLastEvent(gameId, {
+          team: formData.team,
+          eventType: formData.eventType,
+          player: formData.player,
+          relatedPlayer: formData.relatedPlayer,
+          label: [savedEt?.name, playerObj?.fullName].filter(Boolean).join(' – '),
+        });
       }
       onSuccess();
     } catch (error) {
@@ -355,108 +456,126 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           border: '2px solid',
           borderColor: 'primary.main',
           borderRadius: 2,
-          p: 2,
+          p: 1.5,
           mb: 3,
         }}>
-          {/* Uhrzeit + Jetzt-Button */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Box>
-              <Typography variant="h5" fontWeight="bold" sx={{ letterSpacing: 1, lineHeight: 1 }}>
-                {currentTime.toLocaleTimeString()}
-              </Typography>
-              {elapsedSeconds > 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  {Math.floor(elapsedSeconds / 60)} min seit Anpfiff
-                </Typography>
-              )}
-            </Box>
+          {/* Zeile 1: Jetzt-Button + live Uhr */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
             <Button
               variant="contained"
               color="success"
-              size="large"
               onClick={handleSetNow}
-              sx={{ minHeight: 56, minWidth: 110, fontSize: '1rem', fontWeight: 'bold' }}
+              sx={{ flex: 1, minHeight: 48, fontSize: '1rem', fontWeight: 'bold' }}
             >
               <i className="fas fa-clock" style={{ marginRight: 8 }} />
               Jetzt
             </Button>
-          </Box>
-
-          {/* Minute + Nachspielzeit */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-            {/* Minuten-Eingabe */}
-            <Box sx={{ flex: '0 0 120px' }}>
-              <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                Spielminute
+            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+              <Typography variant="body1" fontWeight="bold" sx={{ lineHeight: 1.2, letterSpacing: 1 }}>
+                {currentTime.toLocaleTimeString()}
               </Typography>
-              <TextField
-                type="number"
-                value={formData.minute}
-                onChange={e => {
-                  const v = e.target.value.replace(/\D/g, '');
-                  setFormData(prev => ({ ...prev, minute: v, stoppage: '0' }));
-                }}
-                inputProps={{
-                  min: 1,
-                  max: 200,
-                  inputMode: 'numeric',
-                  style: {
-                    fontSize: '1.6rem',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    padding: '12px 8px',
-                  },
-                }}
-                placeholder="–"
-                required
-                fullWidth
-              />
-            </Box>
-
-            {/* Nachspielzeit-Chips */}
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                + Nachspielzeit
-                {!showStoppageChips && min > 0 && (
-                <Typography component="span" variant="caption" color="text.disabled" sx={{ ml: 1 }}>
-                  (bei {halfDuration}' / {halfDuration * 2}')
+              {elapsedSeconds > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  {Math.floor(elapsedSeconds / 60)} min
                 </Typography>
               )}
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
-                  <Chip
-                    key={n}
-                    label={`+${n}`}
-                    onClick={() => handleInputChange('stoppage', String(n))}
-                    color={stopp === n ? 'primary' : 'default'}
-                    variant={stopp === n ? 'filled' : 'outlined'}
-                    disabled={!showStoppageChips && n > 0}
-                    sx={{
-                      minWidth: 44,
-                      fontWeight: 'bold',
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                      opacity: (!showStoppageChips && n > 0) ? 0.3 : 1,
-                    }}
-                  />
-                ))}
-              </Box>
             </Box>
           </Box>
 
-          {/* Vorschau */}
-          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary">Ereignis bei:</Typography>
-            <Typography variant="h6" fontWeight="bold" color="primary.main">
-              {timeDisplay}
+          {/* Zeile 2: Minuten-Stepper + Vorschau */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+              Min.
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const v = Math.max(1, min - 1);
+                setFormData(prev => ({ ...prev, minute: String(v), stoppage: '0' }));
+              }}
+              sx={{ minWidth: 36, px: 0, fontWeight: 'bold', fontSize: '1.1rem' }}
+            >
+              −
+            </Button>
+            <TextField
+              type="number"
+              value={formData.minute}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, '');
+                setFormData(prev => ({ ...prev, minute: v, stoppage: '0' }));
+              }}
+              inputProps={{
+                min: 1,
+                max: 200,
+                inputMode: 'numeric',
+                style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', padding: '6px 4px' },
+              }}
+              placeholder="–"
+              required
+              sx={{ width: 68 }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                const v = Math.min(200, min + 1);
+                setFormData(prev => ({ ...prev, minute: String(v), stoppage: '0' }));
+              }}
+              sx={{ minWidth: 36, px: 0, fontWeight: 'bold', fontSize: '1.1rem' }}
+            >
+              +
+            </Button>
+            <Box sx={{ flex: 1 }} />
+            <Typography variant="h6" fontWeight="bold" color={isTimeValid ? 'primary.main' : 'text.disabled'} sx={{ flexShrink: 0 }}>
+              {isTimeValid ? timeDisplay : '–'}
             </Typography>
           </Box>
+
+          {/* Zeile 3: Nachspielzeit – nur wenn relevant */}
+          {showStoppageChips && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.25, flexWrap: 'wrap' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, mr: 0.25 }}>
+                +NSZ
+              </Typography>
+              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                <Chip
+                  key={n}
+                  label={`+${n}`}
+                  size="small"
+                  onClick={() => handleInputChange('stoppage', String(n))}
+                  color={stopp === n ? 'primary' : 'default'}
+                  variant={stopp === n ? 'filled' : 'outlined'}
+                  sx={{ minWidth: 40, fontWeight: 'bold', cursor: 'pointer' }}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
 
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
           {game.homeTeam.name} vs {game.awayTeam.name}
         </Typography>
+
+        {/* Letztes Event wiederholen */}
+        {!existingEvent && lastEvent && (
+          <Button
+            variant="outlined"
+            size="small"
+            fullWidth
+            startIcon={<ReplayIcon />}
+            onClick={() => setFormData(prev => ({
+              ...prev,
+              team: lastEvent.team,
+              eventType: lastEvent.eventType,
+              player: lastEvent.player,
+              relatedPlayer: lastEvent.relatedPlayer,
+            }))}
+            sx={{ mb: 2, justifyContent: 'flex-start', textAlign: 'left', borderColor: 'divider' }}
+          >
+            Wiederholen: {lastEvent.label}
+          </Button>
+        )}
 
         {/* ── Event-Details ─────────────────────────────────────────────────── */}
         <FormControl fullWidth required sx={{ mb: 2 }}>
@@ -472,24 +591,38 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           </Select>
         </FormControl>
 
-        <FormControl fullWidth required sx={{ mb: 2 }}>
-          <InputLabel>Event-Typ</InputLabel>
-          <Select
-            value={formData.eventType}
-            onChange={e => handleInputChange('eventType', e.target.value)}
-            label="Event-Typ"
-          >
-            <MenuItem value="">Event-Typ wählen…</MenuItem>
-            {eventTypes.map(type => (
-              <MenuItem key={type.id} value={type.id}>
-                <span style={{ color: type.color, marginLeft: 8 }}>
-                  {getGameEventIconByCode(type.code)}
-                </span>
-                {type.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Event-Typ mit Suche und Gruppierung */}
+        <Autocomplete
+          options={eventTypesWithGroup}
+          groupBy={(option) => option.group}
+          getOptionLabel={(option) => option.name}
+          value={selectedEventType}
+          onChange={(_, value) => handleInputChange('eventType', value ? String(value.id) : '')}
+          isOptionEqualToValue={(opt, val) => opt.id === val.id}
+          noOptionsText="Kein Event gefunden"
+          sx={{ mb: 2 }}
+          renderOption={(props, option) => {
+            const { key, ...liProps } = props as React.HTMLAttributes<HTMLLIElement> & { key?: React.Key };
+            return (
+              <li key={key} {...liProps}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ color: option.color, display: 'flex', alignItems: 'center', minWidth: 20, flexShrink: 0 }}>
+                    {getGameEventIconByCode(option.icon ?? '')}
+                  </Box>
+                  <Typography variant="body2">{option.name}</Typography>
+                </Box>
+              </li>
+            );
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Event-Typ"
+              placeholder="Suchen oder tippen…"
+              required
+            />
+          )}
+        />
 
         {/* ── Kader-Indikator: Chip wenn Participation-Daten vorhanden ── */}
         {formData.team && hasParticipationData && (() => {

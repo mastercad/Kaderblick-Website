@@ -85,6 +85,16 @@ export const ReportWidget: React.FC<{
       .finally(() => setLoading(false));
   }, [reportId, refreshTrigger, config]);
 
+  // ── Sync persisted orientation / filter from loaded config ──
+  // Runs once per data load; user can still override via the toggle buttons.
+  useEffect(() => {
+    if (!data) return;
+    const cfgH = (data as any)?.config?.horizontalBar;
+    if (typeof cfgH === 'boolean') setHorizontalBar(cfgH);
+    const cfgHE = (data as any)?.config?.hideEmpty;
+    if (typeof cfgHE === 'boolean') setHideEmpty(cfgHE);
+  }, [data]);
+
   // ── Derived values (computed before early returns to keep hook order stable) ──
   const effectiveType = data
     ? ((data.diagramType as string) || (data as any).config?.diagramType || '').toLowerCase()
@@ -141,17 +151,20 @@ export const ReportWidget: React.FC<{
     datasets: data.datasets.map((ds, i) => {
       const isPie = ['pie', 'doughnut', 'polararea'].includes(effectiveType);
       const isArea = effectiveType === 'area';
+      // multiColor: each bar gets its own colour (like a pie slice). Set by the wizard
+      // for comparison bar charts (player_comparison, team_comparison, team distribution).
+      const isMultiColor = effectiveType === 'bar' && ((data as any)?.config?.multiColor === true);
 
       const computedBackground =
         ds.backgroundColor ||
-        (isPie
+        (isPie || isMultiColor
           ? data.labels.map((_, idx) => defaultColors[idx % defaultColors.length])
           : isArea
             ? rgbaColors[i % rgbaColors.length]
             : defaultColors[i % defaultColors.length]);
       const computedBorder =
         ds.borderColor ||
-        (isPie
+        (isPie || isMultiColor
           ? data.labels.map((_, idx) => defaultColors[idx % defaultColors.length])
           : defaultColors[i % defaultColors.length]);
 

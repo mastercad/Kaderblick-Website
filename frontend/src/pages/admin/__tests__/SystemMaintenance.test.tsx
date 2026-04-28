@@ -144,7 +144,7 @@ describe('SystemMaintenance', () => {
 
     it('renders summary cards after load', async () => {
       await renderAndWait();
-      expect(screen.getByText('Abgeschlossene Spiele')).toBeInTheDocument();
+      expect(screen.getByText('Spiele gesamt')).toBeInTheDocument();
       expect(screen.getByText('Mit Stats')).toBeInTheDocument();
       expect(screen.getByText('Fehlende Stats')).toBeInTheDocument();
       expect(screen.getByText('Ohne Aufstellung')).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe('SystemMaintenance', () => {
       await renderAndWait(
         { summary: { total: 5, withStats: 3, withoutStats: 2, noMatchPlan: 0 } }
       );
-      const cards = screen.getByText('Abgeschlossene Spiele').closest('[class*="Paper"]') ?? document.body;
+      const cards = screen.getByText('Spiele gesamt').closest('[class*="Paper"]') ?? document.body;
       // Check the count "5" is displayed somewhere in the summary area
       const summaryArea = screen.getAllByText('5');
       expect(summaryArea.length).toBeGreaterThan(0);
@@ -227,11 +227,11 @@ describe('SystemMaintenance', () => {
       await waitFor(() => expect(screen.getByText('Recalc-Fehler')).toBeInTheDocument());
     });
 
-    it('clicking "Abgeschlossene Spiele" card reloads with filter=all', async () => {
+    it('clicking "Spiele gesamt" card reloads with filter=all', async () => {
       await renderAndWait();
       mockApiJson.mockResolvedValueOnce(makeGameStatsResponse());
 
-      fireEvent.click(screen.getByText('Abgeschlossene Spiele').closest('[role="button"]') ?? screen.getByText('Abgeschlossene Spiele'));
+      fireEvent.click(screen.getByText('Spiele gesamt').closest('[role="button"]') ?? screen.getByText('Spiele gesamt'));
 
       await waitFor(() => {
         expect(mockApiJson).toHaveBeenCalledWith(
@@ -690,6 +690,351 @@ describe('SystemMaintenance', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Ausführung fehlgeschlagen.')).toBeInTheDocument();
+      });
+    });
+
+    it('shows error message from API error.data.error when job run fails with data payload', async () => {
+      await switchToCronTabFull();
+
+      const err = Object.assign(new Error('ignored'), { data: { error: 'Job läuft bereits.' } });
+      mockApiJson.mockRejectedValueOnce(err);
+      mockApiJson.mockResolvedValueOnce(makeCronStatusResponse());
+
+      fireEvent.click(screen.getByRole('button', { name: /Ausführen: app:health:monitor/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Job läuft bereits.')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── CronJobsTab – running-State und Kill-Button ────────────────────────────
+
+  describe('CronJobsTab – running Job', () => {
+    const makeRunningCronResponse = () => ({
+      jobs: [
+        {
+          command: 'app:health:monitor',
+          label: 'System-Gesundheitscheck',
+          maxAgeMin: 10,
+          lastRunAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          ageMinutes: 5,
+          status: 'running' as const,
+          lastError: null,
+          running: true,
+          runningPid: 1234,
+          runningStartedAt: new Date().toISOString(),
+        },
+      ],
+    });
+
+    async function switchToCronTabRunning() {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce(makeRunningCronResponse());
+      fireEvent.click(screen.getByRole('tab', { name: /Cron-Jobs/i }));
+      await waitFor(() => screen.getByRole('button', { name: /Stoppen: app:health:monitor/i }));
+    }
+
+    it('zeigt Stoppen-Button für laufenden Job', async () => {
+      await switchToCronTabRunning();
+      expect(screen.getByRole('button', { name: /Stoppen: app:health:monitor/i })).toBeInTheDocument();
+    });
+
+    it('Ausführen-Button ist deaktiviert wenn Job läuft', async () => {
+      await switchToCronTabRunning();
+      expect(screen.getByRole('button', { name: /Ausführen: app:health:monitor/i })).toBeDisabled();
+    });
+
+    it('Klick auf Stoppen-Button ruft cron/kill API auf', async () => {
+      await switchToCronTabRunning();
+
+      mockApiJson.mockResolvedValueOnce({ success: true });
+      mockApiJson.mockResolvedValueOnce(makeCronStatusResponse());
+
+      fireEvent.click(screen.getByRole('button', { name: /Stoppen: app:health:monitor/i }));
+
+      await waitFor(() => {
+        expect(mockApiJson).toHaveBeenCalledWith(
+          '/api/admin/system/cron/kill',
+          expect.objectContaining({ method: 'POST', body: { command: 'app:health:monitor' } })
+        );
+      });
+    });
+
+    it('zeigt Erfolgsmeldung nach Kill', async () => {
+      await switchToCronTabRunning();
+
+      mockApiJson.mockResolvedValueOnce({ success: true });
+      mockApiJson.mockResolvedValueOnce(makeCronStatusResponse());
+
+      fireEvent.click(screen.getByRole('button', { name: /Stoppen: app:health:monitor/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Job wird gestoppt/i)).toBeInTheDocument();
+      });
+    });
+
+    it('zeigt Fehlermeldung wenn Kill fehlschlägt', async () => {
+      await switchToCronTabRunning();
+
+      mockApiJson.mockRejectedValueOnce(new Error('Kill fehlgeschlagen'));
+
+      fireEvent.click(screen.getByRole('button', { name: /Stoppen: app:health:monitor/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Kill fehlgeschlagen')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── CronJobsTab – Fehler-Detail-Modal ─────────────────────────────────────
+
+  describe('CronJobsTab – Fehler-Detail-Modal', () => {
+    const makeErrorCronResponse = () => ({
+      jobs: [
+        {
+          command: 'app:health:monitor',
+          label: 'System-Gesundheitscheck',
+          maxAgeMin: 10,
+          lastRunAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          ageMinutes: 5,
+          status: 'error' as const,
+          lastError: 'RuntimeException: DB-Verbindung unterbrochen',
+          running: false,
+          runningPid: null,
+          runningStartedAt: null,
+        },
+      ],
+    });
+
+    async function switchToCronTabError() {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce(makeErrorCronResponse());
+      fireEvent.click(screen.getByRole('tab', { name: /Cron-Jobs/i }));
+      await waitFor(() => screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+    }
+
+    it('zeigt Details-Button für Fehler-Job', async () => {
+      await switchToCronTabError();
+      expect(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i })).toBeInTheDocument();
+    });
+
+    it('öffnet Error-Modal beim Klick auf Details-Button', async () => {
+      await switchToCronTabError();
+      fireEvent.click(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    });
+
+    it('zeigt Fehlermeldung im Modal', async () => {
+      await switchToCronTabError();
+      fireEvent.click(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+      await waitFor(() => {
+        expect(screen.getByText('RuntimeException: DB-Verbindung unterbrochen')).toBeInTheDocument();
+      });
+    });
+
+    it('zeigt Job-Command im Modal', async () => {
+      await switchToCronTabError();
+      fireEvent.click(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+      // Command erscheint auch in der Tabelle – daher within(dialog) für eindeutigen Treffer
+      expect(within(screen.getByRole('dialog')).getByText('app:health:monitor')).toBeInTheDocument();
+    });
+
+    it('schließt Modal beim Klick auf Schließen-Button', async () => {
+      await switchToCronTabError();
+      fireEvent.click(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+      // Modal hat zwei Schließen-Buttons (IconButton im Titel + DialogActions-Button)
+      const closeButtons = within(screen.getByRole('dialog')).getAllByRole('button', { name: /Schließen/i });
+      fireEvent.click(closeButtons[0]);
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('zeigt Details-Button (WarningAmber) für überfälligen Job ohne Fehler', async () => {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce({
+        jobs: [{
+          command: 'app:health:monitor',
+          label: 'System-Gesundheitscheck',
+          maxAgeMin: 10,
+          lastRunAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
+          ageMinutes: 120,
+          status: 'late' as const,
+          lastError: null,
+          running: false,
+          runningPid: null,
+          runningStartedAt: null,
+        }],
+      });
+      fireEvent.click(screen.getByRole('tab', { name: /Cron-Jobs/i }));
+      await waitFor(() => screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+
+      // Modal öffnen und "Überfällig seit" prüfen
+      fireEvent.click(screen.getByRole('button', { name: /Details: System-Gesundheitscheck/i }));
+      await waitFor(() => {
+        expect(screen.getByText(/Überfällig seit/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── DatabaseTab – Löschen ─────────────────────────────────────────────────
+
+  describe('DatabaseTab – Delete', () => {
+    const backup = {
+      filename: 'backup_del_20251201_120000.sql',
+      size: 1024,
+      createdAt: new Date().toISOString(),
+    };
+
+    async function switchToDatabaseTabWithBackup() {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce({ backups: [backup] });
+      fireEvent.click(screen.getByRole('tab', { name: /Datenbank/i }));
+      await waitFor(() => screen.getByText('backup_del_20251201_120000.sql'));
+    }
+
+    it('zeigt Löschen-Button für jedes Backup', async () => {
+      await switchToDatabaseTabWithBackup();
+      const row = screen.getByText('backup_del_20251201_120000.sql').closest('tr')!;
+      expect(within(row).getByRole('button', { name: /Löschen/i })).toBeInTheDocument();
+    });
+
+    it('öffnet Bestätigungs-Dialog beim Klick auf Löschen', async () => {
+      await switchToDatabaseTabWithBackup();
+      const row = screen.getByText('backup_del_20251201_120000.sql').closest('tr')!;
+      fireEvent.click(within(row).getByRole('button', { name: /Löschen/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+    });
+
+    it('ruft DELETE-API auf nach Bestätigung', async () => {
+      await switchToDatabaseTabWithBackup();
+      const row = screen.getByText('backup_del_20251201_120000.sql').closest('tr')!;
+      fireEvent.click(within(row).getByRole('button', { name: /Löschen/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+      mockApiJson
+        .mockResolvedValueOnce({})                   // DELETE
+        .mockResolvedValueOnce({ backups: [] });      // reload
+
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Löschen/i }));
+
+      await waitFor(() => {
+        expect(mockApiJson).toHaveBeenCalledWith(
+          expect.stringContaining('backup_del_20251201_120000.sql'),
+          { method: 'DELETE' }
+        );
+      });
+    });
+
+    it('zeigt Erfolgsmeldung nach Löschen', async () => {
+      await switchToDatabaseTabWithBackup();
+      const row = screen.getByText('backup_del_20251201_120000.sql').closest('tr')!;
+      fireEvent.click(within(row).getByRole('button', { name: /Löschen/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+      mockApiJson
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({ backups: [] });
+
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Löschen/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/backup_del_20251201_120000\.sql.*gelöscht/i)).toBeInTheDocument();
+      });
+    });
+
+    it('zeigt Fehlermeldung wenn Löschen fehlschlägt', async () => {
+      await switchToDatabaseTabWithBackup();
+      const row = screen.getByText('backup_del_20251201_120000.sql').closest('tr')!;
+      fireEvent.click(within(row).getByRole('button', { name: /Löschen/i }));
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+      mockApiJson.mockRejectedValueOnce(new Error('Löschen fehlgeschlagen'));
+
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Löschen/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Löschen fehlgeschlagen')).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── DatabaseTab – Upload-Validierung (Nicht-SQL) ───────────────────────────
+
+  describe('DatabaseTab – Upload-Validierung', () => {
+    it('zeigt Fehler wenn Nicht-SQL-Datei hochgeladen wird', async () => {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce({ backups: [] });
+      fireEvent.click(screen.getByRole('tab', { name: /Datenbank/i }));
+      await waitFor(() => expect(screen.queryAllByRole('progressbar')).toHaveLength(0));
+
+      const fileInput = screen.getByTestId('backup-file-input');
+      const nonSqlFile = new File(['data'], 'dump.tar.gz', { type: 'application/gzip' });
+      fireEvent.change(fileInput, { target: { files: [nonSqlFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Nur \.sql-Dateien/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  // ── GameStatsTab – weitere Filter & recalcAll-Varianten ───────────────────
+
+  describe('GameStatsTab – weitere Branches', () => {
+    it('clicking "Mit Stats" card reloads with filter=withStats', async () => {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce(makeGameStatsResponse());
+
+      fireEvent.click(screen.getByText('Mit Stats').closest('[role="button"]') ?? screen.getByText('Mit Stats'));
+
+      await waitFor(() => {
+        expect(mockApiJson).toHaveBeenCalledWith(
+          expect.stringContaining('filter=withStats')
+        );
+      });
+    });
+
+    it('clicking "Ohne Aufstellung" card reloads with filter=noMatchPlan', async () => {
+      await renderAndWait();
+      mockApiJson.mockResolvedValueOnce(makeGameStatsResponse());
+
+      fireEvent.click(screen.getByText('Ohne Aufstellung').closest('[role="button"]') ?? screen.getByText('Ohne Aufstellung'));
+
+      await waitFor(() => {
+        expect(mockApiJson).toHaveBeenCalledWith(
+          expect.stringContaining('filter=noMatchPlan')
+        );
+      });
+    });
+
+    it('recalc-all zeigt Fehlerzahl wenn failed > 0', async () => {
+      await renderAndWait();
+
+      mockApiJson
+        .mockResolvedValueOnce({ processed: 2, failed: 1 })
+        .mockResolvedValueOnce(makeGameStatsResponse());
+
+      fireEvent.click(screen.getByRole('button', { name: /1 Spiele neu berechnen/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/1 Fehler/i)).toBeInTheDocument();
+      });
+    });
+
+    it('recalc-all zeigt result.message wenn vorhanden', async () => {
+      await renderAndWait();
+
+      mockApiJson
+        .mockResolvedValueOnce({ processed: 0, failed: 0, message: 'Keine Spiele zu verarbeiten.' })
+        .mockResolvedValueOnce(makeGameStatsResponse());
+
+      fireEvent.click(screen.getByRole('button', { name: /1 Spiele neu berechnen/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Keine Spiele zu verarbeiten/i)).toBeInTheDocument();
       });
     });
   });

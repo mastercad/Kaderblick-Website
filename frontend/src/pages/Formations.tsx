@@ -162,7 +162,7 @@ const FormationCard: React.FC<FormationCardProps> = ({
         <CardPitchPreview formation={formation} />
       </CardActionArea>
 
-      <CardContent sx={{ pb: 0, pt: 1.25, flex: 1 }}>
+      <CardContent sx={{ pb: 1.5, pt: 1.25, flex: 1 }}>
         {/* Title row */}
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
           <Typography variant="subtitle1" fontWeight={700} lineHeight={1.25} sx={{ flex: 1, mr: 1 }}>
@@ -179,7 +179,7 @@ const FormationCard: React.FC<FormationCardProps> = ({
         </Box>
 
         {/* Meta chips */}
-        <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.75}>
+        <Box display="flex" flexWrap="wrap" gap={0.75} mt={1} mb={notes ? 1 : 0}>
           {code && (
             <Chip
               label={code}
@@ -204,7 +204,6 @@ const FormationCard: React.FC<FormationCardProps> = ({
         {/* Taktik-Notizen preview */}
         {notes && (
           <Typography variant="caption" color="text.secondary" sx={{
-            mt: 0.75,
             overflow: 'hidden', textOverflow: 'ellipsis',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}>
@@ -213,29 +212,24 @@ const FormationCard: React.FC<FormationCardProps> = ({
         )}
       </CardContent>
 
-      <CardActions sx={{ pt: 0.5, pb: 1, px: 1.5, gap: 0.5 }}>
-        <Button size="small" startIcon={<EditIcon />} onClick={onEdit} variant="outlined" sx={{ flex: 1 }}>
-          Bearbeiten
-        </Button>
+      <CardActions sx={{ pt: 0, pb: 1, px: 1, gap: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Tooltip title="Bearbeiten">
+          <IconButton size="small" onClick={onEdit} color="primary" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'primary.main', color: 'white' } }}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Taktik-Board öffnen">
-          <IconButton
-            size="small"
-            onClick={onTactics}
-            sx={{
-              color: 'primary.main',
-              '&:hover': { bgcolor: 'primary.main', color: 'white' },
-            }}
-          >
+          <IconButton size="small" onClick={onTactics} color="primary" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'primary.main', color: 'white' } }}>
             <PresentToAllIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Duplizieren">
-          <IconButton size="small" onClick={onDuplicate} color="default">
+          <IconButton size="small" onClick={onDuplicate} color="default" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
             <ContentCopyIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Löschen">
-          <IconButton size="small" onClick={onDelete} color="error">
+          <IconButton size="small" onClick={onDelete} color="error" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'error.main', color: 'white' } }}>
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>

@@ -216,6 +216,38 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
+        {diag === 'bar' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!!(currentReport.config as any).horizontalBar}
+                  onChange={(e) => handleConfigChange('horizontalBar', e.target.checked)}
+                />
+              }
+              label="Horizontal anzeigen"
+            />
+            <Tooltip title="Dreht das Balkendiagramm – die Achsen werden getauscht, sodass die Balken waagrecht verlaufen. Nützlich bei langen Beschriftungen." placement="top-end">
+              <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
+            </Tooltip>
+          </Box>
+        )}
+        {['bar', 'pie', 'doughnut'].includes(diag) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!!(currentReport.config as any).hideEmpty}
+                  onChange={(e) => handleConfigChange('hideEmpty', e.target.checked)}
+                />
+              }
+              label="Einträge ohne Wert ausblenden"
+            />
+            <Tooltip title="Blendet Beschriftungen und Datenpunkte aus, bei denen alle Datensätze den Wert 0, null oder leer haben – hält das Diagramm übersichtlicher." placement="top-end">
+              <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
+            </Tooltip>
+          </Box>
+        )}
       </Paper>
 
       {/* DB aggregates (admin only) */}

@@ -18,9 +18,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorIcon from '@mui/icons-material/Error';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
+import SportsIcon from '@mui/icons-material/Sports';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { apiJson, getApiErrorMessage } from '../../../utils/api';
 import { formatDateTime } from './formatters';
 import SummaryCard from './SummaryCard';
@@ -111,11 +115,12 @@ export default function GameStatsTab() {
   return (
     <Box>
       {summary && (
-        <Stack direction="row" spacing={2} sx={{ mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mb: 3 }}>
           <SummaryCard
-            label="Abgeschlossene Spiele"
+            label="Spiele gesamt"
             value={summary.total}
             color="default"
+            icon={<SportsIcon fontSize="small" />}
             active={activeFilter === 'all'}
             onClick={() => handleFilterChange('all')}
           />
@@ -123,6 +128,7 @@ export default function GameStatsTab() {
             label="Mit Stats"
             value={summary.withStats}
             color="success"
+            icon={<CheckCircleOutlineIcon fontSize="small" />}
             active={activeFilter === 'withStats'}
             onClick={() => handleFilterChange('withStats')}
           />
@@ -130,17 +136,19 @@ export default function GameStatsTab() {
             label="Fehlende Stats"
             value={summary.withoutStats}
             color={summary.withoutStats > 0 ? 'error' : 'default'}
+            icon={summary.withoutStats > 0 ? <ErrorIcon fontSize="small" /> : <QueryStatsIcon fontSize="small" />}
             active={activeFilter === 'withoutStats'}
             onClick={() => handleFilterChange('withoutStats')}
           />
           <SummaryCard
             label="Ohne Aufstellung"
             value={summary.noMatchPlan}
-            color="default"
+            color={summary.noMatchPlan > 0 ? 'warning' : 'default'}
+            icon={<WarningAmberIcon fontSize="small" />}
             active={activeFilter === 'noMatchPlan'}
             onClick={() => handleFilterChange('noMatchPlan')}
           />
-        </Stack>
+        </Box>
       )}
 
       {error      && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -179,10 +187,10 @@ export default function GameStatsTab() {
             <TableHead>
               <TableRow>
                 <TableCell>Spiel</TableCell>
-                <TableCell>Datum</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Datum</TableCell>
                 <TableCell>Ergebnis</TableCell>
                 <TableCell align="center">Stats</TableCell>
-                <TableCell align="center">Aufstellung</TableCell>
+                <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Aufstellung</TableCell>
                 <TableCell align="center">Aktion</TableCell>
               </TableRow>
             </TableHead>
@@ -196,8 +204,11 @@ export default function GameStatsTab() {
                     {g.matchDay && (
                       <Typography variant="caption" color="text.secondary">{g.matchDay}</Typography>
                     )}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                      {formatDateTime(g.scheduledAt)}
+                    </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                     <Typography variant="body2">{formatDateTime(g.scheduledAt)}</Typography>
                   </TableCell>
                   <TableCell>
@@ -211,7 +222,7 @@ export default function GameStatsTab() {
                         : <Chip label="–" size="small" />
                     }
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     {g.hasMatchPlan
                       ? <Chip label="Vorhanden" size="small" color="success" variant="outlined" />
                       : <Chip label="Fehlt" size="small" variant="outlined" />
@@ -249,6 +260,7 @@ export default function GameStatsTab() {
             rowsPerPageOptions={PER_PAGE_OPTIONS}
             labelRowsPerPage="Pro Seite:"
             labelDisplayedRows={({ from, to, count }) => `${from}–${to} von ${count}`}
+            sx={{ '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } } }}
           />
         </TableContainer>
       )}

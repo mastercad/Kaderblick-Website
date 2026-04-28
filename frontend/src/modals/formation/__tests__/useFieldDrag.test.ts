@@ -289,7 +289,9 @@ describe('startDragFromBench', () => {
     const { result } = setup([], [benchPlayer]);
 
     act(() => { result.current.startDragFromBench(5, mouseEvent(0, 0)); });
+    // MouseMove speichert die Pitch-Position im Ref; erst MouseUp committet den Spieler
     act(() => { result.current.handlePitchMouseMove(mouseEvent(30, 30)); });
+    act(() => { result.current.handlePitchMouseUp(); });
 
     // Spieler ist jetzt auf dem Feld
     expect(result.current.players.some(p => p.id === 5)).toBe(true);

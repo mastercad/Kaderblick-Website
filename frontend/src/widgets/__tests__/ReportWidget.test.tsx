@@ -50,7 +50,12 @@ jest.mock('../report/FacetedChart', () => ({
 // ChartRenderer
 jest.mock('../report/ChartRenderer', () => ({
   ChartRenderer: (props: any) => (
-    <div data-testid="ChartRenderer" data-type={props.type} data-datasets={props.chartData?.datasets?.length ?? 0} />
+    <div
+      data-testid="ChartRenderer"
+      data-type={props.type}
+      data-datasets={props.chartData?.datasets?.length ?? 0}
+      data-labels={props.chartData?.labels?.length ?? 0}
+    />
   ),
 }));
 
@@ -311,5 +316,106 @@ describe('ReportWidget', () => {
   it('does not call API when no reportId and no config', () => {
     render(<ReportWidget />);
     expect(mockApiJson).not.toHaveBeenCalled();
+  });
+
+  // ── config.hideEmpty ──
+
+  it('filters out zero-value labels when config.hideEmpty=true', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Alice', 'Bob', 'Charlie'],
+      datasets: [{ label: 'Goals', data: [5, 0, 3] }],
+      diagramType: 'bar',
+      config: { hideEmpty: true },
+    });
+    render(<ReportWidget reportId={20} />);
+    await waitFor(() => {
+      // Bob has 0 → filtered; Alice and Charlie remain → 2 labels
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-labels', '2');
+    });
+  });
+
+  it('keeps zero-value labels when config.hideEmpty is not set', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Alice', 'Bob', 'Charlie'],
+      datasets: [{ label: 'Goals', data: [5, 0, 3] }],
+      diagramType: 'bar',
+    });
+    render(<ReportWidget reportId={21} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-labels', '3');
+    });
+  });
+
+  it('filters null/undefined entries when config.hideEmpty=true', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['A', 'B', 'C', 'D'],
+      datasets: [{ label: 'X', data: [1, null, undefined, 2] }],
+      diagramType: 'bar',
+      config: { hideEmpty: true },
+    });
+    render(<ReportWidget reportId={22} />);
+    await waitFor(() => {
+      // B (null) and C (undefined) filtered → 2 remain
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-labels', '2');
+    });
+  });
+
+  it('does NOT filter for non-filterable types (line) even with config.hideEmpty=true', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Jan', 'Feb', 'Mar'],
+      datasets: [{ label: 'Goals', data: [0, 0, 5] }],
+      diagramType: 'line',
+      config: { hideEmpty: true },
+    });
+    render(<ReportWidget reportId={23} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-labels', '3');
+    });
+  });
+
+  it('keeps entry if at least one dataset has a non-zero value', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Alice', 'Bob'],
+      datasets: [
+        { label: 'Goals', data: [0, 2] },
+        { label: 'Assists', data: [3, 0] },
+      ],
+      diagramType: 'bar',
+      config: { hideEmpty: true },
+    });
+    render(<ReportWidget reportId={24} />);
+    await waitFor(() => {
+      // Alice has 0 goals but 3 assists → not all-zero → kept
+      // Bob has 2 goals but 0 assists → not all-zero → kept
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-labels', '2');
+    });
+  });
+
+  // ── config.horizontalBar ──
+
+  it('renders successfully when config.horizontalBar=true', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Alice', 'Bob'],
+      datasets: [{ label: 'Goals', data: [3, 5] }],
+      diagramType: 'bar',
+      config: { horizontalBar: true },
+    });
+    render(<ReportWidget reportId={25} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-type', 'bar');
+    });
+  });
+
+  it('renders successfully when config.horizontalBar=false (explicit vertical)', async () => {
+    mockApiJson.mockResolvedValue({
+      labels: ['Alice', 'Bob'],
+      datasets: [{ label: 'Goals', data: [3, 5] }],
+      diagramType: 'bar',
+      config: { horizontalBar: false },
+    });
+    render(<ReportWidget reportId={26} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('ChartRenderer')).toHaveAttribute('data-type', 'bar');
+    });
   });
 });

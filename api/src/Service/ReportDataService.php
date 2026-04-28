@@ -4,7 +4,9 @@ namespace App\Service;
 
 use App\Entity\GameEvent;
 use App\Entity\GameEventType;
+use App\Entity\PlayerGameStats;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ReportDataService
@@ -42,6 +44,11 @@ class ReportDataService
         // Load alias metadata and check feature flag for DB-based aggregates
         $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
         $useDbAggregates = isset($config['use_db_aggregates']) ? (bool) $config['use_db_aggregates'] : false;
+
+        // Route PlayerGameStats metrics to a dedicated data path
+        if (($fieldAliases[$yField]['dataSource'] ?? null) === 'playerGameStats') {
+            return $this->generatePlayerGameStatsData($config);
+        }
 
         // If DB aggregates are enabled and a groupBy is provided, attempt a DB-side aggregation
         // supporting multiple groupBy fields. We only handle simple COUNT-based aggregates
@@ -740,10 +747,6 @@ class ReportDataService
         $groupBy = array_values(array_filter($groupBy, fn ($gf) => $gf !== $xField));
 
         if (empty($groupBy)) {
-            if ('pie' === $diagramType) {
-                return $this->generateReportDataForPieWithoutGroup($events, $yField);
-            }
-
             return $this->generateReportDataForLineOrBarWithoutGroup($events, $xField, $yField);
         }
 
@@ -1109,5 +1112,150 @@ class ReportDataService
         }
 
         return $points;
+    }
+
+    /**
+     * Generiert Report-Daten aus PlayerGameStats (Spielstatistiken je Spiel).
+     *
+     * Wird genutzt, wenn das angeforderte yField zu einer PlayerGameStats-Metrik gehört,
+     * z.B. minutesPlayed, distanceCovered, passesCompleted, shotsOnTarget, foulsSuffered.
+     *
+     * Unterstützte xFields: 'player', 'month'
+     * Unterstützte Filter: player, players, team, teams, dateFrom, dateTo
+     *
+     * @param array<string, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private function generatePlayerGameStatsData(array $config): array
+    {
+        $xField = $config['xField'] ?? 'player';
+        $yField = $config['yField'] ?? 'minutesPlayed';
+        $filters = $config['filters'] ?? [];
+
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+        $yAlias = $fieldAliases[$yField] ?? [];
+        $pgsField = $yAlias['pgsField'] ?? $yField;
+        $datasetLabel = $yAlias['label'] ?? $yField;
+
+        $qb = $this->em->getRepository(PlayerGameStats::class)->createQueryBuilder('pgs')
+            ->join('pgs.player', 'p')
+            ->join('pgs.game', 'g')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->leftJoin('g.homeTeam', 'ht')
+            ->leftJoin('g.awayTeam', 'at');
+
+        // ── Filter ──────────────────────────────────────────────────────────
+        if (isset($filters['player']) && '' !== (string) $filters['player']) {
+            $qb->andWhere('p.id = :player')->setParameter('player', (int) $filters['player']);
+        }
+        if (isset($filters['players']) && '' !== (string) $filters['players']) {
+            $playerIds = array_map('intval', explode(',', (string) $filters['players']));
+            $qb->andWhere('p.id IN (:players)')->setParameter('players', $playerIds);
+        }
+        if (isset($filters['team']) && '' !== (string) $filters['team']) {
+            $qb->andWhere('ht.id = :team OR at.id = :team')
+               ->setParameter('team', (int) $filters['team']);
+        }
+        if (isset($filters['teams']) && '' !== (string) $filters['teams']) {
+            $teamIds = array_map('intval', explode(',', (string) $filters['teams']));
+            $qb->andWhere('ht.id IN (:teams) OR at.id IN (:teams)')
+               ->setParameter('teams', $teamIds);
+        }
+        if (isset($filters['dateFrom']) && '' !== (string) $filters['dateFrom']) {
+            $qb->andWhere('ce.startDate >= :dateFrom')
+               ->setParameter('dateFrom', new DateTimeImmutable($filters['dateFrom']));
+        }
+        if (isset($filters['dateTo']) && '' !== (string) $filters['dateTo']) {
+            $qb->andWhere('ce.startDate <= :dateTo')
+               ->setParameter('dateTo', new DateTimeImmutable($filters['dateTo']));
+        }
+
+        /** @var PlayerGameStats[] $stats */
+        $stats = $qb->getQuery()->getResult();
+
+        // ── Helper: derive X label and sort key ─────────────────────────────
+        $getXLabel = function (PlayerGameStats $s) use ($xField): string {
+            if ('player' === $xField) {
+                $player = $s->getPlayer();
+                $fn = $player->getFirstName();
+                $ln = $player->getLastName();
+
+                return trim($fn . ' ' . $ln) ?: ('Spieler #' . $player->getId());
+            }
+            if ('month' === $xField) {
+                $ce = $s->getGame()->getCalendarEvent();
+                if ($ce) {
+                    $date = $ce->getStartDate();
+                    if ($date instanceof DateTimeInterface) {
+                        $months = [1 => 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+                        return $months[(int) $date->format('n')] . ' ' . $date->format('Y');
+                    }
+                }
+            }
+
+            return 'Unbekannt';
+        };
+        $getSortKey = function (PlayerGameStats $s) use ($xField): string {
+            if ('month' === $xField) {
+                $ce = $s->getGame()->getCalendarEvent();
+                if ($ce) {
+                    $date = $ce->getStartDate();
+                    if ($date instanceof DateTimeInterface) {
+                        return $date->format('Y-m');
+                    }
+                }
+            }
+            if ('player' === $xField) {
+                $player = $s->getPlayer();
+                $fn = $player->getFirstName();
+                $ln = $player->getLastName();
+
+                return trim($fn . ' ' . $ln) ?: 'zzzz';
+            }
+
+            return 'zzzz';
+        };
+        $getValue = function (PlayerGameStats $s) use ($pgsField): float {
+            $getter = 'get' . ucfirst($pgsField);
+            if (method_exists($s, $getter)) {
+                return (float) ($s->$getter() ?? 0);
+            }
+
+            return 0.0;
+        };
+
+        // ── Aggregate: SUM the field value per x-label bucket ───────────────
+        /** @var array<string, float> $buckets */
+        $buckets = [];
+        $sortKeys = [];
+        foreach ($stats as $stat) {
+            $x = $getXLabel($stat);
+            if (!isset($buckets[$x])) {
+                $buckets[$x] = 0.0;
+                $sortKeys[$x] = $getSortKey($stat);
+            }
+            $buckets[$x] += $getValue($stat);
+        }
+
+        $xLabels = array_keys($buckets);
+        usort($xLabels, fn ($a, $b) => strcmp($sortKeys[$a] ?? $a, $sortKeys[$b] ?? $b));
+        $data = array_map(fn ($x) => $buckets[$x], $xLabels);
+
+        return [
+            'labels' => $xLabels,
+            'datasets' => [
+                ['label' => $datasetLabel, 'data' => $data],
+            ],
+            'meta' => [
+                'eventsCount' => count($stats),
+                'dataSource' => 'playerGameStats',
+                'userMessage' => 0 === count($stats)
+                    ? 'Keine Spielstatistiken für die gewählten Filter / Zeitraum gefunden.'
+                    : null,
+            ],
+        ];
     }
 }

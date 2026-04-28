@@ -57,6 +57,12 @@ export interface ReportConfig {
   filters?: ReportFilters;
   showLegend: boolean;
   showLabels: boolean;
+  /** When true: each bar in a bar chart gets its own colour (like a pie/doughnut slice). */
+  multiColor?: boolean;
+  /** Persisted orientation override for bar charts. true = horizontal, false = vertical, undefined = auto (mobile-aware). */
+  horizontalBar?: boolean;
+  /** When true: labels / data points where every dataset has value 0 / null / undefined are hidden. */
+  hideEmpty?: boolean;
 }
 
 export interface ReportFilters {

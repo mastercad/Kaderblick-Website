@@ -85,11 +85,32 @@ export default function NavMobileBottomBar({
         }),
       }}
     >
-      <BottomNavigation showLabels value={activeValue} sx={{ height: MOBILE_BOTTOM_NAV_HEIGHT }}>
-        <BottomNavigationAction label="Dashboard" value="dashboard" icon={<DashboardIcon />}   onClick={() => go('/dashboard')} sx={{ '&.Mui-selected': { color: '#26A69A' } }} />
-        <BottomNavigationAction label="Kalender"  value="calendar"  icon={<CalendarMonthIcon />} onClick={() => go('/calendar')} sx={{ '&.Mui-selected': { color: '#FFA726' } }} />
-        <BottomNavigationAction label="Spiele"    value="games"     icon={<SportsSoccerIcon />}  onClick={() => go('/games')}    sx={{ '&.Mui-selected': { color: '#EF5350' } }} />
-        <BottomNavigationAction label="Mein Team" value="my-team"   icon={<GroupsIcon />}        onClick={() => go('/my-team')}  sx={{ '&.Mui-selected': { color: '#66BB6A' } }} />
+      <BottomNavigation
+        showLabels
+        value={activeValue}
+        sx={{
+          height: MOBILE_BOTTOM_NAV_HEIGHT,
+          // Jedes Item bekommt gleich viel Platz, schrumpft aber mit der Breite mit
+          '& .MuiBottomNavigationAction-root': {
+            minWidth: 0,
+            flex: 1,
+            px: 0.5,
+            // Label-Schrift und Icon auf sehr schmalen Bildschirmen verkleinern
+            fontSize: { xs: '0.6rem', sm: '0.75rem' },
+            '& .MuiBottomNavigationAction-label': {
+              fontSize: 'inherit',
+              '&.Mui-selected': { fontSize: 'inherit' },
+            },
+            '& .MuiSvgIcon-root': {
+              fontSize: { xs: '1.2rem', sm: '1.5rem' },
+            },
+          },
+        }}
+      >
+        <BottomNavigationAction label="Dashboard" value="dashboard" icon={<DashboardIcon />}    onClick={() => go('/dashboard')} sx={{ '&.Mui-selected': { color: '#26A69A' } }} />
+        <BottomNavigationAction label="Kalender"  value="calendar"  icon={<CalendarMonthIcon />} onClick={() => go('/calendar')}  sx={{ '&.Mui-selected': { color: '#FFA726' } }} />
+        <BottomNavigationAction label="Spiele"    value="games"     icon={<SportsSoccerIcon />}  onClick={() => go('/games')}     sx={{ '&.Mui-selected': { color: '#EF5350' } }} />
+        <BottomNavigationAction label="Mein Team" value="my-team"   icon={<GroupsIcon />}        onClick={() => go('/my-team')}   sx={{ '&.Mui-selected': { color: '#66BB6A' } }} />
         <BottomNavigationAction label="Mehr"      value="more"      icon={<MoreHorizIcon />}     onClick={onMobileMenuToggle} />
       </BottomNavigation>
     </Paper>

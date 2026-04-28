@@ -392,3 +392,138 @@ describe('StepOptions – db_aggregates (SuperAdmin)', () => {
     expect(state.handleConfigChange).toHaveBeenCalledWith('use_db_aggregates', expect.any(Boolean));
   });
 });
+
+// =============================================================================
+// Anzeige-Optionen: Ausrichtung (horizontalBar) – nur für diag='bar'
+// =============================================================================
+
+describe('StepOptions – horizontalBar (Ausrichtung)', () => {
+  it('horizontalBar-Checkbox wird für diag=bar gerendert', () => {
+    render(<StepOptions state={makeState({ diag: 'bar' })} />);
+    expect(screen.getByLabelText('Horizontal anzeigen')).toBeInTheDocument();
+  });
+
+  it('horizontalBar-Checkbox wird NICHT für diag=line gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'line',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'line', xField: 'month', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByLabelText('Horizontal anzeigen')).not.toBeInTheDocument();
+  });
+
+  it('horizontalBar-Checkbox wird NICHT für diag=doughnut gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'doughnut',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'doughnut', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByLabelText('Horizontal anzeigen')).not.toBeInTheDocument();
+  });
+
+  it('Klick auf horizontalBar-Checkbox ruft handleConfigChange auf', () => {
+    const state = makeState({ diag: 'bar' });
+    render(<StepOptions state={state} />);
+    fireEvent.click(screen.getByLabelText('Horizontal anzeigen'));
+    expect(state.handleConfigChange).toHaveBeenCalledWith('horizontalBar', true);
+  });
+
+  it('horizontalBar-Checkbox ist gecheckt wenn config.horizontalBar=true', () => {
+    const state = makeState({
+      diag: 'bar',
+      currentReport: {
+        name: 'Test', description: '', isTemplate: false,
+        config: { diagramType: 'bar', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false, horizontalBar: true } as any,
+      },
+    });
+    render(<StepOptions state={state} />);
+    expect(screen.getByLabelText('Horizontal anzeigen')).toBeChecked();
+  });
+});
+
+// =============================================================================
+// Anzeige-Optionen: Leere ausblenden (hideEmpty) – für bar/pie/doughnut
+// =============================================================================
+
+describe('StepOptions – hideEmpty (Leere ausblenden)', () => {
+  it('hideEmpty-Checkbox wird für diag=bar gerendert', () => {
+    render(<StepOptions state={makeState({ diag: 'bar' })} />);
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird für diag=doughnut gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'doughnut',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'doughnut', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird für diag=pie gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'pie',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'pie', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird NICHT für diag=line gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'line',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'line', xField: 'month', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByLabelText('Einträge ohne Wert ausblenden')).not.toBeInTheDocument();
+  });
+
+  it('Klick auf hideEmpty-Checkbox ruft handleConfigChange auf', () => {
+    const state = makeState({ diag: 'bar' });
+    render(<StepOptions state={state} />);
+    fireEvent.click(screen.getByLabelText('Einträge ohne Wert ausblenden'));
+    expect(state.handleConfigChange).toHaveBeenCalledWith('hideEmpty', true);
+  });
+
+  it('hideEmpty-Checkbox ist gecheckt wenn config.hideEmpty=true', () => {
+    const state = makeState({
+      diag: 'bar',
+      currentReport: {
+        name: 'Test', description: '', isTemplate: false,
+        config: { diagramType: 'bar', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false, hideEmpty: true } as any,
+      },
+    });
+    render(<StepOptions state={state} />);
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeChecked();
+  });
+});

@@ -193,7 +193,7 @@ export default function DatabaseTab() {
       {successMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg(null)}>{successMsg}</Alert>}
 
       {/* ── Backup erstellen ── */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
         <Typography variant="subtitle1" fontWeight={600} gutterBottom>
           Neues Backup erstellen
         </Typography>
@@ -215,7 +215,7 @@ export default function DatabaseTab() {
       <Paper
         variant="outlined"
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           mb: 3,
           borderStyle: 'dashed',
           borderColor: dragging ? 'primary.main' : 'divider',
@@ -278,8 +278,8 @@ export default function DatabaseTab() {
             <TableBody>
               {backups.map((b) => (
                 <TableRow key={b.filename}>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                  <TableCell sx={{ maxWidth: { xs: 140, sm: 'none' } }}>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-word' }}>
                       {b.filename}
                     </Typography>
                   </TableCell>

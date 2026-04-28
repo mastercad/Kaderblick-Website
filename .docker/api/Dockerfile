@@ -58,6 +58,23 @@ WORKDIR /var/www/symfony
 COPY api/composer.json api/composer.lock /var/www/symfony/
 
 # =============================================================================
+# Stage: dev
+# Lokale Entwicklung: kein COPY api/, kein composer install im Image.
+# Source-Code und vendor/ kommen ausschließlich via Bind-Mount (docker-compose.dev.yml).
+# Der Entrypoint führt automatisch 'composer install' aus, wenn vendor/ fehlt.
+# Cron-Jobs sind deaktiviert – kein cron daemon.
+# =============================================================================
+FROM base AS dev
+
+RUN mkdir -p var/cache var/log config/secrets/prod config/secrets/staging config/jwt \
+    && chown -R www-data:www-data /var/www/symfony
+
+EXPOSE 80
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["apache2-foreground"]
+
+# =============================================================================
 # Stage: test
 # Für QA/CI: alle Dependencies inklusive dev (PHPUnit, PHPStan, PHP-CS-Fixer…).
 # Kein Cron. Wird NICHT deployed.

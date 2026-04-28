@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Box, Button, Typography, IconButton, Tooltip } from '@mui/material';
 import ScreenRotationIcon from '@mui/icons-material/ScreenRotation';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -65,22 +65,27 @@ const PortraitHint: React.FC<PortraitHintProps> = ({ visible }) => {
         variant="caption"
         sx={{ color: 'rgba(255,255,255,0.55)', flex: 1, lineHeight: 1.3, fontSize: '0.72rem' }}
       >
-        Für den Taktik-Editor wird{' '}
-        <Box
-          component="span"
-          onClick={handleRotate}
-          sx={{
-            color: 'rgba(33,150,243,0.85)',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            textDecorationColor: 'rgba(33,150,243,0.4)',
-            '&:hover': { color: 'rgba(33,150,243,1)' },
-          }}
-        >
-          Querformat
-        </Box>
-        {' '}empfohlen.
+        Querformat für optimale Darstellung.
       </Typography>
+
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ScreenRotationIcon sx={{ fontSize: 14 }} />}
+        onClick={handleRotate}
+        sx={{
+          flexShrink: 0,
+          fontSize: '0.68rem',
+          py: 0.25,
+          px: 1,
+          borderColor: 'rgba(33,150,243,0.5)',
+          color: 'rgba(33,150,243,0.9)',
+          minHeight: 0,
+          '&:hover': { borderColor: 'rgba(33,150,243,0.9)', bgcolor: 'rgba(33,150,243,0.1)' },
+        }}
+      >
+        Drehen
+      </Button>
 
       <Tooltip title="Hinweis schließen" placement="left">
         <IconButton

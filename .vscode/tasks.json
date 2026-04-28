@@ -1,0 +1,95 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Symfony: Cache leeren",
+            "type": "shell",
+            "command": "docker compose exec -T api php bin/console cache:clear",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Symfony: Migrations ausführen",
+            "type": "shell",
+            "command": "docker compose exec -T api php bin/console doctrine:migrations:migrate --no-interaction",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Symfony: Migrations-Status",
+            "type": "shell",
+            "command": "docker compose exec -T api php bin/console doctrine:migrations:status",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Symfony: Routes anzeigen",
+            "type": "shell",
+            "command": "docker compose exec -T api php bin/console debug:router",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "PHPUnit: Alle Tests",
+            "type": "shell",
+            "command": "docker compose exec -T api php vendor/bin/phpunit",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": { "kind": "test", "isDefault": true },
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "PHPUnit: Aktuelle Datei",
+            "type": "shell",
+            "command": "RELPATH=$(realpath --relative-to='${workspaceFolder}/api' '${file}') && docker compose exec -T -w /var/www/symfony api php vendor/bin/phpunit \"$RELPATH\"",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "test",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "PHPStan: Analyse src/",
+            "type": "shell",
+            "command": "docker compose exec -T api php vendor/bin/phpstan analyse src --no-progress",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "PHPStan: Aktuelle Datei",
+            "type": "shell",
+            "command": "RELPATH=$(realpath --relative-to='${workspaceFolder}/api' '${file}') && docker compose exec -T -w /var/www/symfony api php vendor/bin/phpstan analyse --no-progress \"$RELPATH\"",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Composer: Install",
+            "type": "shell",
+            "command": "docker compose exec -T api composer install",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "shared" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Docker: Shell im api-Container öffnen",
+            "type": "shell",
+            "command": "docker compose exec api bash",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "none",
+            "presentation": { "reveal": "always", "panel": "new" },
+            "problemMatcher": []
+        }
+    ]
+}

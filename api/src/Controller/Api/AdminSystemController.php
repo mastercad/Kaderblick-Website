@@ -498,13 +498,19 @@ class AdminSystemController extends AbstractController
         $consolePath = $this->projectDir . '/bin/console';
         $logFile = $this->projectDir . '/var/log/cron_manual_' . str_replace(':', '_', $command) . '.log';
 
+        // Im Debug-Modus (dev) ohne --no-debug starten, damit der Symfony-DI-Container-Cache
+        // bei Codeänderungen automatisch invalidiert wird. In Prod (debug=false) mit --no-debug
+        // starten, damit der vorcompilierte Container genutzt wird.
+        $noDebugFlag = $this->getParameter('kernel.debug') ? '' : ' --no-debug';
+
         // Hintergrundprozess starten – nohup + & trennt den Prozess vom HTTP-Request.
         // Alle Argumente werden escapeshellarg-gesichert; $command ist zusätzlich gegen
         // KNOWN_CRON_JOBS validiert.
         $shellCmd = sprintf(
-            'nohup php %s %s --no-debug >> %s 2>&1 & echo $!',
+            'nohup php %s %s%s >> %s 2>&1 & echo $!',
             escapeshellarg($consolePath),
             escapeshellarg($command),
+            $noDebugFlag,
             escapeshellarg($logFile)
         );
 

@@ -2,6 +2,19 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import TacticsBoardModal from '../TacticsBoardModal';
 
+// ── useMediaQuery mock (controlled per test) ──────────────────────────────────
+// Default: desktop (not mobile, not portrait). Individual tests override this.
+let mockIsMobile = false;
+let mockIsPortrait = false;
+jest.mock('@mui/material/useMediaQuery', () => ({
+  __esModule: true,
+  default: jest.fn((query: string) => {
+    if (query === '(orientation: portrait)') return mockIsPortrait;
+    // theme.breakpoints.down('md') query → treat as isMobile
+    return mockIsMobile;
+  }),
+}));
+
 // ── Mock FabStackProvider ──────────────────────────────────────────────────────
 const mockHideForModal  = jest.fn();
 const mockShowAfterModal = jest.fn();
@@ -22,7 +35,11 @@ jest.mock('../../components/FabStackProvider', () => ({
 // In landscape-mobile mode the presentation button is ALWAYS visible (no isBrowserFS gate).
 jest.mock('../tacticsBoard/TacticsToolbar', () => ({
   TacticsToolbar: (props: any) => (
-    <div>
+    <div
+      data-testid="tactics-toolbar"
+      data-portrait={String(props.isPortraitMobile ?? false)}
+      data-landscape={String(props.isLandscapeMobile ?? false)}
+    >
       <div>Tactics Toolbar</div>
       <button type="button" onClick={props.onTogglePresentationMode}>Präsent.</button>
     </div>
@@ -90,6 +107,9 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockHandleSave.mockResolvedValue(undefined);
   mockBoardClean();
+  // Reset media query to desktop (not mobile, not portrait)
+  mockIsMobile = false;
+  mockIsPortrait = false;
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -649,5 +669,182 @@ describe('TacticsBoardModal – browser back button', () => {
     const { rerender } = render(<TacticsBoardModal {...defaultProps} open={true} />);
     rerender(<TacticsBoardModal {...defaultProps} open={false} />);
     expect(history.back).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portrait mobile mode (isMobile && isPortrait = true)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – portrait mobile layout', () => {
+  beforeEach(() => {
+    mockIsMobile = true;
+    mockIsPortrait = true;
+  });
+
+  it('renders portrait TacticsToolbar with isPortraitMobile=true', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    const toolbar = screen.getByTestId('tactics-toolbar');
+    expect(toolbar).toHaveAttribute('data-portrait', 'true');
+  });
+
+  it('portrait toolbar does NOT have isLandscapeMobile=true', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    const toolbar = screen.getByTestId('tactics-toolbar');
+    expect(toolbar).toHaveAttribute('data-landscape', 'false');
+  });
+
+  it('hides the left sidebar toggle strip (TOOLS strip) in portrait', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.queryByText('TOOLS')).not.toBeInTheDocument();
+  });
+
+  it('hides the left sidebar toolbar toggle buttons in portrait', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.queryByLabelText('Linke Werkzeugleiste schließen')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Linke Werkzeugleiste öffnen')).not.toBeInTheDocument();
+  });
+
+  it('hides the drawer-tab (Aktionsleiste) in portrait', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.queryByLabelText('Aktionsleiste ausblenden')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Aktionsleiste einblenden')).not.toBeInTheDocument();
+  });
+
+  it('close button is always in the DOM in portrait (no slide-out)', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByLabelText('Board schließen')).toBeInTheDocument();
+  });
+
+  it('close button is functional in portrait', () => {
+    const onClose = jest.fn();
+    render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
+    fireEvent.click(screen.getByLabelText('Board schließen'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('portrait toolbar is hidden in presentation mode', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    enterPresentationMode();
+    expect(screen.queryByTestId('tactics-toolbar')).not.toBeInTheDocument();
+  });
+
+  it('close warning dialog works in portrait mode', async () => {
+    mockBoardDirty();
+    const onClose = jest.fn();
+    render(<TacticsBoardModal {...defaultProps} onClose={onClose} />);
+    fireEvent.click(screen.getByLabelText('Board schließen'));
+    expect(screen.getByText('Ungespeicherte Änderungen')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('right sidebar TAKTIKEN strip remains available in portrait', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByText('TAKTIKEN')).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portrait mobile vs. landscape mobile distinction
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – landscape mobile layout', () => {
+  beforeEach(() => {
+    mockIsMobile = true;
+    mockIsPortrait = false; // landscape mobile
+  });
+
+  it('renders the landscape TacticsToolbar (isLandscapeMobile=true)', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    const toolbar = screen.getByTestId('tactics-toolbar');
+    expect(toolbar).toHaveAttribute('data-landscape', 'true');
+  });
+
+  it('does NOT set isPortraitMobile on the landscape toolbar', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    const toolbar = screen.getByTestId('tactics-toolbar');
+    expect(toolbar).toHaveAttribute('data-portrait', 'false');
+  });
+
+  it('left toggle strip (TOOLS) is visible in landscape mobile', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByText('TOOLS')).toBeInTheDocument();
+  });
+
+  it('drawer-tab (Aktionsleiste) is rendered in landscape mobile', () => {
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByLabelText('Aktionsleiste ausblenden')).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tactic name chip (board.tactics.length > 1 && activeTactic has a name)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('TacticsBoardModal – tactic name chip', () => {
+  it('does NOT render a chip when there is only 1 tactic', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({
+      formationCode: '4-3-3', // formation box is rendered, but chip condition fails (length <= 1)
+      tactics: [{ id: 't1', name: 'Pressing', elements: [], opponents: [] }],
+      activeTactic: { id: 't1', name: 'Pressing', elements: [], opponents: [] },
+    }));
+    render(<TacticsBoardModal {...defaultProps} />);
+    // "Pressing" must not appear as a chip — single tactic, no chip rendered
+    // formationCode chip "4-3-3" IS rendered, but "Pressing" must NOT be
+    expect(screen.queryByText('Pressing')).not.toBeInTheDocument();
+  });
+
+  it('renders the active tactic name chip when 2+ tactics exist', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({
+      formationCode: '4-3-3', // required so the formation box is rendered
+      tactics: [
+        { id: 't1', name: 'Pressing', elements: [], opponents: [] },
+        { id: 't2', name: 'Konter', elements: [], opponents: [] },
+      ],
+      activeTactic: { id: 't1', name: 'Pressing', elements: [], opponents: [] },
+    }));
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByText('Pressing')).toBeInTheDocument();
+  });
+
+  it('chip shows the name of the currently active tactic', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({
+      formationCode: '4-4-2', // required so the formation box is rendered
+      tactics: [
+        { id: 't1', name: 'Pressing', elements: [], opponents: [] },
+        { id: 't2', name: 'Konter', elements: [], opponents: [] },
+      ],
+      activeTactic: { id: 't2', name: 'Konter', elements: [], opponents: [] },
+    }));
+    render(<TacticsBoardModal {...defaultProps} />);
+    expect(screen.getByText('Konter')).toBeInTheDocument();
+    expect(screen.queryByText('Pressing')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render chip when activeTactic has an empty name', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({
+      formationCode: '4-4-2', // formation box rendered, chip condition: name is falsy
+      tactics: [
+        { id: 't1', name: '', elements: [], opponents: [] },
+        { id: 't2', name: 'Konter', elements: [], opponents: [] },
+      ],
+      activeTactic: { id: 't1', name: '', elements: [], opponents: [] },
+    }));
+    render(<TacticsBoardModal {...defaultProps} />);
+    // chip condition: board.tactics.length > 1 && board.activeTactic?.name
+    // empty string is falsy, so chip must NOT be shown — but "Konter" is NOT the active tactic
+    expect(screen.queryByText('Konter')).not.toBeInTheDocument();
+  });
+
+  it('does NOT render chip when activeTactic is undefined', () => {
+    useTacticsBoard.mockReturnValue(makeBoardState({
+      formationCode: '3-5-2', // formation box rendered; chip condition: activeTactic is undefined
+      tactics: [
+        { id: 't1', name: 'A', elements: [], opponents: [] },
+        { id: 't2', name: 'B', elements: [], opponents: [] },
+      ],
+      activeTactic: undefined,
+    }));
+    render(<TacticsBoardModal {...defaultProps} />);
+    // Neither tactic name should appear as a chip
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
+    expect(screen.queryByText('B')).not.toBeInTheDocument();
   });
 });

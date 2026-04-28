@@ -10,6 +10,7 @@ services:
     build:
       context: ./
       dockerfile: .docker/api/Dockerfile
+      target: dev
     volumes:
       - ./api:/var/www/symfony
       - ./public/uploads:/var/www/symfony/public/uploads
@@ -24,6 +25,7 @@ services:
     build:
       context: ./
       dockerfile: .docker/api/Dockerfile
+      target: dev
     command: ["php", "/var/www/symfony/bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
     volumes:
       - ./api:/var/www/symfony

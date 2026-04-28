@@ -26,6 +26,9 @@ import {
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+  LocalHospital as LocalHospitalIcon,
   SportsSoccer as SoccerIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -896,11 +899,13 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
             <Button
               variant="contained"
               size="small"
-              startIcon={<AddIcon />}
+              startIcon={<AddIcon sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
               onClick={handleProtectedEventAction}
-              sx={{ fontSize: '0.8rem' }}
+              sx={{ fontSize: '0.8rem', minWidth: { xs: 32, sm: 'auto' }, px: { xs: 1, sm: 1.5 } }}
+              aria-label="Event hinzufügen"
             >
-              Event hinzufügen
+              <AddIcon sx={{ display: { xs: 'inline-flex', sm: 'none' }, fontSize: '1.1rem' }} />
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Event hinzufügen</Box>
             </Button>
           )}
         />
@@ -947,6 +952,19 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                 } else if (e.gameEventType?.color) {
                   color = e.gameEventType?.color;
                 }
+
+                // Substitution helpers
+                const SUBSTITUTION_CODES = ['substitution', 'substitution_out', 'substitution_injury', 'substitution_in'];
+                const isSubstitution = SUBSTITUTION_CODES.includes(code);
+                // player = OUT for substitution/substitution_out/substitution_injury; player = IN for substitution_in
+                const playerOut = code === 'substitution_in' ? e.relatedPlayer : e.player;
+                const playerIn  = code === 'substitution_in' ? e.player : e.relatedPlayer;
+                const playerOutDisplay = playerOut && typeof playerOut === 'object'
+                  ? `${playerOut.firstName ?? ''} ${playerOut.lastName ?? ''}`.trim()
+                  : (typeof playerOut === 'string' ? playerOut : '');
+                const playerInDisplay  = playerIn  && typeof playerIn  === 'object'
+                  ? `${playerIn.firstName  ?? ''} ${playerIn.lastName  ?? ''}`.trim()
+                  : (typeof playerIn  === 'string' ? playerIn  : '');
 
                 return (
                   <Box
@@ -1028,17 +1046,56 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
                         {e.type ?? e?.gameEventType?.name ?? 'Unbekannt'}
                       </Typography>
 
-                      {/* Player */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                        <UserAvatar
-                          icon={e.player?.playerAvatarUrl}
-                          name={playerDisplay || 'Unbekannt'}
-                          avatarSize={22}
-                          fontSize={11}
-                          titleObj={e.player?.titleData && e.player?.titleData.hasTitle ? e.player.titleData : undefined}
-                          level={typeof e.player?.level === 'number' ? e.player.level : undefined}
-                        />
-                      </Box>
+                      {/* Player / Substitution display */}
+                      {isSubstitution ? (
+                        <Box sx={{ mt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {/* Player coming IN */}
+                          {(playerIn || playerInDisplay) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <ArrowUpwardIcon sx={{ fontSize: 15, color: 'success.main', flexShrink: 0 }} />
+                              <UserAvatar
+                                icon={typeof playerIn === 'object' ? playerIn?.playerAvatarUrl : undefined}
+                                name={playerInDisplay || 'Unbekannt'}
+                                avatarSize={22}
+                                fontSize={11}
+                                titleObj={typeof playerIn === 'object' && playerIn?.titleData?.hasTitle ? playerIn.titleData : undefined}
+                                level={typeof playerIn === 'object' && typeof playerIn?.level === 'number' ? playerIn.level : undefined}
+                              />
+                              <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, ml: 0.25 }}>rein</Typography>
+                            </Box>
+                          )}
+                          {/* Player going OUT */}
+                          {(playerOut || playerOutDisplay) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {code === 'substitution_injury'
+                                ? <LocalHospitalIcon sx={{ fontSize: 15, color: 'warning.main', flexShrink: 0 }} />
+                                : <ArrowDownwardIcon sx={{ fontSize: 15, color: 'error.main', flexShrink: 0 }} />}
+                              <UserAvatar
+                                icon={typeof playerOut === 'object' ? playerOut?.playerAvatarUrl : undefined}
+                                name={playerOutDisplay || 'Unbekannt'}
+                                avatarSize={22}
+                                fontSize={11}
+                                titleObj={typeof playerOut === 'object' && playerOut?.titleData?.hasTitle ? playerOut.titleData : undefined}
+                                level={typeof playerOut === 'object' && typeof playerOut?.level === 'number' ? playerOut.level : undefined}
+                              />
+                              <Typography variant="caption" sx={{ color: code === 'substitution_injury' ? 'warning.main' : 'error.main', fontWeight: 600, ml: 0.25 }}>
+                                {code === 'substitution_injury' ? 'raus (verletzt)' : 'raus'}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                          <UserAvatar
+                            icon={e.player?.playerAvatarUrl}
+                            name={playerDisplay || 'Unbekannt'}
+                            avatarSize={22}
+                            fontSize={11}
+                            titleObj={e.player?.titleData && e.player?.titleData.hasTitle ? e.player.titleData : undefined}
+                            level={typeof e.player?.level === 'number' ? e.player.level : undefined}
+                          />
+                        </Box>
+                      )}
 
                       {/* Description */}
                       {e.description && (
@@ -1144,22 +1201,26 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
               {videos.length > 0 && (
                 <Button
                   variant="outlined"
-                  startIcon={<ContentCutIcon />}
+                  startIcon={<ContentCutIcon sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
                   size="small"
                   onClick={() => setVideoSegmentModalOpen(true)}
-                  sx={{ fontSize: '0.8rem' }}
+                  sx={{ fontSize: '0.8rem', minWidth: { xs: 32, sm: 'auto' }, px: { xs: 1, sm: 1.5 } }}
+                  aria-label="Schnittliste"
                 >
-                  Schnittliste
+                  <ContentCutIcon sx={{ display: { xs: 'inline-flex', sm: 'none' }, fontSize: '1.1rem' }} />
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Schnittliste</Box>
                 </Button>
               )}
               <Button
                 variant="contained"
-                startIcon={<VideoIcon />}
+                startIcon={<VideoIcon sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />}
                 size="small"
                 onClick={handleProtectedVideoAction}
-                sx={{ fontSize: '0.8rem' }}
+                sx={{ fontSize: '0.8rem', minWidth: { xs: 32, sm: 'auto' }, px: { xs: 1, sm: 1.5 } }}
+                aria-label="Video hinzufügen"
               >
-                Video hinzufügen
+                <VideoIcon sx={{ display: { xs: 'inline-flex', sm: 'none' }, fontSize: '1.1rem' }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Video hinzufügen</Box>
               </Button>
             </Box>
           )}
@@ -1505,7 +1566,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         aria-label="Ereignis erfassen"
         sx={{
           position: 'fixed',
-          bottom: { xs: 16, sm: 24 },
+          bottom: { xs: 136, sm: 88 },
           right: { xs: 16, sm: 24 },
           zIndex: 10,
         }}

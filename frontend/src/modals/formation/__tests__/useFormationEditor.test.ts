@@ -132,4 +132,71 @@ describe('useFormationEditor', () => {
 
     expect(result.current.isDirty).toBe(true);
   });
+
+  it('resets isDirty and undoRedo when open changes to false', () => {
+    const state = { ...baseDataState, name: 'Formation' };
+    mockUseFormationData.mockImplementation(() => state);
+
+    const { result, rerender } = renderHook(
+      ({ open }: { open: boolean }) => useFormationEditor(open, null, jest.fn()),
+      { initialProps: { open: true } },
+    );
+
+    // Make dirty
+    state.name = 'Andere Formation';
+    rerender({ open: true });
+    expect(result.current.isDirty).toBe(true);
+
+    // Close modal
+    rerender({ open: false });
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('adds beforeunload listener when open && isDirty', () => {
+    const addSpy = jest.spyOn(window, 'addEventListener');
+    const removeSpy = jest.spyOn(window, 'removeEventListener');
+
+    const state = { ...baseDataState };
+    mockUseFormationData.mockImplementation(() => state);
+
+    const { result, rerender } = renderHook(
+      ({ open }: { open: boolean }) => useFormationEditor(open, null, jest.fn()),
+      { initialProps: { open: true } },
+    );
+
+    // Make dirty
+    state.name = 'Changed Name';
+    rerender({ open: true });
+    expect(result.current.isDirty).toBe(true);
+
+    const beforeUnloadCalls = addSpy.mock.calls.filter(c => (c[0] as string) === 'beforeunload');
+    expect(beforeUnloadCalls.length).toBeGreaterThan(0);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
+  it('readyForDirtyTracking when new formation (no formationId) and teams exist', () => {
+    const state = { ...baseDataState, loading: false, teams: [{ id: 1, name: 'Team A' }], selectedTeam: '' as any };
+    mockUseFormationData.mockImplementation(() => state);
+
+    const { result } = renderHook(() => useFormationEditor(true, null, jest.fn()));
+    // Should be ready → isDirty is false (initial state captured)
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('readyForDirtyTracking when formationId is set and formation is loaded', () => {
+    const formation = { id: 5, name: 'Test', players: [], benchPlayers: [] } as any;
+    const state = { ...baseDataState, loading: false, formation };
+    mockUseFormationData.mockImplementation(() => state);
+
+    const { result } = renderHook(() => useFormationEditor(true, 5, jest.fn()));
+    expect(result.current.isDirty).toBe(false);
+  });
+
+  it('canUndo and canRedo are initially false', () => {
+    const { result } = renderHook(() => useFormationEditor(true, null, jest.fn()));
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+  });
 });

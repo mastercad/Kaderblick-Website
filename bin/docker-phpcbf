@@ -1,0 +1,17 @@
+#!/bin/bash
+# Wrapper: runs PHP Code Beautifier inside the Docker api container.
+# Converts absolute host paths to container paths in arguments and back in output.
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+HOST_BASE="$PROJECT_ROOT/api"
+CONTAINER_BASE="/var/www/symfony"
+
+ARGS=()
+for arg in "$@"; do
+    ARGS+=("${arg//$HOST_BASE/$CONTAINER_BASE}")
+done
+
+cd "$PROJECT_ROOT"
+docker compose exec -T api php /var/www/symfony/vendor/bin/phpcbf "${ARGS[@]}" 2>&1 | \
+    sed "s|$CONTAINER_BASE|$HOST_BASE|g"
+exit "${PIPESTATUS[0]}"

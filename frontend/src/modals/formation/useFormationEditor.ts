@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '../../context/ToastContext';
 import type { DragSource, Formation, FormationEditorDraft, Player, PlayerData, Team } from './types';
 import type { FormationTemplate } from './templates';
@@ -7,7 +7,7 @@ import { useFieldDrag } from './useFieldDrag';
 import { useSquadDrop } from './useSquadDrop';
 import { usePlayerActions } from './usePlayerActions';
 import { useFormationSave } from './useFormationSave';
-
+import { useUndoRedo } from './useUndoRedo';
 const AUTO_SNAP_STORAGE_KEY = 'formation-editor:auto-snap';
 
 const loadAutoSnapPreference = () => {
@@ -35,6 +35,7 @@ export interface FormationEditorState {
   showTemplatePicker: boolean;
   autoSnapEnabled: boolean;
   draggedPlayerId: number | null;
+  isDraggingFromBench: boolean;
   pitchRef: React.RefObject<HTMLDivElement | null>;
   /** Map von Spieler-ID → DOM-Element des Tokens – übergeben an PlayerToken.domRef */
   tokenRefs: React.RefObject<Map<number, HTMLDivElement>>;
@@ -52,6 +53,8 @@ export interface FormationEditorState {
   // squad drag-and-drop
   squadDragPlayer: Player | null;
   highlightedTokenId: number | null;
+  squadGhostRef: React.RefObject<HTMLDivElement | null>;
+  benchGhostRef: React.RefObject<HTMLDivElement | null>;
   // actions
   applyTemplate: (t: FormationTemplate) => void;
   fillWithTeamPlayers: () => void;
@@ -73,6 +76,11 @@ export interface FormationEditorState {
   handlePitchDragOver: (e: React.DragEvent) => void;
   handlePitchDrop: (e: React.DragEvent) => void;
   handleSave: () => Promise<void>;
+  // ── Undo / Redo ───────────────────────────────────────────────────────
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
 }
 
 interface FormationDraftSnapshotParams {
@@ -139,8 +147,23 @@ export function useFormationEditor(
   const [isDirty, setIsDirty] = useState(false);
   const [autoSnapEnabled, setAutoSnapEnabled] = useState(loadAutoSnapPreference);
 
+  // ── Undo / Redo ──────────────────────────────────────────────────────────
+  const undoRedo = useUndoRedo();
+  // Refs zum stabilen Lesen von current players/bench ohne Closure-Stale
+  const playersRef = useRef<PlayerData[]>([]);
+  const benchPlayersRef = useRef<PlayerData[]>([]);
+
   // ── State + API-Calls ────────────────────────────────────────────────────
   const data = useFormationData(open, formationId, initialDraft, initialShowTemplatePicker);
+
+  // Refs in sync halten
+  useEffect(() => { playersRef.current = data.players; }, [data.players]);
+  useEffect(() => { benchPlayersRef.current = data.benchPlayers; }, [data.benchPlayers]);
+
+  /** Snapshot des aktuellen Zustands in den Undo-Stack schieben (vor einer Aktion aufrufen). */
+  const pushSnapshot = useCallback(() => {
+    undoRedo.push(playersRef.current, benchPlayersRef.current);
+  }, [undoRedo]);
 
   // ── Pointer/Touch-Drag für Feld-Tokens ──────────────────────────────────
   const fieldDrag = useFieldDrag({
@@ -214,8 +237,9 @@ export function useFormationEditor(
       initialSnapshotRef.current = null;
       dirtyTrackingReadyRef.current = false;
       setIsDirty(false);
+      undoRedo.reset();
     }
-  }, [open]);
+  }, [open, undoRedo]);
 
   useEffect(() => {
     if (!open) return;
@@ -292,8 +316,16 @@ export function useFormationEditor(
     // ── Pointer/Touch-Drag (Feld-Tokens) ─────────────────────────────────
     tokenRefs,
     draggedPlayerId:    fieldDrag.draggedPlayerId,
-    startDragFromField: fieldDrag.startDragFromField,
-    startDragFromBench: fieldDrag.startDragFromBench,
+    isDraggingFromBench: fieldDrag.isDraggingFromBench,
+    // Snapshot vor Drag-Start (pre-drag state), nicht beim Move
+    startDragFromField: useCallback((id: number, e: React.MouseEvent | React.TouchEvent) => {
+      pushSnapshot();
+      fieldDrag.startDragFromField(id, e);
+    }, [pushSnapshot, fieldDrag.startDragFromField]),
+    startDragFromBench: useCallback((id: number, e: React.MouseEvent | React.TouchEvent) => {
+      pushSnapshot();
+      fieldDrag.startDragFromBench(id, e);
+    }, [pushSnapshot, fieldDrag.startDragFromBench]),
     handlePitchMouseMove: fieldDrag.handlePitchMouseMove,
     handlePitchMouseUp:   fieldDrag.handlePitchMouseUp,
     handlePitchTouchMove: fieldDrag.handlePitchTouchMove,
@@ -301,22 +333,60 @@ export function useFormationEditor(
     // ── HTML5-Drag vom Squad-Panel ────────────────────────────────────────
     squadDragPlayer:    squadDrop.squadDragPlayer,
     highlightedTokenId: squadDrop.highlightedTokenId,
+    squadGhostRef:      squadDrop.squadGhostRef,
+    benchGhostRef:      fieldDrag.benchGhostRef,
     handleSquadDragStart: squadDrop.handleSquadDragStart,
     handleSquadDragEnd:   squadDrop.handleSquadDragEnd,
     handlePitchDragOver:  squadDrop.handlePitchDragOver,
-    handlePitchDrop:      squadDrop.handlePitchDrop,
+    handlePitchDrop: useCallback((e: React.DragEvent) => {
+      pushSnapshot();
+      squadDrop.handlePitchDrop(e);
+    }, [pushSnapshot, squadDrop.handlePitchDrop]),
     // ── Spielerverwaltung & Auto-Fill ─────────────────────────────────────
     hasPlaceholders:    playerActions.hasPlaceholders,
     placeholderCount:   playerActions.placeholderCount,
-    applyTemplate:         playerActions.applyTemplate,
-    fillWithTeamPlayers:   playerActions.fillWithTeamPlayers,
-    addPlayerToFormation:  playerActions.addPlayerToFormation,
-    addGenericPlayer:      playerActions.addGenericPlayer,
-    removePlayer:          playerActions.removePlayer,
-    removeBenchPlayer:     playerActions.removeBenchPlayer,
-    sendToBench:           playerActions.sendToBench,
-    sendToField:           playerActions.sendToField,
+    applyTemplate: useCallback((t: FormationTemplate) => {
+      pushSnapshot();
+      playerActions.applyTemplate(t);
+    }, [pushSnapshot, playerActions.applyTemplate]),
+    fillWithTeamPlayers: useCallback(() => {
+      pushSnapshot();
+      playerActions.fillWithTeamPlayers();
+    }, [pushSnapshot, playerActions.fillWithTeamPlayers]),
+    addPlayerToFormation: useCallback((p: Player, target: DragSource) => {
+      pushSnapshot();
+      playerActions.addPlayerToFormation(p, target);
+    }, [pushSnapshot, playerActions.addPlayerToFormation]),
+    addGenericPlayer: useCallback(() => {
+      pushSnapshot();
+      playerActions.addGenericPlayer();
+    }, [pushSnapshot, playerActions.addGenericPlayer]),
+    removePlayer: useCallback((id: number) => {
+      pushSnapshot();
+      playerActions.removePlayer(id);
+    }, [pushSnapshot, playerActions.removePlayer]),
+    removeBenchPlayer: useCallback((id: number) => {
+      pushSnapshot();
+      playerActions.removeBenchPlayer(id);
+    }, [pushSnapshot, playerActions.removeBenchPlayer]),
+    sendToBench: useCallback((id: number) => {
+      pushSnapshot();
+      playerActions.sendToBench(id);
+    }, [pushSnapshot, playerActions.sendToBench]),
+    sendToField: useCallback((id: number) => {
+      pushSnapshot();
+      playerActions.sendToField(id);
+    }, [pushSnapshot, playerActions.sendToField]),
     // ── Speichern ─────────────────────────────────────────────────────────
     handleSave,
+    // ── Undo / Redo ───────────────────────────────────────────────────────
+    canUndo: undoRedo.canUndo,
+    canRedo: undoRedo.canRedo,
+    undo: useCallback(() => {
+      undoRedo.undo(playersRef.current, benchPlayersRef.current, data.setPlayers, data.setBenchPlayers);
+    }, [undoRedo, data.setPlayers, data.setBenchPlayers]),
+    redo: useCallback(() => {
+      undoRedo.redo(playersRef.current, benchPlayersRef.current, data.setPlayers, data.setBenchPlayers);
+    }, [undoRedo, data.setPlayers, data.setBenchPlayers]),
   };
 }

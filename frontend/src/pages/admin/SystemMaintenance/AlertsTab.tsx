@@ -3,7 +3,9 @@ import {
   Box, Typography, CircularProgress, Alert, Chip, Card, CardActionArea,
   CardContent, Tabs, Tab, Badge, Stack, IconButton, Tooltip, Snackbar,
   Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import LockIcon from '@mui/icons-material/Lock';
@@ -12,6 +14,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import StorageIcon from '@mui/icons-material/Storage';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import ReplayIcon from '@mui/icons-material/Replay';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import { useNavigate } from 'react-router-dom';
@@ -139,7 +142,7 @@ function AlertCard({ item, onResolve, onReopen }: {
                   sx={{ flexShrink: 0 }}
                 />
               )}
-              <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ fontWeight: 500, overflow: 'hidden', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2 }}>
                 {item.message}
               </Typography>
             </Stack>
@@ -161,7 +164,7 @@ function AlertCard({ item, onResolve, onReopen }: {
             </Stack>
           </Stack>
 
-          <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
+          <Stack direction="row" spacing={2} sx={{ mt: 0.75, flexWrap: 'wrap', rowGap: 0.5 }}>
             {item.clientIp && (
               <Typography variant="caption" color="text.secondary">IP: {item.clientIp}</Typography>
             )}
@@ -188,6 +191,8 @@ interface AlertsTabProps {
 
 export default function AlertsTab({ onCountChange }: AlertsTabProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const dialogFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [data, setData]       = useState<AlertsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -307,7 +312,7 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
           startIcon={<BarChartIcon />}
           onClick={() => navigate('/admin/system-alerts/stats')}
         >
-          Trend-Analyse
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Trend-Analyse</Box>
         </Button>
       </Stack>
 
@@ -350,8 +355,13 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
       )}
 
       {/* Resolve-Dialog */}
-      <Dialog open={resolveId !== null} onClose={() => setResolveId(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Alert als erledigt markieren</DialogTitle>
+      <Dialog open={resolveId !== null} onClose={() => setResolveId(null)} maxWidth="sm" fullWidth fullScreen={dialogFullScreen}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+          Alert als erledigt markieren
+          <IconButton size="small" onClick={() => setResolveId(null)} edge="end" aria-label="Schließen">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
           <TextField
             label="Notiz (optional)"

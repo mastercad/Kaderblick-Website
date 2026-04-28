@@ -8,7 +8,7 @@
 // ── Domain types ───────────────────────────────────────────────────────────────
 
 export type Subject   = 'team' | 'player' | 'team_comparison' | 'player_comparison';
-export type Topic     = 'goals' | 'assists' | 'cards' | 'trend' | 'overview' | 'shots' | 'fouls' | 'passes';
+export type Topic     = 'goals' | 'assists' | 'cards' | 'trend' | 'overview' | 'shots' | 'fouls' | 'passes' | 'minutesPlayed' | 'distance';
 export type TimeRange = 'season' | 'last10' | 'last_month' | 'all';
 
 /** A selectable option card (subject, topic, or time-range step). */
@@ -68,22 +68,26 @@ export const SUBJECT_OPTIONS: WizardOption<Subject>[] = [
 
 export const TOPIC_OPTIONS: Record<Subject, WizardOption<Topic>[]> = {
   team: [
-    { value: 'goals',   emoji: '⚽', title: 'Tore & Torjäger',  desc: 'Wer hat am häufigsten getroffen?' },
-    { value: 'assists', emoji: '🎯', title: 'Vorlagen',          desc: 'Wer bereitet die meisten Tore vor?' },
-    { value: 'shots',   emoji: '💥', title: 'Torschüsse',        desc: 'Wer schießt am häufigsten aufs Tor?' },
-    { value: 'cards',   emoji: '🟨', title: 'Karten & Fairness', desc: 'Wer hat Gelbe oder Rote Karten gesammelt?' },
-    { value: 'fouls',   emoji: '⚠️', title: 'Fouls',             desc: 'Wer macht die meisten Fouls?' },
-    { value: 'passes',  emoji: '🔄', title: 'Pässe',             desc: 'Wer spielt die meisten Pässe?' },
-    { value: 'trend',   emoji: '📈', title: 'Saisonverlauf',     desc: 'Wie lief die Saison bisher?' },
+    { value: 'goals',        emoji: '⚽', title: 'Tore & Torjäger',  desc: 'Wer hat am häufigsten getroffen?' },
+    { value: 'assists',      emoji: '🎯', title: 'Vorlagen',          desc: 'Wer bereitet die meisten Tore vor?' },
+    { value: 'shots',        emoji: '💥', title: 'Torschüsse',        desc: 'Wer schießt am häufigsten aufs Tor?' },
+    { value: 'cards',        emoji: '🟨', title: 'Karten & Fairness', desc: 'Wer hat Gelbe oder Rote Karten gesammelt?' },
+    { value: 'fouls',        emoji: '⚠️', title: 'Fouls',             desc: 'Wer macht die meisten Fouls?' },
+    { value: 'passes',       emoji: '🔄', title: 'Pässe',             desc: 'Wer spielt die meisten Pässe?' },
+    { value: 'minutesPlayed',emoji: '⏱️', title: 'Einsatzminuten',    desc: 'Wer hat die meisten Spielminuten gesammelt?' },
+    { value: 'distance',     emoji: '🏃', title: 'Laufleistung',      desc: 'Wer hat die meisten Meter zurückgelegt?' },
+    { value: 'trend',        emoji: '📈', title: 'Saisonverlauf',     desc: 'Wie lief die Saison bisher?' },
   ],
   player: [
-    { value: 'goals',    emoji: '⚽', title: 'Tore',            desc: 'Wie viele Tore hat der Spieler erzielt?' },
-    { value: 'assists',  emoji: '🎯', title: 'Vorlagen',        desc: 'Wie viele Tore hat er vorbereitet?' },
-    { value: 'shots',    emoji: '💥', title: 'Torschüsse',      desc: 'Wie oft schießt der Spieler aufs Tor?' },
-    { value: 'cards',    emoji: '🟨', title: 'Karten',          desc: 'Welche Karten hat er bekommen?' },
-    { value: 'fouls',    emoji: '⚠️', title: 'Fouls',           desc: 'Wie viele Fouls hat er begangen?' },
-    { value: 'passes',   emoji: '🔄', title: 'Pässe',           desc: 'Wie viele Pässe spielt der Spieler?' },
-    { value: 'overview', emoji: '🕸️', title: 'Stärken-Profil', desc: 'Alle Qualitäten auf einen Blick (Radar)' },
+    { value: 'goals',        emoji: '⚽', title: 'Tore',            desc: 'Wie viele Tore hat der Spieler erzielt?' },
+    { value: 'assists',      emoji: '🎯', title: 'Vorlagen',        desc: 'Wie viele Tore hat er vorbereitet?' },
+    { value: 'shots',        emoji: '💥', title: 'Torschüsse',      desc: 'Wie oft schießt der Spieler aufs Tor?' },
+    { value: 'cards',        emoji: '🟨', title: 'Karten',          desc: 'Welche Karten hat er bekommen?' },
+    { value: 'fouls',        emoji: '⚠️', title: 'Fouls',           desc: 'Wie viele Fouls hat er begangen?' },
+    { value: 'passes',       emoji: '🔄', title: 'Pässe',           desc: 'Wie viele Pässe spielt der Spieler?' },
+    { value: 'minutesPlayed',emoji: '⏱️', title: 'Spielminuten',    desc: 'Wie viele Minuten hat der Spieler gespielt?' },
+    { value: 'distance',     emoji: '🏃', title: 'Laufleistung',    desc: 'Wie viele Meter hat der Spieler zurückgelegt?' },
+    { value: 'overview',     emoji: '🕸️', title: 'Stärken-Profil', desc: 'Alle Qualitäten auf einen Blick (Radar)' },
   ],
   team_comparison: [
     { value: 'goals', emoji: '⚽', title: 'Tore im Vergleich',    desc: 'Welches Team schießt am meisten?' },
@@ -93,13 +97,15 @@ export const TOPIC_OPTIONS: Record<Subject, WizardOption<Topic>[]> = {
     { value: 'trend', emoji: '📈', title: 'Saisonverlauf',        desc: 'Wie entwickeln sich die Teams im Laufe der Saison?' },
   ],
   player_comparison: [
-    { value: 'goals',    emoji: '⚽', title: 'Tore im Vergleich',    desc: 'Wer hat die meisten Tore erzielt?' },
-    { value: 'assists',  emoji: '🎯', title: 'Vorlagen im Vergleich', desc: 'Wer bereitet die meisten Tore vor?' },
-    { value: 'shots',    emoji: '💥', title: 'Schüsse im Vergleich', desc: 'Wer schießt öfter aufs Tor?' },
-    { value: 'cards',    emoji: '🟨', title: 'Karten im Vergleich',  desc: 'Wer hat die meisten Karten gesammelt?' },
-    { value: 'fouls',    emoji: '⚠️', title: 'Fouls im Vergleich',   desc: 'Wer macht mehr Fouls?' },
-    { value: 'passes',   emoji: '🔄', title: 'Pässe im Vergleich',   desc: 'Wer spielt mehr Pässe?' },
-    { value: 'overview', emoji: '🕸️', title: 'Stärken-Profil Vergleich', desc: 'Alle Qualitäten der Spieler gleichzeitig (Radar)' },
+    { value: 'goals',        emoji: '⚽', title: 'Tore im Vergleich',           desc: 'Wer hat die meisten Tore erzielt?' },
+    { value: 'assists',      emoji: '🎯', title: 'Vorlagen im Vergleich',        desc: 'Wer bereitet die meisten Tore vor?' },
+    { value: 'shots',        emoji: '💥', title: 'Schüsse im Vergleich',        desc: 'Wer schießt öfter aufs Tor?' },
+    { value: 'cards',        emoji: '🟨', title: 'Karten im Vergleich',         desc: 'Wer hat die meisten Karten gesammelt?' },
+    { value: 'fouls',        emoji: '⚠️', title: 'Fouls im Vergleich',          desc: 'Wer macht mehr Fouls?' },
+    { value: 'passes',       emoji: '🔄', title: 'Pässe im Vergleich',          desc: 'Wer spielt mehr Pässe?' },
+    { value: 'minutesPlayed',emoji: '⏱️', title: 'Spielminuten im Vergleich',   desc: 'Wer hat mehr gespielt?' },
+    { value: 'distance',     emoji: '🏃', title: 'Laufleistung im Vergleich',   desc: 'Wer hat mehr Meter zurückgelegt?' },
+    { value: 'overview',     emoji: '🕸️', title: 'Stärken-Profil Vergleich',   desc: 'Alle Qualitäten der Spieler gleichzeitig (Radar)' },
   ],
 };
 

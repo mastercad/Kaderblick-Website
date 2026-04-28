@@ -603,12 +603,60 @@ class ReportFieldAliasService
                     return $countByCodes($events, ['interception', 'intercept_cross', 'ball_win']);
                 },
             ],
+
+            // ─── PlayerGameStats Metrics (from per-game summary data) ─────────────
+            // These fields are read from PlayerGameStats entities, not from GameEvents.
+            // The backend detects the 'dataSource' flag and switches the query path.
+
+            'minutesPlayed' => [
+                'label' => 'Gespielte Minuten',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'minutesPlayed',
+            ],
+            'distanceCovered' => [
+                'label' => 'Laufleistung (Meter)',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'distanceCovered',
+            ],
+            'passesCompleted' => [
+                'label' => 'Erfolgreiche Pässe',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'passesCompleted',
+            ],
+            'shotsOnTarget' => [
+                'label' => 'Schüsse aufs Tor',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'shotsOnTarget',
+            ],
+            'foulsSuffered' => [
+                'label' => 'Erlittene Fouls',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'foulsSuffered',
+            ],
+            'foulsCommittedStats' => [
+                'label' => 'Begangene Fouls (Spielstatistik)',
+                'category' => 'metric',
+                'dataSource' => 'playerGameStats',
+                'pgsField' => 'foulsCommitted',
+            ],
         ];
 
         // ─── Augment aliases with metadata ────────────────────────────────
         foreach ($aliases as $k => &$v) {
             $hasValueCallable = is_callable($v['value'] ?? null);
             $v['accessibleFromEvent'] = $hasValueCallable || array_key_exists('field', $v);
+
+            // playerGameStats metrics are read via a dedicated query path and do not
+            // aggregate raw GameEvents. Provide a no-op callable so that all metric
+            // aliases satisfy the contract (aggregate key + callable).
+            if ('metric' === $v['category'] && !isset($v['aggregate']) && isset($v['pgsField'])) {
+                $v['aggregate'] = static fn (array $events): float => 0.0;
+            }
 
             // Build normalized path for traversal
             $path = [];

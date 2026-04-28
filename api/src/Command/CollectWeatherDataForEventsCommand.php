@@ -7,6 +7,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 
 #[AsCommand(
     name: 'app:collect-weather-data-for-events',
@@ -24,7 +25,13 @@ class CollectWeatherDataForEventsCommand extends AbstractCronCommand
     {
         $io = new SymfonyStyle($input, $output);
 
-        $this->weatherService->retrieveWeatherData();
+        try {
+            $this->weatherService->retrieveWeatherData();
+        } catch (Throwable $e) {
+            $io->error('Fehler beim Abrufen der Wetterdaten: ' . $e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $io->success('Weather data has been collected for upcoming events.');
 

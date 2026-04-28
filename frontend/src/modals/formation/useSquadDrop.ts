@@ -55,6 +55,8 @@ export function useSquadDrop({
   const playersRef         = useRef<PlayerData[]>(players);
   const benchPlayersRef    = useRef<PlayerData[]>(benchPlayers);
   const nextNumRef         = useRef<number>(nextPlayerNumber);
+  /** Ghost-Element das dem Finger folgt während Touch-Drag vom Kader übers Feld. */
+  const squadGhostRef      = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => { playersRef.current      = players;          }, [players]);
   useEffect(() => { benchPlayersRef.current = benchPlayers;     }, [benchPlayers]);
@@ -177,12 +179,20 @@ export function useSquadDrop({
         const pos  = getRelativePosition(touch.clientX, touch.clientY, pitch);
         const near = findNearestInList(playersRef.current, pos.x, pos.y);
         setHighlightedTokenId(near?.id ?? null);
+        // Ghost-Token direkt via DOM bewegen (kein React re-render)
+        if (squadGhostRef.current) {
+          squadGhostRef.current.style.display = 'flex';
+          squadGhostRef.current.style.left    = touch.clientX + 'px';
+          squadGhostRef.current.style.top     = touch.clientY + 'px';
+        }
       } else {
         setHighlightedTokenId(null);
+        if (squadGhostRef.current) squadGhostRef.current.style.display = 'none';
       }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      if (squadGhostRef.current) squadGhostRef.current.style.display = 'none';
       const touch = e.changedTouches[0];
       const pitch = pitchRef.current;
       if (pitch) {
@@ -217,6 +227,7 @@ export function useSquadDrop({
     setSquadDragPlayer(null);
     squadDragPlayerRef.current = null;
     setHighlightedTokenId(null);
+    if (squadGhostRef.current) squadGhostRef.current.style.display = 'none';
   };
 
   const handlePitchDragOver = (e: React.DragEvent) => {
@@ -236,6 +247,7 @@ export function useSquadDrop({
   return {
     squadDragPlayer,
     highlightedTokenId,
+    squadGhostRef,
     handleSquadDragStart,
     handleSquadDragEnd,
     handlePitchDragOver,

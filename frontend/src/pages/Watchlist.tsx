@@ -7,6 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
@@ -33,7 +34,9 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { AdminPageLayout, AdminEmptyState, AdminSnackbar } from '../components/AdminPageLayout';
 import { apiJson, apiRequest } from '../utils/api';
 import { WatchlistEntry } from '../types/watchlist';
@@ -145,13 +148,14 @@ const Watchlist = () => {
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          px: 2,
+          px: { xs: 1.5, sm: 2 },
           py: 1.5,
           mb: 2,
           bgcolor: 'background.paper',
           display: 'flex',
-          gap: 1.5,
-          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 1,
+          alignItems: { xs: 'stretch', sm: 'center' },
         }}
       >
         <TextField
@@ -173,7 +177,7 @@ const Watchlist = () => {
           startIcon={<AddIcon />}
           onClick={() => setAddDialogOpen(true)}
           size="small"
-          sx={{ whiteSpace: 'nowrap' }}
+          sx={{ whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}
         >
           Hinzufügen
         </Button>
@@ -256,17 +260,17 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
 
   return (
     <Card variant="outlined">
-      <CardContent>
+      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
           {/* Left: info */}
-          <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
+          <Stack spacing={0.5} sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexWrap: 'wrap' }}>
               {isPlayer ? (
-                <SportsSoccerIcon fontSize="small" color="action" />
+                <SportsSoccerIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
               ) : (
-                <SchoolIcon fontSize="small" color="action" />
+                <SchoolIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
               )}
-              <Typography variant="subtitle1" fontWeight="bold">
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ wordBreak: 'break-word', minWidth: 0 }}>
                 {name}
               </Typography>
               <Chip
@@ -297,7 +301,7 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
             {stats && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Stack direction="row" spacing={{ xs: 1, sm: 2 }} flexWrap="wrap" useFlexGap>
                   <Typography variant="caption" color="text.secondary">
                     Spiele: <strong>{stats.totalGames}</strong>
                   </Typography>
@@ -319,7 +323,7 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
           </Stack>
 
           {/* Right: actions */}
-          <Stack direction="row" alignItems="center">
+          <Stack direction="row" alignItems="center" sx={{ flexShrink: 0 }}>
             <Tooltip title={entry.isAnonymous ? 'Anonym beobachten (aktiv)' : 'Sichtbar beobachten (aktiv)'}>
               <IconButton size="small" onClick={() => onToggleAnonymous(entry)}>
                 {entry.isAnonymous ? (
@@ -358,6 +362,8 @@ const AddToWatchlistDialog = ({
   existingEntries,
   onSnackbar,
 }: AddToWatchlistDialogProps) => {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [type, setType] = useState<'player' | 'coach'>('player');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -441,9 +447,14 @@ const AddToWatchlistDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Spieler oder Trainer beobachten</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+        Spieler oder Trainer beobachten
+        <IconButton size="small" onClick={onClose} edge="end" aria-label="Schließen">
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
         <Stack spacing={2} mt={0.5}>
           <ToggleButtonGroup
             value={type}

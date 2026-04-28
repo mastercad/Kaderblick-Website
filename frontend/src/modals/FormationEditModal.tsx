@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button, Box, Typography, CircularProgress, TextField, MenuItem, Chip, Tooltip,
-  Paper, Stack, Switch, FormControlLabel,
+  Paper, Stack, Switch, FormControlLabel, IconButton,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import ViewKanbanOutlinedIcon from '@mui/icons-material/ViewKanbanOutlined';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import BaseModal from './BaseModal';
 import { useFormationEditor } from './formation/useFormationEditor';
 import TemplatePicker from './formation/components/TemplatePicker';
@@ -54,6 +56,36 @@ const getGuideTone = (level: SlotMatchLevel) => {
   }
 };
 
+/**
+ * Separates TextField für den Formationsnamen.
+ * Verwaltet eigenen lokalen State, damit beim Tippen nur diese kleine
+ * Komponente re-rendert und nicht der gesamte FormationEditModal.
+ */
+const FormationNameField: React.FC<{ value: string; onChange: (v: string) => void }> = React.memo(
+  ({ value, onChange }) => {
+    const [local, setLocal] = useState(value);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => { setLocal(value); }, [value]);
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      setLocal(e.target.value);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => { onChange(e.target.value); }, 300);
+    }, [onChange]);
+
+    return (
+      <TextField
+        label="Name der Aufstellung"
+        value={local}
+        onChange={handleChange}
+        fullWidth
+        required
+      />
+    );
+  },
+);
+
 const FormationEditModal: React.FC<FormationEditModalProps> = ({
   open,
   formationId,
@@ -86,6 +118,25 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
   useEffect(() => {
     if (editor.error) setErrorDialogDismissed(false);
   }, [editor.error]);
+
+  // Keyboard shortcuts: Ctrl+Z = Undo, Ctrl+Y / Ctrl+Shift+Z = Redo
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        editor.undo();
+      } else if (
+        ((e.ctrlKey || e.metaKey) && e.key === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')
+      ) {
+        e.preventDefault();
+        editor.redo();
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, editor.undo, editor.redo]);
 
   const handleCloseRequest = useCallback(() => {
     if (editor.isDirty) {
@@ -194,11 +245,9 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
 
       {/* Name + Team */}
       <Box display="flex" gap={2} mb={2} mt={1}>
-        <TextField
-          label="Name der Aufstellung"
+        <FormationNameField
           value={editor.name}
-          onChange={e => editor.setName(e.target.value)}
-          fullWidth required
+          onChange={editor.setName}
         />
         <TextField
           label="Team" select
@@ -269,9 +318,20 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           }}
         >
           <Box>
-            <Typography variant="subtitle2" fontWeight={700}>
-              Nächster sinnvoller Schritt
-            </Typography>
+            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Nächster sinnvoller Schritt
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<ViewKanbanOutlinedIcon />}
+                onClick={() => editor.setShowTemplatePicker(true)}
+                sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                Vorlage wählen
+              </Button>
+            </Box>
             <Typography variant="body2" color="text.secondary">
               {nextStepLabel}
             </Typography>
@@ -293,14 +353,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             {activeTemplate && (
               <Chip size="small" color="success" variant="outlined" label={`Vorlage ${activeTemplate.label}`} />
             )}
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<ViewKanbanOutlinedIcon />}
-              onClick={() => editor.setShowTemplatePicker(true)}
-            >
-              Vorlage wählen
-            </Button>
           </Stack>
         </Box>
         <FormControlLabel
@@ -329,8 +381,8 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
       {editor.hasPlaceholders && editor.availablePlayers.length > 0 && (
         <Box
           sx={{
-            display: 'flex', alignItems: 'center', gap: 1.5,
-            px: 2, py: 1.25, mb: 2,
+            display: 'flex', flexDirection: 'column', gap: 1,
+            px: 2, py: 1.5, mb: 2,
             borderRadius: 2,
             bgcolor: theme => theme.palette.mode === 'dark'
               ? 'rgba(99,179,237,0.1)'
@@ -339,31 +391,31 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             borderColor: 'primary.200',
           }}
         >
-          <AutoAwesomeIcon fontSize="small" color="primary" sx={{ flexShrink: 0 }} />
-          <Box flex={1} minWidth={0}>
-            <Typography variant="body2" fontWeight={600} color="primary.main" lineHeight={1.25}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AutoAwesomeIcon fontSize="small" color="primary" sx={{ flexShrink: 0 }} />
+            <Typography variant="body2" fontWeight={600} color="primary.main" lineHeight={1.25} flex={1}>
               Spieler automatisch einsetzen
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {editor.placeholderCount} {editor.placeholderCount === 1 ? 'Platzhalter' : 'Platzhalter'} auf dem Feld
-              {' · '}
-              {editor.availablePlayers.length} {editor.availablePlayers.length === 1 ? 'Spieler' : 'Spieler'} im Kader
-            </Typography>
+            <Chip
+              label={`${editor.placeholderCount} offen`}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 700, fontSize: '0.7rem', flexShrink: 0 }}
+            />
           </Box>
-          <Chip
-            label={`${editor.placeholderCount} offen`}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontWeight: 700, fontSize: '0.7rem', flexShrink: 0 }}
-          />
-          <Tooltip title="Ersetzt alle Platzhalter mit echten Spielern aus dem Kader. Position und Koordinaten bleiben erhalten. übrige Spieler kommen auf die Bank.">
+          <Typography variant="caption" color="text.secondary" sx={{ pl: 0.25 }}>
+            {editor.placeholderCount} {editor.placeholderCount === 1 ? 'Platzhalter' : 'Platzhalter'} auf dem Feld
+            {' · '}
+            {editor.availablePlayers.length} {editor.availablePlayers.length === 1 ? 'Spieler' : 'Spieler'} im Kader
+          </Typography>
+          <Tooltip title="Ersetzt alle Platzhalter mit echten Spielern aus dem Kader. Position und Koordinaten bleiben erhalten. Übrige Spieler kommen auf die Bank.">
             <Button
               variant="contained"
               size="small"
               startIcon={<GroupAddIcon />}
               onClick={editor.fillWithTeamPlayers}
-              sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+              fullWidth
             >
               Team einsetzen
             </Button>
@@ -413,11 +465,29 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
                   </Typography>
                 )}
               </Box>
-              <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                 <Chip size="small" label={`${fieldCount} auf dem Feld`} />
                 <Chip size="small" label={`${benchCount} auf der Bank`} />
               </Stack>
             </Box>
+
+          {/* Undo / Redo – eigene zentrierte Zeile */}
+          <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+            <Tooltip title="Rückgängig (Strg+Z)">
+              <span>
+                <IconButton size="small" onClick={editor.undo} disabled={!editor.canUndo} sx={{ opacity: editor.canUndo ? 0.8 : 0.3 }}>
+                  <UndoIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Wiederholen (Strg+Y)">
+              <span>
+                <IconButton size="small" onClick={editor.redo} disabled={!editor.canRedo} sx={{ opacity: editor.canRedo ? 0.8 : 0.3 }}>
+                  <RedoIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
 
           {/* Half-pitch – keep the canvas in landscape so it matches the field image */}
           <Box sx={{
@@ -686,18 +756,92 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             Änderungen verloren.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowCloseWarning(false)}>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexDirection: { xs: 'column-reverse', sm: 'row' }, alignItems: 'stretch' }}>
+          <Button
+            onClick={() => setShowCloseWarning(false)}
+            sx={{ flex: { sm: 1 } }}
+          >
             Weiter bearbeiten
           </Button>
-          <Button color="error" variant="outlined" onClick={() => { setShowCloseWarning(false); onClose(); }}>
+          <Button
+            color="error"
+            variant="outlined"
+            onClick={() => { setShowCloseWarning(false); onClose(); }}
+            sx={{ flex: { sm: 1 } }}
+          >
             Änderungen verwerfen
           </Button>
-          <Button variant="contained" onClick={handleSaveAndClose} disabled={editor.loading}>
+          <Button
+            variant="contained"
+            onClick={handleSaveAndClose}
+            disabled={editor.loading}
+            sx={{ flex: { sm: 1 } }}
+          >
             Speichern & Schließen
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Ghost-Token für Squad-Touch-Drag: folgt dem Finger über das Feld,
+          wird direkt via DOM-Style positioniert (kein React re-render) */}
+      {editor.squadDragPlayer && (
+        <Box
+          ref={editor.squadGhostRef}
+          sx={{
+            display: 'none',
+            position: 'fixed',
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            bgcolor: 'primary.dark',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.85,
+            boxShadow: 4,
+          }}
+        >
+          {editor.squadDragPlayer.shirtNumber}
+        </Box>
+      )}
+
+      {/* Ghost-Token für Bank-Drag aufs Feld: folgt dem Pointer,
+          wird direkt via DOM-Style positioniert (kein React re-render) */}
+      {(() => {
+        const benchDragPlayer = editor.isDraggingFromBench
+          ? editor.benchPlayers.find(p => p.id === editor.draggedPlayerId)
+          : null;
+        return benchDragPlayer ? (
+          <Box
+            ref={editor.benchGhostRef}
+            sx={{
+              display: 'none',
+              position: 'fixed',
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              bgcolor: 'secondary.dark',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transform: 'translate(-50%, -50%)',
+              opacity: 0.85,
+              boxShadow: 4,
+            }}
+          >
+            {benchDragPlayer.number}
+          </Box>
+        ) : null;
+      })()}
     </BaseModal>
   );
 };

@@ -136,6 +136,14 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
     setPresentationMode(prev => {
       const next = !prev;
       setHideFullscreenChrome(next);
+      if (next) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+      } else {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if ((document as any).webkitFullscreenElement) (document as any).webkitExitFullscreen();
+      }
       return next;
     });
   }, []);
@@ -143,6 +151,24 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
   const handlePresentationModeOff = useCallback(() => {
     setPresentationMode(false);
     setHideFullscreenChrome(false);
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if ((document as any).webkitFullscreenElement) (document as any).webkitExitFullscreen();
+  }, []);
+
+  // Sync state when user exits fullscreen via ESC or browser UI
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        setPresentationMode(false);
+        setHideFullscreenChrome(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
   }, []);
 
   // ── Opponent edit form state ──────────────────────────────────────────────
@@ -266,7 +292,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
 
         {/* ── Formation name – top left ─────────────────────────────────── */}
         {!isPresentationMode && (board.formationName || board.formationCode || formation?.formationType?.name) && (
-        <Box sx={{ position: 'absolute', top: 10, left: leftBarOpen ? 82 : 10, zIndex: 90, display: 'flex', alignItems: 'center', gap: 0.75, pointerEvents: 'none', transition: 'left 0.2s cubic-bezier(0.4,0,0.2,1)' }}>
+        <Box sx={{ position: 'absolute', top: 10, left: (isMobile && isPortrait) ? 10 : (leftBarOpen ? 82 : 10), zIndex: 90, display: 'flex', alignItems: 'center', gap: 0.75, pointerEvents: 'none', transition: 'left 0.2s cubic-bezier(0.4,0,0.2,1)' }}>
           {(board.formationName || formation?.formationType?.name) && (
             <Typography variant="body2" fontWeight={700} sx={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1, userSelect: 'none' }}>
               {board.formationName || formation?.formationType?.name}
@@ -274,6 +300,13 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           )}
           {board.formationCode && (
             <Chip label={board.formationCode} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', fontWeight: 700, fontSize: '0.7rem', height: 20, border: '1px solid rgba(255,255,255,0.1)' }} />
+          )}
+          {board.tactics.length > 1 && board.activeTactic?.name && (
+            <Chip
+              label={board.activeTactic.name}
+              size="small"
+              sx={{ bgcolor: 'rgba(33,150,243,0.12)', color: 'rgba(33,150,243,0.8)', fontWeight: 700, fontSize: '0.7rem', height: 20, border: '1px solid rgba(33,150,243,0.25)' }}
+            />
           )}
         </Box>
         )}
@@ -283,7 +316,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
         <Box sx={{
           position: 'absolute', top: 0, right: rightBarOpen ? 202 : 10, zIndex: 100,
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-          transform: topActionsVisible ? 'translateY(0)' : 'translateY(calc(-100% + 14px))',
+          transform: (topActionsVisible || (isMobile && isPortrait)) ? 'translateY(0)' : 'translateY(calc(-100% + 14px))',
           transition: 'transform 0.25s cubic-bezier(0.4,0,0.2,1), right 0.2s cubic-bezier(0.4,0,0.2,1)',
         }}>
           {/* Buttons */}
@@ -328,7 +361,8 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
               <CloseIcon />
             </IconButton>
           </Box>
-          {/* Drawer-Tab – always visible, tap to slide in/out */}
+          {/* Drawer-Tab – nur außerhalb von Portrait-Mobile */}
+          {!(isMobile && isPortrait) && (
           <Box
             role="button"
             aria-label={topActionsVisible ? 'Aktionsleiste ausblenden' : 'Aktionsleiste einblenden'}
@@ -346,14 +380,51 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           >
             <Box sx={{ width: 28, height: 3, borderRadius: 2, bgcolor: topActionsVisible ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.38)' }} />
           </Box>
+          )}
         </Box>
+        )}
+
+        {/* ── Portrait-Mobile: horizontale Werkzeugzeile über dem Pitch ───── */}
+        {isMobile && isPortrait && !isPresentationMode && (
+          <TacticsToolbar
+            isPortraitMobile={true}
+            notes={board.notes}
+            tool={board.tool}            setTool={board.setTool}
+            color={board.color}          setColor={board.setColor}
+            fullPitch={board.fullPitch}  setFullPitch={board.setFullPitch}
+            fitPitchToHeight={effectiveFitPitchToHeight}
+            setFitPitchToHeight={setFitPitchToHeight}
+            elements={board.elements}    opponents={board.opponents}
+            saving={board.saving}        saveMsg={board.saveMsg}
+            isBrowserFS={board.isBrowserFS}
+            isDirty={board.isDirty}
+            showNotes={board.showNotes}  setShowNotes={board.setShowNotes}
+            formation={formation}
+            onAddOpponent={board.handleAddOpponent}
+            onUndo={board.handleUndo}
+            onClear={board.handleClear}
+            onResetPlayerPositions={board.handleResetPlayerPositions}
+            onSave={board.handleSave}
+            onToggleFullscreen={board.toggleFullscreen}
+            onLoadPreset={board.handleLoadPreset}
+            activeTactic={board.activeTactic}
+            selectedId={board.selectedId}
+            onDeleteSelected={board.handleDeleteSelected}
+            canUndo={board.canUndo}
+            canRedo={board.canRedo}
+            onRedo={board.handleRedo}
+            showStepNumbers={showStepNumbers}
+            onToggleStepNumbers={() => setShowStepNumbers(v => !v)}
+            presentationMode={presentationMode}
+            onTogglePresentationMode={togglePresentationMode}
+          />
         )}
 
         {/* ── Hauptbereich: Pitch (füllt immer den ganzen Raum) ───────────── */}
         <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
-        {/* Left sidebar (tools) – overlay, does not affect pitch size */}
-        {!isPresentationMode && leftBarOpen && (
+        {/* Left sidebar (tools) – overlay, does not affect pitch size (hidden in portrait mobile) */}
+        {!isPresentationMode && !(isMobile && isPortrait) && leftBarOpen && (
           <Box sx={{ position: 'absolute', left: 0, top: 0, bottom: 0, zIndex: 40, display: 'flex' }}>
             <TacticsToolbar
               isLandscapeMobile={true}
@@ -390,8 +461,8 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
           </Box>
         )}
 
-        {/* Left sidebar toggle strip – inner (right) edge, away from screen corners */}
-        {!isPresentationMode && (
+        {/* Left sidebar toggle strip – hidden in portrait mobile (toolbar is at bottom instead) */}
+        {!isPresentationMode && !(isMobile && isPortrait) && (
           <Box
             role="button"
             aria-label={leftBarOpen ? 'Linke Werkzeugleiste schließen' : 'Linke Werkzeugleiste öffnen'}
@@ -439,83 +510,7 @@ const TacticsBoardModal: React.FC<TacticsBoardModalProps> = ({
 
         {/* ═══ PITCH + NOTES ═══════════════════════════════════════════════ */}
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: effectiveFitPitchToHeight ? 'center' : 'flex-start', justifyContent: 'center', gap: 2, p: { xs: 0.5, md: 1 }, overflow: effectiveFitPitchToHeight ? 'hidden' : 'auto' }}>
-          {board.isBrowserFS && isPresentationMode && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: { xs: 10, md: 16 },
-                right: { xs: 10, md: 16 },
-                zIndex: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 0.75,
-                borderRadius: 2,
-                bgcolor: 'rgba(10,15,10,0.72)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 14px 32px rgba(0,0,0,0.32)',
-              }}
-            >
-              <Button
-                aria-label="Leisten einblenden"
-                onClick={() => setHideFullscreenChrome(false)}
-                startIcon={<VisibilityIcon sx={{ fontSize: 18 }} />}
-                sx={{
-                  minWidth: 0,
-                  px: 1.2,
-                  py: 0.55,
-                  borderRadius: 1.5,
-                  color: 'white',
-                  bgcolor: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.16)' },
-                }}
-              >
-                Leisten einblenden
-              </Button>
 
-              {presentationMode && (
-                <Button
-                  aria-label="Präsentation beenden"
-                  onClick={handlePresentationModeOff}
-                  sx={{
-                    minWidth: 0,
-                    px: 1.2,
-                    py: 0.55,
-                    borderRadius: 1.5,
-                    color: 'rgba(255,255,255,0.9)',
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
-                  }}
-                >
-                  Präsentation beenden
-                </Button>
-              )}
-
-              <IconButton
-                aria-label="Vollbild beenden"
-                onClick={board.toggleFullscreen}
-                sx={{
-                  color: 'rgba(255,255,255,0.86)',
-                  bgcolor: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.14)' },
-                }}
-              >
-                <FullscreenExitIcon />
-              </IconButton>
-            </Box>
-          )}
 
           <PitchCanvas
             pitchRef={board.pitchRef}
