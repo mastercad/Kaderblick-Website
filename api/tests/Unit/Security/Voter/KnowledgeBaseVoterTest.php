@@ -131,10 +131,10 @@ class KnowledgeBaseVoterTest extends TestCase
     public function testAbstainsForUnsupportedSubjectType(): void
     {
         $user = $this->createUser(1, ['ROLE_USER']);
+        // stdClass → resolveTeam() returns null → POST_VIEW global branch → GRANTED
         $result = $this->voter->vote($this->createToken($user), new stdClass(), [KnowledgeBaseVoter::POST_VIEW]);
 
-        // resolveTeam returns null → POST_VIEW returns false → DENIED (not ABSTAIN, because attribute is supported)
-        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
     // ─── POST_VIEW: Team as subject ───────────────────────────────────────────
@@ -209,13 +209,42 @@ class KnowledgeBaseVoterTest extends TestCase
 
     // ─── POST_EDIT ────────────────────────────────────────────────────────────
 
-    public function testEditGrantedForAuthorOfPost(): void
+    public function testEditDeniedForAuthorWithoutCreateRights(): void
     {
+        // ROLE_USER with no coach/supporter rights → canCreate() returns false → denied
         $author = $this->createUser(5, ['ROLE_USER']);
         $team = $this->createTeam(10);
         $post = $this->createPost($team, $author);
 
-        // Admin check fails (not ROLE_ADMIN), falls through to author check
+        $this->mockIsUserInTeam(false, false);
+
+        $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditGrantedForAuthorWhoIsCoach(): void
+    {
+        // Author is a coach → canCreate() returns true via isCoachOfTeam
+        $author = $this->createUser(5, ['ROLE_USER']);
+        $team = $this->createTeam(10);
+        $post = $this->createPost($team, $author);
+
+        $this->mockIsUserInTeam(false, true);
+
+        $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testEditGrantedForAuthorWhoIsSupporterInTeam(): void
+    {
+        $author = $this->createUser(5, ['ROLE_SUPPORTER']);
+        $team = $this->createTeam(10);
+        $post = $this->createPost($team, $author);
+
+        $this->mockIsUserInTeam(true);
+
         $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_EDIT]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
@@ -263,11 +292,26 @@ class KnowledgeBaseVoterTest extends TestCase
 
     // ─── POST_DELETE ──────────────────────────────────────────────────────────
 
-    public function testDeleteGrantedForAuthor(): void
+    public function testDeleteDeniedForAuthorWithoutCreateRights(): void
     {
         $author = $this->createUser(7, ['ROLE_USER']);
         $team = $this->createTeam(10);
         $post = $this->createPost($team, $author);
+
+        $this->mockIsUserInTeam(false, false);
+
+        $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testDeleteGrantedForAuthorWhoIsCoach(): void
+    {
+        $author = $this->createUser(7, ['ROLE_USER']);
+        $team = $this->createTeam(10);
+        $post = $this->createPost($team, $author);
+
+        $this->mockIsUserInTeam(false, true);
 
         $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_DELETE]);
 
@@ -452,6 +496,113 @@ class KnowledgeBaseVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
+    // ─── Global posts (team = null) ───────────────────────────────────────────
+
+    public function testViewGrantedForAnyAuthenticatedUserOnGlobalPost(): void
+    {
+        $user = $this->createUser(1, ['ROLE_USER']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($user), $post, [KnowledgeBaseVoter::POST_VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testCommentViewGrantedForAnyAuthenticatedUserOnGlobalPost(): void
+    {
+        $user = $this->createUser(2, ['ROLE_USER']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($user), $post, [KnowledgeBaseVoter::COMMENT_VIEW]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testSuperAdminCanPinGlobalPost(): void
+    {
+        $superAdmin = $this->createUser(1, ['ROLE_SUPERADMIN']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($superAdmin), $post, [KnowledgeBaseVoter::POST_PIN]);
+
+        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testPinDeniedForNonSuperAdminOnGlobalPost(): void
+    {
+        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($admin), $post, [KnowledgeBaseVoter::POST_PIN]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testPinDeniedForRegularUserOnGlobalPost(): void
+    {
+        $user = $this->createUser(2, ['ROLE_USER']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($user), $post, [KnowledgeBaseVoter::POST_PIN]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditDeniedForAuthorOfGlobalPostWithoutSuperAdmin(): void
+    {
+        // Global posts: no team → canCreate returns false → only SuperAdmin may edit
+        $author = $this->createUser(5, ['ROLE_USER']);
+        $post = $this->createGlobalPost($author);
+
+        $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditDeniedForAdminOnGlobalPostWhenNotAuthor(): void
+    {
+        // Admin team-check is skipped for global posts (team=null); author check fails
+        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $author = $this->createUser(5, ['ROLE_USER']);
+        $post = $this->createGlobalPost($author);
+
+        $result = $this->voter->vote($this->createToken($admin), $post, [KnowledgeBaseVoter::POST_EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testDeleteDeniedForAuthorOfGlobalPostWithoutSuperAdmin(): void
+    {
+        $author = $this->createUser(7, ['ROLE_USER']);
+        $post = $this->createGlobalPost($author);
+
+        $result = $this->voter->vote($this->createToken($author), $post, [KnowledgeBaseVoter::POST_DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testDeleteDeniedForAdminOnGlobalPostWhenNotAuthor(): void
+    {
+        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $author = $this->createUser(5, ['ROLE_USER']);
+        $post = $this->createGlobalPost($author);
+
+        $result = $this->voter->vote($this->createToken($admin), $post, [KnowledgeBaseVoter::POST_DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testCommentAddDeniedForAnyUserOnGlobalPost(): void
+    {
+        // COMMENT_ADD on a post with team=null → resolveTeam() returns null → false
+        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $post = $this->createGlobalPost($this->createUser(99));
+
+        $result = $this->voter->vote($this->createToken($user), $post, [KnowledgeBaseVoter::COMMENT_ADD]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**
@@ -532,6 +683,15 @@ class KnowledgeBaseVoterTest extends TestCase
     {
         $post = $this->createMock(KnowledgeBasePost::class);
         $post->method('getTeam')->willReturn($team);
+        $post->method('getCreatedBy')->willReturn($author);
+
+        return $post;
+    }
+
+    private function createGlobalPost(User&MockObject $author): KnowledgeBasePost&MockObject
+    {
+        $post = $this->createMock(KnowledgeBasePost::class);
+        $post->method('getTeam')->willReturn(null);
         $post->method('getCreatedBy')->willReturn($author);
 
         return $post;

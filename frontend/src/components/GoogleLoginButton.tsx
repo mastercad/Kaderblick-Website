@@ -2,6 +2,7 @@ import Button from '@mui/material/Button';
 import { BACKEND_URL } from '../../config';
 import { apiJson } from '../utils/api';
 import { SvgIcon } from '@mui/material';
+import { useAuth } from '../context/AuthContext';
 
 // Mehrfarbiges Google-G-Logo (offizielles Branding)
 const GoogleColorfulIcon = () => (
@@ -15,12 +16,25 @@ const GoogleColorfulIcon = () => (
 );
 
 export default function GoogleLoginButton() {
+    const { checkAuthStatus } = useAuth();
     const handleGoogleLogin = () => {
+        const googleAuthUrl = `${BACKEND_URL}/connect/google`;
+
+        // Mobile browsers open window.open() as a new tab and can't close it via JS.
+        // Use redirect flow instead: navigate current tab to OAuth, then backend redirects back.
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+            (navigator.maxTouchPoints > 1 && window.screen.width < 1024);
+
+        if (isMobile) {
+            window.location.href = googleAuthUrl;
+            return;
+        }
+
         const width = 500, height = 600;
         const left = (screen.width/2)-(width/2);
         const top = (screen.height/2)-(height/2);
         const popup = window.open(
-            `${BACKEND_URL}/connect/google`, 
+            googleAuthUrl, 
             'GoogleLogin', 
             `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
         );
@@ -54,11 +68,10 @@ export default function GoogleLoginButton() {
                 } catch (e) {
                 }
 
-                // Reload page um Auth-State zu aktualisieren
-                // Verwende setTimeout für bessere PWA-Kompatibilität
-                setTimeout(() => {
-                    window.location.reload();
-                }, 100);
+                // Auth-State per React-State-Update aktualisieren (kein Hardreload).
+                // AuthModal hat loginWithGoogle() bereits aufgerufen, aber checkAuthStatus
+                // stellt sicher, dass der State auch ohne AuthModal korrekt ist.
+                checkAuthStatus();
             }
         };
 
@@ -71,12 +84,10 @@ export default function GoogleLoginButton() {
                     clearInterval(pollTimer);
                     window.removeEventListener('message', handleMessage);
                     
-                    // Prüfe Auth-Status und reload wenn erfolgreich
+                    // Popup manuell geschlossen: Auth-State per API aktualisieren
                     apiJson('/api/about-me')
                         .then(() => {
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 100);
+                            checkAuthStatus();
                         })
                         .catch(() => {
                         });

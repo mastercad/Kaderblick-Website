@@ -329,7 +329,7 @@ function App() {
                 {user && <PageTabBar />}
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
+                    <Route path="/" element={user ? <Navigate to={(location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/dashboard'} replace /> : <Home />} />
                     <Route path="/funktionen" element={<FeaturesOverview />} />
                     <Route path="/funktionen/:slug" element={<FeatureDetail />} />
                     <Route path="/fuer-trainer" element={<PublicIntentPage />} />
@@ -337,7 +337,7 @@ function App() {
                     <Route path="/fuer-jugendleitung" element={<PublicIntentPage />} />
                     <Route path="/spielanalyse-software" element={<PublicIntentPage />} />
                     <Route path="/faq" element={<Faq />} />
-                    <Route path="/wissenspool" element={<KnowledgeBase />} />
+                    <Route path="/wissenspool" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
                     <Route path="/kontakt" element={<ContactPage />} />
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />

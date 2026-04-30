@@ -16,12 +16,19 @@ interface PortraitHintProps {
 const PortraitHint: React.FC<PortraitHintProps> = ({ visible }) => {
   const [dismissed, setDismissed] = useState(false);
 
+  // Evaluated per render so tests can control the conditions via Object.defineProperty.
+  // screen.orientation.lock() only works reliably in installed PWA (standalone) context.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const canLockOrientation =
+    typeof (screen?.orientation as any)?.lock === 'function' &&
+    window.matchMedia('(display-mode: standalone)').matches;
+
   const handleRotate = useCallback(async () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (screen.orientation as any).lock('landscape');
     } catch {
-      // API nicht verfügbar (z. B. iOS Safari) – Nutzer muss manuell drehen
+      // ignore – works in installed PWA context; fails silently in regular browser tab
     }
   }, []);
 
@@ -68,24 +75,26 @@ const PortraitHint: React.FC<PortraitHintProps> = ({ visible }) => {
         Querformat für optimale Darstellung.
       </Typography>
 
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<ScreenRotationIcon sx={{ fontSize: 14 }} />}
-        onClick={handleRotate}
-        sx={{
-          flexShrink: 0,
-          fontSize: '0.68rem',
-          py: 0.25,
-          px: 1,
-          borderColor: 'rgba(33,150,243,0.5)',
-          color: 'rgba(33,150,243,0.9)',
-          minHeight: 0,
-          '&:hover': { borderColor: 'rgba(33,150,243,0.9)', bgcolor: 'rgba(33,150,243,0.1)' },
-        }}
-      >
-        Drehen
-      </Button>
+      {canLockOrientation && (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<ScreenRotationIcon sx={{ fontSize: 14 }} />}
+          onClick={handleRotate}
+          sx={{
+            flexShrink: 0,
+            fontSize: '0.68rem',
+            py: 0.25,
+            px: 1,
+            borderColor: 'rgba(33,150,243,0.5)',
+            color: 'rgba(33,150,243,0.9)',
+            minHeight: 0,
+            '&:hover': { borderColor: 'rgba(33,150,243,0.9)', bgcolor: 'rgba(33,150,243,0.1)' },
+          }}
+        >
+          Drehen
+        </Button>
+      )}
 
       <Tooltip title="Hinweis schließen" placement="left">
         <IconButton

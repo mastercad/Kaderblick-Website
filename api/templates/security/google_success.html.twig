@@ -31,29 +31,30 @@
     <script>
       (function() {
         const authData = {{ authData|raw }};
+        const frontendUrl = {{ frontend_url|json_encode|raw }};
         
         // Füge source-Flag hinzu für AuthModal
         const message = {
           ...authData,
           source: 'google-auth'
         };
+
+        // Redirect-Flow (Mobile): Kein window.opener → einfach zurück zur App.
+        // Die App prüft beim Mount den Auth-Status via /api/about-me (httpOnly-Cookie).
+        if (!window.opener || window.opener.closed) {
+          window.location.replace(frontendUrl);
+          return;
+        }
         
-        // Versuche verschiedene Methoden, um das Parent-Fenster zu erreichen
+        // Popup-Flow (Desktop): postMessage an Opener, dann Fenster schließen.
         const sendMessage = () => {
           try {
-            // Methode 1: window.opener (Standard-Popup)
-            // '*' als targetOrigin, da Frontend und Backend unterschiedliche Origins haben können.
-            // Die Validierung erfolgt auf Frontend-Seite über das 'source: google-auth' Flag.
             if (window.opener && !window.opener.closed) {
               window.opener.postMessage(message, '*');
             }
-            
-            // Methode 2: parent window (für iframes oder eingebettete Fenster)
             if (window.parent && window.parent !== window) {
               window.parent.postMessage(message, '*');
             }
-            
-            // Methode 3: top window (für verschachtelte iframes)
             if (window.top && window.top !== window) {
               window.top.postMessage(message, '*');
             }
@@ -68,20 +69,16 @@
         // Versuche Fenster zu schließen nach kurzer Verzögerung
         setTimeout(() => {
           try {
-            // In PWAs und einigen Browsern funktioniert window.close() nur,
-            // wenn das Fenster per JavaScript geöffnet wurde
             window.close();
             
-            // Fallback: Wenn close() nicht funktioniert, leite zur Hauptseite
+            // Fallback: Wenn close() nicht funktioniert, zurück zur App
             setTimeout(() => {
               if (!window.closed) {
-                window.location.href = '/';
+                window.location.replace(frontendUrl);
               }
             }, 1000);
           } catch (e) {
-            // Zeige alternative Nachricht
-            document.querySelector('.message').innerHTML = 
-              '<h2>✓ Login erfolgreich!</h2><p>Du kannst dieses Fenster jetzt schließen.</p>';
+            window.location.replace(frontendUrl);
           }
         }, 500);
       })();

@@ -187,7 +187,8 @@ class GoogleAuthenticator extends AbstractAuthenticator
 
         $response = new Response(
             $this->twig->render('security/google_success.html.twig', [
-                'authData' => json_encode($authData)
+                'authData' => json_encode($authData),
+                'frontend_url' => rtrim($this->params->get('app.website_url'), '/'),
             ])
         );
 

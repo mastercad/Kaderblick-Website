@@ -716,6 +716,43 @@ describe('KnowledgeBase', () => {
     });
   });
 
+  // ── Edit via Drawer ────────────────────────────────────────────────────────
+
+  it('opens SupporterApplicationModal when the edit button in the drawer is clicked without permission', async () => {
+    setupDefaultMocks({ canCreate: false });
+    mockFetchPost.mockResolvedValue({ ...mockPostDetail, canEdit: true });
+    await act(async () => { render(<KnowledgeBase />); });
+    await waitFor(() => { expect(screen.getByText('Pressing Übungen')).toBeInTheDocument(); });
+
+    await act(async () => { fireEvent.click(screen.getByTestId('CardActionArea')); });
+    await waitFor(() => { expect(screen.getByTestId('Drawer')).toBeInTheDocument(); });
+
+    const editButton = screen.getAllByTestId('IconButton').find(btn => btn.querySelector('span')?.textContent === 'EditIcon')!;
+    await act(async () => { fireEvent.click(editButton); });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('SupporterApplicationModal')).toBeInTheDocument();
+    });
+  });
+
+  it('opens the edit dialog when the edit button in the drawer is clicked with permission', async () => {
+    setupDefaultMocks({ canCreate: true });
+    mockFetchPost.mockResolvedValue({ ...mockPostDetail, canEdit: true });
+    await act(async () => { render(<KnowledgeBase />); });
+    await waitFor(() => { expect(screen.getByText('Pressing Übungen')).toBeInTheDocument(); });
+
+    await act(async () => { fireEvent.click(screen.getByTestId('CardActionArea')); });
+    await waitFor(() => { expect(screen.getByTestId('Drawer')).toBeInTheDocument(); });
+
+    const editButton = screen.getAllByTestId('IconButton').find(btn => btn.querySelector('span')?.textContent === 'EditIcon')!;
+    await act(async () => { fireEvent.click(editButton); });
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText('Beitrag bearbeiten')).toBeInTheDocument();
+    });
+  });
+
   // ── Search ─────────────────────────────────────────────────────────────────
 
   it('calls fetchPosts with search term when the user types in the search field', async () => {

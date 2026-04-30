@@ -62,8 +62,9 @@ final class KnowledgeBaseVoter extends Voter
             // ── READ ─────────────────────────────────────────────────────────
             case self::POST_VIEW:
             case self::COMMENT_VIEW:
+                // Global posts (team = null) are readable by every authenticated user
                 if (!$team instanceof Team) {
-                    return false;
+                    return true;
                 }
 
                 // All team members (player, coach, or admin/supporter in team) may read
@@ -85,20 +86,38 @@ final class KnowledgeBaseVoter extends Voter
                     return false;
                 }
 
-                // ROLE_ADMIN must also belong to the team
+                $postTeam = $subject->getTeam();
+
+                // ROLE_ADMIN must also belong to the team (only for team posts)
                 if (
                     in_array('ROLE_ADMIN', $user->getRoles(), true)
-                    && $this->isUserInTeam($user, $subject->getTeam())
+                    && $postTeam instanceof Team
+                    && $this->isUserInTeam($user, $postTeam)
                 ) {
                     return true;
                 }
 
-                // Creator can always edit/delete their own post
-                return $subject->getCreatedBy()->getId() === $user->getId();
+                // Creator may edit/delete only if they also have create rights
+                // (ROLE_SUPPORTER/ROLE_ADMIN in team, or coach of team).
+                // Global posts (no team) are superadmin-only — already handled above.
+                if ($subject->getCreatedBy()->getId() === $user->getId()) {
+                    if (!$postTeam instanceof Team) {
+                        return false;
+                    }
+
+                    return $this->canCreate($user, $postTeam);
+                }
+
+                return false;
 
                 // ── PIN ──────────────────────────────────────────────────────────
             case self::POST_PIN:
                 if (!$subject instanceof KnowledgeBasePost) {
+                    return false;
+                }
+
+                // Global posts can only be pinned by SuperAdmin (already handled above)
+                if (!$subject->getTeam() instanceof Team) {
                     return false;
                 }
 

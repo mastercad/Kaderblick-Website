@@ -1317,6 +1317,10 @@ export default function KnowledgeBase() {
   };
 
   const openEdit = (post: KnowledgeBasePostDetail) => {
+    if (!canCreate) {
+      setSupporterApplicationOpen(true);
+      return;
+    }
     setDrawerOpen(false);
     setEditPost(post);
     setDialogOpen(true);
