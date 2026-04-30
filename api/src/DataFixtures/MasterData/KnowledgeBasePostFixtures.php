@@ -193,8 +193,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'Spielverlagerung.de – Gegenpressing und Pressing-Konzepte',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=5l8h9U7hCTs',
-                        'label' => 'Gegenpressing einfach erklärt – Klopps bester Spielmacher (MrFussball)',
+                        'url' => 'https://www.youtube.com/watch?v=LQVOQTA7ZaQ',
+                        'label' => 'Gegenpressing einfach erklärt – Fußball Taktik Kurzvideo (Taktikanalyse)',
                     ],
                 ],
             ],
@@ -207,8 +207,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                 'template' => 'knowledge_base/taktik_umschaltspiel.html.twig',
                 'mediaLinks' => [
                     [
-                        'url' => 'https://www.youtube.com/watch?v=jNQ5MFMF-aY',
-                        'label' => 'Umschaltspiel im Fußball – offensiv und defensiv erklärt (1x1SPORT)',
+                        'url' => 'https://www.youtube.com/watch?v=x0uYr8Uytv8',
+                        'label' => 'Umschaltspiel und Torabschluss – 6 gegen 6 mit Zeitdruck (1x1SPORT)',
                     ],
                 ],
             ],
@@ -225,8 +225,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'Spielverlagerung.de – Ballbesitz und Positionsspiel',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=GjJiClDfGDY',
-                        'label' => 'Ballbesitzfußball einfach erklärt – Guardiolas Positionsspiel (Fußball-Coach)',
+                        'url' => 'https://www.youtube.com/watch?v=ZYUSp3VCff0',
+                        'label' => 'Das taktische Geheimnis von Pep Guardiola – Ballbesitz erklärt (Meister Touch)',
                     ],
                 ],
             ],
@@ -239,8 +239,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                 'template' => 'knowledge_base/taktik_deckung.html.twig',
                 'mediaLinks' => [
                     [
-                        'url' => 'https://www.youtube.com/watch?v=vhLvtAtYIpc',
-                        'label' => 'Raumdeckung vs. Manndeckung – welche Defensivtaktik ist besser? (1x1SPORT)',
+                        'url' => 'https://www.youtube.com/watch?v=-gDYwooJb_4',
+                        'label' => 'Raumdeckung vs. Manndeckung – der Unterschied erklärt (CoTrainer)',
                     ],
                 ],
             ],
@@ -257,8 +257,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                 'template' => 'knowledge_base/taktik_standards.html.twig',
                 'mediaLinks' => [
                     [
-                        'url' => 'https://www.youtube.com/watch?v=nJUHDpsDUFo',
-                        'label' => 'Standardsituationen im Fußball – Angriff und Verteidigung (DFB)',
+                        'url' => 'https://www.youtube.com/watch?v=B48UcDrJLLo',
+                        'label' => 'Standardsituationen Fußball – Ecken effektiv trainieren (IFJ96)',
                     ],
                 ],
             ],
@@ -275,8 +275,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB Training & Service – Trainingsübungen für alle Altersgruppen',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=0h5aVMiZuN8',
-                        'label' => '2 gegen 2 – Kooperatives Zweikampftraining im Fußball (FUSSBALLTRAINING.de)',
+                        'url' => 'https://www.youtube.com/watch?v=N0qnbI86gxs',
+                        'label' => '2 gegen 2 auf 4 gegen 4 – Umschaltspiel offensiv und defensiv (Fussballtrainer Stolzenberger)',
                     ],
                 ],
             ],
@@ -289,8 +289,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                 'template' => 'knowledge_base/taktik_aufbau_defensiv.html.twig',
                 'mediaLinks' => [
                     [
-                        'url' => 'https://www.youtube.com/watch?v=bZlIWzuBKlw',
-                        'label' => 'Spielaufbau aus der Abwehr – kurz oder lang? Taktik einfach erklärt (1x1SPORT)',
+                        'url' => 'https://www.youtube.com/watch?v=34ERjd5P-5k',
+                        'label' => 'Spielaufbau über Außenverteidiger und zwei Sechser (MLCoaching)',
                     ],
                 ],
             ],
@@ -345,8 +345,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB Training & Service – Dribbling und Technik',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=Q1pWSmvY6Fg',
-                        'label' => 'Dribbling lernen – die 5 besten Finten für Fußballer (Fußball Skills)',
+                        'url' => 'https://www.youtube.com/watch?v=ME_Ib678Y2Q',
+                        'label' => 'Finten für Anfänger – Körpertäuschungen im Dribbling (All About Football)',
                     ],
                 ],
             ],
@@ -363,8 +363,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB Training & Service – Torschusstraining und Abschluss',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=9Zx5Mep_HlA',
-                        'label' => 'Torschuss Technik verbessern – so schießt du härter und genauer (Fußball-Coach)',
+                        'url' => 'https://www.youtube.com/watch?v=89ZJiDRiSlQ',
+                        'label' => '5 Schusstechniken für mehr Tore – Torschuss verbessern (All About Football)',
                     ],
                 ],
             ],
@@ -381,8 +381,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB Training & Service – Torwarttraining und Übungen',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=gkwtpRGCG_Q',
-                        'label' => 'Torwarttraining – Grundlagen für Jugend-Torleute (Keeper School)',
+                        'url' => 'https://www.youtube.com/watch?v=9Yxh3a3PvZM',
+                        'label' => 'Torwarttraining: Erlernen der Grundlagen des Fangens (Deutsches Fußball Internat)',
                     ],
                 ],
             ],
@@ -439,8 +439,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB Training & Service – Koordination und Bewegungsschulung',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=RIxN_DT3eOM',
-                        'label' => 'Koordinationstraining Fußball – Koordinationsleiter und Übungen (Sport-Thieme)',
+                        'url' => 'https://www.youtube.com/watch?v=HDLckxJGlBU',
+                        'label' => '15 Übungen mit der Koordinationsleiter – Fußballtraining (Eddie Lucenka)',
                     ],
                 ],
             ],
@@ -484,8 +484,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                 'template' => 'knowledge_base/mental_nervositaet.html.twig',
                 'mediaLinks' => [
                     [
-                        'url' => 'https://www.youtube.com/watch?v=tybOi4hjZFQ',
-                        'label' => 'Mentale Stärke im Sport – Atemtechniken und Fokus (Sportpsychologie)',
+                        'url' => 'https://www.youtube.com/watch?v=Kwh7LAZZ4_0',
+                        'label' => 'Nervosität auf dem Platz verlieren – Mentaltraining für Fußballer (Football Leverage)',
                     ],
                 ],
             ],
@@ -556,8 +556,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'IFAB Laws of the Game – Regel 12: Fouls und Unsportlichkeit',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=4h3UzDRtH6c',
-                        'label' => 'Rote und Gelbe Karte – wann gibt es welche Strafe? (owayo)',
+                        'url' => 'https://www.youtube.com/watch?v=NNLanzaAUfU',
+                        'label' => 'Fußball-Regeln kompakt – Fouls und Karten erklärt (Die Sportlehrer)',
                     ],
                 ],
             ],
@@ -614,8 +614,8 @@ class KnowledgeBasePostFixtures extends Fixture implements FixtureGroupInterface
                         'label' => 'DFB-Akademie – Trainerausbildung und Organisationskompetenz',
                     ],
                     [
-                        'url' => 'https://www.youtube.com/watch?v=CmJVJMvSxME',
-                        'label' => 'Trainingsplanung im Amateurfußball – so planst du deine Saison (Fußball-Coach)',
+                        'url' => 'https://www.youtube.com/watch?v=8wLJSowX2P8',
+                        'label' => 'Der perfekte Fußball-Trainingsplan – Belastungssteuerung für die Saison (Sascha John)',
                     ],
                 ],
             ],
