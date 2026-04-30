@@ -75,6 +75,8 @@ import {
   updatePost,
 } from '../services/knowledgeBase';
 import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
+import { useTeamList } from '../hooks/useTeamList';
+import TeamSelect from '../components/TeamSelect';
 
 // ─── Category color palette ──────────────────────────────────────────────────
 
@@ -95,13 +97,6 @@ function categoryPalette(cat: string): { from: string; to: string } {
   let hash = 0;
   for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) & 0xffff;
   return CATEGORY_PALETTES[hash % CATEGORY_PALETTES.length];
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Team {
-  id: number;
-  name: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -721,11 +716,19 @@ const PostFormDialog: React.FC<{
   onClose: () => void;
   onSaved: () => void;
   teamId: number;
+  teams: Array<{ id: number; name: string; assigned?: boolean }>;
   categories: KnowledgeBaseCategory[];
   editPost?: KnowledgeBasePostDetail;
   defaultCategoryId?: number | null;
-}> = ({ open, onClose, onSaved, teamId, categories, editPost, defaultCategoryId }) => {
+  isSuperAdmin?: boolean;
+}> = ({ open, onClose, onSaved, teamId, teams, categories: categoriesFromParent, editPost, defaultCategoryId, isSuperAdmin }) => {
   const isEdit = !!editPost;
+  const [selectedTeamId, setSelectedTeamId] = useState<number>(teamId);
+  const [teamChangedByUser, setTeamChangedByUser] = useState(false);
+  // true only when user switched teams AND a previously selected category couldn't be matched in the new team
+  const [categoryLostOnTeamChange, setCategoryLostOnTeamChange] = useState(false);
+  // categories for the currently selected team inside the dialog
+  const [dialogCategories, setDialogCategories] = useState<KnowledgeBaseCategory[]>(categoriesFromParent);
   const [form, setForm] = useState<PostFormData>({
     title: '',
     description: '',
@@ -739,9 +742,18 @@ const PostFormDialog: React.FC<{
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Reset everything when dialog opens
   useEffect(() => {
     if (!open) return;
-    fetchTags(teamId)
+    setTeamChangedByUser(false);
+    setCategoryLostOnTeamChange(false);
+    // In create mode: SuperAdmins default to global (0); others default to first available team
+    const effectiveTeamId = (!isEdit && !teamId)
+      ? (isSuperAdmin ? 0 : (teams.length > 0 ? teams[0].id : 0))
+      : teamId;
+    setSelectedTeamId(effectiveTeamId);
+    setDialogCategories(categoriesFromParent);
+    fetchTags(effectiveTeamId)
       .then(res => setAvailableTags((res.tags ?? []).map((t: KnowledgeBaseTag) => ({ id: t.id, name: t.name }))))
       .catch(() => setAvailableTags([]));
     if (editPost) {
@@ -758,7 +770,44 @@ const PostFormDialog: React.FC<{
     }
     setError(null);
     setMediaUrlInput('');
-  }, [open, editPost, teamId, defaultCategoryId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // When the team changes inside the dialog: reload categories + tags and re-match by name
+  const handleTeamChange = (newTeamId: number) => {
+    setTeamChangedByUser(true);
+    setSelectedTeamId(newTeamId);
+    // remember current names before reloading
+    const currentCategoryName = dialogCategories.find(c => c.id === form.categoryId)?.name ?? null;
+    const currentTagNames = form.tags.map(t => (typeof t === 'string' ? t.trim() : t.name.trim()));
+
+    Promise.all([
+      fetchCategories(newTeamId).catch(() => ({ categories: [] as KnowledgeBaseCategory[], canManageCategories: false })),
+      fetchTags(newTeamId).catch(() => ({ tags: [] as KnowledgeBaseTag[] })),
+    ]).then(([catRes, tagRes]) => {
+      const newCats = catRes.categories ?? [];
+      const newTags: TagOption[] = (tagRes.tags ?? []).map((t: KnowledgeBaseTag) => ({ id: t.id, name: t.name }));
+      setDialogCategories(newCats);
+      setAvailableTags(newTags);
+
+      // Re-match category by name (case-insensitive)
+      const matchedCat = currentCategoryName
+        ? newCats.find(c => c.name.toLowerCase() === currentCategoryName.toLowerCase())
+        : null;
+      const newCategoryId = matchedCat ? matchedCat.id : '';
+
+      // Only warn if there WAS a category selected before and it couldn't be matched
+      setCategoryLostOnTeamChange(!!currentCategoryName && !matchedCat);
+
+      // Re-match tags by name: use existing TagOption if found, keep as string (new) if not
+      const newTagValues: Array<TagOption | string> = currentTagNames.map(name => {
+        const found = newTags.find(t => t.name.toLowerCase() === name.toLowerCase());
+        return found ?? name;
+      });
+
+      setForm(f => ({ ...f, categoryId: newCategoryId, tags: newTagValues }));
+    });
+  };
 
   const addMediaUrl = () => {
     const url = mediaUrlInput.trim();
@@ -786,7 +835,8 @@ const PostFormDialog: React.FC<{
         });
       } else {
         await createPost({
-          teamId,
+          // selectedTeamId=0 means global (no team); omit teamId so backend treats it as global
+          ...(selectedTeamId > 0 ? { teamId: selectedTeamId } : {}),
           title: form.title.trim(),
           description: form.description.trim() || undefined,
           categoryId: Number(form.categoryId),
@@ -863,6 +913,20 @@ const PostFormDialog: React.FC<{
             <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>
           )}
 
+          {/* Team – nur beim Erstellen; Backend bestimmt welche Teams verfügbar sind */}
+          {!isEdit && (
+            <TeamSelect
+              teams={teams}
+              value={selectedTeamId === 0 ? '' : selectedTeamId}
+              onChange={handleTeamChange}
+              label="Team"
+              size="small"
+              fullWidth
+              minWidth={0}
+              allTeamsOption={isSuperAdmin ? { value: '', label: 'Global (kein Team)' } : undefined}
+            />
+          )}
+
           {/* Titel */}
           <TextField
             label="Titel *"
@@ -884,7 +948,7 @@ const PostFormDialog: React.FC<{
               onChange={e => setForm(f => ({ ...f, categoryId: e.target.value as number }))}
               sx={{ borderRadius: 2 }}
             >
-              {categories.map(c => (
+              {dialogCategories.map(c => (
                 <MenuItem key={c.id} value={c.id}>
                   <Stack direction="row" spacing={1} alignItems="center">
                     {c.icon && <span>{c.icon}</span>}
@@ -893,6 +957,11 @@ const PostFormDialog: React.FC<{
                 </MenuItem>
               ))}
             </Select>
+            {!isEdit && categoryLostOnTeamChange && (
+              <Typography variant="caption" color="warning.main" sx={{ mt: 0.5 }}>
+                Kategorie aus dem anderen Team nicht gefunden – bitte manuell auswählen.
+              </Typography>
+            )}
           </FormControl>
 
           {/* Beschreibung */}
@@ -1138,7 +1207,7 @@ const PostFormDialog: React.FC<{
 
 export default function KnowledgeBase() {
   // Teams
-  const [teams, setTeams] = useState<Team[]>([]);
+  const { teams, loading: teamsLoading } = useTeamList();
   const [teamId, setTeamId] = useState<number | null>(null);
 
   // Categories
@@ -1150,6 +1219,7 @@ export default function KnowledgeBase() {
   const [posts, setPosts] = useState<KnowledgeBasePostCard[]>([]);
   const [likingIds, setLikingIds] = useState<Set<number>>(new Set());
   const [canCreate, setCanCreate] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -1174,16 +1244,10 @@ export default function KnowledgeBase() {
   const showSnack = (message: string, severity: 'success' | 'error' = 'success') =>
     setSnack({ open: true, message, severity });
 
-  // Load teams on mount
+  // Initialize teamId when teams load
   useEffect(() => {
-    apiJson<{ teams: Team[] }>('/api/teams/list')
-      .then(res => {
-        const list = res.teams ?? [];
-        setTeams(list);
-        if (list.length > 0) setTeamId(list[0].id);
-      })
-      .catch(() => {});
-  }, []);
+    if (teams.length > 0 && teamId === null) setTeamId(teams[0].id);
+  }, [teams, teamId]);
 
   // Load categories when teamId changes
   useEffect(() => {
@@ -1205,6 +1269,7 @@ export default function KnowledgeBase() {
       .then(res => {
         setPosts(res.posts);
         setCanCreate(res.canCreate);
+        setIsSuperAdmin(res.isSuperAdmin ?? false);
       })
       .catch(() => setPosts([]))
       .finally(() => setLoadingPosts(false));
@@ -1307,23 +1372,19 @@ export default function KnowledgeBase() {
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={1}>
         <Typography variant="h5" fontWeight={700}>Wissenspool</Typography>
         {teams.length > 1 && (
-          <Select
-            size="small"
+          <TeamSelect
+            teams={teams}
             value={teamId ?? ''}
-            onChange={e => setTeamId(Number(e.target.value))}
-            sx={{ minWidth: 180 }}
-          >
-            {teams.map(t => (
-              <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
-            ))}
-          </Select>
+            onChange={setTeamId}
+            size="small"
+          />
         )}
         {teams.length === 1 && teamId && (
           <Chip label={teams[0].name} variant="outlined" />
         )}
       </Stack>
 
-      {!teamId && (
+      {!teamsLoading && !teamId && (
         <Alert severity="info">Du bist noch in keinem Team.</Alert>
       )}
 
@@ -1457,9 +1518,11 @@ export default function KnowledgeBase() {
         onClose={() => setDialogOpen(false)}
         onSaved={handlePostSaved}
         teamId={teamId ?? 0}
+        teams={teams}
         categories={categories}
         editPost={editPost}
         defaultCategoryId={editPost ? undefined : activeCatId}
+        isSuperAdmin={isSuperAdmin}
       />
 
       {/* Snackbar */}

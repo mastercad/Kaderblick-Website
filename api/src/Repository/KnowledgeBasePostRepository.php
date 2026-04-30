@@ -53,4 +53,40 @@ class KnowledgeBasePostRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Returns only global posts (team IS NULL) with optional filters.
+     *
+     * @return KnowledgeBasePost[]
+     */
+    public function findGlobalWithFilters(
+        ?KnowledgeBaseCategory $category = null,
+        ?string $search = null,
+        ?string $tag = null
+    ): array {
+        $qb = $this->createQueryBuilder('tp')
+            ->leftJoin('tp.tags', 'tg')
+            ->where('tp.team IS NULL')
+            ->orderBy('tp.isPinned', 'DESC')
+            ->addOrderBy('tp.createdAt', 'DESC')
+            ->distinct();
+
+        if (null !== $category) {
+            $qb->andWhere('tp.category = :category')
+                ->setParameter('category', $category);
+        }
+
+        if (null !== $search && '' !== trim($search)) {
+            $safe = '%' . addcslashes(trim($search), '%_\\') . '%';
+            $qb->andWhere('tp.title LIKE :search OR tp.description LIKE :search OR tg.name LIKE :search')
+                ->setParameter('search', $safe);
+        }
+
+        if (null !== $tag && '' !== trim($tag)) {
+            $qb->andWhere('tg.name = :tag')
+                ->setParameter('tag', trim($tag));
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

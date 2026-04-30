@@ -31,4 +31,18 @@ class KnowledgeBaseTagRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Returns only global tags (team IS NULL), ordered alphabetically.
+     *
+     * @return KnowledgeBaseTag[]
+     */
+    public function findGlobal(): array
+    {
+        return $this->createQueryBuilder('tt')
+            ->where('tt.team IS NULL')
+            ->orderBy('tt.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

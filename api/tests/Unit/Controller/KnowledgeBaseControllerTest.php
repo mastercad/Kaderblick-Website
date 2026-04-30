@@ -9,6 +9,7 @@ use App\Entity\KnowledgeBaseCategory;
 use App\Entity\KnowledgeBasePost;
 use App\Entity\KnowledgeBasePostComment;
 use App\Entity\KnowledgeBasePostLike;
+use App\Entity\KnowledgeBaseTag;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Repository\KnowledgeBaseCategoryRepository;
@@ -76,6 +77,9 @@ class KnowledgeBaseControllerTest extends TestCase
     /** @var TokenStorageInterface&MockObject */
     private TokenStorageInterface $tokenStorage;
 
+    /** @var NotificationService&MockObject */
+    private NotificationService $notificationService;
+
     protected function setUp(): void
     {
         $this->categoryRepo = $this->createMock(KnowledgeBaseCategoryRepository::class);
@@ -94,7 +98,7 @@ class KnowledgeBaseControllerTest extends TestCase
                 return match ($class) {
                     KnowledgeBaseCategory::class => $this->categoryRepo,
                     KnowledgeBasePost::class => $this->postRepo,
-                    \App\Entity\KnowledgeBaseTag::class => $this->tagRepo,
+                    KnowledgeBaseTag::class => $this->tagRepo,
                     KnowledgeBasePostLike::class => $this->likeRepo,
                     KnowledgeBasePostComment::class => $this->commentRepo,
                     Team::class => $this->teamRepo,
@@ -103,10 +107,11 @@ class KnowledgeBaseControllerTest extends TestCase
             }
         );
 
+        $this->notificationService = $this->createMock(NotificationService::class);
         $this->controller = new KnowledgeBaseController(
             $this->em,
             $this->createMock(MediaUrlParserService::class),
-            $this->createMock(NotificationService::class),
+            $this->notificationService,
         );
 
         $container = new ContainerBuilder();
@@ -967,5 +972,356 @@ class KnowledgeBaseControllerTest extends TestCase
         $this->assertSame(201, $response->getStatusCode());
         $data = json_decode((string) $response->getContent(), true);
         $this->assertSame('Guter Beitrag!', $data['content']);
+    }
+
+    // ─── syncTags / tag handling ──────────────────────────────────────────────
+
+    /**
+     * Regression test: updatePost with tags must not throw a TypeError when the
+     * post's team is null. Previously syncTags() required a non-nullable Team.
+     */
+    public function testUpdatePostWithTagsWhenPostHasNullTeamSucceeds(): void
+    {
+        $user = $this->loginAs(5, ['ROLE_USER']);
+
+        // Build a post whose getTeam() explicitly returns null
+        $post = $this->createMock(KnowledgeBasePost::class);
+        $post->method('getId')->willReturn(1);
+        $post->method('getTitle')->willReturn('Beitrag');
+        $post->method('getDescription')->willReturn(null);
+        $post->method('isPinned')->willReturn(false);
+        $post->method('isSendNotification')->willReturn(false);
+        $post->method('getCreatedAt')->willReturn(new DateTimeImmutable());
+        $post->method('getUpdatedAt')->willReturn(null);
+        $post->method('getTeam')->willReturn(null); // <-- the critical null
+        $post->method('getCreatedBy')->willReturn($user);
+        $post->method('getMediaLinks')->willReturn(new ArrayCollection());
+        $post->method('getTags')->willReturn(new ArrayCollection());
+        $post->method('getLikes')->willReturn(new ArrayCollection());
+        $post->method('getComments')->willReturn(new ArrayCollection());
+        $post->method('getCategory')->willReturn($this->makeCategory());
+
+        $this->postRepo->method('find')->willReturn($post);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->likeRepo->method('findByPostAndUser')->willReturn(null);
+        $this->tagRepo->method('findOneBy')->willReturn(null);
+
+        $request = $this->jsonRequest('PUT', '/', ['title' => 'Beitrag', 'tags' => ['php']]);
+        $response = $this->controller->updatePost(1, $request);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * When syncTags finds an existing global tag (team=null), it reuses it
+     * instead of creating a new one — em->persist must not be called.
+     */
+    public function testUpdatePostWithTagsReusesExistingGlobalTag(): void
+    {
+        $user = $this->loginAs(5, ['ROLE_USER']);
+        $post = $this->makePost(1, $this->makeTeam(10), $user);
+        $this->postRepo->method('find')->willReturn($post);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->likeRepo->method('findByPostAndUser')->willReturn(null);
+
+        $existingTag = $this->createMock(KnowledgeBaseTag::class);
+        $existingTag->method('getId')->willReturn(5);
+        $existingTag->method('getName')->willReturn('php');
+        // First findOneBy(['name' => 'php', 'team' => null]) returns the global tag
+        $this->tagRepo->method('findOneBy')->willReturn($existingTag);
+
+        $this->em->expects($this->never())->method('persist');
+
+        $request = $this->jsonRequest('PUT', '/', ['title' => 'Beitrag', 'tags' => ['php']]);
+        $response = $this->controller->updatePost(1, $request);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * When no existing tag is found (neither global nor team-scoped),
+     * syncTags creates a new KnowledgeBaseTag and persists it.
+     */
+    public function testUpdatePostWithTagsCreatesNewTagWhenNoneExists(): void
+    {
+        $user = $this->loginAs(5, ['ROLE_USER']);
+        $team = $this->makeTeam(10);
+        $post = $this->makePost(1, $team, $user);
+        $this->postRepo->method('find')->willReturn($post);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->likeRepo->method('findByPostAndUser')->willReturn(null);
+        // Both findOneBy calls return null → new tag must be created and persisted
+        $this->tagRepo->method('findOneBy')->willReturn(null);
+
+        $this->em->expects($this->atLeastOnce())->method('persist');
+
+        $request = $this->jsonRequest('PUT', '/', ['title' => 'Beitrag', 'tags' => ['taktik']]);
+        $response = $this->controller->updatePost(1, $request);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * createPost with tags: new tags are created and persisted when no existing
+     * tag matches.
+     */
+    public function testCreatePostWithTagsCreatesNewTag(): void
+    {
+        $this->loginAs(1, ['ROLE_ADMIN']);
+        $team = $this->makeTeam(10);
+        $this->teamRepo->method('find')->willReturn($team);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->categoryRepo->method('find')->willReturn($this->makeCategory());
+        // No existing tag → new ones will be created
+        $this->tagRepo->method('findOneBy')->willReturn(null);
+
+        $this->em->expects($this->atLeastOnce())->method('persist');
+
+        $request = $this->jsonRequest('POST', '/', [
+            'teamId' => 10,
+            'categoryId' => 1,
+            'title' => 'Beitrag mit Tags',
+            'tags' => ['technik', 'taktik'],
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(201, $response->getStatusCode());
+    }
+
+    // ─── listCategories – Global-Modus (teamId=0) ─────────────────────────────
+
+    public function testListCategoriesReturns200ForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $cat = $this->makeCategory(1, null); // global category
+        $this->categoryRepo->method('findGlobal')->willReturn([$cat]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listCategories($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertArrayHasKey('categories', $data);
+        $this->assertTrue($data['canManageCategories']);
+    }
+
+    public function testListCategoriesCallsFindGlobalForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->categoryRepo->expects($this->once())->method('findGlobal')->willReturn([]);
+        $this->categoryRepo->expects($this->never())->method('findForTeam');
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $this->controller->listCategories($request);
+    }
+
+    public function testListCategoriesReturns403ForNonSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_USER']);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listCategories($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    public function testListCategoriesTeamId0ReturnsEmptyCategoriesWhenNoneExist(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->categoryRepo->method('findGlobal')->willReturn([]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listCategories($request);
+
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertSame([], $data['categories']);
+    }
+
+    // ─── listTags – Global-Modus (teamId=0) ───────────────────────────────────
+
+    public function testListTagsReturns200ForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $tag = $this->createMock(KnowledgeBaseTag::class);
+        $tag->method('getId')->willReturn(1);
+        $tag->method('getName')->willReturn('Taktik');
+        $this->tagRepo->method('findGlobal')->willReturn([$tag]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listTags($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertArrayHasKey('tags', $data);
+        $this->assertCount(1, $data['tags']);
+        $this->assertSame('Taktik', $data['tags'][0]['name']);
+    }
+
+    public function testListTagsCallsFindGlobalForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->tagRepo->expects($this->once())->method('findGlobal')->willReturn([]);
+        $this->tagRepo->expects($this->never())->method('findForTeam');
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $this->controller->listTags($request);
+    }
+
+    public function testListTagsReturns403ForNonSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_USER']);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listTags($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    // ─── listPosts – Global-Modus (teamId=0) ──────────────────────────────────
+
+    public function testListPostsReturns200ForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->postRepo->method('findGlobalWithFilters')->willReturn([]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listPosts($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertTrue($data['isSuperAdmin']);
+        $this->assertTrue($data['canCreate']);
+        $this->assertArrayHasKey('posts', $data);
+    }
+
+    public function testListPostsCallsFindGlobalWithFiltersForSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->postRepo->expects($this->once())->method('findGlobalWithFilters')->willReturn([]);
+        $this->postRepo->expects($this->never())->method('findByTeamAndFilters');
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $this->controller->listPosts($request);
+    }
+
+    public function testListPostsReturns403ForNonSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_USER']);
+
+        $request = Request::create('/', 'GET', ['teamId' => 0]);
+        $response = $this->controller->listPosts($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    public function testListPostsResponseContainsIsSuperAdminFieldForRegularTeam(): void
+    {
+        $user = $this->loginAs(1, ['ROLE_USER']); // not a super admin
+        $team = $this->makeTeam(10);
+        $this->teamRepo->method('find')->willReturn($team);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->postRepo->method('findByTeamAndFilters')->willReturn([]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 10]);
+        $response = $this->controller->listPosts($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertArrayHasKey('isSuperAdmin', $data);
+        $this->assertFalse($data['isSuperAdmin']);
+    }
+
+    public function testListPostsResponseIsSuperAdminTrueForSuperAdmin(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $team = $this->makeTeam(10);
+        $this->teamRepo->method('find')->willReturn($team);
+        $this->authChecker->method('isGranted')->willReturn(true);
+        $this->postRepo->method('findByTeamAndFilters')->willReturn([]);
+
+        $request = Request::create('/', 'GET', ['teamId' => 10]);
+        $response = $this->controller->listPosts($request);
+
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertTrue($data['isSuperAdmin']);
+    }
+
+    // ─── createPost – Global-Modus (kein teamId / teamId=0) ──────────────────
+
+    public function testCreatePostReturns201ForSuperAdminWithoutTeamId(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->categoryRepo->method('find')->willReturn($this->makeCategory(1, null));
+
+        $request = $this->jsonRequest('POST', '/', [
+            'categoryId' => 1,
+            'title' => 'Globaler Beitrag',
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(201, $response->getStatusCode());
+    }
+
+    public function testCreatePostReturns403ForNonSuperAdminWithoutTeamId(): void
+    {
+        $this->loginAs(1, ['ROLE_USER']);
+
+        $request = $this->jsonRequest('POST', '/', [
+            'categoryId' => 1,
+            'title' => 'Globaler Beitrag',
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+        $data = json_decode((string) $response->getContent(), true);
+        $this->assertStringContainsString('SuperAdmin', $data['error']);
+    }
+
+    public function testCreatePostReturns403ForNonSuperAdminWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_USER']);
+
+        $request = $this->jsonRequest('POST', '/', [
+            'teamId' => 0,
+            'categoryId' => 1,
+            'title' => 'Globaler Beitrag',
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
+    public function testCreatePostDoesNotSendNotificationWhenTeamIsNull(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->categoryRepo->method('find')->willReturn($this->makeCategory(1, null));
+        // Notification service must NOT be called because team is null
+        $this->notificationService
+            ->expects($this->never())
+            ->method('createNotificationForUsers');
+
+        $request = $this->jsonRequest('POST', '/', [
+            'categoryId' => 1,
+            'title' => 'Globaler Beitrag',
+            'sendNotification' => true, // requested, but must be suppressed
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(201, $response->getStatusCode());
+    }
+
+    public function testCreatePostSuperAdminCanCreateGlobalPostWithTeamId0(): void
+    {
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
+        $this->categoryRepo->method('find')->willReturn($this->makeCategory(1, null));
+
+        $request = $this->jsonRequest('POST', '/', [
+            'teamId' => 0,
+            'categoryId' => 1,
+            'title' => 'Globaler Beitrag via teamId=0',
+        ]);
+        $response = $this->controller->createPost($request);
+
+        $this->assertSame(201, $response->getStatusCode());
     }
 }

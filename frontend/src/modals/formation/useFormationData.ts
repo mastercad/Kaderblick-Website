@@ -132,13 +132,15 @@ export function useFormationData(open: boolean, formationId: number | null, init
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    apiJson<{ teams: Team[] }>('/formation/coach-teams')
+    apiJson<{ teams: { id: number; name: string; assigned?: boolean }[] }>('/api/teams/list')
       .then(data => {
         if (cancelled) return;
-        const loaded = Array.isArray(data.teams) ? data.teams : [];
+        const loaded: Team[] = Array.isArray(data.teams)
+          ? data.teams.map(t => ({ id: t.id, name: t.name, assigned: t.assigned }))
+          : [];
         setTeams(loaded);
         if (loaded.length === 0) {
-          setError('Du bist aktuell keinem Team als Trainer zugeordnet. Bitte wende dich an einen Administrator.');
+          setError('Du bist aktuell keinem Team zugeordnet. Bitte wende dich an einen Administrator.');
         } else {
           const preferredTeamId = initialDraft?.selectedTeam;
           const hasPreferredTeam = preferredTeamId !== '' && loaded.some(team => team.id === preferredTeamId);

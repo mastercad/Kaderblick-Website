@@ -18,6 +18,8 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { buildTeamMenuEntries } from '../utils/teamMenuEntries';
+import type { TeamMenuItem } from '../utils/teamMenuEntries';
 import FormationEditModal from '../modals/FormationEditModal';
 import FormationDeleteConfirmationModal from '../modals/FormationDeleteConfirmationModal';
 import TacticsBoardModal from '../modals/TacticsBoardModal';
@@ -276,35 +278,6 @@ const FormationCard: React.FC<FormationCardProps> = ({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-interface Team {
-  id: number;
-  name: string;
-  assigned?: boolean;
-}
-
-/**
- * Gibt die gruppierten Beschreibungen für das Team-Dropdown zurück.
- * Nur wenn beide Gruppen (zugeordnet + weitere) existieren, werden Überschriften
- * eingefügt. Fehlt eine der Gruppen, erscheinen alle Teams flach ohne Header.
- */
-export type TeamMenuEntry =
-  | { type: 'header'; key: string; label: string }
-  | { type: 'item'; team: Team; dimmed: boolean };
-
-export function buildTeamMenuEntries(teams: Team[]): TeamMenuEntry[] {
-  const myTeams = teams.filter(t => t.assigned);
-  const otherTeams = teams.filter(t => !t.assigned);
-  const grouped = myTeams.length > 0 && otherTeams.length > 0;
-  const entries: TeamMenuEntry[] = [];
-
-  if (grouped) entries.push({ type: 'header', key: 'grp-my', label: 'Meine Teams' });
-  myTeams.forEach(t => entries.push({ type: 'item', team: t, dimmed: false }));
-  if (grouped) entries.push({ type: 'header', key: 'grp-other', label: 'Weitere Teams' });
-  otherTeams.forEach(t => entries.push({ type: 'item', team: t, dimmed: grouped }));
-
-  return entries;
-}
-
 const Formations: React.FC = () => {
   const { isSuperAdmin } = useAuth();
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -316,7 +289,7 @@ const Formations: React.FC = () => {
   const [deleteFormation, setDeleteFormation] = useState<Formation | null>(null);
   const [tacticsFormation, setTacticsFormation] = useState<Formation | null>(null);
   // SUPERADMIN team filter
-  const [allTeams, setAllTeams] = useState<Team[]>([]);
+  const [allTeams, setAllTeams] = useState<TeamMenuItem[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
   const [activeTab, setActiveTab] = useState<0 | 1>(0);
   const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; formation: Formation | null; name: string }>({
@@ -328,7 +301,7 @@ const Formations: React.FC = () => {
   // Alle Teams laden (nur für SUPERADMIN)
   useEffect(() => {
     if (!isSuperAdmin) return;
-    apiJson<{ teams: Team[] }>('/formations/teams')
+    apiJson<{ teams: TeamMenuItem[] }>('/formations/teams')
       .then(data => setAllTeams(Array.isArray(data.teams) ? data.teams : []))
       .catch(() => {});
   }, [isSuperAdmin]);

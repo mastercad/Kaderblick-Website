@@ -38,12 +38,12 @@ const TEAM_PLAYERS: Player[] = [
   mkPlayer({ id: 30, name: 'Kimmich', shirtNumber: 6 }),
 ];
 
-const TEAMS_RESPONSE = { teams: [{ id: 1, name: 'A-Team' }] };
+const TEAMS_RESPONSE = { teams: [{ id: 1, name: 'A-Team', assigned: true }] };
 
 /** Antwortet je nach URL mit der passenden Fixture. */
 const defaultMock = () => {
   mockApiJson.mockImplementation(async (url: string) => {
-    if (url === '/formation/coach-teams') return TEAMS_RESPONSE;
+    if (url === '/api/teams/list') return TEAMS_RESPONSE;
     if (url.includes('/team/') && url.includes('/players'))
       return {
         players: TEAM_PLAYERS.map(p => ({
@@ -137,13 +137,44 @@ describe('useFormationData – Teams laden', () => {
 
   it('setzt error wenn keine Teams vorhanden', async () => {
     mockApiJson.mockImplementation(async (url: string) => {
-      if (url === '/formation/coach-teams') return { teams: [] };
+      if (url === '/api/teams/list') return { teams: [] };
       return {};
     });
     const { result } = renderHook(() => useFormationData(true, null));
     await act(async () => {});
     await waitFor(() => { expect(result.current.error).not.toBeNull(); });
     expect(result.current.error).toContain('keinem Team');
+  });
+
+  it('ruft /api/teams/list auf (nicht /formation/coach-teams)', async () => {
+    const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.teams.length).toBeGreaterThan(0); });
+    expect(mockApiJson).toHaveBeenCalledWith('/api/teams/list');
+  });
+
+  it('mappt das assigned-Feld aus der Teams-API-Antwort', async () => {
+    mockApiJson.mockImplementation(async (url: string) => {
+      if (url === '/api/teams/list')
+        return { teams: [{ id: 1, name: 'A-Team', assigned: true }, { id: 2, name: 'B-Team', assigned: false }] };
+      return {};
+    });
+    const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.teams.length).toBe(2); });
+    expect(result.current.teams[0].assigned).toBe(true);
+    expect(result.current.teams[1].assigned).toBe(false);
+  });
+
+  it('Fehlermeldung enthält nicht mehr "als Trainer"', async () => {
+    mockApiJson.mockImplementation(async (url: string) => {
+      if (url === '/api/teams/list') return { teams: [] };
+      return {};
+    });
+    const { result } = renderHook(() => useFormationData(true, null));
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.error).not.toBeNull(); });
+    expect(result.current.error).not.toContain('als Trainer');
   });
 });
 
@@ -167,7 +198,7 @@ describe('useFormationData – Kader laden', () => {
 
   it('setzt error wenn Kader-Response leer ist', async () => {
     mockApiJson.mockImplementation(async (url: string) => {
-      if (url === '/formation/coach-teams') return TEAMS_RESPONSE;
+      if (url === '/api/teams/list') return TEAMS_RESPONSE;
       if (url.includes('/team/') && url.includes('/players')) return { players: [] };
       return {};
     });
@@ -218,8 +249,8 @@ describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
    */
   const setupWithExistingPlayers = async () => {
     mockApiJson.mockImplementation(async (url: string) => {
-      if (url === '/formation/coach-teams')
-        return { teams: [{ id: 1, name: 'A' }, { id: 2, name: 'B' }] };
+      if (url === '/api/teams/list')
+        return { teams: [{ id: 1, name: 'A', assigned: true }, { id: 2, name: 'B', assigned: false }] };
       if (url === '/formation/team/1/players')
         return { players: [{ id: 10, name: 'Müller', shirtNumber: 77, position: null, alternativePositions: [] }] };
       if (url === '/formation/team/2/players')
@@ -265,8 +296,8 @@ describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
 
   it('lässt Platzhalter beim Teamwechsel unverändert', async () => {
     mockApiJson.mockImplementation(async (url: string) => {
-      if (url === '/formation/coach-teams')
-        return { teams: [{ id: 1, name: 'A' }, { id: 2, name: 'B' }] };
+      if (url === '/api/teams/list')
+        return { teams: [{ id: 1, name: 'A', assigned: true }, { id: 2, name: 'B', assigned: false }] };
       if (url.includes('/players'))
         return { players: [{ id: 10, name: 'X', shirtNumber: 7, position: null, alternativePositions: [] }] };
       return {};

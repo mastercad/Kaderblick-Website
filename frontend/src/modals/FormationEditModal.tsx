@@ -18,6 +18,7 @@ import SquadListPanel from './formation/components/SquadListPanel';
 import { getBestFreeTemplateSlot, getBestFreeformGuideTarget, getDragGuideProfile, getFreeformGuideTargets, getSlotHintLabel, getSlotMatchLevel, getTemplateByCode } from './formation/templateGuidance';
 import type { FormationEditModalProps, Player } from './formation/types';
 import type { SlotMatchLevel } from './formation/templateGuidance';
+import TeamSelect from '../components/TeamSelect';
 
 const getGuideTone = (level: SlotMatchLevel) => {
   switch (level) {
@@ -249,17 +250,32 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           value={editor.name}
           onChange={editor.setName}
         />
-        <TextField
-          label="Team" select
-          value={editor.selectedTeam}
-          onChange={e => editor.setSelectedTeam(Number(e.target.value))}
-          fullWidth required
-        >
-          {editor.teams.length > 0
-            ? editor.teams.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)
-            : <MenuItem value="" disabled>Keine Teams verfügbar</MenuItem>
-          }
-        </TextField>
+        {editor.teams.length > 1
+          ? (
+            <TeamSelect
+              teams={editor.teams}
+              value={editor.selectedTeam}
+              onChange={editor.setSelectedTeam}
+              label="Team"
+              size="medium"
+              fullWidth
+              minWidth={0}
+            />
+          )
+          : (
+            <TextField
+              label="Team" select
+              value={editor.selectedTeam}
+              onChange={e => editor.setSelectedTeam(Number(e.target.value))}
+              fullWidth required
+            >
+              {editor.teams.length > 0
+                ? editor.teams.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)
+                : <MenuItem value="" disabled>Keine Teams verfügbar</MenuItem>
+              }
+            </TextField>
+          )
+        }
       </Box>
 
       <Paper

@@ -10,7 +10,7 @@
  *  - Reihenfolge: zugeordnete Teams kommen zuerst
  */
 
-import { buildTeamMenuEntries } from '../Formations';
+import { buildTeamMenuEntries } from '../../utils/teamMenuEntries';
 
 const makeTeam = (id: number, name: string, assigned?: boolean) => ({ id, name, assigned });
 
