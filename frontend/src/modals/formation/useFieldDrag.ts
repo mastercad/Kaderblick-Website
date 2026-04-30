@@ -240,6 +240,11 @@ export function useFieldDrag({
           benchGhostRef.current.style.display = 'flex';
           benchGhostRef.current.style.left = clientX + 'px';
           benchGhostRef.current.style.top  = clientY + 'px';
+          // Zonenfarbe live aktualisieren – identisches Verhalten wie Feld-Tokens
+          const circleEl = benchGhostRef.current.querySelector<HTMLElement>('[data-token-circle="true"]');
+          if (circleEl) {
+            circleEl.style.backgroundColor = getZoneColor(clampPercent(rawY));
+          }
         } else {
           benchGhostRef.current.style.display = 'none';
         }

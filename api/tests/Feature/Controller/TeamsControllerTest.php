@@ -522,14 +522,8 @@ class TeamsControllerTest extends ApiWebTestCase
     {
         $client = static::createClient();
 
-        $client->request('GET', '/api/teams?limit=1');
-        $data = json_decode($client->getResponse()->getContent(), true);
-        if (empty($data['teams'])) {
-            $this->markTestSkipped('No teams in fixture data');
-        }
-        $teamId = $data['teams'][0]['id'];
-
-        $client->request('POST', "/api/teams/{$teamId}/banner");
+        // The JWT firewall rejects unauthenticated requests before checking team existence
+        $client->request('POST', '/api/teams/1/banner');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }

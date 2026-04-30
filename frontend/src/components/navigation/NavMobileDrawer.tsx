@@ -19,7 +19,7 @@ import GroupWorkIcon from '@mui/icons-material/GroupWork';
 import PersonIcon from '@mui/icons-material/Person';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CheckroomIcon from '@mui/icons-material/Checkroom';
-import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -96,7 +96,7 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
             { key: 'news',        label: 'Neuigkeiten',   icon: <NewspaperIcon sx={{ fontSize: 28 }} />,    color: navItemColorMap['news'] },
             { key: 'surveys',     label: 'Umfragen',      icon: <PollIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['surveys'] },
             { key: 'tasks',       label: 'Aufgaben',      icon: <AssignmentIcon sx={{ fontSize: 28 }} />,   color: navItemColorMap['tasks'] },
-            { key: 'player-tips', label: 'Spieler-Tipps', icon: <TipsAndUpdatesIcon sx={{ fontSize: 28 }} />, color: navItemColorMap['player-tips'] },
+            { key: 'wissenspool', label: 'Wissenspool',   icon: <MenuBookIcon sx={{ fontSize: 28 }} />,      color: navItemColorMap['wissenspool'] },
           ] as { key: string; label: string; icon: React.ReactElement; color: string }[]).map((tile) => {
             const isActive = active(tile.key);
             return (

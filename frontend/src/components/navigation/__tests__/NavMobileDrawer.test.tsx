@@ -121,9 +121,9 @@ describe('standard navigation tiles', () => {
     expect(screen.getByText('Aufgaben')).toBeInTheDocument();
   });
 
-  it('renders Spieler-Tipps tile', () => {
+  it('renders Wissenspool tile', () => {
     renderDrawer();
-    expect(screen.getByText('Spieler-Tipps')).toBeInTheDocument();
+    expect(screen.getByText('Wissenspool')).toBeInTheDocument();
   });
 });
 
@@ -151,10 +151,10 @@ describe('tile navigation', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('navigates to /player-tips when Spieler-Tipps is clicked', () => {
+  it('navigates to /wissenspool when Wissenspool is clicked', () => {
     renderDrawer();
-    fireEvent.click(screen.getByText('Spieler-Tipps'));
-    expect(mockNavigate).toHaveBeenCalledWith('/player-tips');
+    fireEvent.click(screen.getByText('Wissenspool'));
+    expect(mockNavigate).toHaveBeenCalledWith('/wissenspool');
     expect(mockOnClose).toHaveBeenCalled();
   });
 });

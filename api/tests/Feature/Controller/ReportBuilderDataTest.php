@@ -144,6 +144,32 @@ class ReportBuilderDataTest extends WebTestCase
 
     public function testAvailableDatesAreSortedAscending(): void
     {
+        // Create 2 game events on different dates to guarantee at least 2 availableDates entries
+        $eventType = $this->getOrCreateGameEventType();
+        $ageGroup = $this->getOrCreateAgeGroup();
+
+        $team1 = new Team();
+        $team1->setName(self::PREFIX . 'sort-team-a');
+        $team1->setAgeGroup($ageGroup);
+        $this->em->persist($team1);
+
+        $team2 = new Team();
+        $team2->setName(self::PREFIX . 'sort-team-b');
+        $team2->setAgeGroup($ageGroup);
+        $this->em->persist($team2);
+        $this->em->flush();
+
+        $game1 = $this->createGame($team1);
+        $event1 = new GameEvent();
+        $event1->setTeam($team1)->setGame($game1)->setGameEventType($eventType)->setTimestamp(new DateTimeImmutable('2023-03-10'));
+        $this->em->persist($event1);
+
+        $game2 = $this->createGame($team2);
+        $event2 = new GameEvent();
+        $event2->setTeam($team2)->setGame($game2)->setGameEventType($eventType)->setTimestamp(new DateTimeImmutable('2024-07-20'));
+        $this->em->persist($event2);
+        $this->em->flush();
+
         $user = $this->fixtureUser;
         $this->client->loginUser($user);
 
@@ -151,9 +177,7 @@ class ReportBuilderDataTest extends WebTestCase
         $data = json_decode($this->client->getResponse()->getContent(), true);
 
         $dates = $data['availableDates'];
-        if (count($dates) < 2) {
-            $this->markTestSkipped('Need at least 2 dates to test ordering.');
-        }
+        $this->assertGreaterThanOrEqual(2, count($dates), 'Es müssen mind. 2 Datumseinträge vorhanden sein.');
 
         $sorted = $dates;
         sort($sorted);

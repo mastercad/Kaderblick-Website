@@ -17,7 +17,6 @@ const EXACT_PUBLIC_PATHS = new Set([
   '/fuer-jugendleitung',
   '/spielanalyse-software',
   '/faq',
-  '/player-tips',
   '/kontakt',
   '/imprint',
   '/privacy',

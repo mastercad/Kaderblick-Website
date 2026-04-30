@@ -207,6 +207,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [pendingImageSrc, setPendingImageSrc] = useState('');
   const [imageSize, setImageSize] = useState<string>('img-medium');
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
+  const [, forceUpdate] = useState(0);
 
   const editor = useEditor({
     extensions: [
@@ -233,6 +234,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       const html = editor.getHTML();
       onChange(html === '<p></p>' ? '' : html);
     },
+    onSelectionUpdate: () => forceUpdate(n => n + 1),
   });
 
   // Sync external value changes (e.g., when modal opens with existing content)

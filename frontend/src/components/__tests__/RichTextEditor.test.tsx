@@ -38,7 +38,7 @@ const createMockEditor = () => ({
   getHTML: jest.fn().mockReturnValue('<p></p>'),
   getAttributes: jest.fn().mockReturnValue({}),
   state: {
-    selection: { from: 0, to: 0 },
+    selection: { from: 0, to: 0, empty: true },
     doc: { textBetween: jest.fn().mockReturnValue('') },
   },
   setEditable: jest.fn(),
@@ -433,3 +433,91 @@ describe('RichTextEditor – Sticky Toolbar', () => {
     expect(screen.getByTestId('editor-content')).toBeInTheDocument();
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Null guard – Editor noch nicht initialisiert
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('RichTextEditor – null guard', () => {
+  it('rendert nichts wenn useEditor null zurückgibt', () => {
+    (require('@tiptap/react').useEditor as jest.Mock).mockReturnValue(null);
+    const { container } = render(<RichTextEditor {...defaultProps} />);
+    expect(container.firstChild).toBeNull();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  disabled prop
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('RichTextEditor – disabled prop', () => {
+  it('übergibt editable=false an useEditor wenn disabled=true', () => {
+    const mockUseEditor = require('@tiptap/react').useEditor as jest.Mock;
+    mockUseEditor.mockClear();
+    render(<RichTextEditor {...defaultProps} disabled={true} />);
+    const callArgs = mockUseEditor.mock.calls[0][0] as { editable: boolean };
+    expect(callArgs.editable).toBe(false);
+  });
+
+  it('übergibt editable=true an useEditor wenn disabled nicht gesetzt ist', () => {
+    const mockUseEditor = require('@tiptap/react').useEditor as jest.Mock;
+    mockUseEditor.mockClear();
+    render(<RichTextEditor {...defaultProps} />);
+    const callArgs = mockUseEditor.mock.calls[0][0] as { editable: boolean };
+    expect(callArgs.editable).toBe(true);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  Link-Dialog
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Helper: find the "Link einfügen" toolbar button by its mocked icon text (🔗).
+// MUI Tooltip does not add a `title` attribute → getByTitle won't work.
+function getLinkInsertBtn() {
+  // LinkIcon is mocked as () => <span>🔗</span>; LinkOffIcon as () => <span>🔗off</span>
+  return screen.getAllByRole('button').find(b => b.textContent === '🔗')!;
+}
+
+describe('RichTextEditor – Link-Dialog', () => {
+  it('Link-Dialog ist initial geschlossen', () => {
+    render(<RichTextEditor {...defaultProps} />);
+    expect(screen.queryByText('Link einfügen')).not.toBeInTheDocument();
+  });
+
+  it('Link-Dialog öffnet sich nach mouseDown auf den Link-Button', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+    fireEvent.mouseDown(getLinkInsertBtn());
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByPlaceholderText('https://beispiel.de')).toBeInTheDocument();
+  });
+
+  it('Link-Dialog zeigt URL-Eingabefeld', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+    fireEvent.mouseDown(getLinkInsertBtn());
+    await waitFor(() => screen.getByRole('dialog'));
+    expect(screen.getByPlaceholderText('https://beispiel.de')).toBeInTheDocument();
+  });
+
+  it('Link-Dialog zeigt Link-Text-Feld wenn Selektion leer ist (from === to)', async () => {
+    // editor.state.selection = { from: 0, to: 0 } → selection.empty = true
+    // Dialog renders a "Link-Text" TextField only when selection is empty
+    render(<RichTextEditor {...defaultProps} />);
+    fireEvent.mouseDown(getLinkInsertBtn());
+    await waitFor(() => screen.getByRole('dialog'));
+    expect(screen.getByPlaceholderText('z.B. Mehr erfahren')).toBeInTheDocument();
+  });
+
+  it('Link-Dialog schließt sich nach Klick auf "Abbrechen"', async () => {
+    render(<RichTextEditor {...defaultProps} />);
+    fireEvent.mouseDown(getLinkInsertBtn());
+    await waitFor(() => screen.getByRole('dialog'));
+    fireEvent.click(screen.getAllByText('Abbrechen')[0]);
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+});
+

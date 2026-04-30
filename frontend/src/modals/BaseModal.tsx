@@ -123,7 +123,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
       <DialogContent
         sx={{
           pt: title ? 2 : 3,
-          pb: (actions && (fullScreen || isMobile)) ? '84px' : 2,
+          pb: (actions && (fullScreen || (isMobile && maxWidth === 'lg'))) ? '84px' : 2,
           px: 3,
         }}
       >
@@ -140,7 +140,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
             gap: 1,
             flexWrap: 'wrap',
             justifyContent: 'flex-end',
-            ...(fullScreen || isMobile ? {
+            ...(fullScreen || (isMobile && maxWidth === 'lg') ? {
               position: 'fixed',
               bottom: 0,
               left: 0,

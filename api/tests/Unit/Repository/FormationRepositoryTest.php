@@ -17,8 +17,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Unit-Tests für FormationRepository.
  *
- * Prüft die QueryBuilder-Logik für findVisibleForUser() und findByTeam()
- * ohne echte Datenbankverbindung.
+ * Prüft die QueryBuilder-Logik für findVisibleForUser(), findByTeam(),
+ * findArchivedForUser() und findArchivedByTeam() ohne echte Datenbankverbindung.
  */
 #[AllowMockObjectsWithoutExpectations]
 class FormationRepositoryTest extends TestCase
@@ -38,6 +38,10 @@ class FormationRepositoryTest extends TestCase
     /** @var array<string, mixed> */
     private array $capturedParams = [];
 
+    /** Alle andWhere-Aufrufe */
+    /** @var string[] */
+    private array $capturedAndWhere = [];
+
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
@@ -55,8 +59,16 @@ class FormationRepositoryTest extends TestCase
                 return $this->qb;
             });
 
+        $this->qb
+            ->method('andWhere')
+            ->willReturnCallback(function (string $condition) {
+                $this->capturedAndWhere[] = $condition;
+
+                return $this->qb;
+            });
+
         // Alle fluenten QB-Methoden zurückgeben sich selbst
-        foreach (['select', 'from', 'where', 'andWhere', 'orderBy'] as $method) {
+        foreach (['select', 'from', 'where', 'orderBy'] as $method) {
             $this->qb->method($method)->willReturnSelf();
         }
 
@@ -125,6 +137,14 @@ class FormationRepositoryTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    public function testFindVisibleForUserFiltersOutArchivedFormations(): void
+    {
+        $team = $this->createMock(Team::class);
+        $this->repository->findVisibleForUser([1 => $team]);
+
+        $this->assertContains('f.archivedAt IS NULL', $this->capturedAndWhere);
+    }
+
     // ─── findByTeam ───────────────────────────────────────────────────────────
 
     public function testFindByTeamNeverCallsSetParametersWithArray(): void
@@ -160,5 +180,101 @@ class FormationRepositoryTest extends TestCase
         $result = $this->repository->findByTeam(99);
 
         $this->assertSame([], $result);
+    }
+
+    public function testFindByTeamFiltersOutArchivedFormations(): void
+    {
+        $this->repository->findByTeam(1);
+
+        $this->assertContains('f.archivedAt IS NULL', $this->capturedAndWhere);
+    }
+
+    // ─── findArchivedForUser ───────────────────────────────────────────────────
+
+    public function testFindArchivedForUserReturnsEmptyArrayWhenCoachTeamsIsEmpty(): void
+    {
+        $result = $this->repository->findArchivedForUser([]);
+
+        $this->assertSame([], $result);
+    }
+
+    public function testFindArchivedForUserPassesTeamsToQueryBuilder(): void
+    {
+        $team1 = $this->createMock(Team::class);
+        $team2 = $this->createMock(Team::class);
+        $formation = $this->createMock(Formation::class);
+        $this->queryResult = [$formation];
+
+        $this->repository->findArchivedForUser([1 => $team1, 2 => $team2]);
+
+        $this->assertSame([1 => $team1, 2 => $team2], $this->capturedTeamsParam);
+    }
+
+    public function testFindArchivedForUserReturnsQueryResult(): void
+    {
+        $team = $this->createMock(Team::class);
+        $formation = $this->createMock(Formation::class);
+        $this->queryResult = [$formation];
+
+        $result = $this->repository->findArchivedForUser([1 => $team]);
+
+        $this->assertSame([$formation], $result);
+    }
+
+    public function testFindArchivedForUserReturnsEmptyArrayWhenQueryReturnsNothing(): void
+    {
+        $team = $this->createMock(Team::class);
+        $this->queryResult = [];
+
+        $result = $this->repository->findArchivedForUser([1 => $team]);
+
+        $this->assertSame([], $result);
+    }
+
+    public function testFindArchivedForUserFiltersOnlyArchivedFormations(): void
+    {
+        $team = $this->createMock(Team::class);
+        $this->repository->findArchivedForUser([1 => $team]);
+
+        $this->assertContains('f.archivedAt IS NOT NULL', $this->capturedAndWhere);
+        $this->assertNotContains('f.archivedAt IS NULL', $this->capturedAndWhere);
+    }
+
+    // ─── findArchivedByTeam ───────────────────────────────────────────────────
+
+    public function testFindArchivedByTeamSetsTeamIdParameter(): void
+    {
+        $this->repository->findArchivedByTeam(7);
+
+        $this->assertArrayHasKey('teamId', $this->capturedParams);
+        $this->assertSame(7, $this->capturedParams['teamId']);
+    }
+
+    public function testFindArchivedByTeamReturnsQueryResult(): void
+    {
+        $formation = $this->createMock(Formation::class);
+        $this->queryResult = [$formation];
+
+        $result = $this->repository->findArchivedByTeam(1);
+
+        $this->assertCount(1, $result);
+        $this->assertSame($formation, $result[0]);
+    }
+
+    public function testFindArchivedByTeamReturnsEmptyArrayWhenNoFormationsFound(): void
+    {
+        $this->queryResult = [];
+
+        $result = $this->repository->findArchivedByTeam(99);
+
+        $this->assertSame([], $result);
+    }
+
+    public function testFindArchivedByTeamFiltersOnlyArchivedFormations(): void
+    {
+        $this->repository->findArchivedByTeam(1);
+
+        $this->assertContains('f.archivedAt IS NOT NULL', $this->capturedAndWhere);
+        $this->assertNotContains('f.archivedAt IS NULL', $this->capturedAndWhere);
     }
 }

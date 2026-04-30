@@ -22,9 +22,7 @@ class FormationRepository extends ServiceEntityRepository
      *
      * Sichtbar sind ausschließlich Formationen, deren team_id einem der Teams entspricht,
      * in denen der User aktuell aktiv als Trainer eingetragen ist.
-     * Legacy-Formationen ohne team_id werden durch die Backfill-Migration Version20260421120000
-     * nachträglich mit der korrekten team_id versehen und sind danach ebenfalls über diese
-     * Abfrage erreichbar.
+     * Archivierte Formationen werden nicht zurückgegeben.
      *
      * @param Team[] $coachTeams Aktuell aktive Trainer-Teams des Users
      *
@@ -38,7 +36,30 @@ class FormationRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('f')
             ->where('f.team IN (:teams)')
+            ->andWhere('f.archivedAt IS NULL')
             ->setParameter('teams', $coachTeams)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Gibt alle archivierten Formationen zurück, die für den User sichtbar sind.
+     *
+     * @param Team[] $coachTeams Aktuell aktive Trainer-Teams des Users
+     *
+     * @return Formation[]
+     */
+    public function findArchivedForUser(array $coachTeams): array
+    {
+        if (empty($coachTeams)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('f')
+            ->where('f.team IN (:teams)')
+            ->andWhere('f.archivedAt IS NOT NULL')
+            ->setParameter('teams', $coachTeams)
+            ->orderBy('f.archivedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }
@@ -54,7 +75,24 @@ class FormationRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('f')
             ->where('IDENTITY(f.team) = :teamId')
+            ->andWhere('f.archivedAt IS NULL')
             ->setParameter('teamId', $teamId)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Gibt alle archivierten Formationen eines Teams zurück (nur für SUPERADMIN/ADMIN).
+     *
+     * @return Formation[]
+     */
+    public function findArchivedByTeam(int $teamId): array
+    {
+        return $this->createQueryBuilder('f')
+            ->where('IDENTITY(f.team) = :teamId')
+            ->andWhere('f.archivedAt IS NOT NULL')
+            ->setParameter('teamId', $teamId)
+            ->orderBy('f.archivedAt', 'DESC')
             ->getQuery()
             ->getResult();
     }

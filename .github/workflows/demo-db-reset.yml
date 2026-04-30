@@ -29,6 +29,16 @@ jobs:
             touch "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
             chmod 644 "${{ secrets.MAIN_PROJECT_PATH }}/maintenance_demo.flag"
 
+      - name: Stop demo worker before reset
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            cd "${{ secrets.MAIN_PROJECT_PATH }}/demo_current"
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo stop worker 2>/dev/null || true
+
       - name: Reset demo database
         uses: appleboy/ssh-action@v1.2.5
         with:

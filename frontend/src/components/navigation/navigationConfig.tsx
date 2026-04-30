@@ -1,4 +1,5 @@
 import React from 'react';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
@@ -29,7 +30,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import ChecklistIcon from '@mui/icons-material/Checklist';
-import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BuildIcon from '@mui/icons-material/Build';
@@ -106,7 +106,7 @@ export const navigationGroups: NavGroup[] = [
     children: [
       { key: 'news',        label: 'Neuigkeiten', route: '/news' },
       { key: 'surveys',     label: 'Umfragen',    route: '/surveys' },
-      { key: 'player-tips', label: 'Tipps',       route: '/player-tips' },
+      { key: 'wissenspool',   label: 'Wissenspool', route: '/wissenspool' },
     ],
   },
 ];
@@ -189,10 +189,10 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'mein-feedback': <FeedbackIcon fontSize="small" />,
   'tasks':         <AssignmentIcon fontSize="small" />,
   'mein-spieltag': <ChecklistIcon fontSize="small" />,
-  'player-tips':   <TipsAndUpdatesIcon fontSize="small" />,
   // Nav group icons
   'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
   'team':          <GroupsIcon fontSize="small" />,
+  'wissenspool':   <MenuBookIcon fontSize="small" />,
   'community':     <NewspaperIcon fontSize="small" />,
 };
 
@@ -209,7 +209,7 @@ export const navItemColorMap: Record<string, string> = {
   'mein-feedback':   '#EC407A',
   'tasks':           '#F59E0B',
   'mein-spieltag':   '#EF5350',
-  'player-tips':     '#26A69A',
+  'wissenspool':     '#7E57C2',
   'formations':      '#66BB6A',
   'players':         '#26A69A',
   'teams':           '#5C6BC0',

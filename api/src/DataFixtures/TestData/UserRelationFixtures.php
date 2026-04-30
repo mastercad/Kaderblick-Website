@@ -424,6 +424,18 @@ class UserRelationFixtures extends Fixture implements DependentFixtureInterface,
             $manager->persist($rel);
         }
 
+        // ─── SUPERADMIN-Relation für Formation-Archive-Tests ────────────────────
+        // user_21 (ROLE_SUPERADMIN) → self_coach → coach_9 (aktiv in Team 13, start 2020-01-01)
+        // Ermöglicht testArchivedEndpointFiltersByTeamForSuperAdmin: SUPERADMIN
+        // hat ein eigenes Coach-Team und kann per ?teamId filtern.
+        $superAdminUser = $this->getReference('user_21', User::class);
+        $superAdminCoach = $this->getReference('coach_9', Coach::class);
+        if (!$manager->getRepository(UserRelation::class)->findOneBy(['user' => $superAdminUser, 'coach' => $superAdminCoach])) {
+            $rel = new UserRelation();
+            $rel->setUser($superAdminUser)->setCoach($superAdminCoach)->setRelationType($relTypeSelfCoach);
+            $manager->persist($rel);
+        }
+
         $manager->flush();
     }
 }

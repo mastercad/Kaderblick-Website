@@ -8,7 +8,9 @@ use App\Entity\FormationType;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Repository\FormationRepository;
+use App\Security\Voter\FormationVoter;
 use App\Service\CoachTeamPlayerService;
+use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -59,7 +61,7 @@ class FormationControllerTest extends TestCase
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private function wireUser(?User $user, bool $isSuperAdmin = false): void
+    private function wireUser(?User $user, bool $isSuperAdmin = false, bool $canEdit = true): void
     {
         if (null === $user) {
             $token = null;
@@ -73,9 +75,12 @@ class FormationControllerTest extends TestCase
 
         $this->authChecker
             ->method('isGranted')
-            ->willReturnCallback(fn (string $attribute) => match ($attribute) {
-                'ROLE_SUPERADMIN' => $isSuperAdmin,
-                default => false,
+            ->willReturnCallback(function (string $attribute) use ($isSuperAdmin, $canEdit) {
+                return match ($attribute) {
+                    'ROLE_SUPERADMIN' => $isSuperAdmin,
+                    FormationVoter::EDIT => $canEdit,
+                    default => false,
+                };
             });
 
         $container = new ContainerBuilder();
@@ -330,5 +335,198 @@ class FormationControllerTest extends TestCase
             ->willReturn($teamRepo);
 
         $this->controller->allTeams($this->em);
+    }
+
+    // ─── archived() ───────────────────────────────────────────────────────────
+
+    public function testArchivedReturnsEmptyFormationsWhenNotAuthenticated(): void
+    {
+        $this->wireUser(null);
+
+        $response = $this->controller->archived(new Request());
+        $body = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertArrayHasKey('formations', $body);
+        $this->assertSame([], $body['formations']);
+    }
+
+    public function testArchivedCallsFindArchivedForUserForNormalUser(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false);
+        $this->mockCollectCoachTeams($user);
+
+        $this->formationRepo->expects($this->once())
+            ->method('findArchivedForUser')
+            ->with([])
+            ->willReturn([]);
+
+        $this->formationRepo->expects($this->never())
+            ->method('findArchivedByTeam');
+
+        $this->controller->archived(new Request());
+    }
+
+    public function testArchivedCallsFindArchivedByTeamForSuperAdminWithTeamIdParam(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, true);
+
+        $this->formationRepo->expects($this->once())
+            ->method('findArchivedByTeam')
+            ->with(3)
+            ->willReturn([]);
+
+        $this->formationRepo->expects($this->never())
+            ->method('findArchivedForUser');
+
+        $request = Request::create('/', 'GET', ['teamId' => '3']);
+        $this->controller->archived($request);
+    }
+
+    public function testArchivedIgnoresTeamIdParamForNonSuperAdmin(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false);
+        $this->mockCollectCoachTeams($user);
+
+        $this->formationRepo->expects($this->once())
+            ->method('findArchivedForUser')
+            ->willReturn([]);
+
+        $this->formationRepo->expects($this->never())
+            ->method('findArchivedByTeam');
+
+        $request = Request::create('/', 'GET', ['teamId' => '3']);
+        $this->controller->archived($request);
+    }
+
+    public function testArchivedResponseIncludesArchivedAtField(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false);
+        $this->mockCollectCoachTeams($user);
+
+        $archivedAt = new DateTimeImmutable('2026-04-30T10:00:00+00:00');
+        $formation = $this->makeFormation(7);
+        $formation->method('getArchivedAt')->willReturn($archivedAt);
+
+        $this->formationRepo->method('findArchivedForUser')->willReturn([$formation]);
+
+        $response = $this->controller->archived(new Request());
+        $body = json_decode((string) $response->getContent(), true);
+
+        $this->assertCount(1, $body['formations']);
+        $this->assertArrayHasKey('archivedAt', $body['formations'][0]);
+        $this->assertNotNull($body['formations'][0]['archivedAt']);
+    }
+
+    // ─── archive() ────────────────────────────────────────────────────────────
+
+    public function testArchiveReturns403WhenAccessDenied(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: false);
+
+        $formation = $this->makeFormation();
+        $response = $this->controller->archive($formation, $this->em);
+
+        $this->assertSame(403, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertArrayHasKey('error', $body);
+    }
+
+    public function testArchiveReturnsSuccessWhenAccessGranted(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: true);
+
+        $formation = $this->makeFormation();
+        $formation->expects($this->once())->method('archive')->willReturnSelf();
+
+        $response = $this->controller->archive($formation, $this->em);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertTrue($body['success']);
+    }
+
+    public function testArchiveCallsFlushOnEntityManager(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: true);
+
+        $formation = $this->makeFormation();
+        $formation->method('archive')->willReturnSelf();
+
+        $this->em->expects($this->once())->method('flush');
+
+        $this->controller->archive($formation, $this->em);
+    }
+
+    // ─── unarchive() ──────────────────────────────────────────────────────────
+
+    public function testUnarchiveReturns403WhenAccessDenied(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: false);
+
+        $formation = $this->makeFormation();
+        $response = $this->controller->unarchive($formation, $this->em);
+
+        $this->assertSame(403, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertArrayHasKey('error', $body);
+    }
+
+    public function testUnarchiveReturnsSuccessWithFormationInResponse(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: true);
+
+        $formation = $this->makeFormation(5);
+        $formation->expects($this->once())->method('unarchive')->willReturnSelf();
+
+        $response = $this->controller->unarchive($formation, $this->em);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertTrue($body['success']);
+        $this->assertArrayHasKey('formation', $body);
+        $this->assertSame(5, $body['formation']['id']);
+    }
+
+    public function testUnarchiveResponseIncludesExpectedFields(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: true);
+
+        $formation = $this->makeFormation(5);
+        $formation->method('unarchive')->willReturnSelf();
+
+        $response = $this->controller->unarchive($formation, $this->em);
+        $body = json_decode((string) $response->getContent(), true);
+        $f = $body['formation'];
+
+        $this->assertArrayHasKey('id', $f);
+        $this->assertArrayHasKey('name', $f);
+        $this->assertArrayHasKey('teamId', $f);
+        $this->assertArrayHasKey('teamName', $f);
+        $this->assertArrayHasKey('formationData', $f);
+        $this->assertArrayHasKey('formationType', $f);
+    }
+
+    public function testUnarchiveCallsFlushOnEntityManager(): void
+    {
+        $user = $this->makeUser();
+        $this->wireUser($user, false, canEdit: true);
+
+        $formation = $this->makeFormation();
+        $formation->method('unarchive')->willReturnSelf();
+
+        $this->em->expects($this->once())->method('flush');
+
+        $this->controller->unarchive($formation, $this->em);
     }
 }

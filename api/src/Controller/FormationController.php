@@ -10,6 +10,7 @@ use App\Repository\FormationRepository;
 use App\Security\Voter\CoachTeamVoter;
 use App\Security\Voter\FormationVoter;
 use App\Service\CoachTeamPlayerService;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,12 +36,17 @@ class FormationController extends AbstractController
             return $this->json(['error' => 'Zugriff verweigert'], 403);
         }
 
+        /** @var User $user */
+        $user = $this->getUser();
+        $assignedTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
+
         $teams = $em->getRepository(Team::class)->findBy([], ['name' => 'ASC']);
 
         return $this->json([
             'teams' => array_map(fn (Team $t) => [
                 'id' => $t->getId(),
                 'name' => $t->getName(),
+                'assigned' => in_array($t->getId(), $assignedTeamIds, true),
             ], $teams),
         ]);
     }
@@ -70,6 +76,41 @@ class FormationController extends AbstractController
             'name' => $formation->getName(),
             'teamId' => $formation->getTeam()?->getId(),
             'teamName' => $formation->getTeam()?->getName(),
+            'formationData' => $formation->getFormationData(),
+            'formationType' => [
+                'id' => $formation->getFormationType()->getId(),
+                'name' => $formation->getFormationType()->getName(),
+                'backgroundPath' => $formation->getFormationType()->getBackgroundPath(),
+                'cssClass' => $formation->getFormationType()->getCssClass(),
+            ]
+        ], $formations)]);
+    }
+
+    #[Route('/formations/archived', name: 'formations_archived', methods: ['GET'])]
+    public function archived(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $this->getUser();
+
+        if (null === $user) {
+            return $this->json(['formations' => []]);
+        }
+
+        /** @var User $user */
+        $teamIdParam = $request->query->get('teamId');
+        if (null !== $teamIdParam && $this->isGranted('ROLE_SUPERADMIN')) {
+            $formations = $this->formationRepository->findArchivedByTeam((int) $teamIdParam);
+        } else {
+            $coachTeams = $this->coachTeamPlayerService->collectCoachTeams($user);
+            $formations = $this->formationRepository->findArchivedForUser($coachTeams);
+        }
+
+        return $this->json(['formations' => array_map(fn (Formation $formation) => [
+            'id' => $formation->getId(),
+            'name' => $formation->getName(),
+            'teamId' => $formation->getTeam()?->getId(),
+            'teamName' => $formation->getTeam()?->getName(),
+            'archivedAt' => $formation->getArchivedAt()?->format(DateTimeInterface::ATOM),
             'formationData' => $formation->getFormationData(),
             'formationType' => [
                 'id' => $formation->getFormationType()->getId(),
@@ -264,11 +305,16 @@ class FormationController extends AbstractController
     }
 
     #[Route('/formation/{id}/duplicate', name: 'formation_duplicate', methods: ['POST'])]
-    public function duplicate(Formation $formation, EntityManagerInterface $em): JsonResponse
+    public function duplicate(Formation $formation, EntityManagerInterface $em, Request $request): JsonResponse
     {
         if (!$this->isGranted(FormationVoter::VIEW, $formation)) {
             return $this->json(['error' => 'Zugriff verweigert'], 403);
         }
+
+        $body = json_decode((string) $request->getContent(), true);
+        $customName = isset($body['name']) && \is_string($body['name']) && '' !== trim($body['name'])
+            ? trim($body['name'])
+            : 'Kopie von ' . $formation->getName();
 
         /** @var User $user */
         $user = $this->getUser();
@@ -276,7 +322,7 @@ class FormationController extends AbstractController
         $copy->setUser($user);
         $copy->setTeam($formation->getTeam());
         $copy->setFormationType($formation->getFormationType());
-        $copy->setName($formation->getName());
+        $copy->setName($customName);
         $copy->setFormationData($formation->getFormationData());
         $em->persist($copy);
         $em->flush();
@@ -291,6 +337,44 @@ class FormationController extends AbstractController
                 'name' => $copy->getFormationType()->getName(),
                 'backgroundPath' => $copy->getFormationType()->getBackgroundPath(),
                 'cssClass' => $copy->getFormationType()->getCssClass(),
+            ],
+        ]]);
+    }
+
+    #[Route('/formation/{id}/archive', name: 'formation_archive', methods: ['POST'])]
+    public function archive(Formation $formation, EntityManagerInterface $em): JsonResponse
+    {
+        if (!$this->isGranted(FormationVoter::EDIT, $formation)) {
+            return $this->json(['error' => 'Zugriff verweigert'], 403);
+        }
+
+        $formation->archive();
+        $em->flush();
+
+        return $this->json(['success' => true]);
+    }
+
+    #[Route('/formation/{id}/unarchive', name: 'formation_unarchive', methods: ['POST'])]
+    public function unarchive(Formation $formation, EntityManagerInterface $em): JsonResponse
+    {
+        if (!$this->isGranted(FormationVoter::EDIT, $formation)) {
+            return $this->json(['error' => 'Zugriff verweigert'], 403);
+        }
+
+        $formation->unarchive();
+        $em->flush();
+
+        return $this->json(['success' => true, 'formation' => [
+            'id' => $formation->getId(),
+            'name' => $formation->getName(),
+            'teamId' => $formation->getTeam()?->getId(),
+            'teamName' => $formation->getTeam()?->getName(),
+            'formationData' => $formation->getFormationData(),
+            'formationType' => [
+                'id' => $formation->getFormationType()->getId(),
+                'name' => $formation->getFormationType()->getName(),
+                'backgroundPath' => $formation->getFormationType()->getBackgroundPath(),
+                'cssClass' => $formation->getFormationType()->getCssClass(),
             ],
         ]]);
     }

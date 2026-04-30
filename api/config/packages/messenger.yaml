@@ -6,12 +6,13 @@ framework:
         transports:
             # https://symfony.com/doc/current/messenger.html#transport-configuration
             # async: '%env(MESSENGER_TRANSPORT_DSN)%'
-            failed: 'doctrine://default?queue_name=failed'
+            failed: 'doctrine://default?queue_name=failed&auto_setup=false'
             sync: 'sync://'
             async:
                 dsn: doctrine://default
                 options:
                     table_name: messenger_messages
+                    auto_setup: false
 
         routing:
             # Route your messages to the transports
