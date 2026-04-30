@@ -22,8 +22,9 @@ import CheckroomIcon from '@mui/icons-material/Checkroom';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import { useTheme, alpha } from '@mui/material/styles';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useNavConfig, isNavItemActive, navItemColorMap } from './navigationConfig';
+import { useNavigationProgress } from '../../context/NavigationProgressContext';
 
 interface NavMobileDrawerProps {
   open: boolean;
@@ -44,7 +45,7 @@ const tileBaseSx = (active: boolean, primary: string) => ({
 export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMobileDrawerProps) {
   const { adminMenuSections, isAdmin, isCoach } = useNavConfig();
   const theme = useTheme();
-  const navigate = useNavigate();
+  const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
 
   const active = (key: string) => isNavItemActive(pathname, key);

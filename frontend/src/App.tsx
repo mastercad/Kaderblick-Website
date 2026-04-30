@@ -8,6 +8,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { lightTheme, darkTheme } from './theme/theme';
 import { NotificationProvider } from './context/NotificationContext';
 import { HomeScrollProvider, useHomeScroll } from './context/HomeScrollContext';
+import { NavigationProgressProvider } from './context/NavigationProgressContext';
 import { useAuth } from './context/AuthContext';
 import { Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import Home from './pages/Home';
@@ -281,6 +282,7 @@ function App() {
     <MuiThemeProvider theme={currentTheme}>
       <CssBaseline />
       <RouteSeoBoundary />
+      <NavigationProgressProvider>
       <NotificationProvider>
         <HomeScrollProvider>
           <FabStackRoot>
@@ -426,6 +428,7 @@ function App() {
           </FabStackRoot>
         </HomeScrollProvider>
       </NotificationProvider>
+      </NavigationProgressProvider>
     </MuiThemeProvider>
   );
 }

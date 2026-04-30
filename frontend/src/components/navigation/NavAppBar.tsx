@@ -9,7 +9,8 @@ import Badge from '@mui/material/Badge';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useNavigationProgress } from '../../context/NavigationProgressContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useAuth } from '../../context/AuthContext';
 import { useHomeScroll } from '../../context/HomeScrollContext';
@@ -32,7 +33,7 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
   const unreadMessageCount = useUnreadMessageCount();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const navigate = useNavigate();
+  const { navigateWithProgress: navigate } = useNavigationProgress();
   const location = useLocation();
   const isScrolled = useScrollShrink(10);
 

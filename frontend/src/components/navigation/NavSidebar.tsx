@@ -11,8 +11,9 @@ import QrCode2Icon from '@mui/icons-material/QrCode2';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme, alpha } from '@mui/material/styles';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useNavConfig, navItemIconMap, navItemColorMap, isNavItemActive, getNavItemRoute } from './navigationConfig';
+import { useNavigationProgress } from '../../context/NavigationProgressContext';
 
 export const SIDEBAR_EXPANDED_WIDTH  = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 56;
@@ -27,7 +28,7 @@ interface NavSidebarProps {
 export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSidebarProps) {
   const { navigationItems, trainerMenuItems, adminMenuSections, isAdmin, isCoach } = useNavConfig();
   const theme = useTheme();
-  const navigate = useNavigate();
+  const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
 
   // scrollContainerRef: the inner scrollable div
