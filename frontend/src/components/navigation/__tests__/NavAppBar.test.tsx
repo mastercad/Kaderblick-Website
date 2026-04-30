@@ -43,6 +43,10 @@ jest.mock('../../UserAvatar', () => ({
 
 jest.mock('@mui/material/useMediaQuery', () => jest.fn().mockReturnValue(false));
 
+jest.mock('../../../context/NavigationProgressContext', () => ({
+  useNavigationProgress: () => ({ navigateWithProgress: mockNavigate, isPending: false }),
+}));
+
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
 import { useAuth } from '../../../context/AuthContext';

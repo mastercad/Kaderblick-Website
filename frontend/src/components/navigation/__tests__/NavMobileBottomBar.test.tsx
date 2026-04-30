@@ -23,6 +23,10 @@ jest.mock('../../../context/HomeScrollContext', () => ({
   useHomeScroll: jest.fn(),
 }));
 
+jest.mock('../../../context/NavigationProgressContext', () => ({
+  useNavigationProgress: () => ({ navigateWithProgress: mockNavigate, isPending: false }),
+}));
+
 import { useHomeScroll } from '../../../context/HomeScrollContext';
 const mockUseHomeScroll = useHomeScroll as jest.MockedFunction<typeof useHomeScroll>;
 

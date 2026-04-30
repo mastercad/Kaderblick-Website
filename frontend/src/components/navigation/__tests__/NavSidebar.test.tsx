@@ -26,6 +26,10 @@ jest.mock('../../../context/NotificationContext', () => ({
   useNotifications: jest.fn(),
 }));
 
+jest.mock('../../../context/NavigationProgressContext', () => ({
+  useNavigationProgress: () => ({ navigateWithProgress: mockNavigate, isPending: false }),
+}));
+
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,

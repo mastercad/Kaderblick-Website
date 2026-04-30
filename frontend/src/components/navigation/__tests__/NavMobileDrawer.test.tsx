@@ -30,6 +30,10 @@ jest.mock('../../../context/NotificationContext', () => ({
   useNotifications: jest.fn(),
 }));
 
+jest.mock('../../../context/NavigationProgressContext', () => ({
+  useNavigationProgress: () => ({ navigateWithProgress: mockNavigate, isPending: false }),
+}));
+
 const mockUseNavConfig     = useNavConfig     as jest.MockedFunction<typeof useNavConfig>;
 const mockUseNotifications = useNotifications as jest.MockedFunction<typeof useNotifications>;
 
