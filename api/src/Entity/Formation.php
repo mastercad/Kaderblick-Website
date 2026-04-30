@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\FormationRepository;
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: FormationRepository::class)]
@@ -51,6 +52,9 @@ class Formation
         onDelete: 'SET NULL'
     )]
     private ?Team $team = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?DateTimeImmutable $archivedAt = null;
 
     public function getId(): ?int
     {
@@ -126,5 +130,29 @@ class Formation
     public function __toString(): string
     {
         return $this->name . ' (' . $this->formationType?->getName() . ')';
+    }
+
+    public function getArchivedAt(): ?DateTimeImmutable
+    {
+        return $this->archivedAt;
+    }
+
+    public function archive(): self
+    {
+        $this->archivedAt = new DateTimeImmutable();
+
+        return $this;
+    }
+
+    public function unarchive(): self
+    {
+        $this->archivedAt = null;
+
+        return $this;
+    }
+
+    public function isArchived(): bool
+    {
+        return null !== $this->archivedAt;
     }
 }

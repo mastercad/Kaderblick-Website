@@ -335,15 +335,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             <Typography variant="body2" color="text.secondary">
               {nextStepLabel}
             </Typography>
-            {isDraggingPlayer && dragGuideProfile && (
-              <Typography variant="caption" color="primary.main" sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
-                {activeTemplate && bestFreeTemplateSlot
-                  ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${dragGuideProfile.name} passt am besten auf ${bestFreeTemplateSlot.slot.position}.`
-                  : freeformGuideTargets.length > 0
-                    ? `${dragGuideProfile.name}: mögliche Anker ${freeformTargetSummary}. Beim Loslassen wird der nächstpassende Anker gewählt.`
-                    : `${dragGuideProfile.name}: frei positionieren.`}
-              </Typography>
-            )}
+
           </Box>
           <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
             <Chip size="small" color="primary" variant="outlined" label={`${assignedRealPlayers}/${squadCount || 0} Kaderspieler eingesetzt`} />
@@ -455,15 +447,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
                 <Typography variant="body2" color="text.secondary">
                   Spieler verschieben, austauschen oder direkt aus dem Kader auf freie Positionen ziehen.
                 </Typography>
-                {isDraggingPlayer && dragGuideProfile && (
-                  <Typography variant="caption" color="common.white" sx={{ display: 'block', mt: 0.55, px: 0.75, py: 0.35, borderRadius: 999, bgcolor: 'rgba(15,23,42,0.52)', width: 'fit-content' }}>
-                    {activeTemplate && bestFreeTemplateSlot
-                      ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${bestFreeTemplateSlot.slot.position} in Vorlage ${activeTemplate.label}`
-                      : freeformGuideTargets.length > 0
-                        ? `Mögliche Anker: ${freeformTargetSummary}`
-                        : 'Frei verschieben'}
-                  </Typography>
-                )}
               </Box>
               <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                 <Chip size="small" label={`${fieldCount} auf dem Feld`} />
@@ -822,26 +805,95 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             sx={{
               display: 'none',
               position: 'fixed',
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              bgcolor: 'secondary.dark',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: 14,
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
               pointerEvents: 'none',
               zIndex: 9999,
               transform: 'translate(-50%, -50%)',
-              opacity: 0.85,
-              boxShadow: 4,
+              opacity: 0.9,
+              filter: 'drop-shadow(0 10px 18px rgba(0,0,0,0.42))',
             }}
           >
-            {benchDragPlayer.number}
+            {/* Kreis – Farbe wird während des Drags via getZoneColor direkt im DOM gesetzt */}
+            <Box
+              data-token-circle="true"
+              sx={{
+                '--token-size': 'clamp(24px, 7.4vw, 44px)',
+                '--token-number-size': 'clamp(10px, 2.6vw, 15px)',
+                width: 'var(--token-size)',
+                height: 'var(--token-size)',
+                bgcolor: 'secondary.dark',
+                color: 'white',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: 'var(--token-number-size)',
+                border: benchDragPlayer.isRealPlayer
+                  ? '2px solid rgba(255,255,255,0.85)'
+                  : '2px dashed rgba(255,255,255,0.6)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.55)',
+                transform: 'scale(1.14)',
+              }}
+            >
+              {benchDragPlayer.number}
+            </Box>
+            {/* Name-Label */}
+            <Box sx={{
+              mt: 'clamp(1px, 0.35vw, 2px)',
+              bgcolor: 'rgba(0,0,0,0.68)',
+              color: 'white',
+              borderRadius: '4px',
+              px: 'clamp(3px, 0.9vw, 4px)',
+              lineHeight: '1.4',
+              fontSize: 'clamp(0.5rem, 1.55vw, 0.62rem)',
+              fontWeight: 600,
+              maxWidth: 'clamp(42px, 12vw, 58px)',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {benchDragPlayer.name?.split(' ').pop() ?? benchDragPlayer.name}
+            </Box>
           </Box>
         ) : null;
       })()}
+
+      {/* Drag-Hint-Pill: position:fixed → immer sichtbar, unabhängig vom Scroll */}
+      {isDraggingPlayer && dragGuideProfile && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9000,
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
+            bgcolor: 'rgba(10,18,38,0.9)',
+            color: 'common.white',
+            px: 2,
+            py: 0.9,
+            borderRadius: 999,
+            boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+            border: '1px solid rgba(255,255,255,0.13)',
+            backdropFilter: 'blur(8px)',
+            maxWidth: 'calc(100vw - 48px)',
+          }}
+        >
+          <Typography variant="body2" fontWeight={700} noWrap sx={{ fontSize: '0.8rem', letterSpacing: 0.1 }}>
+            {activeTemplate && bestFreeTemplateSlot
+              ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${bestFreeTemplateSlot.slot.position} – ${activeTemplate.label}`
+              : freeformGuideTargets.length > 0
+                ? `Mögliche Positionen: ${freeformTargetSummary}`
+                : 'Frei positionieren'}
+          </Typography>
+        </Box>
+      )}
     </BaseModal>
   );
 };

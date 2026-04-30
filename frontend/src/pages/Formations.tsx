@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, CardActions, CardActionArea,
   Chip, IconButton, Menu, MenuItem, Tooltip, Divider,
-  FormControl, InputLabel, Select, Stack,
+  FormControl, InputLabel, Select, Tabs, Tab, ListSubheader,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from '@mui/material';
 import FilterIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/AddCircle';
@@ -13,6 +14,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SportsIcon from '@mui/icons-material/Sports';
 import PresentToAllIcon from '@mui/icons-material/PresentToAll';
 import GroupsIcon from '@mui/icons-material/Groups';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import FormationEditModal from '../modals/FormationEditModal';
@@ -57,6 +60,7 @@ interface Formation {
   formationData: FormationData;
   teamId?: number | null;
   teamName?: string | null;
+  archivedAt?: string | null;
 }
 
 // ─── Mini pitch preview on the card ──────────────────────────────────────────
@@ -137,10 +141,11 @@ interface FormationCardProps {
   onDuplicate: () => void;
   onDelete: () => void;
   onTactics: () => void;
+  onArchive: () => void;
 }
 
 const FormationCard: React.FC<FormationCardProps> = ({
-  formation, onEdit, onDuplicate, onDelete, onTactics,
+  formation, onEdit, onDuplicate, onDelete, onTactics, onArchive,
 }) => {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const fieldCount  = formation.formationData?.players?.length ?? 0;
@@ -228,6 +233,11 @@ const FormationCard: React.FC<FormationCardProps> = ({
             <ContentCopyIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Archivieren">
+          <IconButton size="small" onClick={onArchive} color="default" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
+            <ArchiveIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Löschen">
           <IconButton size="small" onClick={onDelete} color="error" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'error.main', color: 'white' } }}>
             <DeleteIcon fontSize="small" />
@@ -252,6 +262,9 @@ const FormationCard: React.FC<FormationCardProps> = ({
         <MenuItem onClick={() => { onDuplicate(); setMenuAnchor(null); }}>
           <ContentCopyIcon fontSize="small" sx={{ mr: 1 }} /> Duplizieren
         </MenuItem>
+        <MenuItem onClick={() => { onArchive(); setMenuAnchor(null); }}>
+          <ArchiveIcon fontSize="small" sx={{ mr: 1 }} /> Archivieren
+        </MenuItem>
         <Divider />
         <MenuItem onClick={() => { onDelete(); setMenuAnchor(null); }} sx={{ color: 'error.main' }}>
           <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Löschen
@@ -266,11 +279,36 @@ const FormationCard: React.FC<FormationCardProps> = ({
 interface Team {
   id: number;
   name: string;
+  assigned?: boolean;
+}
+
+/**
+ * Gibt die gruppierten Beschreibungen für das Team-Dropdown zurück.
+ * Nur wenn beide Gruppen (zugeordnet + weitere) existieren, werden Überschriften
+ * eingefügt. Fehlt eine der Gruppen, erscheinen alle Teams flach ohne Header.
+ */
+export type TeamMenuEntry =
+  | { type: 'header'; key: string; label: string }
+  | { type: 'item'; team: Team; dimmed: boolean };
+
+export function buildTeamMenuEntries(teams: Team[]): TeamMenuEntry[] {
+  const myTeams = teams.filter(t => t.assigned);
+  const otherTeams = teams.filter(t => !t.assigned);
+  const grouped = myTeams.length > 0 && otherTeams.length > 0;
+  const entries: TeamMenuEntry[] = [];
+
+  if (grouped) entries.push({ type: 'header', key: 'grp-my', label: 'Meine Teams' });
+  myTeams.forEach(t => entries.push({ type: 'item', team: t, dimmed: false }));
+  if (grouped) entries.push({ type: 'header', key: 'grp-other', label: 'Weitere Teams' });
+  otherTeams.forEach(t => entries.push({ type: 'item', team: t, dimmed: grouped }));
+
+  return entries;
 }
 
 const Formations: React.FC = () => {
   const { isSuperAdmin } = useAuth();
   const [formations, setFormations] = useState<Formation[]>([]);
+  const [archivedFormations, setArchivedFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editFormationId, setEditFormationId] = useState<number | null>(null);
@@ -280,6 +318,12 @@ const Formations: React.FC = () => {
   // SUPERADMIN team filter
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
+  const [activeTab, setActiveTab] = useState<0 | 1>(0);
+  const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; formation: Formation | null; name: string }>({
+    open: false,
+    formation: null,
+    name: '',
+  });
 
   // Alle Teams laden (nur für SUPERADMIN)
   useEffect(() => {
@@ -292,8 +336,15 @@ const Formations: React.FC = () => {
   const loadFormations = (teamId?: number) => {
     setLoading(true);
     const url = teamId ? `/formations?teamId=${teamId}` : '/formations';
-    apiJson<{ formations: Formation[] }>(url)
-      .then(data => setFormations(Array.isArray(data.formations) ? data.formations : []))
+    const archivedUrl = teamId ? `/formations/archived?teamId=${teamId}` : '/formations/archived';
+    Promise.all([
+      apiJson<{ formations: Formation[] }>(url),
+      apiJson<{ formations: Formation[] }>(archivedUrl),
+    ])
+      .then(([active, archived]) => {
+        setFormations(Array.isArray(active.formations) ? active.formations : []);
+        setArchivedFormations(Array.isArray(archived.formations) ? archived.formations : []);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -319,9 +370,39 @@ const Formations: React.FC = () => {
 
   const multipleTeams = teamGroups.length > 1;
 
-  const handleDuplicate = async (formation: Formation) => {
+  const openDuplicateDialog = (formation: Formation) => {
+    setDuplicateDialog({ open: true, formation, name: `Kopie von ${formation.name}` });
+  };
+
+  const confirmDuplicate = async () => {
+    const { formation, name } = duplicateDialog;
+    if (!formation) return;
+    setDuplicateDialog(prev => ({ ...prev, open: false }));
     try {
-      const data = await apiJson<{ formation: Formation }>(`/formation/${formation.id}/duplicate`, { method: 'POST' });
+      const data = await apiJson<{ formation: Formation }>(
+        `/formation/${formation.id}/duplicate`,
+        { method: 'POST', body: JSON.stringify({ name: name.trim() || `Kopie von ${formation.name}` }) },
+      );
+      if (data?.formation) setFormations(prev => [data.formation, ...prev]);
+    } catch {
+      // TODO: toast error
+    }
+  };
+
+  const handleArchive = async (formation: Formation) => {
+    try {
+      await apiJson(`/formation/${formation.id}/archive`, { method: 'POST' });
+      setFormations(prev => prev.filter(f => f.id !== formation.id));
+      setArchivedFormations(prev => [{ ...formation, archivedAt: new Date().toISOString() }, ...prev]);
+    } catch {
+      // TODO: toast error
+    }
+  };
+
+  const handleUnarchive = async (formation: Formation) => {
+    try {
+      const data = await apiJson<{ formation: Formation }>(`/formation/${formation.id}/unarchive`, { method: 'POST' });
+      setArchivedFormations(prev => prev.filter(f => f.id !== formation.id));
       if (data?.formation) setFormations(prev => [data.formation, ...prev]);
     } catch {
       // TODO: toast error
@@ -331,39 +412,38 @@ const Formations: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={isSuperAdmin && allTeams.length > 0 ? 2 : 4}>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>Meine Aufstellungen</Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
-            {formations.length > 0
-              ? `${formations.length} Aufstellung${formations.length !== 1 ? 'en' : ''} gespeichert`
-              : 'Noch keine Aufstellungen erstellt'
-            }
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openNew} size="large">
-          Neue Aufstellung
-        </Button>
+      <Box mb={2}>
+        <Typography variant="h4" fontWeight={700}>Meine Aufstellungen</Typography>
+        <Typography variant="body2" color="text.secondary" mt={0.5}>
+          {activeTab === 0
+            ? (formations.length > 0 ? `${formations.length} Aufstellung${formations.length !== 1 ? 'en' : ''} aktiv` : 'Keine aktiven Aufstellungen')
+            : (archivedFormations.length > 0 ? `${archivedFormations.length} archivierte Aufstellung${archivedFormations.length !== 1 ? 'en' : ''}` : 'Archiv ist leer')
+          }
+        </Typography>
       </Box>
 
-      {/* SUPERADMIN: Team-Filter */}
-      {isSuperAdmin && allTeams.length > 0 && (
-        <Box
-          sx={{
-            position: 'sticky',
-            top: 'var(--app-header-height)',
-            zIndex: 10,
-            bgcolor: 'background.default',
-            pt: 1.5,
-            pb: 1.5,
-            mb: 3,
-            mx: { xs: -3, sm: -3 },
-            px: { xs: 3, sm: 3 },
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+      {/* Sticky-Leiste: Team-Filter + Button */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 'var(--app-header-height)',
+          zIndex: 10,
+          bgcolor: 'background.default',
+          pt: 1.5,
+          pb: 1.5,
+          mb: 3,
+          mx: { xs: -3, sm: -3 },
+          px: { xs: 3, sm: 3 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+        }}
+      >
+        <Box sx={{ flex: 1 }}>
+          {isSuperAdmin && allTeams.length > 0 && (
             <FormControl size="small" sx={{ width: { xs: '100%', sm: 320 } }}>
               <InputLabel id="formation-team-filter-label">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -377,18 +457,53 @@ const Formations: React.FC = () => {
                 value={selectedTeamId}
                 onChange={e => handleTeamChange(e.target.value as number | '')}
               >
-                <MenuItem value="">Alle meinen Teams</MenuItem>
-                {allTeams.map(t => (
-                  <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
-                ))}
+                <MenuItem value="">Alle Teams</MenuItem>
+                {buildTeamMenuEntries(allTeams).map(entry =>
+                  entry.type === 'header'
+                    ? <ListSubheader key={entry.key}>{entry.label}</ListSubheader>
+                    : <MenuItem key={entry.team.id} value={entry.team.id} sx={entry.dimmed ? { color: 'text.secondary' } : undefined}>{entry.team.name}</MenuItem>
+                )}
               </Select>
             </FormControl>
-          </Stack>
+          )}
         </Box>
-      )}
+        {activeTab === 0 && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>
+            Neue Aufstellung
+          </Button>
+        )}
+      </Box>
 
-      {/* Content */}
-      {loading ? (
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v as 0 | 1)}>
+          <Tab
+            label={
+              <Box display="flex" alignItems="center" gap={1}>
+                Aktiv
+                {formations.length > 0 && (
+                  <Chip label={formations.length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
+                )}
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box display="flex" alignItems="center" gap={1}>
+                <ArchiveIcon sx={{ fontSize: 16 }} />
+                Archiv
+                {archivedFormations.length > 0 && (
+                  <Chip label={archivedFormations.length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
+                )}
+              </Box>
+            }
+          />
+        </Tabs>
+      </Box>
+
+      {/* Tab: Aktiv */}
+      {activeTab === 0 && (
+      <>{loading ? (
         <Typography color="text.secondary">Lade Aufstellungen…</Typography>
       ) : formations.length > 0 ? (
         <>
@@ -410,9 +525,10 @@ const Formations: React.FC = () => {
                     key={formation.id}
                     formation={formation}
                     onEdit={() => { setEditFormationId(formation.id); setEditModalOpen(true); }}
-                    onDuplicate={() => handleDuplicate(formation)}
+                    onDuplicate={() => openDuplicateDialog(formation)}
                     onDelete={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
                     onTactics={() => setTacticsFormation(formation)}
+                    onArchive={() => handleArchive(formation)}
                   />
                 ))}
               </Box>
@@ -425,9 +541,10 @@ const Formations: React.FC = () => {
                   key={formation.id}
                   formation={formation}
                   onEdit={() => { setEditFormationId(formation.id); setEditModalOpen(true); }}
-                  onDuplicate={() => handleDuplicate(formation)}
+                  onDuplicate={() => openDuplicateDialog(formation)}
                   onDelete={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
                   onTactics={() => setTacticsFormation(formation)}
+                  onArchive={() => handleArchive(formation)}
                 />
               ))}
             </Box>
@@ -450,6 +567,71 @@ const Formations: React.FC = () => {
             Erste Aufstellung erstellen
           </Button>
         </Box>
+      )}
+      </> )}
+
+      {/* Tab: Archiv */}
+      {activeTab === 1 && (
+        <>{loading ? (
+          <Typography color="text.secondary">Lade Aufstellungen…</Typography>
+        ) : archivedFormations.length > 0 ? (
+          <Box display="flex" flexWrap="wrap" gap={3}>
+            {archivedFormations.map(formation => (
+              <Card key={formation.id} sx={{
+                width: 300,
+                display: 'flex', flexDirection: 'column',
+                borderRadius: 2, overflow: 'hidden',
+                boxShadow: 1,
+                opacity: 0.85,
+              }}>
+                <CardPitchPreview formation={formation} />
+                <CardContent sx={{ pb: 1, pt: 1.25, flex: 1 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                    <Typography variant="subtitle1" fontWeight={700} lineHeight={1.25} sx={{ flex: 1, mr: 1 }}>
+                      {formation.name}
+                    </Typography>
+                  </Box>
+                  {formation.archivedAt && (
+                    <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
+                      Archiviert am {new Date(formation.archivedAt).toLocaleDateString('de-DE')}
+                    </Typography>
+                  )}
+                </CardContent>
+                <CardActions sx={{ pt: 0, pb: 1, px: 1, gap: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Tooltip title="Wiederherstellen">
+                    <Button
+                      size="small"
+                      startIcon={<UnarchiveIcon fontSize="small" />}
+                      onClick={() => handleUnarchive(formation)}
+                      sx={{ flex: 1, textTransform: 'none' }}
+                    >
+                      Wiederherstellen
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Endgültig löschen">
+                    <IconButton
+                      size="small"
+                      onClick={() => { setDeleteFormation(formation); setDeleteModalOpen(true); }}
+                      color="error"
+                      sx={{ borderRadius: 1.5, '&:hover': { bgcolor: 'error.main', color: 'white' } }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </CardActions>
+              </Card>
+            ))}
+          </Box>
+        ) : (
+          <Box mt={4} display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ color: 'text.secondary' }}>
+            <ArchiveIcon sx={{ fontSize: 72, opacity: 0.25 }} />
+            <Typography variant="h6" color="text.secondary">Archiv ist leer</Typography>
+            <Typography variant="body2" color="text.disabled" textAlign="center" maxWidth={400}>
+              Archivierte Aufstellungen erscheinen hier. Du kannst sie jederzeit wiederherstellen.
+            </Typography>
+          </Box>
+        )}
+        </>
       )}
 
       {/* Modals */}
@@ -476,6 +658,7 @@ const Formations: React.FC = () => {
           try {
             await apiJson(`/formation/${deleteFormation.id}/delete`, { method: 'DELETE' });
             setFormations(prev => prev.filter(f => f.id !== deleteFormation.id));
+            setArchivedFormations(prev => prev.filter(f => f.id !== deleteFormation.id));
           } finally {
             setDeleteModalOpen(false);
             setDeleteFormation(null);
@@ -493,6 +676,36 @@ const Formations: React.FC = () => {
           setTacticsFormation(saved);
         }}
       />
+
+      {/* Duplizieren – Namens-Dialog */}
+      <Dialog
+        open={duplicateDialog.open}
+        onClose={() => setDuplicateDialog(prev => ({ ...prev, open: false }))}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ component: 'form', onSubmit: (e: React.FormEvent) => { e.preventDefault(); void confirmDuplicate(); } }}
+      >
+        <DialogTitle>Aufstellung duplizieren</DialogTitle>
+        <DialogContent sx={{ pt: '12px !important' }}>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Name der Kopie"
+            value={duplicateDialog.name}
+            onChange={e => setDuplicateDialog(prev => ({ ...prev, name: e.target.value }))}
+            onFocus={e => e.target.select()}
+            inputProps={{ maxLength: 120 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDuplicateDialog(prev => ({ ...prev, open: false }))} color="secondary">
+            Abbrechen
+          </Button>
+          <Button type="submit" variant="contained" disabled={!duplicateDialog.name.trim()}>
+            Duplizieren
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

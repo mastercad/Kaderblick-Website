@@ -8,6 +8,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { lightTheme, darkTheme } from './theme/theme';
 import { NotificationProvider } from './context/NotificationContext';
 import { HomeScrollProvider, useHomeScroll } from './context/HomeScrollContext';
+import { NavigationProgressProvider } from './context/NavigationProgressContext';
 import { useAuth } from './context/AuthContext';
 import { Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import Home from './pages/Home';
@@ -94,7 +95,7 @@ const Faq = lazy(() => import('./pages/Faq'));
 const ContactPage = lazy(() => import('./pages/Contact'));
 const PublicIntentPage = lazy(() => import('./pages/PublicIntentPage'));
 const Matchday = lazy(() => import('./pages/Matchday'));
-const PlayerTips = lazy(() => import('./pages/PlayerTips'));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 
 function RouteFallback() {
   return (
@@ -281,6 +282,7 @@ function App() {
     <MuiThemeProvider theme={currentTheme}>
       <CssBaseline />
       <RouteSeoBoundary />
+      <NavigationProgressProvider>
       <NotificationProvider>
         <HomeScrollProvider>
           <FabStackRoot>
@@ -335,7 +337,7 @@ function App() {
                     <Route path="/fuer-jugendleitung" element={<PublicIntentPage />} />
                     <Route path="/spielanalyse-software" element={<PublicIntentPage />} />
                     <Route path="/faq" element={<Faq />} />
-                    <Route path="/player-tips" element={<PlayerTips />} />
+                    <Route path="/wissenspool" element={<KnowledgeBase />} />
                     <Route path="/kontakt" element={<ContactPage />} />
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -426,6 +428,7 @@ function App() {
           </FabStackRoot>
         </HomeScrollProvider>
       </NotificationProvider>
+      </NavigationProgressProvider>
     </MuiThemeProvider>
   );
 }

@@ -142,6 +142,7 @@ async function renderAsNormalUser(formations = [FORMATION_1]) {
   mockUseAuth.mockReturnValue({ isSuperAdmin: false });
   mockApiJson.mockImplementation((url: string) => {
     if (url === '/formations') return Promise.resolve({ formations });
+    if (url === '/formations/archived') return Promise.resolve({ formations: [] });
     return Promise.reject(new Error(`Unerwarteter API-Aufruf: ${url}`));
   });
   render(<Formations />);
@@ -186,7 +187,7 @@ describe('Formations — normaler User', () => {
 
   test('zeigt Anzahl der Formationen im Untertitel', async () => {
     await renderAsNormalUser([FORMATION_1, FORMATION_2]);
-    expect(screen.getByText(/2 Aufstellungen gespeichert/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 Aufstellungen aktiv/i)).toBeInTheDocument();
   });
 
   test('zeigt kein Team-Dropdown für normalen User', async () => {

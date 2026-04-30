@@ -7,7 +7,8 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import GroupsIcon from '@mui/icons-material/Groups';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useNavigationProgress } from '../../context/NavigationProgressContext';
 import { useHomeScroll } from '../../context/HomeScrollContext';
 import {
   MOBILE_BOTTOM_NAV_HEIGHT,
@@ -29,7 +30,7 @@ export default function NavMobileBottomBar({
   onMobileMenuClose,
   viewportPinnedNav,
 }: NavMobileBottomBarProps) {
-  const navigate = useNavigate();
+  const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
   const { isOnHeroSection } = useHomeScroll();
   const isHome = pathname === '/' || pathname === '';
