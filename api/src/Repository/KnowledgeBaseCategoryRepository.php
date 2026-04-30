@@ -18,15 +18,30 @@ class KnowledgeBaseCategoryRepository extends ServiceEntityRepository
     }
 
     /**
-     * Returns global categories plus team-specific ones, ordered by sortOrder.
+     * Returns categories for a specific team, ordered by sortOrder.
      *
      * @return KnowledgeBaseCategory[]
      */
     public function findForTeam(Team $team): array
     {
         return $this->createQueryBuilder('tc')
-            ->where('tc.team IS NULL OR tc.team = :team')
+            ->where('tc.team = :team')
             ->setParameter('team', $team)
+            ->orderBy('tc.sortOrder', 'ASC')
+            ->addOrderBy('tc.name', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Returns global categories (team IS NULL), ordered by sortOrder.
+     *
+     * @return KnowledgeBaseCategory[]
+     */
+    public function findGlobal(): array
+    {
+        return $this->createQueryBuilder('tc')
+            ->where('tc.team IS NULL')
             ->orderBy('tc.sortOrder', 'ASC')
             ->addOrderBy('tc.name', 'ASC')
             ->getQuery()

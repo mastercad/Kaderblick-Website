@@ -63,10 +63,21 @@ class TeamsController extends AbstractController
         /** @var Team[] $teams */
         $teams = $teamsRepository->fetchOptimizedList($user, $allTeams);
 
+        // When fetching all teams (context=match/tournament), compute which subset
+        // the user is directly assigned to so the frontend can group them.
+        // Without the allTeams flag every returned team is already the user's own team.
+        if ($allTeams) {
+            $ownTeams = $teamsRepository->fetchOptimizedList($user, false);
+            $ownTeamIds = array_column($ownTeams, 'id');
+        } else {
+            $ownTeamIds = [];
+        }
+
         return $this->json([
             'teams' => array_map(fn ($team) => [
                 'id' => $team['id'],
                 'name' => $team['name'],
+                'assigned' => !$allTeams || in_array($team['id'], $ownTeamIds, true),
                 'ageGroup' => [
                     'id' => $team['age_group_id'],
                     'name' => $team['age_group_name'],

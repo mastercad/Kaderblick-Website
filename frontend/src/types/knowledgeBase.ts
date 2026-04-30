@@ -58,6 +58,7 @@ export interface KnowledgeBaseComment {
 export interface KnowledgeBasePostListResponse {
   posts: KnowledgeBasePostCard[];
   canCreate: boolean;
+  isSuperAdmin?: boolean;
   likedPostIds: number[];
 }
 
@@ -72,7 +73,7 @@ export interface KnowledgeBaseCommentListResponse {
 }
 
 export interface CreatePostPayload {
-  teamId: number;
+  teamId?: number;
   categoryId: number;
   title: string;
   description?: string;

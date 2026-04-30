@@ -76,6 +76,21 @@ class KnowledgeBaseController extends AbstractController
         }
 
         $teamId = $request->query->getInt('teamId');
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+
+        // Global mode: teamId=0, only SuperAdmin
+        if (0 === $teamId) {
+            if (!$isSuperAdmin) {
+                return new JsonResponse(['error' => 'Keine Berechtigung.'], 403);
+            }
+            $categories = $this->categoryRepo->findGlobal();
+
+            return new JsonResponse([
+                'categories' => array_map(fn (KnowledgeBaseCategory $c) => $this->serializeCategory($c), $categories),
+                'canManageCategories' => true,
+            ]);
+        }
+
         $team = $this->em->getRepository(Team::class)->find($teamId);
         if (!$team instanceof Team) {
             return new JsonResponse(['error' => 'Team nicht gefunden.'], 404);
@@ -87,7 +102,6 @@ class KnowledgeBaseController extends AbstractController
 
         $categories = $this->categoryRepo->findForTeam($team);
 
-        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
         $canManage = $isSuperAdmin || $this->isGranted(KnowledgeBaseVoter::POST_CREATE, $team);
 
         return new JsonResponse([
@@ -195,6 +209,20 @@ class KnowledgeBaseController extends AbstractController
         }
 
         $teamId = $request->query->getInt('teamId');
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+
+        // Global mode: teamId=0, only SuperAdmin
+        if (0 === $teamId) {
+            if (!$isSuperAdmin) {
+                return new JsonResponse(['error' => 'Keine Berechtigung.'], 403);
+            }
+            $tags = $this->tagRepo->findGlobal();
+
+            return new JsonResponse([
+                'tags' => array_map(fn (KnowledgeBaseTag $t) => ['id' => $t->getId(), 'name' => $t->getName()], $tags),
+            ]);
+        }
+
         $team = $this->em->getRepository(Team::class)->find($teamId);
         if (!$team instanceof Team) {
             return new JsonResponse(['error' => 'Team nicht gefunden.'], 404);
@@ -225,6 +253,33 @@ class KnowledgeBaseController extends AbstractController
         }
 
         $teamId = $request->query->getInt('teamId');
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+
+        // Global mode: teamId=0, only SuperAdmin
+        if (0 === $teamId) {
+            if (!$isSuperAdmin) {
+                return new JsonResponse(['error' => 'Keine Berechtigung.'], 403);
+            }
+            $categoryId = $request->query->getInt('categoryId', 0);
+            $category = $categoryId > 0 ? $this->categoryRepo->find($categoryId) : null;
+            $search = $request->query->getString('search', '');
+            $tag = $request->query->getString('tag', '');
+            $posts = $this->postRepo->findGlobalWithFilters($category ?: null, $search ?: null, $tag ?: null);
+            $likedPostIds = [];
+            foreach ($posts as $post) {
+                if (null !== $this->likeRepo->findByPostAndUser($post, $user)) {
+                    $likedPostIds[] = $post->getId();
+                }
+            }
+
+            return new JsonResponse([
+                'posts' => array_map(fn (KnowledgeBasePost $p) => $this->serializePostCard($p, $likedPostIds), $posts),
+                'canCreate' => true,
+                'isSuperAdmin' => true,
+                'likedPostIds' => $likedPostIds,
+            ]);
+        }
+
         $team = $this->em->getRepository(Team::class)->find($teamId);
         if (!$team instanceof Team) {
             return new JsonResponse(['error' => 'Team nicht gefunden.'], 404);
@@ -253,6 +308,7 @@ class KnowledgeBaseController extends AbstractController
         return new JsonResponse([
             'posts' => array_map(fn (KnowledgeBasePost $p) => $this->serializePostCard($p, $likedPostIds), $posts),
             'canCreate' => $canCreate,
+            'isSuperAdmin' => $isSuperAdmin,
             'likedPostIds' => $likedPostIds,
         ]);
     }
@@ -303,13 +359,19 @@ class KnowledgeBaseController extends AbstractController
         }
 
         $teamId = isset($data['teamId']) ? (int) $data['teamId'] : 0;
-        $team = $this->em->getRepository(Team::class)->find($teamId);
-        if (!$team instanceof Team) {
-            return new JsonResponse(['error' => 'Team nicht gefunden.'], 404);
-        }
+        $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+        $team = null;
 
-        if (!$this->isGranted(KnowledgeBaseVoter::POST_CREATE, $team)) {
-            return new JsonResponse(['error' => 'Keine Berechtigung.'], 403);
+        if ($teamId > 0) {
+            $team = $this->em->getRepository(Team::class)->find($teamId);
+            if (!$team instanceof Team) {
+                return new JsonResponse(['error' => 'Team nicht gefunden.'], 404);
+            }
+            if (!$this->isGranted(KnowledgeBaseVoter::POST_CREATE, $team)) {
+                return new JsonResponse(['error' => 'Keine Berechtigung.'], 403);
+            }
+        } elseif (!$isSuperAdmin) {
+            return new JsonResponse(['error' => 'Nur SuperAdmins können globale Beiträge erstellen.'], 403);
         }
 
         $categoryId = isset($data['categoryId']) ? (int) $data['categoryId'] : 0;
@@ -360,7 +422,7 @@ class KnowledgeBaseController extends AbstractController
         $this->em->flush();
 
         // Push notification
-        if ($post->isSendNotification()) {
+        if ($post->isSendNotification() && null !== $team) {
             $teamUsers = $this->getTeamUsers($team, $user);
             if (!empty($teamUsers)) {
                 $this->notificationService->createNotificationForUsers(
@@ -831,7 +893,7 @@ class KnowledgeBaseController extends AbstractController
      *
      * @param string[] $tagNames
      */
-    private function syncTags(KnowledgeBasePost $post, array $tagNames, Team $team): void
+    private function syncTags(KnowledgeBasePost $post, array $tagNames, ?Team $team): void
     {
         foreach ($tagNames as $rawName) {
             $name = mb_strtolower(trim((string) $rawName));

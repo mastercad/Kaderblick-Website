@@ -16,6 +16,8 @@ export interface Player {
 export interface Team {
   id: number;
   name: string;
+  /** True when the authenticated user is directly assigned to this team. */
+  assigned?: boolean;
 }
 
 export interface FormationType {
