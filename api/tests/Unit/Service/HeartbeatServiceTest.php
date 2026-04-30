@@ -4,370 +4,282 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Entity\CronHeartbeat;
+use App\Repository\CronHeartbeatRepository;
 use App\Service\HeartbeatService;
-use DateInterval;
 use DateTimeImmutable;
-use DateTimeInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Contracts\Cache\CacheInterface;
-use Symfony\Contracts\Cache\ItemInterface;
 
 #[AllowMockObjectsWithoutExpectations]
 class HeartbeatServiceTest extends TestCase
 {
-    private CacheInterface&MockObject $cache;
+    private CronHeartbeatRepository&MockObject $repository;
+    private EntityManagerInterface&MockObject $em;
     private HeartbeatService $service;
 
     protected function setUp(): void
     {
-        $this->cache = $this->createMock(CacheInterface::class);
-        $this->service = new HeartbeatService($this->cache);
+        $this->repository = $this->createMock(CronHeartbeatRepository::class);
+        $this->em = $this->createMock(EntityManagerInterface::class);
+        $this->service = new HeartbeatService($this->repository, $this->em);
     }
 
     // ── beat() ────────────────────────────────────────────────────────────
 
-    public function testBeatDeletesExistingKeyAndStoresTimestamp(): void
+    public function testBeatSetsLastRunAtAndClearsErrorAndRunning(): void
     {
-        $this->cache->expects($this->exactly(3))
-            ->method('delete');
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastError('previous error');
+        $entry->setRunningPid(999);
+        $entry->setRunningStartedAt(1000);
 
-        $capturedValue = null;
-        $this->cache->expects($this->once())
-            ->method('get')
-            ->willReturnCallback(static function (string $key, callable $callback) use (&$capturedValue): int {
-                $item = new class implements ItemInterface {
-                    public function getKey(): string
-                    {
-                        return '';
-                    }
-
-                    public function get(): mixed
-                    {
-                        return null;
-                    }
-
-                    public function isHit(): bool
-                    {
-                        return false;
-                    }
-
-                    public function set(mixed $value): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAt(?DateTimeInterface $expiration): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAfter(int|DateInterval|null $time): static
-                    {
-                        return $this;
-                    }
-
-                    public function tag(string|iterable $tags): static
-                    {
-                        return $this;
-                    }
-
-                    /** @return array<string, mixed> */
-                    public function getMetadata(): array
-                    {
-                        return [];
-                    }
-                };
-                $capturedValue = $callback($item);
-
-                return $capturedValue;
-            });
+        $this->repository->method('findOrCreate')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
 
         $before = time();
-        $this->service->beat('app:test:command');
+        $this->service->beat('app:test:cmd');
         $after = time();
 
-        $this->assertNotNull($capturedValue);
-        $this->assertGreaterThanOrEqual($before, $capturedValue);
-        $this->assertLessThanOrEqual($after, $capturedValue);
+        $this->assertNotNull($entry->getLastRunAt());
+        $this->assertGreaterThanOrEqual($before, $entry->getLastRunAt()->getTimestamp());
+        $this->assertLessThanOrEqual($after, $entry->getLastRunAt()->getTimestamp());
+        $this->assertNull($entry->getLastError());
+        $this->assertNull($entry->getRunningPid());
+        $this->assertNull($entry->getRunningStartedAt());
     }
 
-    // ── getLastBeat() ─────────────────────────────────────────────────────
-
-    public function testGetLastBeatReturnsNullWhenNoBeatRegistered(): void
+    public function testBeatCallsFindOrCreateWithCommandName(): void
     {
-        // Simulate cache miss: callback is invoked → $isNew = true
-        $this->cache->method('get')
-            ->willReturnCallback(static function (string $key, callable $callback): int {
-                $item = new class implements ItemInterface {
-                    public function getKey(): string
-                    {
-                        return '';
-                    }
+        $entry = new CronHeartbeat('app:xp:process-pending');
+        $this->repository
+            ->expects($this->once())
+            ->method('findOrCreate')
+            ->with('app:xp:process-pending')
+            ->willReturn($entry);
 
-                    public function get(): mixed
-                    {
-                        return null;
-                    }
-
-                    public function isHit(): bool
-                    {
-                        return false;
-                    }
-
-                    public function set(mixed $value): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAt(?DateTimeInterface $expiration): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAfter(int|DateInterval|null $time): static
-                    {
-                        return $this;
-                    }
-
-                    public function tag(string|iterable $tags): static
-                    {
-                        return $this;
-                    }
-
-                    /** @return array<string, mixed> */
-                    public function getMetadata(): array
-                    {
-                        return [];
-                    }
-                };
-
-                return $callback($item);
-            });
-
-        $this->assertNull($this->service->getLastBeat('app:never:ran'));
-    }
-
-    public function testGetLastBeatReturnsDateTimeWhenBeatExists(): void
-    {
-        $timestamp = time() - 300; // 5 minutes ago
-
-        // Simulate cache hit: callback is NOT invoked, returns stored timestamp
-        $this->cache->method('get')
-            ->willReturn($timestamp);
-
-        $result = $this->service->getLastBeat('app:xp:process-pending');
-
-        $this->assertInstanceOf(DateTimeImmutable::class, $result);
-        $this->assertEquals($timestamp, $result->getTimestamp());
-    }
-
-    // ── isFresh() ─────────────────────────────────────────────────────────
-
-    public function testIsFreshReturnsFalseWhenNoBeatRegistered(): void
-    {
-        $this->cache->method('get')
-            ->willReturnCallback(static function (string $key, callable $callback): int {
-                $item = new class implements ItemInterface {
-                    public function getKey(): string
-                    {
-                        return '';
-                    }
-
-                    public function get(): mixed
-                    {
-                        return null;
-                    }
-
-                    public function isHit(): bool
-                    {
-                        return false;
-                    }
-
-                    public function set(mixed $value): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAt(?DateTimeInterface $expiration): static
-                    {
-                        return $this;
-                    }
-
-                    public function expiresAfter(int|DateInterval|null $time): static
-                    {
-                        return $this;
-                    }
-
-                    public function tag(string|iterable $tags): static
-                    {
-                        return $this;
-                    }
-
-                    /** @return array<string, mixed> */
-                    public function getMetadata(): array
-                    {
-                        return [];
-                    }
-                };
-
-                return $callback($item);
-            });
-
-        $this->assertFalse($this->service->isFresh('app:never:ran', 60));
-    }
-
-    public function testIsFreshReturnsTrueWhenBeatIsWithinWindow(): void
-    {
-        $recentTimestamp = time() - 10; // 10 seconds ago
-
-        $this->cache->method('get')->willReturn($recentTimestamp);
-
-        $this->assertTrue($this->service->isFresh('app:xp:process-pending', 60));
-    }
-
-    public function testIsFreshReturnsFalseWhenBeatIsOutsideWindow(): void
-    {
-        $staleTimestamp = time() - 3700; // >1 hour ago
-
-        $this->cache->method('get')->willReturn($staleTimestamp);
-
-        $this->assertFalse($this->service->isFresh('app:notifications:send-unsent', 60));
-    }
-
-    public function testIsFreshReturnsTrueExactlyAtBoundary(): void
-    {
-        // Exactly at the boundary (maxAge = 60 min → 3600 s)
-        $borderlineTimestamp = time() - 3600;
-
-        $this->cache->method('get')->willReturn($borderlineTimestamp);
-
-        $this->assertTrue($this->service->isFresh('app:command', 60));
-    }
-
-    public function testIsFreshReturnsFalseOneSecondPastBoundary(): void
-    {
-        $staleTimestamp = time() - 3601;
-
-        $this->cache->method('get')->willReturn($staleTimestamp);
-
-        $this->assertFalse($this->service->isFresh('app:command', 60));
+        $this->service->beat('app:xp:process-pending');
     }
 
     // ── beatError() ───────────────────────────────────────────────────────
 
-    public function testBeatErrorStoresErrorMessage(): void
+    public function testBeatErrorStoresErrorMessageAndClearsRunning(): void
     {
-        $capturedError = null;
-        $this->cache->method('get')
-            ->willReturnCallback(function (string $key, callable $callback) use (&$capturedError): string {
-                $capturedError = $callback($this->makeCacheItem());
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setRunningPid(42);
+        $entry->setRunningStartedAt(1000);
 
-                return (string) $capturedError;
-            });
+        $this->repository->method('findOrCreate')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
 
-        $this->service->beatError('app:test:command', 'Something went wrong');
+        $this->service->beatError('app:test:cmd', 'Something went wrong');
 
-        $this->assertSame('Something went wrong', $capturedError);
+        $this->assertSame('Something went wrong', $entry->getLastError());
+        $this->assertNull($entry->getRunningPid());
+        $this->assertNull($entry->getRunningStartedAt());
     }
 
-    public function testBeatErrorClearsRunningState(): void
+    public function testBeatErrorDoesNotChangeLastRunAt(): void
     {
-        // delete() is called once for errorKey and once via clearRunning()
-        $this->cache->expects($this->exactly(2))
-            ->method('delete');
+        $existingDate = new DateTimeImmutable('2026-01-01 12:00:00');
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt($existingDate);
 
-        $this->cache->method('get')
-            ->willReturnCallback(function (string $key, callable $callback): string {
-                return (string) $callback($this->makeCacheItem());
-            });
+        $this->repository->method('findOrCreate')->willReturn($entry);
 
-        $this->service->beatError('app:test:command', 'err');
+        $this->service->beatError('app:test:cmd', 'err');
+
+        $this->assertSame($existingDate, $entry->getLastRunAt());
+    }
+
+    // ── getLastBeat() ─────────────────────────────────────────────────────
+
+    public function testGetLastBeatReturnsNullWhenNoEntryExists(): void
+    {
+        $this->repository->method('findByCommand')->willReturn(null);
+
+        $this->assertNull($this->service->getLastBeat('app:never:ran'));
+    }
+
+    public function testGetLastBeatReturnsNullWhenEntryExistsButNeverRan(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        // lastRunAt is null by default
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertNull($this->service->getLastBeat('app:test:cmd'));
+    }
+
+    public function testGetLastBeatReturnsStoredDateTime(): void
+    {
+        $dt = new DateTimeImmutable('2026-04-30 22:00:00');
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt($dt);
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertSame($dt, $this->service->getLastBeat('app:test:cmd'));
     }
 
     // ── getLastError() ────────────────────────────────────────────────────
 
-    public function testGetLastErrorReturnsNullOnCacheMiss(): void
+    public function testGetLastErrorReturnsNullWhenNoEntryExists(): void
     {
-        $this->cache->method('get')
-            ->willReturnCallback(function (string $key, callable $callback): string {
-                // Invoking callback signals cache miss (isNew = true) → returns ''
-                return (string) $callback($this->makeCacheItem());
-            });
+        $this->repository->method('findByCommand')->willReturn(null);
 
-        $this->assertNull($this->service->getLastError('app:test:command'));
+        $this->assertNull($this->service->getLastError('app:test:cmd'));
+    }
+
+    public function testGetLastErrorReturnsNullWhenNoErrorSet(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertNull($this->service->getLastError('app:test:cmd'));
     }
 
     public function testGetLastErrorReturnsStoredMessage(): void
     {
-        $this->cache->method('get')->willReturn('Something went wrong');
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastError('DB connection failed');
 
-        $result = $this->service->getLastError('app:test:command');
+        $this->repository->method('findByCommand')->willReturn($entry);
 
-        $this->assertSame('Something went wrong', $result);
+        $this->assertSame('DB connection failed', $this->service->getLastError('app:test:cmd'));
     }
 
-    public function testGetLastErrorReturnsNullForEmptyString(): void
-    {
-        // Cache returns '' (not a miss, but effectively empty) → null
-        $this->cache->method('get')->willReturn('');
+    // ── isFresh() ─────────────────────────────────────────────────────────
 
-        $this->assertNull($this->service->getLastError('app:test:command'));
+    public function testIsFreshReturnsFalseWhenNoEntryExists(): void
+    {
+        $this->repository->method('findByCommand')->willReturn(null);
+
+        $this->assertFalse($this->service->isFresh('app:never:ran', 60));
     }
 
-    // ── setRunning() / clearRunning() ─────────────────────────────────────
-
-    public function testSetRunningStoresPidAndStartedAt(): void
+    public function testIsFreshReturnsFalseWhenNeverRan(): void
     {
-        $capturedData = null;
-        $this->cache->method('get')
-            ->willReturnCallback(function (string $key, callable $callback) use (&$capturedData): array {
-                $capturedData = $callback($this->makeCacheItem());
+        $entry = new CronHeartbeat('app:test:cmd');
+        $this->repository->method('findByCommand')->willReturn($entry);
 
-                return (array) $capturedData;
-            });
+        $this->assertFalse($this->service->isFresh('app:test:cmd', 60));
+    }
+
+    public function testIsFreshReturnsTrueWhenBeatIsWithinWindow(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt(new DateTimeImmutable('@' . (time() - 10))); // 10 seconds ago
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertTrue($this->service->isFresh('app:test:cmd', 60));
+    }
+
+    public function testIsFreshReturnsFalseWhenBeatIsOutsideWindow(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt(new DateTimeImmutable('@' . (time() - 3700))); // >1 hour ago
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertFalse($this->service->isFresh('app:test:cmd', 60));
+    }
+
+    public function testIsFreshReturnsTrueExactlyAtBoundary(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt(new DateTimeImmutable('@' . (time() - 3600))); // exactly 60 min
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertTrue($this->service->isFresh('app:test:cmd', 60));
+    }
+
+    public function testIsFreshReturnsFalseOneSecondPastBoundary(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setLastRunAt(new DateTimeImmutable('@' . (time() - 3601)));
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+
+        $this->assertFalse($this->service->isFresh('app:test:cmd', 60));
+    }
+
+    // ── setRunning() ──────────────────────────────────────────────────────
+
+    public function testSetRunningStoresPidAndTimestamp(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $this->repository->method('findOrCreate')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
 
         $before = time();
-        $this->service->setRunning('app:test:command', 1234);
+        $this->service->setRunning('app:test:cmd', 1234);
         $after = time();
 
-        $this->assertIsArray($capturedData);
-        $this->assertSame(1234, $capturedData['pid']);
-        $this->assertGreaterThanOrEqual($before, $capturedData['startedAt']);
-        $this->assertLessThanOrEqual($after, $capturedData['startedAt']);
+        $this->assertSame(1234, $entry->getRunningPid());
+        $this->assertGreaterThanOrEqual($before, $entry->getRunningStartedAt());
+        $this->assertLessThanOrEqual($after, $entry->getRunningStartedAt());
     }
 
-    public function testClearRunningDeletesCacheKey(): void
-    {
-        $this->cache->expects($this->once())
-            ->method('delete');
+    // ── clearRunning() ────────────────────────────────────────────────────
 
-        $this->service->clearRunning('app:test:command');
+    public function testClearRunningDoesNothingWhenNoEntryExists(): void
+    {
+        $this->repository->method('findByCommand')->willReturn(null);
+        $this->em->expects($this->never())->method('flush');
+
+        $this->service->clearRunning('app:test:cmd');
+    }
+
+    public function testClearRunningClearsPidAndStartedAt(): void
+    {
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setRunningPid(42);
+        $entry->setRunningStartedAt(1000);
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
+
+        $this->service->clearRunning('app:test:cmd');
+
+        $this->assertNull($entry->getRunningPid());
+        $this->assertNull($entry->getRunningStartedAt());
     }
 
     // ── getRunningState() ─────────────────────────────────────────────────
 
-    public function testGetRunningStateReturnsNullOnCacheMiss(): void
+    public function testGetRunningStateReturnsNullWhenNoEntryExists(): void
     {
-        $this->cache->method('get')
-            ->willReturnCallback(function (string $key, callable $callback): array {
-                // Invoking callback signals cache miss (isNew = true) → returns []
-                return (array) $callback($this->makeCacheItem());
-            });
+        $this->repository->method('findByCommand')->willReturn(null);
 
-        $this->assertNull($this->service->getRunningState('app:test:command'));
+        $this->assertNull($this->service->getRunningState('app:test:cmd'));
     }
 
-    public function testGetRunningStateReturnsNullForDeadProcess(): void
+    public function testGetRunningStateReturnsNullWhenNoPidSet(): void
     {
-        // PHP_INT_MAX is guaranteed to not be a running PID
-        $this->cache->method('get')->willReturn(['pid' => PHP_INT_MAX, 'startedAt' => time()]);
+        $entry = new CronHeartbeat('app:test:cmd');
+        // runningPid is null by default
+        $this->repository->method('findByCommand')->willReturn($entry);
 
-        // Dead PID → cache entry should be deleted
-        $this->cache->expects($this->once())->method('delete');
+        $this->assertNull($this->service->getRunningState('app:test:cmd'));
+    }
 
-        $this->assertNull($this->service->getRunningState('app:test:command'));
+    public function testGetRunningStateReturnsNullAndClearsEntryForDeadProcess(): void
+    {
+        // PHP_INT_MAX is guaranteed not to be a running PID
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setRunningPid(PHP_INT_MAX);
+        $entry->setRunningStartedAt(1000);
+
+        $this->repository->method('findByCommand')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
+
+        $this->assertNull($this->service->getRunningState('app:test:cmd'));
+        $this->assertNull($entry->getRunningPid());
+        $this->assertNull($entry->getRunningStartedAt());
     }
 
     public function testGetRunningStateReturnsStateForLiveProcess(): void
@@ -376,62 +288,28 @@ class HeartbeatServiceTest extends TestCase
             $this->markTestSkipped('posix_kill not available on this platform.');
         }
 
-        $pid = getmypid();
-        $state = ['pid' => $pid, 'startedAt' => time()];
+        $pid = (int) getmypid();
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setRunningPid($pid);
+        $entry->setRunningStartedAt(time());
 
-        $this->cache->method('get')->willReturn($state);
+        $this->repository->method('findByCommand')->willReturn($entry);
 
-        $result = $this->service->getRunningState('app:test:command');
+        $result = $this->service->getRunningState('app:test:cmd');
 
         $this->assertNotNull($result);
         $this->assertSame($pid, $result['pid']);
     }
 
-    // ── helpers ───────────────────────────────────────────────────────────
-
-    private function makeCacheItem(): ItemInterface
+    public function testGetRunningStateRejectsNegativePid(): void
     {
-        return new class implements ItemInterface {
-            public function getKey(): string
-            {
-                return '';
-            }
+        $entry = new CronHeartbeat('app:test:cmd');
+        $entry->setRunningPid(-1);
+        $entry->setRunningStartedAt(time());
 
-            public function get(): mixed
-            {
-                return null;
-            }
+        $this->repository->method('findByCommand')->willReturn($entry);
+        $this->em->expects($this->once())->method('flush');
 
-            public function isHit(): bool
-            {
-                return false;
-            }
-
-            public function set(mixed $value): static
-            {
-                return $this;
-            }
-
-            public function expiresAt(?DateTimeInterface $expiration): static
-            {
-                return $this;
-            }
-
-            public function expiresAfter(int|DateInterval|null $time): static
-            {
-                return $this;
-            }
-
-            public function tag(string|iterable $tags): static
-            {
-                return $this;
-            }
-
-            /** @return array<string, mixed> */
-            public function getMetadata(): array
-            {
-                return [];
-            }
-        };
+        $this->assertNull($this->service->getRunningState('app:test:cmd'));
     }
 }
