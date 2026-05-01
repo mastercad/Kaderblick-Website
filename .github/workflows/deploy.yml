@@ -14,7 +14,7 @@ on:
       deploy_alfahosting:
         description: 'Auf Alfahosting deployen'
         type: boolean
-        default: true
+        default: false
       deploy_hetzner:
         description: 'Auf Hetzner deployen'
         type: boolean
@@ -39,11 +39,11 @@ on:
       deploy_alfahosting:
         description: 'Auf Alfahosting deployen'
         type: boolean
-        default: true
+        default: false
       deploy_hetzner:
         description: 'Auf Hetzner deployen'
         type: boolean
-        default: false
+        default: true
 
 concurrency:
   group: deploy-${{ github.ref }}

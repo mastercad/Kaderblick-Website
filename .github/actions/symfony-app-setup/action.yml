@@ -1,6 +1,6 @@
 name: 'Symfony App Setup'
 description: >
-  Entschlüsselt Symfony-Secrets, wärmt den Cache, führt DB-Migrationen durch
+  Entschlüsselt Symfony-Secrets, baut den Cache, führt DB-Migrationen durch
   und prüft/regeneriert JWT-Keys.
 
 inputs:
