@@ -11,6 +11,14 @@ on:
         description: 'Ziel-Instanzen (prod/staging/demo, Kombinationen mit +)'
         type: string
         default: 'prod+staging+demo'
+      deploy_alfahosting:
+        description: 'Auf Alfahosting deployen'
+        type: boolean
+        default: true
+      deploy_hetzner:
+        description: 'Auf Hetzner deployen'
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       image_tag:
@@ -28,13 +36,22 @@ on:
           - staging+demo
           - staging
           - demo
+      deploy_alfahosting:
+        description: 'Auf Alfahosting deployen'
+        type: boolean
+        default: true
+      deploy_hetzner:
+        description: 'Auf Hetzner deployen'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  deploy-alfahosting:
+    if: inputs.deploy_alfahosting != false
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -669,5 +686,573 @@ jobs:
           host: ${{ secrets.PLESK_HOST }}
           username: ${{ secrets.ROOT_USER }}
           password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            docker system prune -af --volumes=false 2>&1 || true
+
+  # ============================================================
+  # HETZNER DEPLOYMENT (parallel zu Alfahosting)
+  # Aktivieren: deploy_hetzner: true im workflow_dispatch / workflow_call
+  # Secrets: HETZNER_HOST, HETZNER_USER, HETZNER_SSH_KEY, HETZNER_PROJECT_PATH,
+  #          HETZNER_DATABASE_URL, HETZNER_DEMO_DATABASE_URL
+  # ============================================================
+  deploy-hetzner:
+    if: inputs.deploy_hetzner == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate release directory names
+        id: release
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          echo "prod_dir=${{ secrets.HETZNER_PROJECT_PATH }}/production_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "staging_dir=${{ secrets.HETZNER_PROJECT_PATH }}/staging_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "demo_dir=${{ secrets.HETZNER_PROJECT_PATH }}/demo_releases/$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Prepare release files locally
+        run: |
+          mkdir -p build/api/config build/frontend
+          cp docker-compose.yml docker-compose.staging.yml docker-compose.demo.yml docker-compose.db.yml docker-compose.maintenance.yml build/
+          cp -r .docker build/
+          cp api/.env.dist build/api/
+          cp -r api/config/packages api/config/routes api/config/routes.yaml \
+                api/config/services.yaml api/config/bundles.php build/api/config/ 2>/dev/null || true
+          cp -r api/config/secrets build/api/config/ 2>/dev/null || true
+
+      - name: Create release directories on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ steps.release.outputs.prod_dir }}"
+            mkdir -p "${{ secrets.HETZNER_PROJECT_PATH }}/staging_releases"
+            mkdir -p "${{ secrets.HETZNER_PROJECT_PATH }}/demo_releases"
+
+      - name: Copy release files to Hetzner
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "build/*"
+          target: "${{ steps.release.outputs.prod_dir }}"
+          strip_components: 1
+
+      - name: Clone release dir for staging and demo
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            cp -r "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}"
+            cp -r "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.demo_dir }}"
+
+      - name: Deploy JWT keys
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            ROOT_DIR="${{ secrets.HETZNER_PROJECT_PATH }}"
+            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}" "${{ steps.release.outputs.demo_dir }}"; do
+              mkdir -p "$DIR/api/config/jwt"
+              if [ -d "$ROOT_DIR/api/config/jwt" ]; then
+                cp -r "$ROOT_DIR/api/config/jwt/"* "$DIR/api/config/jwt/" 2>/dev/null || true
+              fi
+            done
+
+      - name: Write .env and decrypt keys
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            PROD_DIR="${{ steps.release.outputs.prod_dir }}"
+            STAGING_DIR="${{ steps.release.outputs.staging_dir }}"
+            DEMO_DIR="${{ steps.release.outputs.demo_dir }}"
+
+            # --- Production ---
+            cp "$PROD_DIR/api/.env.dist" "$PROD_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$PROD_DIR/api/.env"
+            echo "APP_DEBUG=0"                           >> "$PROD_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$PROD_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$PROD_DIR/api/.env"
+            mkdir -p "$PROD_DIR/api/config/secrets/prod"
+            echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
+              > "$PROD_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 655 "$PROD_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            echo "VITE_BACKEND_URL=https://api.kaderblick.de" > "$PROD_DIR/frontend/.env"
+
+            # --- Staging ---
+            cp "$STAGING_DIR/api/.env.dist" "$STAGING_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=staging/' "$STAGING_DIR/api/.env"
+            sed -i 's|^GOOGLE_REDIRECT_URI=.*$|GOOGLE_REDIRECT_URI=https://staging.kaderblick.de/oauth2callback|' "$STAGING_DIR/api/.env"
+            sed -i 's|^FRONTEND_URL=.*$|FRONTEND_URL=https://staging.kaderblick.de|' "$STAGING_DIR/api/.env"
+            echo "APP_DEBUG=0"                           >> "$STAGING_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$STAGING_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$STAGING_DIR/api/.env"
+            mkdir -p "$STAGING_DIR/api/config/secrets/staging"
+            echo '${{ secrets.STAGING_DECRYPT_KEY }}' | base64 -d \
+              > "$STAGING_DIR/api/config/secrets/staging/staging.decrypt.private.php"
+            chmod 655 "$STAGING_DIR/api/config/secrets/staging/staging.decrypt.private.php"
+            echo "VITE_BACKEND_URL=https://staging-api.kaderblick.de" > "$STAGING_DIR/frontend/.env"
+
+            # --- Demo ---
+            cp "$DEMO_DIR/api/.env.dist" "$DEMO_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$DEMO_DIR/api/.env"
+            sed -i 's|^GOOGLE_REDIRECT_URI=.*$|GOOGLE_REDIRECT_URI=https://demo.kaderblick.de/oauth2callback|' "$DEMO_DIR/api/.env"
+            sed -i 's|^FRONTEND_URL=.*$|FRONTEND_URL=https://demo.kaderblick.de|' "$DEMO_DIR/api/.env"
+            echo "APP_DEBUG=0"                           >> "$DEMO_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"  >> "$DEMO_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$DEMO_DIR/api/.env"
+            mkdir -p "$DEMO_DIR/api/config/secrets/prod"
+            echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
+              > "$DEMO_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 655 "$DEMO_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            echo "VITE_BACKEND_URL=https://demo-api.kaderblick.de" > "$DEMO_DIR/frontend/.env"
+
+      - name: Prepare shared uploads symlinks
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            SHARED="${{ secrets.HETZNER_PROJECT_PATH }}/public/uploads"
+            mkdir -p "$SHARED"
+            chmod -R 775 "$SHARED"
+            for DIR in "${{ steps.release.outputs.prod_dir }}" "${{ steps.release.outputs.staging_dir }}" "${{ steps.release.outputs.demo_dir }}"; do
+              mkdir -p "$DIR/public"
+              rm -rf "$DIR/public/uploads"
+              ln -s "$SHARED" "$DIR/public/uploads"
+            done
+
+      - name: Prepare shared backups symlinks
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            ROOT="${{ secrets.HETZNER_PROJECT_PATH }}"
+            declare -A BACKUP_DIRS
+            BACKUP_DIRS["${{ steps.release.outputs.prod_dir }}"]="$ROOT/backups"
+            BACKUP_DIRS["${{ steps.release.outputs.staging_dir }}"]="$ROOT/staging_backups"
+            BACKUP_DIRS["${{ steps.release.outputs.demo_dir }}"]="$ROOT/demo_backups"
+            for RELEASE_DIR in "${!BACKUP_DIRS[@]}"; do
+              SHARED="${BACKUP_DIRS[$RELEASE_DIR]}"
+              mkdir -p "$SHARED"
+              chmod 750 "$SHARED"
+              rm -rf "$RELEASE_DIR/backups"
+              ln -s "$SHARED" "$RELEASE_DIR/backups"
+            done
+
+      - name: Ensure DB container is running on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            docker network inspect kaderblick-net    >/dev/null 2>&1 || docker network create kaderblick-net
+            docker volume inspect kaderblick-data    >/dev/null 2>&1 || docker volume create kaderblick-data
+            docker volume inspect kaderblick-db-data >/dev/null 2>&1 || docker volume create kaderblick-db-data
+            if docker ps --filter "name=kaderblick-db" --filter "status=running" | grep -q kaderblick-db; then
+              echo "DB läuft bereits."
+            else
+              COMPOSE_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/production_current"
+              [ -d "$COMPOSE_DIR" ] || COMPOSE_DIR="${{ steps.release.outputs.prod_dir }}"
+              docker compose -f "$COMPOSE_DIR/docker-compose.db.yml" -p kaderblick-db up -d db
+              until docker exec kaderblick-db mysqladmin ping -uroot -proot --silent 2>/dev/null; do sleep 3; done
+              echo "DB bereit."
+            fi
+
+      - name: Update maintenance container on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/maintenance:${{ inputs.image_tag || github.sha }}
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} docker compose \
+              -f "${{ steps.release.outputs.prod_dir }}/docker-compose.maintenance.yml" \
+              -p maintenance up -d --no-build --force-recreate
+
+      # ---- Production ----
+
+      - name: Enable production maintenance (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            touch "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_production.flag"
+            chmod 644 "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_production.flag"
+
+      - name: Set production_current symlink (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            PROD_CURRENT="${{ secrets.HETZNER_PROJECT_PATH }}/production_current"
+            readlink "$PROD_CURRENT" 2>/dev/null > "${{ secrets.HETZNER_PROJECT_PATH }}/.rollback_to" || echo "" > "${{ secrets.HETZNER_PROJECT_PATH }}/.rollback_to"
+            ln -sfn "${{ steps.release.outputs.prod_dir }}" "$PROD_CURRENT"
+            mkdir -p "$PROD_CURRENT/api/var/cache" "$PROD_CURRENT/api/var/log"
+
+      - name: Deploy production containers (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.HETZNER_PROJECT_PATH }}/production_current"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag || github.sha }}
+            docker compose -f docker-compose.yml -p production down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+            sleep 2
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
+            DATABASE_URL="${{ secrets.HETZNER_DATABASE_URL }}" XDEBUG_MODE=off \
+            HOST_UID=$(id -u) HOST_GID=$(id -g) \
+            docker compose -f docker-compose.yml -p production up -d --no-build --force-recreate api frontend worker
+
+      - name: Production setup – secrets / cache / migrations / JWT (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: prod
+          compose_project: production
+          compose_files: "-f docker-compose.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/production_current
+          main_project_path: ${{ secrets.HETZNER_PROJECT_PATH }}
+
+      - name: Load master fixtures on production (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: prod
+          compose_project: production
+          compose_files: "-f docker-compose.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/production_current
+
+      - name: Production healthcheck (Hetzner)
+        if: contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            for i in $(seq 1 12); do
+              HTTP=$(curl -s -o /tmp/hc_body.txt -w "%{http_code}" http://localhost:8081/api/health 2>/dev/null || echo "000")
+              if [ "$HTTP" = "200" ]; then echo "Production bereit (HTTP 200)."; cat /tmp/hc_body.txt; exit 0; fi
+              [ "$i" -eq 12 ] && { echo "FEHLER: API nicht bereit nach 60s (HTTP $HTTP)"; cat /tmp/hc_body.txt; docker compose -p production logs --tail=30 api; exit 1; }
+              echo "Warte... ($i/12, HTTP $HTTP)"; sleep 5
+            done
+
+      - name: Rollback production on failure (Hetzner)
+        if: failure() && contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            OLD=$(cat "${{ secrets.HETZNER_PROJECT_PATH }}/.rollback_to" 2>/dev/null || echo "")
+            if [ -n "$OLD" ] && [ -d "$OLD" ]; then
+              echo "Rollback auf $OLD ..."
+              docker compose -p production down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+              sleep 2
+              ln -sfn "$OLD" "${{ secrets.HETZNER_PROJECT_PATH }}/production_current"
+              cd "$OLD"
+              IMAGE_TAG=latest API_IMAGE_TAG=latest DATABASE_URL="${{ secrets.HETZNER_DATABASE_URL }}" XDEBUG_MODE=off \
+              docker compose -f docker-compose.yml -p production up -d --no-build --force-recreate api frontend worker 2>/dev/null || true
+              echo "Rollback auf $OLD abgeschlossen."
+            else
+              echo "Kein Rollback-Ziel vorhanden."
+            fi
+            rm -f "${{ secrets.HETZNER_PROJECT_PATH }}/.rollback_to"
+
+      - name: Disable production maintenance (Hetzner)
+        if: always() && contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            rm -f "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_production.flag"
+
+      # ---- Staging ----
+
+      - name: Enable staging maintenance (Hetzner)
+        if: contains(inputs.target, 'staging')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            touch "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_staging.flag"
+            chmod 644 "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_staging.flag"
+
+      - name: Clone production DB to staging (Hetzner)
+        if: contains(inputs.target, 'prod') && contains(inputs.target, 'staging')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -proot -e "DROP DATABASE IF EXISTS kaderblick_staging;"
+            docker exec kaderblick-db mysql -uroot -proot -e "CREATE DATABASE kaderblick_staging CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON kaderblick_staging.* TO 'kaderblick'@'%'; FLUSH PRIVILEGES;"
+            docker exec kaderblick-db sh -c "mysqldump -uroot -proot --single-transaction --quick kaderblick | mysql -uroot -proot kaderblick_staging"
+            echo "DB-Klon abgeschlossen."
+
+      - name: Ensure staging DB exists (Hetzner)
+        if: contains(inputs.target, 'staging') && !contains(inputs.target, 'prod')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS kaderblick_staging CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON kaderblick_staging.* TO 'kaderblick'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Set staging_current symlink (Hetzner)
+        if: contains(inputs.target, 'staging')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            ln -sfn "${{ steps.release.outputs.staging_dir }}" "${{ secrets.HETZNER_PROJECT_PATH }}/staging_current"
+            mkdir -p "${{ secrets.HETZNER_PROJECT_PATH }}/staging_current/api/var/cache" \
+                     "${{ secrets.HETZNER_PROJECT_PATH }}/staging_current/api/var/log"
+
+      - name: Deploy staging containers (Hetzner)
+        if: contains(inputs.target, 'staging')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.HETZNER_PROJECT_PATH }}/staging_current"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-staging:${{ inputs.image_tag || github.sha }}
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml -p staging \
+              down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+            sleep 2
+            STAGING_DB_URL=$(echo "${{ secrets.HETZNER_DATABASE_URL }}" | sed 's|3306/kaderblick|3306/kaderblick_staging|')
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
+            DATABASE_URL="$STAGING_DB_URL" XDEBUG_MODE=off \
+            PMA_PORT=18082 API_PORT=18081 REACT_PORT=18080 \
+            HOST_UID=$(id -u) HOST_GID=$(id -g) \
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml -p staging \
+              up -d --no-build --force-recreate api frontend worker
+
+      - name: Staging setup – secrets / cache / migrations / JWT (Hetzner)
+        if: contains(inputs.target, 'staging')
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: staging
+          compose_project: staging
+          compose_files: "-f docker-compose.yml -f docker-compose.staging.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/staging_current
+          main_project_path: ${{ secrets.HETZNER_PROJECT_PATH }}
+
+      - name: Load master fixtures on staging (Hetzner)
+        if: contains(inputs.target, 'staging')
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: staging
+          compose_project: staging
+          compose_files: "-f docker-compose.yml -f docker-compose.staging.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/staging_current
+
+      - name: Disable staging maintenance (Hetzner)
+        if: always() && contains(inputs.target, 'staging')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            rm -f "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_staging.flag"
+
+      # ---- Demo ----
+
+      - name: Enable demo maintenance (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            touch "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_demo.flag"
+            chmod 644 "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_demo.flag"
+
+      - name: Setup demo database (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS kaderblick_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON kaderblick_demo.* TO 'kaderblick'@'%'; FLUSH PRIVILEGES;"
+
+      - name: Set demo_current symlink (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            ln -sfn "${{ steps.release.outputs.demo_dir }}" "${{ secrets.HETZNER_PROJECT_PATH }}/demo_current"
+            mkdir -p "${{ secrets.HETZNER_PROJECT_PATH }}/demo_current/api/var/cache" \
+                     "${{ secrets.HETZNER_PROJECT_PATH }}/demo_current/api/var/log"
+
+      - name: Deploy demo containers (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            cd "${{ secrets.HETZNER_PROJECT_PATH }}/demo_current"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag || github.sha }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag || github.sha }}
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+            sleep 2
+            DEMO_DB_URL=$(echo "${{ secrets.HETZNER_DATABASE_URL }}" | sed 's|3306/kaderblick|3306/kaderblick_demo|')
+            IMAGE_TAG=${{ inputs.image_tag || github.sha }} API_IMAGE_TAG=${{ inputs.image_tag || github.sha }} \
+            DATABASE_URL="$DEMO_DB_URL" XDEBUG_MODE=off \
+            PMA_PORT=28082 API_PORT=28081 REACT_PORT=28080 \
+            HOST_UID=$(id -u) HOST_GID=$(id -g) \
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
+              up -d --no-build --force-recreate api frontend worker
+
+      - name: Demo setup – secrets / cache / migrations / JWT (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: prod
+          compose_project: demo
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/demo_current
+          main_project_path: ${{ secrets.HETZNER_PROJECT_PATH }}
+          database_url: ${{ secrets.HETZNER_DEMO_DATABASE_URL }}
+
+      - name: Load fixtures on demo (Hetzner)
+        if: contains(inputs.target, 'demo')
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          env: prod
+          compose_project: demo
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.HETZNER_PROJECT_PATH }}/demo_current
+          database_url: ${{ secrets.HETZNER_DEMO_DATABASE_URL }}
+
+      - name: Disable demo maintenance (Hetzner)
+        if: always() && contains(inputs.target, 'demo')
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            rm -f "${{ secrets.HETZNER_PROJECT_PATH }}/maintenance_demo.flag"
+
+      - name: Cleanup old releases (Hetzner)
+        if: always()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            BASE="${{ secrets.HETZNER_PROJECT_PATH }}"
+            [ -d "$BASE/production_releases" ] && cd "$BASE/production_releases" && ls -1dt * | tail -n +4 | xargs -r rm -rf
+            [ -d "$BASE/staging_releases" ]    && cd "$BASE/staging_releases"    && ls -1dt * | tail -n +4 | xargs -r rm -rf
+            [ -d "$BASE/demo_releases" ]       && cd "$BASE/demo_releases"       && ls -1dt * | tail -n +4 | xargs -r rm -rf
+
+      - name: Clean up old Docker data (Hetzner)
+        if: always()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
             docker system prune -af --volumes=false 2>&1 || true
