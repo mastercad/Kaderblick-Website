@@ -11,8 +11,13 @@ inputs:
     description: 'SSH-Benutzername (root)'
     required: true
   password:
-    description: 'SSH-Passwort'
-    required: true
+    description: 'SSH-Passwort (alternativ zu key)'
+    required: false
+    default: ''
+  key:
+    description: 'SSH-Private-Key (alternativ zu password)'
+    required: false
+    default: ''
   env:
     description: 'Symfony-Umgebung (prod | staging)'
     required: true
@@ -46,6 +51,7 @@ runs:
         host: ${{ inputs.host }}
         username: ${{ inputs.username }}
         password: ${{ inputs.password }}
+        key: ${{ inputs.key }}
         command_timeout: ${{ inputs.command_timeout }}
         script: |
           set -e
