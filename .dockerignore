@@ -1,11 +1,35 @@
 node_modules
 dist
 .env
+.env.*
 .git
 .gitignore
 Dockerfile
-docker-compose.yml
+docker-compose*.yml
+
+# Dokumentation und IDE-Konfiguration
+dokumentation/
+.vscode/
+.github/
+.continue/
+*.md
+SEO\ Analyse.md
+
+# Frontend-Artefakte (nicht im API-Build benötigt)
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/dev-dist
+
 # api/vendor wird vom Dockerfile selbst via composer install erstellt
 api/vendor
 # api/var enthält nur Runtime-Daten (Cache, Logs) – nicht im Image nötig
 api/var
+# Tests werden nicht in Prod/Dev-Images kopiert (nur in test-Stage relevant, dort per COPY api/)
+# api/tests ist im Image via 'COPY api/' enthalten, aber Prod braucht es nicht –
+# das ist akzeptabel, da Prod aus vendor-prod + api/ besteht.
+
+# Sonstige Build-Artefakte
+regex_replacements
+immunify360.whitelist.commands
+public/images
