@@ -46,7 +46,7 @@ RUN apk add --no-cache \
     ca-certificates \
     cronie \
     freetype \
-    libicu \
+    icu-libs \
     libjpeg-turbo \
     libpng \
     libzip \
