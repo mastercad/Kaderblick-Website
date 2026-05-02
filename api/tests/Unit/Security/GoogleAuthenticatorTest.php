@@ -471,4 +471,101 @@ class GoogleAuthenticatorTest extends TestCase
             'The Google avatar URL must be refreshed on every login, not only on first login.'
         );
     }
+
+    // ── onAuthenticationSuccess(): frontend_url uses app.frontend_url ─────
+
+    /**
+     * Der Mobile-Redirect-Flow verwendet frontendUrl für window.location.replace().
+     * Das Template muss app.frontend_url (FRONTEND_URL) bekommen, nicht app.website_url (WEBSITE).
+     * Regression-Test für den Bug, bei dem mobile Nutzer nach byte-artist.de weitergeleitet wurden.
+     */
+    public function testOnAuthenticationSuccessPassesFrontendUrlNotWebsiteUrl(): void
+    {
+        $user = new User();
+        $user->setEmail('mobile@example.com');
+        $user->setFirstName('Max');
+        $user->setLastName('Mustermann');
+        $user->setRoles(['ROLE_USER']);
+
+        $token = $this->createMock(\Symfony\Component\Security\Core\Authentication\Token\TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $this->jwtManager->method('create')->willReturn('jwt-token');
+        $this->refreshTokenService->method('createRefreshToken')->willReturn('refresh-token');
+
+        $capturedContext = [];
+        $this->twig->method('render')
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '<html></html>';
+            });
+
+        // app.frontend_url must be queried – NOT app.website_url
+        $this->params->method('get')
+            ->willReturnCallback(function (string $key): string {
+                return match ($key) {
+                    'app.frontend_url' => 'https://kaderblick.de',
+                    'app.website_url' => 'https://www.byte-artist.de',
+                    default => '',
+                };
+            });
+
+        $request = Request::create('/connect/google/check');
+
+        $this->authenticator->onAuthenticationSuccess($request, $token, 'main');
+
+        $this->assertArrayHasKey('frontend_url', $capturedContext);
+        $this->assertSame(
+            'https://kaderblick.de',
+            $capturedContext['frontend_url'],
+            'frontend_url im Template muss app.frontend_url (FRONTEND_URL) sein, nicht app.website_url (WEBSITE).'
+        );
+        $this->assertNotSame(
+            'https://www.byte-artist.de',
+            $capturedContext['frontend_url'],
+            'frontend_url darf NIEMALS den Wert von app.website_url (byte-artist.de) enthalten.'
+        );
+    }
+
+    /**
+     * Trailing slashes müssen aus der frontend_url entfernt werden,
+     * damit kein doppelter Slash im Redirect entsteht.
+     */
+    public function testOnAuthenticationSuccessStripsTrailingSlashFromFrontendUrl(): void
+    {
+        $user = new User();
+        $user->setEmail('slash@example.com');
+        $user->setFirstName('Max');
+        $user->setLastName('Mustermann');
+        $user->setRoles(['ROLE_USER']);
+
+        $token = $this->createMock(\Symfony\Component\Security\Core\Authentication\Token\TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $this->jwtManager->method('create')->willReturn('jwt-token');
+        $this->refreshTokenService->method('createRefreshToken')->willReturn('refresh-token');
+
+        $capturedContext = [];
+        $this->twig->method('render')
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '<html></html>';
+            });
+
+        $this->params->method('get')
+            ->willReturnCallback(function (string $key): string {
+                return match ($key) {
+                    'app.frontend_url' => 'https://kaderblick.de/',
+                    default => '',
+                };
+            });
+
+        $request = Request::create('/connect/google/check');
+
+        $this->authenticator->onAuthenticationSuccess($request, $token, 'main');
+
+        $this->assertSame('https://kaderblick.de', $capturedContext['frontend_url']);
+    }
 }
