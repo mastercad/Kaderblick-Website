@@ -62,7 +62,7 @@ class ReportDataService
             $yAlias = $fieldAliases[$yField] ?? null;
             $supportedMetric = false;
             // All named aggregate metrics can be computed via simple event-code counting in DB
-            $dbSupportedMetrics = ['goals', 'assists', 'shots', 'yellowCards', 'redCards', 'fouls',
+            $dbSupportedMetrics = ['goals', 'assists', 'shots', 'yellowCards', 'yellowRedCards', 'redCards', 'fouls',
                 'dribbles', 'saves', 'passes', 'tackles', 'interceptions'];
             if ($yAlias && isset($yAlias['aggregate']) && is_callable($yAlias['aggregate'])) {
                 if (in_array($yField, $dbSupportedMetrics, true)) {
@@ -355,6 +355,28 @@ class ReportDataService
         // Radar chart handling: expects `metrics` array in config and a `groupBy` (e.g. player/team)
         $diagramType = $config['diagramType'] ?? '';
         $metrics = $config['metrics'] ?? [];
+        $crossAxes = !empty($config['crossAxes']);
+
+        // Cross-axes radar: axes = xField × metrics (e.g. "Liga – Gelbe Karten"), layers = groupBy (players).
+        // Triggered when crossAxes=true. Allows showing all three dimensions in one radar overlay.
+        if (in_array($diagramType, ['radar', 'radaroverlay'], true) && is_array($metrics) && !empty($metrics) && !empty($groupBy) && $crossAxes) {
+            $crossResult = $this->generateReportDataForCrossRadar($events, $xField, $metrics, $groupBy);
+            $crossResult['meta'] = $crossResult['meta'] ?? [];
+            $crossResult['meta']['eventsCount'] = $meta['eventsCount'];
+
+            return $crossResult;
+        }
+
+        // Grouped-metrics radar: axes = xField values (e.g. players), layers = groupBy × metrics.
+        // Triggered when groupedMetrics=true. Each dataset is labelled "<GroupValue> – <MetricLabel>".
+        if (in_array($diagramType, ['radar', 'radaroverlay'], true) && !empty($config['groupedMetrics']) && is_array($metrics) && !empty($metrics) && !empty($groupBy)) {
+            $gmResult = $this->generateReportDataForRadarGroupedMetrics($events, $xField, $metrics, $groupBy);
+            $gmResult['meta'] = $gmResult['meta'] ?? [];
+            $gmResult['meta']['eventsCount'] = $meta['eventsCount'];
+
+            return $gmResult;
+        }
+
         if (in_array($diagramType, ['radar', 'radaroverlay'], true) && is_array($metrics) && !empty($metrics)) {
             $radarResult = $this->generateReportDataForRadar($events, $metrics, $groupBy);
             // attach meta (eventsCount) for the UI
@@ -373,6 +395,16 @@ class ReportDataService
             $facetResult['meta']['eventsCount'] = $meta['eventsCount'];
 
             return $facetResult;
+        }
+
+        // Multi-metric grouped chart: xField × groupBy × multiple metrics.
+        // Produces datasets labelled "<Group> – <Metric>", e.g. "Liga – Gelbe Karten".
+        // Triggered when metrics is a non-empty array on a bar or line diagram.
+        if (in_array($diagramType, ['bar', 'line'], true) && is_array($metrics) && !empty($metrics) && !empty($groupBy)) {
+            $multiResult = $this->generateReportDataForMultiMetricGroup($events, $xField, $metrics, $groupBy);
+            $multiResult['meta'] = $meta;
+
+            return $multiResult;
         }
 
         $result = $this->considerGroup($events, $diagramType, $xField, $yField, $groupBy);
@@ -740,9 +772,235 @@ class ReportDataService
      *
      * @return array<string, mixed>
      */
+    /**
+     * Generiert gruppierte Mehrfach-Metrik-Daten für Bar/Line-Diagramme.
+     *
+     * Produziert für jede Kombination aus GroupBy-Wert und Metrik ein eigenes Dataset,
+     * z.B. "Liga – Gelbe Karten", "Pokal – Gelb-Rote Karten".
+     *
+     * @param array<string, mixed> $events
+     * @param array<int, string>   $metrics
+     * @param array<int, string>   $groupBy
+     *
+     * @return array<string, mixed>
+     */
+    /**
+     * Gruppierte-Metriken-Radar: Achsen = xField-Werte (z.B. Spieler),
+     * Layer = groupBy-Werte × Metriken (z.B. "Liga – Gelbe Karten", "Freundschaftsspiel – Rote Karten").
+     *
+     * @param array<string, mixed> $events
+     * @param array<int, string>   $metrics
+     * @param array<int, string>   $groupBy
+     *
+     * @return array<string, mixed>
+     */
+    private function generateReportDataForRadarGroupedMetrics(array $events, string $xField, array $metrics, array $groupBy): array
+    {
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+
+        // Collect unique xField values (axis labels) and build event buckets
+        $axisValues = [];
+        /** @var array<string, array<string, list<mixed>>> $buckets */
+        $buckets = [];
+        $groupValues = [];
+
+        foreach ($events as $event) {
+            $xVal = $this->retrieveFieldValue($event, $xField) ?? 'Unbekannt';
+
+            $groupKeyParts = [];
+            foreach ($groupBy as $gField) {
+                $groupKeyParts[] = $this->retrieveFieldValue($event, $gField) ?? '';
+            }
+            $groupKey = $groupKeyParts ? implode(' | ', $groupKeyParts) : 'All';
+
+            $axisValues[$xVal] = true;
+            $groupValues[$groupKey] = true;
+            $buckets[$groupKey][$xVal][] = $event;
+        }
+
+        $labels = array_keys($axisValues);
+        sort($labels);
+
+        $datasets = [];
+        foreach (array_keys($groupValues) as $groupKey) {
+            foreach ($metrics as $metric) {
+                $metricLabel = $fieldAliases[$metric]['label'] ?? $metric;
+                $datasetLabel = $groupKey . ' – ' . $metricLabel;
+                $data = [];
+
+                foreach ($labels as $axisVal) {
+                    $bucketEvents = $buckets[$groupKey][$axisVal] ?? [];
+                    if (!empty($bucketEvents) && isset($fieldAliases[$metric]['aggregate']) && is_callable($fieldAliases[$metric]['aggregate'])) {
+                        $data[] = $fieldAliases[$metric]['aggregate']($bucketEvents);
+                    } else {
+                        $data[] = 0;
+                    }
+                }
+
+                $datasets[] = ['label' => $datasetLabel, 'data' => $data];
+            }
+        }
+
+        return ['labels' => $labels, 'datasets' => $datasets];
+    }
+
+    /**
+     * Kreuzprodukt-Radar: Achsen = xField-Werte × Metriken (z.B. "Liga – Gelbe Karten"),
+     * Layer = groupBy-Werte (z.B. Spieler).
+     *
+     * Ermöglicht alle drei Dimensionen (Spieler × Wettbewerb × Kartentyp) in einem Radar.
+     *
+     * @param array<string, mixed> $events
+     * @param array<int, string>   $metrics
+     * @param array<int, string>   $groupBy
+     *
+     * @return array<string, mixed>
+     */
+    private function generateReportDataForCrossRadar(array $events, string $xField, array $metrics, array $groupBy): array
+    {
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+
+        // Collect unique xField values (e.g. competition types) and sort keys
+        $xValues = [];
+        $xSortKeys = [];
+        // Buckets: groupKey → xValue → list of events
+        /** @var array<string, array<string, list<mixed>>> $buckets */
+        $buckets = [];
+        $groupValues = [];
+
+        foreach ($events as $event) {
+            $xRaw = $this->retrieveFieldValue($event, $xField);
+            $x = $this->stringifyValue($xRaw);
+            $xValues[$x] = true;
+            if (!isset($xSortKeys[$x])) {
+                $xSortKeys[$x] = $this->retrieveSortKey($event, $xField);
+            }
+
+            $groupKeyParts = [];
+            foreach ($groupBy as $gField) {
+                $groupKeyParts[] = $this->stringifyValue($this->retrieveFieldValue($event, $gField));
+            }
+            $groupKey = implode(' | ', $groupKeyParts);
+            $groupValues[$groupKey] = true;
+            $buckets[$groupKey][$x][] = $event;
+        }
+
+        // Sort xValues by sort key
+        $xLabels = array_keys($xValues);
+        usort($xLabels, fn ($a, $b) => strcmp($xSortKeys[$a] ?? $a, $xSortKeys[$b] ?? $b));
+
+        // Build cross-product axes labels: "Liga – Gelbe Karten", "Liga – Gelb-Rote Karten", ...
+        $axisLabels = [];
+        foreach ($xLabels as $xVal) {
+            foreach ($metrics as $metric) {
+                $metricLabel = $fieldAliases[$metric]['label'] ?? $metric;
+                $axisLabels[] = $xVal . ' – ' . $metricLabel;
+            }
+        }
+
+        // Build datasets per groupBy layer (player)
+        $layers = array_keys($groupValues);
+        sort($layers);
+        $datasets = [];
+        foreach ($layers as $groupKey) {
+            $data = [];
+            foreach ($xLabels as $xVal) {
+                foreach ($metrics as $metric) {
+                    $bucket = $buckets[$groupKey][$xVal] ?? [];
+                    $aggregate = isset($fieldAliases[$metric]['aggregate']) && is_callable($fieldAliases[$metric]['aggregate'])
+                        ? $fieldAliases[$metric]['aggregate']
+                        : null;
+                    $data[] = !empty($bucket) && null !== $aggregate ? (float) $aggregate($bucket) : 0.0;
+                }
+            }
+            $datasets[] = [
+                'label' => $groupKey,
+                'data' => $data,
+            ];
+        }
+
+        return [
+            'labels' => $axisLabels,
+            'datasets' => $datasets,
+        ];
+    }
+
+    /**
+     * Multi-metric grouped chart: xField × groupBy × multiple metrics.
+     *
+     * @param array<string, mixed> $events
+     * @param array<int, string>   $metrics
+     * @param array<int, string>   $groupBy
+     *
+     * @return array<string, mixed>
+     */
+    private function generateReportDataForMultiMetricGroup(array $events, string $xField, array $metrics, array $groupBy): array
+    {
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+
+        $xValues = [];
+        $xSortKeys = [];
+        $groupValues = [];
+        /** @var array<string, array<string, list<mixed>>> $buckets */
+        $buckets = [];
+
+        foreach ($events as $event) {
+            $xRaw = $this->retrieveFieldValue($event, $xField);
+            $x = $this->stringifyValue($xRaw);
+            $xValues[$x] = true;
+            if (!isset($xSortKeys[$x])) {
+                $xSortKeys[$x] = $this->retrieveSortKey($event, $xField);
+            }
+
+            $groupKeyParts = [];
+            foreach ($groupBy as $gField) {
+                $groupKeyParts[] = $this->stringifyValue($this->retrieveFieldValue($event, $gField));
+            }
+            $groupKey = implode(' | ', $groupKeyParts);
+            $groupValues[$groupKey] = true;
+            $buckets[$groupKey][$x][] = $event;
+        }
+
+        $xLabels = array_keys($xValues);
+        usort($xLabels, fn ($a, $b) => strcmp($xSortKeys[$a] ?? $a, $xSortKeys[$b] ?? $b));
+        $groups = array_keys($groupValues);
+        sort($groups);
+
+        $datasets = [];
+        foreach ($groups as $groupKey) {
+            foreach ($metrics as $metric) {
+                $aggregate = isset($fieldAliases[$metric]['aggregate']) && is_callable($fieldAliases[$metric]['aggregate'])
+                    ? $fieldAliases[$metric]['aggregate']
+                    : null;
+                $metricLabel = $fieldAliases[$metric]['label'] ?? $metric;
+                $data = [];
+                foreach ($xLabels as $xVal) {
+                    $bucket = $buckets[$groupKey][$xVal] ?? [];
+                    $data[] = !empty($bucket) && null !== $aggregate ? (float) $aggregate($bucket) : 0.0;
+                }
+                $datasets[] = [
+                    'label' => $groupKey . ' – ' . $metricLabel,
+                    'data' => $data,
+                ];
+            }
+        }
+
+        return [
+            'labels' => $xLabels,
+            'datasets' => $datasets,
+        ];
+    }
+
+    /**
+     * Prevent N×N cross-product matrix: strip any groupBy field that is the same as xField.
+     *
+     * @param array<string, mixed> $events
+     * @param array<int, string>   $groupBy
+     *
+     * @return array<string, mixed>
+     */
     private function considerGroup(array $events, string $diagramType, string $xField, string $yField, array $groupBy): array
     {
-        // Prevent N×N cross-product matrix: strip any groupBy field that is the same as xField.
         // E.g. xField=player + groupBy=player would produce one dataset per player plotted against
         // all players — resulting in 89 datasets mostly filled with zeros.
         $groupBy = array_values(array_filter($groupBy, fn ($gf) => $gf !== $xField));

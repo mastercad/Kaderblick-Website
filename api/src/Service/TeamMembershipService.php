@@ -63,9 +63,10 @@ class TeamMembershipService
     public function canUserParticipateInEvent(User $user, CalendarEvent $event): bool
     {
         // Tournament events: user may participate if they belong to any registered team
+        // via a self_player or self_coach relation (same rule as game events)
         if ($event->getTournament()) {
             foreach ($event->getTournament()->getTeams() as $tournamentTeam) {
-                if ($tournamentTeam->getTeam() && $this->isUserInTeam($user, $tournamentTeam->getTeam())) {
+                if ($tournamentTeam->getTeam() && $this->isSelfMemberInTeam($user, $tournamentTeam->getTeam())) {
                     return true;
                 }
             }
@@ -73,15 +74,16 @@ class TeamMembershipService
             return false;
         }
 
-        // Game events: only team members of participating teams
+        // Game events: only self_player / self_coach users of participating teams
+        // (parents and friends are not obligated to respond to games)
         if ($event->getGame()) {
             $homeTeam = $event->getGame()->getHomeTeam();
             $awayTeam = $event->getGame()->getAwayTeam();
 
-            if ($homeTeam && $this->isUserInTeam($user, $homeTeam)) {
+            if ($homeTeam && $this->isSelfMemberInTeam($user, $homeTeam)) {
                 return true;
             }
-            if ($awayTeam && $this->isUserInTeam($user, $awayTeam)) {
+            if ($awayTeam && $this->isSelfMemberInTeam($user, $awayTeam)) {
                 return true;
             }
 
@@ -190,6 +192,58 @@ class TeamMembershipService
             ->setParameter('today', new DateTimeImmutable('today'))
             ->setParameter('user', $user)
             ->setParameter('team', $team)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return null !== $coachAssignment;
+    }
+
+    /**
+     * Returns true only when the user is linked to the team via a self_player or self_coach
+     * relation type. Parents, friends and other supporter relations are excluded.
+     *
+     * Used for game and tournament participation, where only players and coaches themselves
+     * are obligated to respond.
+     */
+    public function isSelfMemberInTeam(User $user, Team $team): bool
+    {
+        $playerAssignment = $this->entityManager->getRepository(PlayerTeamAssignment::class)
+            ->createQueryBuilder('pta')
+            ->innerJoin('pta.player', 'p')
+            ->innerJoin('p.userRelations', 'ur')
+            ->innerJoin('ur.relationType', 'rt')
+            ->where('ur.user = :user')
+            ->andWhere('pta.team = :team')
+            ->andWhere('rt.identifier = :selfPlayer')
+            ->andWhere('pta.startDate IS NULL OR pta.startDate <= :today')
+            ->andWhere('pta.endDate IS NULL OR pta.endDate >= :today')
+            ->setParameter('today', new DateTimeImmutable('today'))
+            ->setParameter('user', $user)
+            ->setParameter('team', $team)
+            ->setParameter('selfPlayer', 'self_player')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($playerAssignment) {
+            return true;
+        }
+
+        $coachAssignment = $this->entityManager->getRepository(CoachTeamAssignment::class)
+            ->createQueryBuilder('cta')
+            ->innerJoin('cta.coach', 'c')
+            ->innerJoin('c.userRelations', 'ur')
+            ->innerJoin('ur.relationType', 'rt')
+            ->where('ur.user = :user')
+            ->andWhere('cta.team = :team')
+            ->andWhere('rt.identifier = :selfCoach')
+            ->andWhere('cta.startDate IS NULL OR cta.startDate <= :today')
+            ->andWhere('cta.endDate IS NULL OR cta.endDate >= :today')
+            ->setParameter('today', new DateTimeImmutable('today'))
+            ->setParameter('user', $user)
+            ->setParameter('team', $team)
+            ->setParameter('selfCoach', 'self_coach')
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

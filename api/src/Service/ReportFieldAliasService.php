@@ -179,6 +179,46 @@ class ReportFieldAliasService
                 'type' => 'string',
                 'category' => 'dimension',
             ],
+            'competitionType' => [
+                'label' => 'Wettbewerbstyp',
+                'value' => static function ($event) {
+                    $game = $event->getGame();
+                    if (!$game) {
+                        return null;
+                    }
+                    if (method_exists($game, 'getLeague') && null !== $game->getLeague()) {
+                        return 'Liga';
+                    }
+                    if (method_exists($game, 'getCup') && null !== $game->getCup()) {
+                        return 'Pokal';
+                    }
+                    if (method_exists($game, 'getTournamentMatch') && null !== $game->getTournamentMatch()) {
+                        return 'Turnier';
+                    }
+
+                    return 'Freundschaftsspiel';
+                },
+                'sortKey' => static function ($event) {
+                    $game = $event->getGame();
+                    if (!$game) {
+                        return 'z';
+                    }
+                    if (method_exists($game, 'getLeague') && null !== $game->getLeague()) {
+                        return 'a_liga';
+                    }
+                    if (method_exists($game, 'getCup') && null !== $game->getCup()) {
+                        return 'b_pokal';
+                    }
+                    if (method_exists($game, 'getTournamentMatch') && null !== $game->getTournamentMatch()) {
+                        return 'c_turnier';
+                    }
+
+                    return 'd_freundschaft';
+                },
+                'entity' => 'Game',
+                'type' => 'string',
+                'category' => 'dimension',
+            ],
             'position' => [
                 'label' => 'Position',
                 'value' => static function ($event) {
@@ -499,11 +539,18 @@ class ReportFieldAliasService
                     return $countByCodes($events, ['yellow_card']);
                 },
             ],
+            'yellowRedCards' => [
+                'label' => 'Gelb-Rote Karten',
+                'category' => 'metric',
+                'aggregate' => static function (array $events) use ($countByCodes) {
+                    return $countByCodes($events, ['yellow_red_card']);
+                },
+            ],
             'redCards' => [
                 'label' => 'Rote Karten',
                 'category' => 'metric',
                 'aggregate' => static function (array $events) use ($countByCodes) {
-                    return $countByCodes($events, ['red_card', 'yellow_red_card']);
+                    return $countByCodes($events, ['red_card']);
                 },
             ],
             'fouls' => [
@@ -685,6 +732,9 @@ class ReportFieldAliasService
                 $v['joinHint'] = ['player', 'mainPosition'];
             } elseif ('surfaceType' === $k) {
                 $v['joinHint'] = ['game', 'location', 'surfaceType'];
+            } elseif ('competitionType' === $k) {
+                // competitionType is resolved via callable (checks league/cup/tournamentMatch on Game)
+                $v['joinHint'] = null;
             } elseif ('homeAway' === $k) {
                 // homeAway is resolved via callable, no simple join path
                 $v['joinHint'] = null;

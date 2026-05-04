@@ -421,42 +421,89 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         </Box>
       )}
 
-      {/* Y-Axis — typically a metric (Tore, Assists, Karten...) */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-        <FormControl fullWidth>
-          <InputLabel>Y-Achse (Wert) *</InputLabel>
-          <Select
-            value={currentReport.config.yField ?? ''}
-            onChange={(e) => handleConfigChange('yField', e.target.value)}
-            label="Y-Achse (Wert) *"
-            sx={selSx(currentReport.config.yField)}
-          >
-            <MenuItem value="">
-              <em>— Feld wählen —</em>
-            </MenuItem>
-            {metrics.length > 0 && [
-              <Divider key="div-met" />,
-              <ListSubheader key="hdr-met" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Metriken</ListSubheader>,
-            ]}
-            {metrics
-              .filter(f => f.key !== currentReport.config.xField)
-              .map(f => (
-                <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
-            ))}
-            {/* For boxplot, hide dimension options on Y-axis — only numeric metrics make sense */}
-            {!isBoxplot && dimensions.length > 0 && [
-              <Divider key="div-dim" />,
-              <ListSubheader key="hdr-dim" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Gruppierung</ListSubheader>,
-            ]}
-            {!isBoxplot && dimensions
-              .filter(f => f.key !== currentReport.config.xField)
-              .map(f => (
-                <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Tip text="Die Y-Achse bestimmt den gemessenen Wert – z.B. Anzahl Tore, Vorlagen oder Schüsse. Die Höhe jedes Balkens entspricht diesem Wert." />
-      </Box>
+      {/* Y-Axis — multi-select for chart types that support multiple metrics */}
+      {(['radar', 'radaroverlay', 'bar', 'line'].includes(diag ?? '')) ? (
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <Autocomplete
+            multiple
+            fullWidth
+            options={availableFields.filter(f => f.key !== currentReport.config.xField)}
+            groupBy={(opt) => opt.isMetricCandidate ? 'Metriken' : 'Gruppierung'}
+            getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label}
+            getOptionDisabled={(opt) => {
+              const selected = availableFields.filter(f => (currentReport.config.metrics || []).includes(f.key));
+              const hasMetric = selected.some(f => f.isMetricCandidate);
+              const hasDimension = selected.some(f => !f.isMetricCandidate);
+              // Keine Mischung: wenn Metrik(en) gewählt → Dimensionen sperren; wenn Dimension gewählt → Metriken + weitere Dimensionen sperren
+              if (opt.isMetricCandidate) return hasDimension;
+              return hasMetric || hasDimension;
+            }}
+            value={availableFields.filter((f) => (currentReport.config.metrics || []).includes(f.key))}
+            onChange={(_, newValue) => {
+              const keys = newValue.map((v: any) => v.key);
+              handleConfigChange('metrics', keys);
+              // keep yField in sync so backend fallback paths work
+              if (keys.length > 0) handleConfigChange('yField', keys[0]);
+            }}
+            renderTags={(value: any[], getTagProps) =>
+              value.map((option: any, index: number) => (
+                <Chip label={option.label} {...getTagProps({ index })} key={option.key} size="small" />
+              ))
+            }
+            renderGroup={(params) => (
+              <li key={params.key}>
+                <Box component="ul" sx={{ p: 0, m: 0, listStyle: 'none' }}>
+                  <ListSubheader sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+                    {params.group}
+                  </ListSubheader>
+                  {params.children}
+                </Box>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField {...params} label="Y-Achse (Wert) *" placeholder="Feld(er) wählen…" />
+            )}
+            ListboxProps={{ sx: { pt: 0 } }}
+          />
+          <Tip text="Wähle ein oder mehrere Felder. Bei Radar wird jedes zur Achse; bei Balken-/Liniendiagrammen entsteht pro Feld eine eigene Dataset-Gruppe." />
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <FormControl fullWidth>
+            <InputLabel>Y-Achse (Wert) *</InputLabel>
+            <Select
+              value={currentReport.config.yField ?? ''}
+              onChange={(e) => handleConfigChange('yField', e.target.value)}
+              label="Y-Achse (Wert) *"
+              sx={selSx(currentReport.config.yField)}
+            >
+              <MenuItem value="">
+                <em>— Feld wählen —</em>
+              </MenuItem>
+              {metrics.length > 0 && [
+                <Divider key="div-met" />,
+                <ListSubheader key="hdr-met" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Metriken</ListSubheader>,
+              ]}
+              {metrics
+                .filter(f => f.key !== currentReport.config.xField)
+                .map(f => (
+                  <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
+              ))}
+              {/* For boxplot, hide dimension options on Y-axis — only numeric metrics make sense */}
+              {!isBoxplot && dimensions.length > 0 && [
+                <Divider key="div-dim" />,
+                <ListSubheader key="hdr-dim" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Gruppierung</ListSubheader>,
+              ]}
+              {!isBoxplot && dimensions
+                .filter(f => f.key !== currentReport.config.xField)
+                .map(f => (
+                  <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Tip text="Die Y-Achse bestimmt den gemessenen Wert – z.B. Anzahl Tore, Vorlagen oder Schüsse. Die Höhe jedes Balkens entspricht diesem Wert." />
+        </Box>
+      )}
 
       {/* Gruppierung */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -772,28 +819,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
       </>
       )}
 
-      {/* Metrics selector for Radar charts */}
-      {(diag === 'radar' || diag === 'radaroverlay') && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-          <Autocomplete
-            multiple
-            fullWidth
-            options={builderData?.metrics ?? []}
-            getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label}
-            value={(builderData?.metrics ?? []).filter((m) => (currentReport.config.metrics || []).includes(m.key))}
-            onChange={(_, newValue) => handleConfigChange('metrics', newValue.map((v: any) => v.key))}
-            renderTags={(value: any[], getTagProps) =>
-              value.map((option: any, index: number) => (
-                <Chip label={option.label} {...getTagProps({ index })} key={option.key} size="small" />
-              ))
-            }
-            renderInput={(params) => (
-              <TextField {...params} label="Metriken" placeholder="Metriken auswählen" />
-            )}
-          />
-          <Tip text="Wähle die Kennzahlen, die als Achsen im Radar-Diagramm erscheinen sollen – z.B. Tore, Vorlagen und Schüsse. Jede Metrik wird zu einer Ecke/Achse des Radarnetzes." />
-        </Box>
-      )}
     </Box>
   );
 };

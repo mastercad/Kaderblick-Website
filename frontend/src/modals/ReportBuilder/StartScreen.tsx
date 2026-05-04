@@ -78,7 +78,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           setReportName(tpl.title);
         }}
         onCategoryChange={() => setSelectedTemplate(null)}
-        maxHeight="40vh"
+        maxHeight="none"
       />
 
       {/* Confirmation bar — sticky at the bottom when a template is selected */}

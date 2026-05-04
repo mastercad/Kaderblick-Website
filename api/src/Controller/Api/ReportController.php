@@ -834,6 +834,45 @@ class ReportController extends AbstractController
                     'showLabels' => false,
                 ],
             ],
+            [
+                'key' => 'cards_by_competition',
+                'label' => 'Karten nach Wettbewerbstyp',
+                'config' => [
+                    'diagramType' => 'radaroverlay',
+                    'xField' => 'player',
+                    'yField' => 'yellowCards',
+                    'groupBy' => ['competitionType'],
+                    'metrics' => ['yellowCards', 'yellowRedCards', 'redCards'],
+                    'groupedMetrics' => true,
+                    'showLegend' => true,
+                    'showLabels' => false,
+                ],
+            ],
+            [
+                'key' => 'goals_by_competition',
+                'label' => 'Tore nach Wettbewerbstyp',
+                'config' => [
+                    'diagramType' => 'bar',
+                    'xField' => 'competitionType',
+                    'yField' => 'goals',
+                    'groupBy' => [],
+                    'showLegend' => false,
+                    'showLabels' => true,
+                ],
+            ],
+            [
+                'key' => 'performance_by_competition',
+                'label' => 'Leistung nach Wettbewerbstyp (Radar)',
+                'config' => [
+                    'diagramType' => 'radaroverlay',
+                    'xField' => 'competitionType',
+                    'yField' => 'goals',
+                    'groupBy' => ['competitionType'],
+                    'metrics' => ['goals', 'assists', 'yellowCards', 'fouls', 'shots'],
+                    'radarNormalize' => false,
+                    'showLegend' => true,
+                ],
+            ],
         ];
     }
 }

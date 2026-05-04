@@ -241,16 +241,22 @@ describe('StepDataChart – eigenständiger Tauschen-Button', () => {
   it('ist ausgeblendet wenn die Achsen vertauscht sind', () => {
     render(<StepDataChart state={makeState('goals', 'player')} />);
     // Wenn axesSwapped=true wird der eigenständige Button NICHT gerendert;
-    // der einzige Button ist der im Action-Bereich des Warning-Alerts
+    // der einzige Swap-Button ist der im Action-Bereich des Warning-Alerts
     const warningAlerts = screen.getAllByRole('alert').filter(el =>
       el.textContent?.includes('Tore') && el.textContent?.includes('Y-Achse'),
     );
     expect(warningAlerts).toHaveLength(1);
 
-    const allButtons = screen.getAllByRole('button');
-    const buttonsInAlert = within(warningAlerts[0]).getAllByRole('button');
-    // Der eigenständige Button ist NICHT im Alert → alle Buttons müssen im Alert sein
-    expect(allButtons).toHaveLength(buttonsInAlert.length);
+    // Der standalone Swap-Button (aria-label="X- und Y-Achse tauschen") soll NICHT
+    // außerhalb des Alerts erscheinen — bei axesSwapped=true ist er ausgeblendet.
+    const allSwapButtons = screen.getAllByRole('button').filter(
+      btn => btn.getAttribute('aria-label') === 'X- und Y-Achse tauschen',
+    );
+    const swapButtonsInAlert = within(warningAlerts[0]).queryAllByRole('button').filter(
+      btn => btn.getAttribute('aria-label') === 'X- und Y-Achse tauschen',
+    );
+    // Alle Swap-Buttons müssen sich im Alert befinden (kein eigenständiger)
+    expect(allSwapButtons).toHaveLength(swapButtonsInAlert.length);
   });
 });
 
@@ -260,6 +266,10 @@ describe('StepDataChart – eigenständiger Tauschen-Button', () => {
 
 describe('StepDataChart – Y-Achse Dropdown-Inhalt', () => {
   // MUI v7 Select renders as role="combobox"; index 0=X-Achse, 1=Y-Achse, 2=Chart-Typ, 3=Gruppierung
+  // Die Y-Achse ist ein Select (single) nur bei nicht-multi-select-Typen (z.B. pie)
+  function renderPie(xField = '', yField = '') {
+    return render(<StepDataChart state={makeStateWith(xField, yField, { diag: 'pie' })} />);
+  }
   function openYAxisDropdown() {
     const comboboxes = screen.getAllByRole('combobox');
     fireEvent.mouseDown(comboboxes[1]); // Y-axis is the second combobox
@@ -267,7 +277,7 @@ describe('StepDataChart – Y-Achse Dropdown-Inhalt', () => {
   }
 
   it('enthält Metriken im Y-Achse-Dropdown', () => {
-    render(<StepDataChart state={makeState('', '')} />);
+    renderPie();
     const listbox = openYAxisDropdown();
     expect(within(listbox).getByText('Tore')).toBeInTheDocument();
     expect(within(listbox).getByText('Vorlagen')).toBeInTheDocument();
@@ -275,7 +285,7 @@ describe('StepDataChart – Y-Achse Dropdown-Inhalt', () => {
 
   it('enthält auch Dimensionen im Y-Achse-Dropdown', () => {
     // Seit dem Bugfix: Dimensionen sind auf der Y-Achse erlaubt und auch auswählbar
-    render(<StepDataChart state={makeState('', '')} />);
+    renderPie();
     const listbox = openYAxisDropdown();
     expect(within(listbox).getByText('Spieler')).toBeInTheDocument();
     expect(within(listbox).getByText('Monat')).toBeInTheDocument();
@@ -283,7 +293,7 @@ describe('StepDataChart – Y-Achse Dropdown-Inhalt', () => {
 
   it('blendet das aktuell auf der X-Achse gewählte Feld aus', () => {
     // xField='player' darf im Y-Achse-Dropdown nicht erscheinen
-    render(<StepDataChart state={makeState('player', '')} />);
+    renderPie('player', '');
     const listbox = openYAxisDropdown();
     expect(within(listbox).queryByText('Spieler')).not.toBeInTheDocument();
     // Alle anderen Felder bleiben verfügbar
@@ -352,7 +362,8 @@ describe('StepDataChart – eigenständiger Swap-Button onClick', () => {
 describe('StepDataChart – Y-Achse onChange', () => {
   it('ruft handleConfigChange mit "yField" auf wenn Y-Achse geändert wird', () => {
     const handleConfigChange = jest.fn();
-    render(<StepDataChart state={makeStateWith('player', '', { handleConfigChange })} />);
+    // diag=pie → single-select (Select, nicht Autocomplete)
+    render(<StepDataChart state={makeStateWith('player', '', { handleConfigChange, diag: 'pie' })} />);
     const comboboxes = screen.getAllByRole('combobox');
     fireEvent.mouseDown(comboboxes[1]); // Y-Achse = zweiter combobox
     const listbox = screen.getByRole('listbox');
@@ -471,24 +482,244 @@ describe('StepDataChart – facettierter Modus (diag=faceted)', () => {
 });
 
 // =============================================================================
-//  Radar-Metrics-Selektor — diag='radar'/'radaroverlay' (lines 344-364)
+//  Y-Achse: multi-select für bar/line/radar/radaroverlay; single für andere
 // =============================================================================
 
-describe('StepDataChart – Radar-Metriken (diag=radar/radaroverlay)', () => {
-  it('zeigt den Metriken-Autocomplete bei diag=radar', () => {
-    render(<StepDataChart state={makeStateWith('player', 'goals', { diag: 'radar' })} />);
-    // MUI InputLabel renders text twice — use queryAll
-    expect(screen.queryAllByText('Metriken').length).toBeGreaterThan(0);
+/**
+ * availableFields bestimmt die Optionen des Autocomplete (alle Felder, nicht nur Metriken).
+ * Für bar/line/radar/radaroverlay wird ein Autocomplete (multiple) gerendert.
+ * Für pie/doughnut/scatter/etc. wird ein Select (single) gerendert.
+ */
+
+const METRICS_DATA = [
+  { key: 'goals', label: 'Tore' },
+  { key: 'assists', label: 'Vorlagen' },
+  { key: 'yellowCards', label: 'Gelbe Karten' },
+];
+
+function makeStateWithBuilderData(
+  diag: string,
+  selectedMetrics: string[] = [],
+  overrides: Record<string, any> = {},
+): ReportBuilderState {
+  return {
+    ...makeState('player', ''),
+    diag,
+    currentReport: {
+      name: 'Test',
+      description: '',
+      isTemplate: false,
+      config: {
+        diagramType: diag,
+        xField: 'player',
+        yField: selectedMetrics[0] ?? '',
+        metrics: selectedMetrics,
+        filters: {},
+        showLegend: true,
+        showLabels: false,
+      },
+    },
+    builderData: {
+      fields: FIELDS,
+      metrics: METRICS_DATA,
+      teams: [],
+      eventTypes: [],
+      availableDates: [],
+      minDate: '',
+      maxDate: '',
+    } as any,
+    handleConfigChange: jest.fn(),
+    ...overrides,
+  } as unknown as ReportBuilderState;
+}
+
+/** Öffnet das Autocomplete-Dropdown und gibt die Listbox zurück. */
+function openAutocomplete() {
+  const openBtn = document.querySelector('.MuiAutocomplete-popupIndicator') as HTMLElement;
+  if (openBtn) fireEvent.click(openBtn);
+  return screen.getByRole('listbox');
+}
+
+describe('StepDataChart – Y-Achse multi-select (bar/line/radar/radaroverlay)', () => {
+  const multiSelectDiags = ['bar', 'line', 'radar', 'radaroverlay'];
+
+  multiSelectDiags.forEach((diag) => {
+    it(`zeigt Autocomplete (multiple) für diag=${diag}`, () => {
+      render(<StepDataChart state={makeStateWithBuilderData(diag)} />);
+      expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+      const inputs = document.querySelectorAll('input[type="text"]');
+      expect(inputs.length).toBeGreaterThan(0);
+    });
   });
 
-  it('zeigt den Metriken-Autocomplete bei diag=radaroverlay', () => {
-    render(<StepDataChart state={makeStateWith('player', 'goals', { diag: 'radaroverlay' })} />);
-    expect(screen.queryAllByText('Metriken').length).toBeGreaterThan(0);
+  it('zeigt vorausgewählte Chips wenn config.metrics gesetzt ist', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar', ['goals'])} />);
+    expect(screen.getByText('Tore')).toBeInTheDocument();
   });
 
-  it('zeigt NICHT den Metriken-Autocomplete bei diag=bar', () => {
-    render(<StepDataChart state={makeState('player', 'goals')} />);
-    expect(screen.queryByText('Metriken')).not.toBeInTheDocument();
+  it('zeigt mehrere Chips wenn mehrere Metriken ausgewählt sind', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('radar', ['goals', 'assists'])} />);
+    expect(screen.getByText('Tore')).toBeInTheDocument();
+    expect(screen.getByText('Vorlagen')).toBeInTheDocument();
+  });
+
+  it('onChange des Autocomplete ruft handleConfigChange nicht vor Interaction auf', () => {
+    const handleConfigChange = jest.fn();
+    render(<StepDataChart state={makeStateWithBuilderData('bar', [], { handleConfigChange })} />);
+    expect(handleConfigChange).not.toHaveBeenCalled();
+  });
+});
+
+// =============================================================================
+//  Y-Achse Autocomplete: groupBy — Sektionen "Metriken" und "Gruppierung"
+// =============================================================================
+
+describe('StepDataChart – Y-Achse Autocomplete Gruppierung (groupBy)', () => {
+  it('zeigt Sektion "Metriken" im Dropdown', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    const listbox = openAutocomplete();
+    expect(within(listbox).getByText('Metriken')).toBeInTheDocument();
+  });
+
+  it('zeigt Sektion "Gruppierung" im Dropdown', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    const listbox = openAutocomplete();
+    expect(within(listbox).getByText('Gruppierung')).toBeInTheDocument();
+  });
+
+  it('Metriken erscheinen unter der Metriken-Sektion', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    const listbox = openAutocomplete();
+    // "Tore" und "Vorlagen" sind isMetricCandidate=true → Sektion Metriken
+    expect(within(listbox).getByText('Tore')).toBeInTheDocument();
+    expect(within(listbox).getByText('Vorlagen')).toBeInTheDocument();
+  });
+
+  it('Dimensionen erscheinen unter der Gruppierung-Sektion', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    const listbox = openAutocomplete();
+    // "Monat" ist isMetricCandidate=false → Sektion Gruppierung
+    expect(within(listbox).getByText('Monat')).toBeInTheDocument();
+  });
+
+  it('xField wird aus den Optionen ausgeblendet', () => {
+    // xField='player' → "Spieler" darf nicht im Dropdown erscheinen
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    const listbox = openAutocomplete();
+    expect(within(listbox).queryByText('Spieler')).not.toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+//  Y-Achse Autocomplete: getOptionDisabled — kein Mischen, keine mehrfachen Dimensionen
+// =============================================================================
+
+describe('StepDataChart – Y-Achse getOptionDisabled', () => {
+  it('wenn Metrik gewählt: Dimensionen sind disabled', () => {
+    // 'goals' ist Metrik → 'month' (Dimension) soll disabled sein
+    render(<StepDataChart state={makeStateWithBuilderData('bar', ['goals'])} />);
+    const listbox = openAutocomplete();
+    const monatOption = within(listbox).getByText('Monat').closest('[role="option"]') as HTMLElement;
+    expect(monatOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('wenn Metrik gewählt: weitere Metriken sind NICHT disabled', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar', ['goals'])} />);
+    const listbox = openAutocomplete();
+    const vorlagenOption = within(listbox).getByText('Vorlagen').closest('[role="option"]') as HTMLElement;
+    expect(vorlagenOption).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('wenn Dimension gewählt: Metriken sind disabled', () => {
+    // 'month' ist Dimension → Metriken sollen disabled sein
+    render(<StepDataChart state={makeStateWithBuilderData('bar', ['month'])} />);
+    const listbox = openAutocomplete();
+    const toreOption = within(listbox).getByText('Tore').closest('[role="option"]') as HTMLElement;
+    expect(toreOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('wenn Dimension gewählt: weitere Dimensionen sind ebenfalls disabled', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar', ['month'])} />);
+    // FIELDS hat nur 'month' als Dimension (player ist xField und gefiltert)
+    // → kein weiteres Dimensions-Feld zum Prüfen nötig, aber Metriken sind disabled (s.o.)
+    // Wir prüfen zusätzlich dass "Vorlagen" disabled ist
+    const listbox = openAutocomplete();
+    const vorlagenOption = within(listbox).getByText('Vorlagen').closest('[role="option"]') as HTMLElement;
+    expect(vorlagenOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('wenn nichts gewählt: alle Optionen sind enabled', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar', [])} />);
+    const listbox = openAutocomplete();
+    const toreOption = within(listbox).getByText('Tore').closest('[role="option"]') as HTMLElement;
+    const monatOption = within(listbox).getByText('Monat').closest('[role="option"]') as HTMLElement;
+    expect(toreOption).not.toHaveAttribute('aria-disabled', 'true');
+    expect(monatOption).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('disabled-Logik gilt nur für multi-select-Typen (nicht für pie)', () => {
+    // pie nutzt Select, kein Autocomplete → kein getOptionDisabled
+    render(<StepDataChart state={makeStateWith('player', 'goals', { diag: 'pie' })} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[1]);
+    const listbox = screen.getByRole('listbox');
+    // Bei pie: keine disabled Optionen durch getOptionDisabled
+    const monatOption = within(listbox).getByText('Monat').closest('[role="option"]') as HTMLElement;
+    expect(monatOption).not.toHaveAttribute('aria-disabled', 'true');
+  });
+});
+
+describe('StepDataChart – Y-Achse single-select (pie/doughnut/scatter/etc.)', () => {
+  const singleSelectDiags = ['pie', 'doughnut', 'scatter', 'boxplot', 'area', 'stackedarea'];
+
+  singleSelectDiags.forEach((diag) => {
+    it(`zeigt Select (single) für diag=${diag}`, () => {
+      render(<StepDataChart state={makeStateWithBuilderData(diag)} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      expect(comboboxes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('Y-Achse-Select für pie enthält Metriken aus availableFields', () => {
+    render(<StepDataChart state={makeStateWith('', '', { diag: 'pie' })} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[1]);
+    const listbox = screen.getByRole('listbox');
+    expect(within(listbox).getByText('Tore')).toBeInTheDocument();
+  });
+
+  it('kein Chip-Text "Tore" wenn diag=pie und goals NUR in yField (nicht in metrics)', () => {
+    render(<StepDataChart state={{
+      ...makeState('player', 'goals'),
+      diag: 'pie',
+    } as unknown as ReportBuilderState} />);
+    const chipButtons = screen.queryAllByRole('button');
+    const toreChips = chipButtons.filter(btn => btn.textContent?.trim() === 'Tore');
+    expect(toreChips).toHaveLength(0);
+  });
+});
+
+// =============================================================================
+//  (Alter Block – jetzt korrekt: Y-Achse-Label ist "Y-Achse (Wert) *", nicht "Metriken")
+// =============================================================================
+
+describe('StepDataChart – Radar-Y-Achse (ehemals Metriken-Autocomplete)', () => {
+  it('zeigt "Y-Achse (Wert) *" Label bei diag=radar (kein separates "Metriken"-Feld mehr)', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('radar')} />);
+    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
+  });
+
+  it('zeigt "Y-Achse (Wert) *" Label bei diag=radaroverlay', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('radaroverlay')} />);
+    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
+  });
+
+  it('zeigt "Y-Achse (Wert) *" auch bei diag=bar (multi-select ausgeweitet)', () => {
+    render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
+    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
   });
 });
 
@@ -523,7 +754,8 @@ describe('StepDataChart – Hervorhebung ausgewählter Werte (selSx)', () => {
   });
 
   it('Y-Achse-Select bekommt fontWeight:600-sx wenn ein Wert gesetzt ist', () => {
-    render(<StepDataChart state={makeStateWith('player', 'goals')} />);
+    // diag=pie → single-select (Select rendert den gewählten Wert als Text im Trigger)
+    render(<StepDataChart state={makeStateWith('player', 'goals', { diag: 'pie' })} />);
     const allText = document.body.textContent ?? '';
     expect(allText).toContain('Tore');
   });

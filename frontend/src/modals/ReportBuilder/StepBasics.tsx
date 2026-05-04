@@ -29,6 +29,24 @@ export const StepBasics: React.FC<StepBasicsProps> = ({ state }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Template Checkbox für SuperAdmin */}
+      {isAdmin && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={currentReport.isTemplate || false}
+                onChange={(e) => setCurrentReport(prev => ({ ...prev, isTemplate: e.target.checked }))}
+              />
+            }
+            label="Als Template verfügbar machen"
+          />
+          <Tooltip title="Template-Reports sind für alle Nutzer sichtbar und können als Ausgangspunkt für eigene Berichte genutzt werden. Bei Änderungen durch einen Nutzer wird automatisch eine persönliche Kopie angelegt." placement="top-end">
+            <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
+          </Tooltip>
+        </Box>
+      )}
+
       {/* Presets */}
       {builderData && (
         <Box>
@@ -50,7 +68,7 @@ export const StepBasics: React.FC<StepBasicsProps> = ({ state }) => {
           <TemplateGrid
             builderData={builderData}
             selectedKey={matchedTemplateKey ?? undefined}
-            maxHeight={state.isMobile ? 'none' : '32vh'}
+            maxHeight="none"
             onSelect={(tpl) => {
               setCurrentReport(prev => ({
                 ...prev,
@@ -64,24 +82,6 @@ export const StepBasics: React.FC<StepBasicsProps> = ({ state }) => {
               }));
             }}
           />
-        </Box>
-      )}
-
-      {/* Template Checkbox für SuperAdmin */}
-      {isAdmin && (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={currentReport.isTemplate || false}
-                onChange={(e) => setCurrentReport(prev => ({ ...prev, isTemplate: e.target.checked }))}
-              />
-            }
-            label="Als Template verfügbar machen"
-          />
-          <Tooltip title="Template-Reports sind für alle Nutzer sichtbar und können als Ausgangspunkt für eigene Berichte genutzt werden. Bei Änderungen durch einen Nutzer wird automatisch eine persönliche Kopie angelegt." placement="top-end">
-            <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
-          </Tooltip>
         </Box>
       )}
     </Box>

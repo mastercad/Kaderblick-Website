@@ -6,6 +6,7 @@ use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\Player;
 use App\Entity\Team;
+use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -174,5 +175,124 @@ class GameEventRepository extends ServiceEntityRepository implements OptimizedRe
             ->setParameter('id', $id)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * Zählt die Gelben Karten eines Spielers innerhalb eines Wettbewerbs.
+     *
+     * @param string   $competitionType one of CompetitionCardRule::TYPE_*
+     * @param int|null $competitionId   league_id / cup_id / tournament_id – NULL für Friendly-Spiele
+     */
+    public function countYellowCardsForPlayerInCompetition(
+        Player $player,
+        string $competitionType,
+        ?int $competitionId,
+    ): int {
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->join('e.gameEventType', 'et')
+            ->join('e.game', 'g')
+            ->where('e.player = :player')
+            ->andWhere('et.code = :code')
+            ->setParameter('player', $player)
+            ->setParameter('code', 'yellow_card');
+
+        switch ($competitionType) {
+            case 'league':
+                $qb->join('g.league', 'l')
+                   ->andWhere('l.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'cup':
+                $qb->join('g.cup', 'c')
+                   ->andWhere('c.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'tournament':
+                $qb->join('g.tournamentMatch', 'tm')
+                   ->join('tm.tournament', 't')
+                   ->andWhere('t.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            default: // 'friendly'
+                $qb->andWhere('g.league IS NULL')
+                   ->andWhere('g.cup IS NULL')
+                   ->andWhere('g.tournamentMatch IS NULL');
+                break;
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Zählt Gelbe Karten eines Spielers in einem Wettbewerb, jedoch nur ab einem bestimmten Datum.
+     * Wird genutzt, wenn der Zähler nach einer Sperre zurückgesetzt werden soll.
+     *
+     * @param DateTimeInterface $afterDate nur Karten aus Spielen NACH diesem Datum werden gezählt
+     */
+    public function countYellowCardsForPlayerInCompetitionAfterDate(
+        Player $player,
+        string $competitionType,
+        ?int $competitionId,
+        DateTimeInterface $afterDate,
+    ): int {
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->join('e.gameEventType', 'et')
+            ->join('e.game', 'g')
+            ->join('g.calendarEvent', 'ce')
+            ->where('e.player = :player')
+            ->andWhere('et.code = :code')
+            ->andWhere('ce.startDate > :afterDate')
+            ->setParameter('player', $player)
+            ->setParameter('code', 'yellow_card')
+            ->setParameter('afterDate', $afterDate);
+
+        switch ($competitionType) {
+            case 'league':
+                $qb->join('g.league', 'l')
+                   ->andWhere('l.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'cup':
+                $qb->join('g.cup', 'c')
+                   ->andWhere('c.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'tournament':
+                $qb->join('g.tournamentMatch', 'tm')
+                   ->join('tm.tournament', 't')
+                   ->andWhere('t.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            default: // 'friendly'
+                $qb->andWhere('g.league IS NULL')
+                   ->andWhere('g.cup IS NULL')
+                   ->andWhere('g.tournamentMatch IS NULL');
+                break;
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Gibt alle Karten-Events (Gelb/Rot/Gelb-Rot) für Spieler in chronologischer Reihenfolge zurück.
+     * Wird vom Backfill-Command genutzt, um historische Sperren nachzupflegen.
+     *
+     * @return GameEvent[]
+     */
+    public function findAllCardEventsChronological(): array
+    {
+        return $this->createQueryBuilder('e')
+            ->join('e.gameEventType', 'et')
+            ->join('e.game', 'g')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->where('et.code IN (:codes)')
+            ->andWhere('e.player IS NOT NULL')
+            ->setParameter('codes', ['yellow_card', 'red_card', 'yellow_red_card'])
+            ->orderBy('ce.startDate', 'ASC')
+            ->addOrderBy('e.timestamp', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

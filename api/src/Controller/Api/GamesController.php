@@ -383,6 +383,18 @@ class GamesController extends ApiController
                         'hourlyWeatherData' => $calendarEvent->getWeatherData()->getHourlyWeatherData(),
                     ] : [],
                 ] : null,
+                'gameType' => [
+                    'id' => $game->getGameType()->getId(),
+                    'name' => $game->getGameType()->getName(),
+                ],
+                'league' => $game->getLeague() ? [
+                    'id' => $game->getLeague()->getId(),
+                    'name' => $game->getLeague()->getName(),
+                ] : null,
+                'cup' => $game->getCup() ? [
+                    'id' => $game->getCup()->getId(),
+                    'name' => $game->getCup()->getName(),
+                ] : null,
                 'fussballDeUrl' => method_exists($game, 'getFussballDeUrl') ? $game->getFussballDeUrl() : null,
                 'isFinished' => $game->isFinished(),
                 'tournamentId' => $game->getTournamentMatch()?->getTournament()?->getId(),
@@ -591,13 +603,15 @@ class GamesController extends ApiController
         }
 
         $upcomingGamesQb = $gameRepository->createQueryBuilder('g')
-            ->addSelect('ce', 'cet', 'ht', 'at', 'l', 'wd')
+            ->addSelect('ce', 'cet', 'ht', 'at', 'l', 'wd', 'gleague', 'gcup')
             ->leftJoin('g.calendarEvent', 'ce')
             ->leftJoin('ce.calendarEventType', 'cet')
             ->leftJoin('g.homeTeam', 'ht')
             ->leftJoin('g.awayTeam', 'at')
             ->leftJoin('g.location', 'l')
             ->leftJoin('ce.weatherData', 'wd')
+            ->leftJoin('g.league', 'gleague')
+            ->leftJoin('g.cup', 'gcup')
             ->where('cet.name = :spiel')
             ->andWhere('ce.startDate > :now')
             ->andWhere('ce.endDate > :now OR ce.endDate IS NULL')
@@ -617,13 +631,15 @@ class GamesController extends ApiController
         $upcomingGames = $upcomingGamesQb->getQuery()->getResult();
 
         $otherGamesQb = $gameRepository->createQueryBuilder('g')
-            ->addSelect('ce', 'cet', 'ht', 'at', 'l', 'wd')
+            ->addSelect('ce', 'cet', 'ht', 'at', 'l', 'wd', 'gleague', 'gcup')
             ->leftJoin('g.calendarEvent', 'ce')
             ->leftJoin('ce.calendarEventType', 'cet')
             ->leftJoin('g.homeTeam', 'ht')
             ->leftJoin('g.awayTeam', 'at')
             ->leftJoin('g.location', 'l')
             ->leftJoin('ce.weatherData', 'wd')
+            ->leftJoin('g.league', 'gleague')
+            ->leftJoin('g.cup', 'gcup')
             ->where('cet.name = :spiel')
             ->andWhere('ce.startDate <= :now')
             ->andWhere('ce.startDate >= :seasonStart AND ce.startDate <= :seasonEnd')
@@ -672,6 +688,18 @@ class GamesController extends ApiController
                     'weatherData' => $calendarEvent->getWeatherData() ? [
                         'weatherCode' => $calendarEvent->getWeatherData()->getDailyWeatherData()['weathercode'] ?? [],
                     ] : [],
+                ] : null,
+                'gameType' => [
+                    'id' => $game->getGameType()->getId(),
+                    'name' => $game->getGameType()->getName(),
+                ],
+                'league' => $game->getLeague() ? [
+                    'id' => $game->getLeague()->getId(),
+                    'name' => $game->getLeague()->getName(),
+                ] : null,
+                'cup' => $game->getCup() ? [
+                    'id' => $game->getCup()->getId(),
+                    'name' => $game->getCup()->getName(),
                 ] : null,
             ];
         };

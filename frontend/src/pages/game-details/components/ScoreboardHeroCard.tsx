@@ -16,6 +16,7 @@ import {
   Sync as SyncIcon,
   SportsScore as SportsScoreIcon,
   CheckCircle as CheckCircleIcon,
+  EmojiEvents as LeagueIcon,
 } from '@mui/icons-material';
 import { Game } from '../../../types/games';
 import { WeatherDisplay } from '../../../components/WeatherIcons';
@@ -53,9 +54,48 @@ const ScoreboardHeroCard = ({
     <Card sx={{
       mb: 3,
       overflow: 'hidden',
+      position: 'relative',
       border: isGameRunning ? `2px solid ${theme.palette.success.main}` : '1px solid',
       borderColor: isGameRunning ? 'success.main' : 'divider',
     }}>
+      {/* Competition label – top right */}
+      {(game.league || game.cup || game.gameType) && (
+        <Box sx={{
+          position: 'absolute',
+          top: isGameRunning ? 32 : 0,
+          right: 0,
+          zIndex: 1,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.4,
+          px: 1,
+          py: 0.4,
+          bgcolor: game.league
+            ? alpha(theme.palette.primary.main, 0.08)
+            : game.cup
+              ? alpha(theme.palette.secondary.main, 0.08)
+              : alpha(theme.palette.text.secondary, 0.08),
+          borderRadius: '0 0 0 8px',
+          maxWidth: { xs: '55%', sm: '50%' },
+        }}>
+          <LeagueIcon sx={{
+            fontSize: '0.65rem',
+            color: game.league ? 'primary.main' : game.cup ? 'secondary.main' : 'text.secondary',
+            flexShrink: 0,
+          }} />
+          <Typography sx={{
+            fontSize: '0.65rem',
+            fontWeight: 600,
+            color: game.league ? 'primary.main' : game.cup ? 'secondary.main' : 'text.secondary',
+            lineHeight: 1.35,
+            letterSpacing: 0.2,
+          }}>
+            {game.league?.name ?? game.cup?.name ?? game.gameType?.name}
+          </Typography>
+        </Box>
+      )}
+
       {/* Live banner */}
       {isGameRunning && (
         <Box sx={{

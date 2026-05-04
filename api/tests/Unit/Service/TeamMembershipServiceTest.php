@@ -326,6 +326,114 @@ class TeamMembershipServiceTest extends TestCase
         $this->assertEmpty($this->service->getEventTeams($event));
     }
 
+    // ─── isSelfMemberInTeam ───────────────────────────────────────────────────
+
+    public function testIsSelfMemberInTeamReturnsTrueForSelfPlayerAssignment(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam();
+
+        // self_player relation found → eligible
+        $this->mockTeamQueryResult(found: true);
+
+        $this->assertTrue($this->service->isSelfMemberInTeam($user, $team));
+    }
+
+    public function testIsSelfMemberInTeamReturnsTrueForSelfCoachAssignment(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam();
+
+        // No self_player, but self_coach found
+        $this->mockTeamQueryResultSequence([false, true]);
+
+        $this->assertTrue($this->service->isSelfMemberInTeam($user, $team));
+    }
+
+    public function testIsSelfMemberInTeamReturnsFalseForNonSelfRelation(): void
+    {
+        $user = $this->createUser(1);
+        $team = $this->createTeam();
+
+        // Neither self_player nor self_coach found → e.g. parent / friend relation
+        $this->mockTeamQueryResult(found: false);
+
+        $this->assertFalse($this->service->isSelfMemberInTeam($user, $team));
+    }
+
+    // ─── canUserParticipateInEvent – game events restricted to self relations ─
+
+    public function testCanParticipateForGameReturnsFalseForParentOrFriendUser(): void
+    {
+        // A parent has a UserRelation to the player entity, but NOT with self_player identifier.
+        // isSelfMemberInTeam must return false → canParticipate = false.
+        $team = $this->createTeam();
+        $game = $this->createGame($team, null);
+        $event = $this->createEvent($game);
+        $user = $this->createUser(1);
+
+        // DB query finds no self_player / self_coach relation for this user
+        $this->mockTeamQueryResult(found: false);
+
+        $this->assertFalse($this->service->canUserParticipateInEvent($user, $event));
+    }
+
+    public function testCanParticipateForGameReturnsTrueForSelfPlayerInHomeTeam(): void
+    {
+        $team = $this->createTeam();
+        $game = $this->createGame($team, null);
+        $event = $this->createEvent($game);
+        $user = $this->createUser(1);
+
+        // DB query confirms self_player relation exists
+        $this->mockTeamQueryResult(found: true);
+
+        $this->assertTrue($this->service->canUserParticipateInEvent($user, $event));
+    }
+
+    public function testCanParticipateForGameReturnsTrueForSelfCoachInAwayTeam(): void
+    {
+        $homeTeam = $this->createTeam();
+        $awayTeam = $this->createTeam();
+        $game = $this->createGame($homeTeam, $awayTeam);
+        $event = $this->createEvent($game);
+        $user = $this->createUser(1);
+
+        // home team: no self-member; away team (player check): no match; coach check: match
+        $this->mockTeamQueryResultSequence([false, false, false, true]);
+
+        $this->assertTrue($this->service->canUserParticipateInEvent($user, $event));
+    }
+
+    // ─── canUserParticipateInEvent – tournament restricted to self relations ──
+
+    public function testCanParticipateForTournamentReturnsFalseForParentOrFriendUser(): void
+    {
+        $team = $this->createTeam();
+        $tournamentTeam = $this->createTournamentTeam($team);
+        $tournament = $this->createTournament([$tournamentTeam]);
+        $event = $this->createEvent(null, [], $tournament);
+        $user = $this->createUser(1);
+
+        // No self_player / self_coach relation found
+        $this->mockTeamQueryResult(found: false);
+
+        $this->assertFalse($this->service->canUserParticipateInEvent($user, $event));
+    }
+
+    public function testCanParticipateForTournamentReturnsTrueForSelfPlayerInTeam(): void
+    {
+        $team = $this->createTeam();
+        $tournamentTeam = $this->createTournamentTeam($team);
+        $tournament = $this->createTournament([$tournamentTeam]);
+        $event = $this->createEvent(null, [], $tournament);
+        $user = $this->createUser(1);
+
+        $this->mockTeamQueryResult(found: true);
+
+        $this->assertTrue($this->service->canUserParticipateInEvent($user, $event));
+    }
+
     // ─── isUserInTeam ─────────────────────────────────────────────────────────
 
     public function testIsUserInTeamReturnsTrueForPlayerAssignment(): void

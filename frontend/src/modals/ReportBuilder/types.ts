@@ -56,6 +56,9 @@ export interface ReportConfig {
   heatmapSpatial?: boolean;
   use_db_aggregates?: boolean;
   radarNormalize?: boolean;
+  /** When true: activates cross-product radar mode — axes = xField × metrics, layers = groupBy. */
+  crossAxes?: boolean;
+  groupedMetrics?: boolean;
   filters?: ReportFilters;
   showLegend: boolean;
   showLabels: boolean;

@@ -68,6 +68,7 @@ const SystemSettings = lazy(() => import('./pages/admin/SystemSettings'));
 const SystemAlertDetail = lazy(() => import('./pages/admin/SystemAlertDetail'));
 const SystemAlertStats = lazy(() => import('./pages/admin/SystemAlertStats'));
 const XpConfig = lazy(() => import('./pages/admin/XpConfig'));
+const CardRules = lazy(() => import('./pages/admin/CardRules'));
 const SystemMaintenance = lazy(() => import('./pages/admin/SystemMaintenance'));
 const Locations = lazy(() => import('./pages/Locations'));
 const Clubs = lazy(() => import('./pages/Clubs'));
@@ -363,6 +364,7 @@ function App() {
                     <Route path="/admin/user-relations" element={<ProtectedRoute><UserRelations /></ProtectedRoute>} />
                     <Route path="/admin/title-xp-overview" element={<ProtectedRoute><AdminTitleXpOverview /></ProtectedRoute>} />
                     <Route path="/admin/xp-config" element={<ProtectedRoute><XpConfig /></ProtectedRoute>} />
+                    <Route path="/admin/karten-regeln" element={<ProtectedRoute><CardRules /></ProtectedRoute>} />
                     <Route path="/admin/system-settings" element={<ProtectedRoute><SystemSettings /></ProtectedRoute>} />
                     <Route path="/admin/activity" element={<ProtectedRoute><ActivityOverview /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts" element={<Navigate to="/admin/system-maintenance?tab=alerts" replace />} />

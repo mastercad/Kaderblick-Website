@@ -215,6 +215,19 @@ class CalendarEventSerializer
 
     private function canUserParticipate(CalendarEvent $calendarEvent): bool
     {
+        // For game and tournament events the SUPERADMIN shortcut is intentionally skipped:
+        // only users with a self_player or self_coach relation to a participating team must
+        // respond — not admins who happen to have no direct team membership.
+        if ($calendarEvent->getGame() || $calendarEvent->getTournament()) {
+            $user = $this->security->getUser();
+            if (!$user instanceof User) {
+                return false;
+            }
+
+            return $this->teamMembershipService->canUserParticipateInEvent($user, $calendarEvent);
+        }
+
+        // For all other event types (training, meetings, …): SUPERADMIN can always participate.
         if ($this->security->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }

@@ -232,22 +232,20 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             </Tooltip>
           </Box>
         )}
-        {['bar', 'pie', 'doughnut', 'line', 'area', 'stackedarea'].includes(diag) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={!!(currentReport.config as any).hideEmpty}
-                  onChange={(e) => handleConfigChange('hideEmpty', e.target.checked)}
-                />
-              }
-              label="Einträge ohne Wert ausblenden"
-            />
-            <Tooltip title="Blendet Beschriftungen und Datenpunkte aus, bei denen alle Datensätze den Wert 0, null oder leer haben – hält das Diagramm übersichtlicher." placement="top-end">
-              <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
-            </Tooltip>
-          </Box>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!(currentReport.config as any).hideEmpty}
+                onChange={(e) => handleConfigChange('hideEmpty', e.target.checked)}
+              />
+            }
+            label="Einträge ohne Wert ausblenden"
+          />
+          <Tooltip title="Blendet Beschriftungen und Datenpunkte aus, bei denen alle Datensätze den Wert 0, null oder leer haben – hält das Diagramm übersichtlicher." placement="top-end">
+            <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
+          </Tooltip>
+        </Box>
       </Paper>
 
       {/* DB aggregates (admin only) */}

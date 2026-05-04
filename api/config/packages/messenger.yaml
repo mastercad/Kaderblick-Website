@@ -19,6 +19,7 @@ framework:
             # 'App\Message\YourMessage': async
             'App\Message\RecalcPlayerStatsMessage': async
             'App\Message\AwardTitlesMessage': async
+            'App\Message\CheckCardThresholdsMessage': async
 
 # when@test:
 #    framework:

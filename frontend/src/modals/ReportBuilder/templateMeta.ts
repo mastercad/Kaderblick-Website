@@ -236,6 +236,23 @@ export const TEMPLATE_META: Record<string, TemplateMeta> = {
       filters: {},
     },
   },
+  cards_by_competition: {
+    emoji: '🃏',
+    title: 'Karten nach Wettbewerbstyp',
+    desc: 'Gelb, Gelb-Rot & Rot pro Spieler – ein Netz pro Wettbewerbstyp, überlagert.',
+    category: 'vergleich',
+    config: {
+      diagramType: 'radaroverlay',
+      xField: 'player',
+      yField: 'yellowCards',
+      groupBy: 'competitionType',
+      metrics: ['yellowCards', 'yellowRedCards', 'redCards'],
+      groupedMetrics: true,
+      showLegend: true,
+      showLabels: false,
+      filters: {},
+    },
+  },
 };
 
 /**

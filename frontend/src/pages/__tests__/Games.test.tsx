@@ -36,10 +36,11 @@ jest.mock('@mui/material', () => {
     ...actual,
     useTheme: () => ({
       palette: {
-        primary:  { main: '#018606', contrastText: '#fff' },
-        success:  { main: '#2e7d32', contrastText: '#fff' },
-        warning:  { main: '#ed6c02', dark: '#c77708' },
-        text:     { primary: '#000', secondary: '#666', disabled: '#999' },
+        primary:   { main: '#018606', contrastText: '#fff' },
+        secondary: { main: '#9c27b0', contrastText: '#fff' },
+        success:   { main: '#2e7d32', contrastText: '#fff' },
+        warning:   { main: '#ed6c02', dark: '#c77708' },
+        text:      { primary: '#000', secondary: '#666', disabled: '#999' },
         mode: 'light',
       },
       shadows: Array(25).fill('none'),
@@ -371,6 +372,7 @@ const makeGame = (id: number, extra: Record<string, any> = {}) => ({
   id,
   homeTeam: { id: 1, name: 'FC Home' },
   awayTeam: { id: 2, name: 'SV Away' },
+  gameType: { id: 1, name: 'Testspiel' },
   calendarEvent: {
     id: 100 + id,
     startDate: '2025-03-15T14:00:00',
@@ -829,6 +831,83 @@ describe('Games — running section', () => {
     });
     render(<Games />);
     await waitFor(() => expect(screen.getByText(/Kein Team ausgewählt/i)).toBeInTheDocument());
+  });
+});
+
+// ── GameCard: Competition (league / cup) chips ────────────────────────────────
+
+describe('Games — GameCard competition chips', () => {
+  test('shows league chip when game has a league', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(40, { league: { id: 1, name: 'Bundesliga' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Bundesliga')).toBeInTheDocument();
+  });
+
+  test('shows cup chip when game has a cup', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(41, { cup: { id: 2, name: 'DFB-Pokal' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('DFB-Pokal')).toBeInTheDocument();
+  });
+
+  test('shows league name when game has both league and cup (league takes priority)', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(42, { league: { id: 3, name: 'Kreisliga' }, cup: { id: 4, name: 'Kreispokal' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Kreisliga')).toBeInTheDocument();
+    expect(screen.queryByText('Kreispokal')).not.toBeInTheDocument();
+  });
+
+  test('shows gameType name as fallback when game has neither league nor cup', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(43, { gameType: { id: 5, name: 'Freundschaftsspiel' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Freundschaftsspiel')).toBeInTheDocument();
+  });
+
+  test('league takes priority over gameType fallback', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(45, { league: { id: 1, name: 'Kreisliga A' }, gameType: { id: 2, name: 'Ligaspiel' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Kreisliga A')).toBeInTheDocument();
+    expect(screen.queryByText('Ligaspiel')).not.toBeInTheDocument();
+  });
+
+  test('cup takes priority over gameType fallback when no league', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(46, { cup: { id: 3, name: 'Kreispokal' }, gameType: { id: 2, name: 'Pokalspiel' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Kreispokal')).toBeInTheDocument();
+    expect(screen.queryByText('Pokalspiel')).not.toBeInTheDocument();
+  });
+
+  test('shows cup chip for a finished game', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      finished_games: [makeGameWithScore(44, 2, 1, { cup: { id: 5, name: 'Stadtpokal' } })],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText(/Abgeschlossene Spiele/i)).toBeInTheDocument());
+    expect(screen.getByText('Stadtpokal')).toBeInTheDocument();
   });
 });
 

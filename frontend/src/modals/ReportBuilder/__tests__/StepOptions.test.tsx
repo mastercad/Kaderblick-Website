@@ -538,21 +538,6 @@ describe('StepOptions – hideEmpty (Leere ausblenden)', () => {
     expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
   });
 
-  it('hideEmpty-Checkbox wird NICHT für diag=scatter gerendert', () => {
-    render(
-      <StepOptions
-        state={makeState({
-          diag: 'scatter',
-          currentReport: {
-            name: 'Test', description: '', isTemplate: false,
-            config: { diagramType: 'scatter', xField: 'month', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
-          },
-        })}
-      />,
-    );
-    expect(screen.queryByLabelText('Einträge ohne Wert ausblenden')).not.toBeInTheDocument();
-  });
-
   it('Klick auf hideEmpty-Checkbox ruft handleConfigChange auf', () => {
     const state = makeState({ diag: 'bar' });
     render(<StepOptions state={state} />);
@@ -570,5 +555,66 @@ describe('StepOptions – hideEmpty (Leere ausblenden)', () => {
     });
     render(<StepOptions state={state} />);
     expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeChecked();
+  });
+
+  // hideEmpty ist jetzt für ALLE Diagrammtypen sichtbar (keine Typbeschränkung mehr)
+  it('hideEmpty-Checkbox wird auch für diag=radar gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'radar',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'radar', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird auch für diag=radaroverlay gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'radaroverlay',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'radaroverlay', xField: 'player', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird auch für diag=scatter gerendert (keine Ausnahme mehr)', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'scatter',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'scatter', xField: 'month', yField: 'goals', filters: {}, metrics: [], showLegend: true, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
+  });
+
+  it('hideEmpty-Checkbox wird auch für diag=pitchheatmap gerendert', () => {
+    render(
+      <StepOptions
+        state={makeState({
+          diag: 'pitchheatmap',
+          currentReport: {
+            name: 'Test', description: '', isTemplate: false,
+            config: { diagramType: 'pitchheatmap', xField: 'pos', yField: 'count', filters: {}, metrics: [], showLegend: false, showLabels: false },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByLabelText('Einträge ohne Wert ausblenden')).toBeInTheDocument();
   });
 });

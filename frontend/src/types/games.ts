@@ -74,6 +74,7 @@ export interface CalendarEvent {
 }
 
 import type { League } from './league';
+import type { Cup } from './cup';
 
 export interface Game {
   id: number;
@@ -83,6 +84,7 @@ export interface Game {
   location?: Location;
   gameType?: GameType;
   league?: League;
+  cup?: Cup;
   calendarEvent?: CalendarEvent;
   weatherData?: {
     weatherCode?: number[];

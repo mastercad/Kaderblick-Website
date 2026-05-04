@@ -1810,4 +1810,506 @@ class ReportDataServiceTest extends TestCase
         $this->assertNotEmpty($key); // confirms the fallback path was exercised
         $this->assertNotSame('zzzz', $key); // not the default empty placeholder
     }
+
+    // =========================================================================
+    // generateReportDataForRadarGroupedMetrics (neue Methode aus dieser Session)
+    // =========================================================================
+
+    /**
+     * Helper: erstellt einen minimalen GameEvent-Stub für RadarGroupedMetrics-Tests.
+     * Die Methode braucht retrieveFieldValue (player, competitionType) und die
+     * metric-aggregate-Callables aus ReportFieldAliasService (yellowCards).
+     */
+    private function makeCardEvent(string $playerName, string $competitionType, string $eventTypeCode): object
+    {
+        $eventType = $this->createMock(GameEventType::class);
+        $eventType->method('getCode')->willReturn($eventTypeCode);
+
+        $game = $this->createMock(Game::class);
+        // competitionType field alias checks for league/cup/tournamentMatch on $game
+        // We return null for all so it falls back to 'Freundschaftsspiel'
+        if ('Liga' === $competitionType) {
+            $leagueMock = $this->createMock(\App\Entity\League::class);
+            $game->method('getLeague')->willReturn($leagueMock);
+        } else {
+            $game->method('getLeague')->willReturn(null);
+            $game->method('getCup')->willReturn(null);
+            $game->method('getTournamentMatch')->willReturn(null);
+        }
+
+        $player = $this->createMock(Player::class);
+        $player->method('getFullName')->willReturn($playerName);
+        $player->method('__toString')->willReturn($playerName);
+
+        $ev = $this->createMock(GameEvent::class);
+        $ev->method('getPlayer')->willReturn($player);
+        $ev->method('getGame')->willReturn($game);
+        $ev->method('getGameEventType')->willReturn($eventType);
+
+        return $ev;
+    }
+
+    public function testRadarGroupedMetricsBasicStructure(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // 2 players, 2 competition types, each gets 1 yellow card
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Freundschaftsspiel', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        // labels = sorted player names (axes)
+        $this->assertContains('Alice', $result['labels']);
+        $this->assertContains('Bob', $result['labels']);
+    }
+
+    public function testRadarGroupedMetricsDatasetLabelsAreGroupKeyDashMetricLabel(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Alice', 'Freundschaftsspiel', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+
+        $labels = array_column($result['datasets'], 'label');
+        // Each dataset label must be "<GroupValue> – <MetricLabel>"
+        // Liga → "Liga – Gelbe Karten"
+        $this->assertTrue(
+            count(array_filter($labels, fn ($l) => str_contains($l, ' – '))) === count($labels),
+            'Alle Dataset-Labels müssen "<Gruppe> – <Metrik>" enthalten'
+        );
+    }
+
+    public function testRadarGroupedMetricsEmptyEvents(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [[], 'player', ['yellowCards'], ['competitionType']]);
+
+        $this->assertSame([], $result['labels']);
+        $this->assertSame([], $result['datasets']);
+    }
+
+    public function testRadarGroupedMetricsMultipleMetrics(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // 1 player, Liga, 1 yellow + 1 red card
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Alice', 'Liga', 'red_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards', 'redCards'], ['competitionType']]);
+
+        $datasetLabels = array_column($result['datasets'], 'label');
+        // Should produce 1 group (Liga) × 2 metrics = 2 datasets
+        $this->assertCount(2, $datasetLabels);
+    }
+
+    public function testRadarGroupedMetricsDataValuesCountCorrectly(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // Alice gets 2 yellow cards in Liga, Bob gets 1
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+
+        $this->assertCount(1, $result['datasets']); // 1 group × 1 metric
+        // labels are sorted: ['Alice', 'Bob']
+        $this->assertSame(['Alice', 'Bob'], $result['labels']);
+        // data: Alice=2, Bob=1
+        $this->assertSame([2, 1], $result['datasets'][0]['data']);
+    }
+
+    public function testRadarGroupedMetricsMissingBucketProducesZero(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // Alice in Liga, Bob ONLY in Freundschaftsspiel → Liga-bucket for Bob is empty
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Freundschaftsspiel', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarGroupedMetrics');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+
+        // Find the "Liga – Gelbe Karten" dataset
+        $ligaDataset = null;
+        foreach ($result['datasets'] as $ds) {
+            if (str_contains($ds['label'], 'Liga')) {
+                $ligaDataset = $ds;
+                break;
+            }
+        }
+        $this->assertNotNull($ligaDataset);
+
+        // Bob has no events in Liga → his slot must be 0
+        $bobIdx = array_search('Bob', $result['labels'], true);
+        $this->assertNotFalse($bobIdx);
+        $this->assertSame(0, $ligaDataset['data'][$bobIdx]);
+    }
+
+    // =========================================================================
+    // generateReportDataForMultiMetricGroup (bar/line multi-metric routing)
+    // =========================================================================
+
+    public function testMultiMetricGroupBasicStructure(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'red_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForMultiMetricGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards', 'redCards'], ['competitionType']]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        $this->assertContains('Alice', $result['labels']);
+        $this->assertContains('Bob', $result['labels']);
+    }
+
+    public function testMultiMetricGroupDatasetCountIsGroupsTimesMetrics(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // 1 group (Liga) × 2 metrics = 2 datasets
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForMultiMetricGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards', 'redCards'], ['competitionType']]);
+        $this->assertCount(2, $result['datasets']);
+    }
+
+    public function testMultiMetricGroupEmptyBucketProducesZeroFloat(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        // Alice in Liga, Bob not → Bob slot in Liga dataset = 0.0
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Freundschaftsspiel', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForMultiMetricGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+
+        $ligaDs = null;
+        foreach ($result['datasets'] as $ds) {
+            if (str_contains($ds['label'], 'Liga')) {
+                $ligaDs = $ds;
+                break;
+            }
+        }
+        $this->assertNotNull($ligaDs);
+        $bobIdx = array_search('Bob', $result['labels'], true);
+        $this->assertNotFalse($bobIdx);
+        $this->assertSame(0.0, $ligaDs['data'][$bobIdx]);
+    }
+
+    public function testMultiMetricGroupDatasetLabelsContainGroupAndMetric(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForMultiMetricGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', ['yellowCards'], ['competitionType']]);
+        $label = $result['datasets'][0]['label'];
+        $this->assertStringContainsString(' – ', $label);
+    }
+
+    public function testMultiMetricGroupEmptyEvents(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $svc = new ReportDataService($em);
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForMultiMetricGroup');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [[], 'player', ['yellowCards'], ['competitionType']]);
+        $this->assertSame([], $result['labels']);
+        $this->assertSame([], $result['datasets']);
+    }
+
+    // =========================================================================
+    // Routing: generateReportData dispatches to correct method
+    // =========================================================================
+
+    /**
+     * Helper that builds a minimal QueryBuilder/Query chain returning the given events.
+     *
+     * @param list<mixed> $events
+     */
+    private function buildEmMockForEvents(array $events): EntityManagerInterface
+    {
+        $query = $this->createMock(Query::class);
+        $query->method('getResult')->willReturn($events);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('andWhere')->willReturnSelf();
+        $qb->method('setParameter')->willReturnSelf();
+        $qb->method('join')->willReturnSelf();
+        $qb->method('getQuery')->willReturn($query);
+
+        $repo = $this->createMock(EntityRepository::class);
+        $repo->method('createQueryBuilder')->willReturn($qb);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repo);
+
+        return $em;
+    }
+
+    public function testRoutingGroupedMetricsDispatchesToRadarGroupedMetrics(): void
+    {
+        // groupedMetrics=true + radar + metrics + groupBy → generateReportDataForRadarGroupedMetrics
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => ['yellowCards'],
+            'groupedMetrics' => true,
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        // Must NOT have the faceted/pitchheatmap keys
+        $this->assertArrayNotHasKey('panels', $result);
+        // At least one dataset label contains " – " (group × metric format)
+        $found = false;
+        foreach ($result['datasets'] as $ds) {
+            if (str_contains($ds['label'] ?? '', ' – ')) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'Routing zu RadarGroupedMetrics erwartet');
+    }
+
+    public function testRoutingGroupedMetricsRequiresGroupBy(): void
+    {
+        // groupedMetrics=true BUT empty groupBy → must NOT dispatch to RadarGroupedMetrics
+        // (falls through to regular radar path)
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radar',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => [],
+            'metrics' => ['yellowCards'],
+            'groupedMetrics' => true,
+        ]);
+
+        // Without groupBy, the dispatch condition is not met — no group×metric label format
+        $foundGroupMetricLabel = false;
+        foreach ($result['datasets'] ?? [] as $ds) {
+            if (str_contains($ds['label'] ?? '', ' – ')) {
+                $foundGroupMetricLabel = true;
+                break;
+            }
+        }
+        $this->assertFalse($foundGroupMetricLabel, 'Ohne groupBy darf kein Gruppe×Metrik-Format entstehen');
+    }
+
+    public function testRoutingBarWithMultipleMetricsAndGroupByDispatchesToMultiMetricGroup(): void
+    {
+        // bar + metrics (non-empty) + groupBy → generateReportDataForMultiMetricGroup
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'red_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'bar',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        // MultiMetricGroup produces " – " labels
+        $found = false;
+        foreach ($result['datasets'] as $ds) {
+            if (str_contains($ds['label'] ?? '', ' – ')) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'Routing zu MultiMetricGroup für bar erwartet');
+    }
+
+    public function testRoutingLineWithMultipleMetricsAndGroupByDispatchesToMultiMetricGroup(): void
+    {
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'line',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $this->assertArrayHasKey('datasets', $result);
+        $found = false;
+        foreach ($result['datasets'] as $ds) {
+            if (str_contains($ds['label'] ?? '', ' – ')) {
+                $found = true;
+                break;
+            }
+        }
+        $this->assertTrue($found, 'Routing zu MultiMetricGroup für line erwartet');
+    }
+
+    public function testRoutingBarWithEmptyMetricsDoesNotDispatchToMultiMetricGroup(): void
+    {
+        // bar + empty metrics → falls through to regular group path (no " – " labels)
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'bar',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => [],
+        ]);
+
+        $this->assertArrayHasKey('datasets', $result);
+        // Without metrics, no multi-metric path → no " – " labels
+        foreach ($result['datasets'] as $ds) {
+            $this->assertStringNotContainsString(' – ', $ds['label'] ?? '');
+        }
+    }
+
+    public function testRoutingBarWithMetricsButNoGroupByDoesNotDispatchToMultiMetricGroup(): void
+    {
+        // bar + metrics + empty groupBy → must NOT dispatch (condition requires non-empty groupBy)
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'bar',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => [],
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $this->assertArrayHasKey('datasets', $result);
+        foreach ($result['datasets'] as $ds) {
+            $this->assertStringNotContainsString(' – ', $ds['label'] ?? '');
+        }
+    }
+
+    public function testRoutingPieWithMetricsAndGroupByDoesNotDispatchToMultiMetricGroup(): void
+    {
+        // pie is NOT in the ['bar', 'line'] routing condition — must not dispatch
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'pie',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $this->assertArrayHasKey('datasets', $result);
+        // pie path uses generateReportDataForPieWithoutGroup or considerGroup — no " – " format
+        foreach ($result['datasets'] as $ds) {
+            $this->assertStringNotContainsString(' – ', $ds['label'] ?? '');
+        }
+    }
 }

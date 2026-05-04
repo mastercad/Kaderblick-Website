@@ -7,6 +7,7 @@ import { updateWidgetWidth } from '../../services/updateWidgetWidth';
 import { createWidget } from '../../services/createWidget';
 import { fetchAvailableReports, fetchReportById, saveReport } from '../../services/reports';
 import { deleteWidget } from '../../services/deleteWidget';
+import { useAuth } from '../../context/AuthContext';
 
 // ── Browser API shims ──────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ jest.mock('../../context/WidgetRefreshContext', () => ({
 }));
 
 jest.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { firstName: 'Max' }, isAdmin: false }),
+  useAuth: jest.fn(() => ({ user: { firstName: 'Max' }, isAdmin: false })),
 }));
 
 // ── Service mocks ──────────────────────────────────────────────────────────────
@@ -191,6 +192,10 @@ jest.mock('../../widgets/CalendarWidget', () => ({
 }));
 jest.mock('../../widgets/ReportWidget', () => ({
   ReportWidget: () => <div data-testid="ReportWidget" />,
+}));
+
+jest.mock('../../widgets/QuickRsvpWidget', () => ({
+  QuickRsvpWidget: () => <div data-testid="QuickRsvpWidget" />,
 }));
 
 // ── Test data ──────────────────────────────────────────────────────────────────
@@ -933,5 +938,85 @@ describe('Dashboard — handleCreateReportSave: new widget gets name from savedR
     await waitFor(() => expect(screen.getByTestId('widget-w99')).toBeInTheDocument());
     // The title shown for the new widget should use savedReport.name
     expect(screen.getByText('Brandneuer Report')).toBeInTheDocument();
+  });
+});
+
+// ── QuickRsvpWidget – nur für spieler_selbst und trainer_selbst ───────────────
+
+const mockUseAuth = useAuth as jest.Mock;
+
+describe('Dashboard — QuickRsvpWidget Sichtbarkeit', () => {
+  beforeEach(() => {
+    mockFetchWidgets.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    // Standardmäßig: kein Spieler, kein Trainer
+    mockUseAuth.mockReturnValue({ user: { firstName: 'Max' }, isAdmin: false });
+  });
+
+  it('zeigt QuickRsvpWidget NICHT für Eltern/Freunde (isPlayer=false, isCoach=false)', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { firstName: 'Max', isPlayer: false, isCoach: false },
+      isAdmin: false,
+    });
+
+    await act(async () => {
+      render(<Dashboard />);
+    });
+
+    expect(screen.queryByTestId('QuickRsvpWidget')).not.toBeInTheDocument();
+  });
+
+  it('zeigt QuickRsvpWidget NICHT wenn isPlayer und isCoach nicht gesetzt (undefined)', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { firstName: 'Max' },
+      isAdmin: false,
+    });
+
+    await act(async () => {
+      render(<Dashboard />);
+    });
+
+    expect(screen.queryByTestId('QuickRsvpWidget')).not.toBeInTheDocument();
+  });
+
+  it('zeigt QuickRsvpWidget für spieler_selbst (isPlayer=true)', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { firstName: 'Max', isPlayer: true, isCoach: false },
+      isAdmin: false,
+    });
+
+    await act(async () => {
+      render(<Dashboard />);
+    });
+
+    expect(screen.getByTestId('QuickRsvpWidget')).toBeInTheDocument();
+  });
+
+  it('zeigt QuickRsvpWidget für trainer_selbst (isCoach=true)', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { firstName: 'Max', isPlayer: false, isCoach: true },
+      isAdmin: false,
+    });
+
+    await act(async () => {
+      render(<Dashboard />);
+    });
+
+    expect(screen.getByTestId('QuickRsvpWidget')).toBeInTheDocument();
+  });
+
+  it('zeigt QuickRsvpWidget wenn sowohl isPlayer als auch isCoach true sind', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { firstName: 'Max', isPlayer: true, isCoach: true },
+      isAdmin: false,
+    });
+
+    await act(async () => {
+      render(<Dashboard />);
+    });
+
+    expect(screen.getByTestId('QuickRsvpWidget')).toBeInTheDocument();
   });
 });

@@ -3,12 +3,15 @@
 namespace App\Tests\Unit\Service;
 
 use App\Entity\CalendarEvent;
+use App\Entity\Game;
 use App\Entity\Location;
+use App\Entity\Tournament;
 use App\Entity\User;
 use App\Repository\ParticipationRepository;
 use App\Service\CalendarEventSerializer;
 use App\Service\TeamMembershipService;
 use DateTime;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -143,6 +146,79 @@ class CalendarEventSerializerTest extends TestCase
         $result = $this->serializer->serialize($event, null, null);
 
         $this->assertTrue($result['permissions']['canParticipate']);
+    }
+
+    /**
+     * SUPERADMIN should NOT automatically get canParticipate=true for game events.
+     * Only users with a self_player/self_coach relation to the team must RSVP.
+     */
+    public function testCanParticipateForGameEventIgnoresSuperAdminShortcut(): void
+    {
+        $this->security->method('isGranted')->willReturnCallback(
+            fn (string $attr) => 'ROLE_SUPERADMIN' === $attr
+        );
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        // No self membership → must return false even for SUPERADMIN
+        $this->membershipService->method('canUserParticipateInEvent')->willReturn(false);
+
+        $event = $this->makeBaseEvent();
+        $game = $this->createMock(Game::class);
+        $event->setGame($game);
+        $result = $this->serializer->serialize($event, $user, null);
+
+        $this->assertFalse(
+            $result['permissions']['canParticipate'],
+            'SUPERADMIN without self_player/self_coach membership must NOT get canParticipate=true for a game event'
+        );
+    }
+
+    public function testCanParticipateForGameEventTrueWhenSuperAdminIsSelfMember(): void
+    {
+        $this->security->method('isGranted')->willReturnCallback(
+            fn (string $attr) => 'ROLE_SUPERADMIN' === $attr
+        );
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        // User IS self-player/coach in one of the teams
+        $this->membershipService->method('canUserParticipateInEvent')->willReturn(true);
+
+        $event = $this->makeBaseEvent();
+        $game = $this->createMock(Game::class);
+        $event->setGame($game);
+        $result = $this->serializer->serialize($event, $user, null);
+
+        $this->assertTrue(
+            $result['permissions']['canParticipate'],
+            'SUPERADMIN who is also self_player/self_coach must get canParticipate=true for a game event'
+        );
+    }
+
+    /**
+     * Same rule as game events: SUPERADMIN shortcut is skipped for tournament events.
+     */
+    public function testCanParticipateForTournamentEventIgnoresSuperAdminShortcut(): void
+    {
+        $this->security->method('isGranted')->willReturnCallback(
+            fn (string $attr) => 'ROLE_SUPERADMIN' === $attr
+        );
+
+        $user = $this->createMock(User::class);
+        $this->security->method('getUser')->willReturn($user);
+        $this->membershipService->method('canUserParticipateInEvent')->willReturn(false);
+
+        $event = $this->makeBaseEvent();
+        $tournament = $this->createMock(Tournament::class);
+        $tournament->method('getMatches')->willReturn(new ArrayCollection());
+        $event->setTournament($tournament);
+        $result = $this->serializer->serialize($event, $user, null);
+
+        $this->assertFalse(
+            $result['permissions']['canParticipate'],
+            'SUPERADMIN without self_player/self_coach membership must NOT get canParticipate=true for a tournament event'
+        );
     }
 
     public function testCanParticipateIsTrueWhenTeamMember(): void
