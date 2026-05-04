@@ -692,7 +692,7 @@ describe('GuidedWizard — Schritt 3: Zeitraum-Auswahl', () => {
 
   it('zeigt alle 4 Zeitraum-Optionen', async () => {
     await goToStep3();
-    expect(screen.getByText('Diese Saison')).toBeInTheDocument();
+    expect(screen.getByText('Aktuelle Saison')).toBeInTheDocument();
     expect(screen.getByText('Letzte 10 Spiele')).toBeInTheDocument();
     expect(screen.getByText('Letzter Monat')).toBeInTheDocument();
     expect(screen.getByText('Alle verfügbaren Daten')).toBeInTheDocument();
@@ -707,8 +707,8 @@ describe('GuidedWizard — Schritt 3: Zeitraum-Auswahl', () => {
     await goToStep3();
     await act(async () => {
       const cards = screen.getAllByRole('button');
-      const seasonCard = cards.find(btn => btn.textContent?.includes('Diese Saison'));
-      if (!seasonCard) throw new Error('Zeitraum-Karte "Diese Saison" nicht gefunden');
+      const seasonCard = cards.find(btn => btn.textContent?.includes('Aktuelle Saison'));
+      if (!seasonCard) throw new Error('Zeitraum-Karte "Aktuelle Saison" nicht gefunden');
       fireEvent.click(seasonCard);
     });
     expect(screen.getByRole('button', { name: /Weiter/i })).not.toBeDisabled();
@@ -718,8 +718,8 @@ describe('GuidedWizard — Schritt 3: Zeitraum-Auswahl', () => {
     await goToStep3();
     await act(async () => {
       const cards = screen.getAllByRole('button');
-      const seasonCard = cards.find(btn => btn.textContent?.includes('Diese Saison'));
-      if (!seasonCard) throw new Error('Zeitraum-Karte "Diese Saison" nicht gefunden');
+      const seasonCard = cards.find(btn => btn.textContent?.includes('Aktuelle Saison'));
+      if (!seasonCard) throw new Error('Zeitraum-Karte "Aktuelle Saison" nicht gefunden');
       fireEvent.click(seasonCard);
       jest.advanceTimersByTime(500);
     });

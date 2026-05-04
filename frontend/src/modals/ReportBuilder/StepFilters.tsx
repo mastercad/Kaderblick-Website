@@ -7,9 +7,6 @@ import {
   MenuItem,
   Typography,
   Paper,
-  Slider,
-  Checkbox,
-  FormControlLabel,
   Tooltip,
   Autocomplete,
   TextField,
@@ -19,6 +16,8 @@ import {
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { ReportBuilderState } from './types';
 import { searchReportPlayers, fetchPlayerById } from '../../services/reports';
+import { SeasonFilterControl } from './SeasonFilterControl';
+import { EventTypeAutocomplete } from '../../components/EventTypeAutocomplete';
 
 /** Reusable tooltip info icon */
 const Tip: React.FC<{ text: string }> = ({ text }) => (
@@ -36,9 +35,10 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
     currentReport,
     builderData,
     handleFilterChange,
+    isMobile,
   } = state;
 
-  type PlayerOption = { id: number; fullName: string };
+  type PlayerOption = { id: number; fullName: string; teamName?: string | null };
 
   // ── Player filter — always multi-chip ──
   // Supports both filters.players (comma-sep) and legacy filters.player (single ID).
@@ -46,6 +46,15 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
   const [multiPlayerInput, setMultiPlayerInput] = useState('');
   const [multiPlayerOpts, setMultiPlayerOpts] = useState<PlayerOption[]>([]);
   const [multiPlayerLoading, setMultiPlayerLoading] = useState(false);
+
+  // ── Team filter — always multi-chip ──
+  // Supports both filters.teams (comma-sep) and legacy filters.team (single ID).
+  const currentTeamIds = (() => {
+    const raw = currentReport.config.filters?.teams;
+    if (raw) return raw.split(',').map(Number).filter(Boolean);
+    const single = currentReport.config.filters?.team;
+    return single ? [Number(single)].filter(Boolean) : [];
+  })();
 
   // On mount: resolve existing player IDs from filters.players or fallback to filters.player.
   // Uses functional updater to MERGE with any players already added during async resolution
@@ -67,18 +76,19 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced player search
+  // Debounced player search — filtered by selected teams when applicable
   useEffect(() => {
     if (multiPlayerInput.length < 2) { setMultiPlayerOpts([]); return; }
     setMultiPlayerLoading(true);
     const timer = setTimeout(() => {
-      searchReportPlayers(multiPlayerInput)
+      searchReportPlayers(multiPlayerInput, currentTeamIds.length > 0 ? currentTeamIds : undefined)
         .then(r => setMultiPlayerOpts(r))
         .catch(() => setMultiPlayerOpts([]))
         .finally(() => setMultiPlayerLoading(false));
     }, 300);
     return () => { clearTimeout(timer); setMultiPlayerLoading(false); };
-  }, [multiPlayerInput]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiPlayerInput, currentTeamIds.join(',')]);
 
   const addMultiPlayer = (p: PlayerOption) => {
     if (multiPlayerResolved.some(x => x.id === p.id)) return;
@@ -107,90 +117,27 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
     handleFilterChange('players', remaining.length ? remaining.join(',') : '');
   };
 
-  // ── Team filter — always multi-chip ──
-  // Supports both filters.teams (comma-sep) and legacy filters.team (single ID).
-  const currentTeamIds = (() => {
-    const raw = currentReport.config.filters?.teams;
-    if (raw) return raw.split(',').map(Number).filter(Boolean);
-    const single = currentReport.config.filters?.team;
-    return single ? [Number(single)].filter(Boolean) : [];
-  })();
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {!builderData ? (
         <Typography color="text.secondary">Lade Filterdaten...</Typography>
       ) : (
         <>
-          {/* Date range */}
-          {builderData.availableDates?.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Typography variant="subtitle2">Zeitraum</Typography>
-                <Tooltip title="Schränkt die ausgewerteten Ereignisse auf einen bestimmten Datumsbereich ein. Nur Ereignisse innerhalb dieses Zeitraums fließen in den Report ein." placement="top">
-                  <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default' }} />
-                </Tooltip>
-              </Box>
-              <Box display="flex" gap={2} mb={1} flexWrap="wrap">
-                <Tooltip title="Startdatum des Zeitfensters aktivieren und einstellen." placement="top">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={currentReport.config.filters?.dateFrom != null}
-                        onChange={(e) => handleFilterChange('dateFrom', e.target.checked ? builderData.minDate : null)}
-                        size="small"
-                      />
-                    }
-                    label="Von"
-                  />
-                </Tooltip>
-                <Tooltip title="Enddatum des Zeitfensters aktivieren und einstellen." placement="top">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={currentReport.config.filters?.dateTo != null}
-                        onChange={(e) => handleFilterChange('dateTo', e.target.checked ? builderData.maxDate : null)}
-                        size="small"
-                      />
-                    }
-                    label="Bis"
-                  />
-                </Tooltip>
-              </Box>
-
-              {(currentReport.config.filters?.dateFrom != null || currentReport.config.filters?.dateTo != null) && (
-                <Box sx={{ px: 1, mt: 1 }}>
-                  <Slider
-                    value={[
-                      currentReport.config.filters?.dateFrom != null
-                        ? builderData.availableDates.indexOf(currentReport.config.filters.dateFrom)
-                        : 0,
-                      currentReport.config.filters?.dateTo != null
-                        ? builderData.availableDates.indexOf(currentReport.config.filters.dateTo)
-                        : builderData.availableDates.length - 1,
-                    ]}
-                    onChange={(_, newValue) => {
-                      const [startIndex, endIndex] = newValue as number[];
-                      if (currentReport.config.filters?.dateFrom != null) {
-                        handleFilterChange('dateFrom', builderData.availableDates[startIndex]);
-                      }
-                      if (currentReport.config.filters?.dateTo != null) {
-                        handleFilterChange('dateTo', builderData.availableDates[endIndex]);
-                      }
-                    }}
-                    min={0}
-                    max={builderData.availableDates.length - 1}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={(value) => builderData.availableDates[value]}
-                    marks={[
-                      { value: 0, label: builderData.minDate },
-                      { value: builderData.availableDates.length - 1, label: builderData.maxDate },
-                    ]}
-                  />
-                </Box>
-              )}
-            </Paper>
-          )}
+          {/* Saison-Filter */}
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <SeasonFilterControl
+              seasonFilter={currentReport.config.filters?.seasonFilter}
+              dateFrom={currentReport.config.filters?.dateFrom}
+              dateTo={currentReport.config.filters?.dateTo}
+              availableDates={builderData.availableDates ?? []}
+              isMobile={isMobile}
+              onChange={({ seasonFilter, dateFrom, dateTo }) => {
+                handleFilterChange('seasonFilter', seasonFilter ?? null);
+                handleFilterChange('dateFrom', dateFrom ?? null);
+                handleFilterChange('dateTo', dateTo ?? null);
+              }}
+            />
+          </Paper>
 
           {/* Team — immer Multi-Chip (wie GuidedWizard) */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -256,6 +203,11 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
                 onChange={(_, v) => { if (v) addMultiPlayer(v); }}
                 filterOptions={(x) => x}
                 noOptionsText={multiPlayerInput.length < 2 ? 'Mind. 2 Zeichen eingeben' : 'Kein Spieler gefunden'}
+                renderOption={(props, o) => (
+                  <li {...props} key={o.id}>
+                    {o.fullName}{o.teamName ? ` · ${o.teamName}` : ''}
+                  </li>
+                )}
                 renderInput={(params) => (
                   <TextField {...params} label="Spieler hinzufügen" placeholder="Name eintippen…"
                     slotProps={{ input: { ...params.InputProps,
@@ -290,19 +242,14 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
 
           {/* Ereignistyp */}
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Ereignistyp</InputLabel>
-              <Select
-                value={currentReport.config.filters?.eventType || ''}
-                onChange={(e) => handleFilterChange('eventType', e.target.value)}
-                label="Ereignistyp"
-              >
-                <MenuItem value="">Alle Ereignistypen</MenuItem>
-                {builderData.eventTypes.map((eventType) => (
-                  <MenuItem key={eventType.id} value={eventType.id.toString()}>{eventType.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <EventTypeAutocomplete
+              options={builderData.eventTypes}
+              value={currentReport.config.filters?.eventType || ''}
+              onChange={(v) => handleFilterChange('eventType', v)}
+              label="Ereignistyp"
+              placeholder="Alle Ereignistypen"
+              sx={{ flex: 1 }}
+            />
             <Tip text="Beschränkt den Report auf einen bestimmten Ereignistyp, z.B. nur Tore oder nur Vorlagen. Wird oft mit der Y-Achse kombiniert." />
           </Box>
 

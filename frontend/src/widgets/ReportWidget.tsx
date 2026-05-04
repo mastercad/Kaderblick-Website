@@ -153,7 +153,11 @@ export const ReportWidget: React.FC<{
       const isArea = effectiveType === 'area';
       // multiColor: each bar gets its own colour (like a pie slice). Set by the wizard
       // for comparison bar charts (player_comparison, team_comparison, team distribution).
-      const isMultiColor = effectiveType === 'bar' && ((data as any)?.config?.multiColor === true);
+      // Also auto-activate for single-dataset bar charts — a uniform blue for "goals per player"
+      // is unreadable; per-label coloring matches natural user expectations.
+      const isMultiColor =
+        effectiveType === 'bar' &&
+        ((data as any)?.config?.multiColor === true || data.datasets.length === 1);
 
       const computedBackground =
         ds.backgroundColor ||

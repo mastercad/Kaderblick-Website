@@ -27,6 +27,8 @@ export interface BuilderData {
   availableDates: string[];
   minDate: string;
   maxDate: string;
+  /** ID des Teams, dem der aktuelle User primär zugeordnet ist. Dient als Default-Filter. */
+  defaultTeamId?: number | null;
 }
 
 /* ───────────────────────── Report ───────────────────────── */
@@ -76,6 +78,12 @@ export interface ReportFilters {
   precipitation?: string;
   dateFrom?: string;
   dateTo?: string;
+  /**
+   * Semantic season filter — replaces static dateFrom/dateTo for season-based filtering.
+   * 'current' → always the currently-running season (Aug–Jun), resolves dynamically.
+   * '2024'    → fixed season 2024/25 (Aug 2024 – Jun 2025).
+   */
+  seasonFilter?: string;
 }
 
 /* ───────────────────────── Modal props ───────────────────────── */

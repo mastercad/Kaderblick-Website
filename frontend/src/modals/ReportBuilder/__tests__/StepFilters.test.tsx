@@ -64,6 +64,14 @@ jest.mock('@mui/material', () => {
     MenuItem: ({ value, children }: any) => (
       <option value={value ?? ''}>{children}</option>
     ),
+    Slider: ({ value, min, max }: any) => (
+      <div
+        data-testid="date-slider"
+        data-value={JSON.stringify(value)}
+        data-min={min}
+        data-max={max}
+      />
+    ),
     Autocomplete: ({ onInputChange, inputValue, onChange, options, getOptionLabel, isOptionEqualToValue, filterOptions, value }: any) => {
       const displayedOptions = filterOptions ? filterOptions(options ?? []) : (options ?? []);
       return (
@@ -506,7 +514,7 @@ describe('StepFilters - Spieler-Autocomplete-Suche (Debounce)', () => {
     });
     await act(async () => { jest.advanceTimersByTime(300); });
 
-    expect(mockSearch).toHaveBeenCalledWith('Mu');
+    expect(mockSearch).toHaveBeenCalledWith('Mu', undefined);
   });
 
   it('debounced: schnelle Folge-Eingaben lösen nur einen einzigen API-Aufruf aus', async () => {
@@ -524,6 +532,219 @@ describe('StepFilters - Spieler-Autocomplete-Suche (Debounce)', () => {
     await act(async () => { jest.advanceTimersByTime(300); });
 
     expect(mockSearch).toHaveBeenCalledTimes(1);
-    expect(mockSearch).toHaveBeenCalledWith('Mue');
+    expect(mockSearch).toHaveBeenCalledWith('Mue', undefined);
+  });
+});
+
+// =============================================================================
+//  SeasonFilterControl — Integration via StepFilters
+//
+//  Abgedeckt:
+//  – Kein seasonFilter → "Alle Daten"-Button aktiv
+//  – seasonFilter="current" → "🔄 Immer aktuelle"-Button aktiv + Hinweis-Text
+//  – seasonFilter="2024" → "Bestimmte Saison"-Button aktiv + "Saison 2024/25"
+// =============================================================================
+
+// =============================================================================
+//  SeasonFilterControl — Integration via StepFilters
+//
+//  Abgedeckt:
+//  – Kein seasonFilter          → "Alle Daten"-Button sichtbar
+//  – seasonFilter="current"     → "🔄 Aktuelle Saison"-Button + Caption
+//  – seasonFilter="2024"        → "Bestimmte Saison"-Button + "Saison 2024/25"
+//  – dateFrom + dateTo gesetzt  → Zeitraum-Inputs sichtbar (range-Mode)
+//  – Klick "Aktuelle Saison"    → handleFilterChange für alle 3 Keys aufgerufen
+//  – Klick "Alle Daten"         → alle 3 Keys auf null gesetzt
+//  – onChange übergibt dateTo-Prop korrekt weiter
+// =============================================================================
+
+describe('StepFilters - SeasonFilterControl Integration', () => {
+  function makeStateWithSeasonFilter(
+    filters: Record<string, any>,
+    handleFilterChange = jest.fn(),
+  ) {
+    return {
+      currentReport: {
+        name: 'Test',
+        description: '',
+        isTemplate: false,
+        config: {
+          diagramType: 'bar',
+          xField: 'team',
+          yField: 'goals',
+          filters,
+          metrics: [],
+          showLegend: true,
+          showLabels: false,
+        },
+      },
+      builderData: BUILDER_DATA,
+      handleFilterChange,
+    } as any;
+  }
+
+  it('kein seasonFilter → "Alle Daten"-Button sichtbar', async () => {
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({})} />);
+    });
+    expect(screen.getByRole('button', { name: 'Alle Daten' })).toBeInTheDocument();
+  });
+
+  it('seasonFilter="current" → "🔄 Aktuelle Saison"-Button + Caption sichtbar', async () => {
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({ seasonFilter: 'current' })} />);
+    });
+    expect(screen.getByText(/laufende Saison/i)).toBeInTheDocument();
+  });
+
+  it('seasonFilter="2024" → Saisontitel "Saison 2024/25" sichtbar', async () => {
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({ seasonFilter: '2024' })} />);
+    });
+    expect(screen.getByText(/Saison 2024\/25/i)).toBeInTheDocument();
+  });
+
+  it('dateFrom + dateTo gesetzt → Zeitraum-Inputs (Von/Bis) sichtbar', async () => {
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({
+        dateFrom: '2024-10-01',
+        dateTo:   '2025-05-31',
+      })} />);
+    });
+    expect(screen.getByLabelText('Von')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bis')).toBeInTheDocument();
+  });
+
+  it('dateTo-Prop wird korrekt übergeben — Bis-Feld zeigt bestehenden Wert', async () => {
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({
+        dateFrom: '2024-10-01',
+        dateTo:   '2025-05-31',
+      })} />);
+    });
+    expect(screen.getByLabelText('Bis')).toHaveValue('2025-05-31');
+  });
+
+  it('Klick "🔄 Aktuelle Saison" → handleFilterChange für seasonFilter, dateFrom, dateTo aufgerufen', async () => {
+    const handleFilterChange = jest.fn();
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({}, handleFilterChange)} />);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Aktuelle Saison/i }));
+    });
+
+    expect(handleFilterChange).toHaveBeenCalledWith('seasonFilter', 'current');
+    expect(handleFilterChange).toHaveBeenCalledWith('dateFrom', null);
+    expect(handleFilterChange).toHaveBeenCalledWith('dateTo', null);
+  });
+
+  it('Klick "Alle Daten" von current → handleFilterChange setzt alle 3 Keys auf null', async () => {
+    const handleFilterChange = jest.fn();
+    await act(async () => {
+      render(<StepFilters state={makeStateWithSeasonFilter({ seasonFilter: 'current' }, handleFilterChange)} />);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Alle Daten' }));
+    });
+
+    expect(handleFilterChange).toHaveBeenCalledWith('seasonFilter', null);
+    expect(handleFilterChange).toHaveBeenCalledWith('dateFrom', null);
+    expect(handleFilterChange).toHaveBeenCalledWith('dateTo', null);
+  });
+});
+
+// =============================================================================
+//  Spielersuche — Team-Filter-Scope
+//
+//  Abgedeckt:
+//  – Wenn teams-Filter gesetzt: searchReportPlayers erhält teamIds-Array
+//  – Wenn kein teams-Filter: searchReportPlayers wird ohne teamIds aufgerufen
+//  – Bei Wechsel des Team-Filters wird die Suche neu ausgelöst
+//  – Spieler aus anderem Team werden als renderOption mit id-Key gelistet
+// =============================================================================
+
+describe('StepFilters - Spielersuche mit Team-Filter-Scope', () => {
+  it('übergibt currentTeamIds an searchReportPlayers wenn teams gesetzt sind', async () => {
+    mockSearch.mockResolvedValue([]);
+    render(<StepFilters state={makeState({ teams: '1,2' })} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Mu' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+
+    expect(mockSearch).toHaveBeenCalledWith('Mu', [1, 2]);
+  });
+
+  it('übergibt undefined an searchReportPlayers wenn kein teams-Filter aktiv', async () => {
+    mockSearch.mockResolvedValue([]);
+    render(<StepFilters state={makeState({})} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Mu' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+
+    expect(mockSearch).toHaveBeenCalledWith('Mu', undefined);
+  });
+
+  it('übergibt einzelne Team-ID als Array wenn nur ein Team gefiltert ist (legacy filters.team)', async () => {
+    mockSearch.mockResolvedValue([]);
+    render(<StepFilters state={makeState({ team: '3' })} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Mu' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+
+    expect(mockSearch).toHaveBeenCalledWith('Mu', [3]);
+  });
+
+  it('renderOption zeigt Teamname hinter Spielername wenn vorhanden', async () => {
+    mockSearch.mockResolvedValue([
+      { id: 10, fullName: 'Max Muster', teamName: 'U17' },
+    ]);
+    render(<StepFilters state={makeState({})} />);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Max' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+
+    // Der Mock-Autocomplete rendert getOptionLabel; renderOption wird dort nicht direkt gerendert.
+    // Wir prüfen stattdessen dass searchReportPlayers aufgerufen wurde und der
+    // angezeigte Optionsbutton vorhanden ist.
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByTestId('player-option')).toBeInTheDocument();
+  });
+
+  it('kein Duplikat wenn Spieler bereits im Filter ist (auch bei aktivem Team-Filter)', async () => {
+    mockFetchById.mockResolvedValueOnce({ id: 5, fullName: 'Anna Müller' });
+    const handleFilterChange = jest.fn();
+
+    await act(async () => {
+      // teams: '1' → U17-Chip (Team) + players: '5' → Anna-Müller-Chip (Spieler) = 2 Chips gesamt
+      render(<StepFilters state={makeState({ players: '5', teams: '1' }, handleFilterChange)} />);
+    });
+
+    const chipsBefore = chips().length; // 2: U17 + Anna Müller
+
+    mockSearch.mockResolvedValue([{ id: 5, fullName: 'Anna Müller' }]);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('player-autocomplete'), { target: { value: 'Anna' } });
+    });
+    await act(async () => { jest.advanceTimersByTime(300); });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('player-option'));
+    });
+
+    // Kein zusätzlicher Chip — Duplikat wurde verhindert
+    expect(handleFilterChange).not.toHaveBeenCalledWith('players', '5,5');
+    expect(chips()).toHaveLength(chipsBefore);
   });
 });

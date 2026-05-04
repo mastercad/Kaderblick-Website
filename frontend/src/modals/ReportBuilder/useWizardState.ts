@@ -286,19 +286,16 @@ export function useWizardState({
     if (!subject || !topic || !timeRange || !reportName.trim()) return;
     setSaving(true);
     try {
-      const config = buildConfig(
-        subject, topic, timeRange, availableDates,
-        subject === 'team' ? selectedTeam?.id : null,
-        subject === 'player' ? selectedPlayer?.id : null,
-        subject === 'team_comparison' ? selectedComparisonTeams : [],
-        subject === 'player_comparison' ? selectedComparisonPlayers.map(p => p.id) : [],
-      );
-      await onSave({ name: reportName.trim(), description: '', config });
+      // Use state.currentReport.config instead of rebuilding via buildConfig():
+      // goToConfirm already wrote the fully-built config into state.currentReport.
+      // Rebuilding here would drop confirm-step overrides (hideEmpty, horizontalBar,
+      // diagramType changes) that the user set via setCurrentReport on step 4.
+      await onSave({ ...state.currentReport, name: reportName.trim() });
       onClose();
     } finally {
       setSaving(false);
     }
-  }, [subject, topic, timeRange, reportName, availableDates, selectedTeam, selectedPlayer, selectedComparisonTeams, selectedComparisonPlayers, onSave, onClose]);
+  }, [subject, topic, timeRange, reportName, state.currentReport, onSave, onClose]);
 
   return {
     step, setStep,

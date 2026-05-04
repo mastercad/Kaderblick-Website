@@ -34,6 +34,7 @@ class ReportDataService
         $xField = $config['xField'] ?? 'player';
         $yField = $config['yField'] ?? 'goals';
         $filters = $config['filters'] ?? [];
+        $this->resolveSeasonFilter($filters);
         $groupBy = $config['groupBy'] ?? [];
         if (!is_array($groupBy)) {
             $groupBy = $groupBy ? [$groupBy] : [];
@@ -1009,10 +1010,46 @@ class ReportDataService
      * Convert technical suggestions/warnings into short, user-facing tips (German).
      * These tips must not contain DB-internal details and are intended for normal users.
      *
-     * @param array<int, string> $suggestions
-     * @param array<int, string> $warnings
-     *
      * @return array<int, string>
+     */
+    /**
+     * Resolves a semantic 'seasonFilter' value to concrete dateFrom/dateTo entries
+     * in the given $filters array, then removes the seasonFilter key.
+     *
+     * 'current'  → always the running season (Aug 1 – Jun 30 of next year).
+     * '2024'     → fixed season 2024/25 (Aug 2024 – Jun 2025).
+     *
+     * Call this at the top of any method that reads $filters from $config.
+     *
+     * @param array<string,mixed> $filters reference to the filters array (will be modified in place)
+     */
+    private function resolveSeasonFilter(array &$filters): void
+    {
+        $seasonFilter = $filters['seasonFilter'] ?? null;
+        if (null === $seasonFilter) {
+            return;
+        }
+
+        $now = new DateTimeImmutable();
+        $month = (int) $now->format('n');
+        $year = (int) $now->format('Y');
+
+        if ('current' === $seasonFilter) {
+            $seasonYear = $month >= 8 ? $year : $year - 1;
+        } else {
+            $seasonYear = (int) $seasonFilter;
+        }
+
+        $filters['dateFrom'] = sprintf('%d-08-01', $seasonYear);
+        $filters['dateTo'] = sprintf('%d-06-30', $seasonYear + 1);
+        unset($filters['seasonFilter']);
+    }
+
+    /**
+     * @param string[] $suggestions
+     * @param string[] $warnings
+     *
+     * @return string[]
      */
     private function deriveUserSuggestions(array $suggestions, array $warnings = []): array
     {
@@ -1132,6 +1169,7 @@ class ReportDataService
         $xField = $config['xField'] ?? 'player';
         $yField = $config['yField'] ?? 'minutesPlayed';
         $filters = $config['filters'] ?? [];
+        $this->resolveSeasonFilter($filters);
 
         $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
         $yAlias = $fieldAliases[$yField] ?? [];

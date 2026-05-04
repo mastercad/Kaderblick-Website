@@ -26,9 +26,11 @@ import { PreviewPanel } from './PreviewPanel';
 
 interface MobileWizardProps {
   state: ReportBuilderState;
+  /** Called when user clicks "Speichern" — parent opens the SaveDialog */
+  onRequestSave?: () => void;
 }
 
-export const MobileWizard: React.FC<MobileWizardProps> = ({ state }) => {
+export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave = () => {} }) => {
   const {
     activeStep,
     setActiveStep,
@@ -36,9 +38,9 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state }) => {
     setPreviewDrawerOpen,
     hasPreview,
     previewData,
-    canSave,
-    handleSave,
   } = state;
+
+  const canOpenSave = !!(state.currentReport.config.xField && state.currentReport.config.yField);
 
   const stepComponents = [
     <StepBasics key="basics" state={state} />,
@@ -145,8 +147,8 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state }) => {
             <Button
               variant="contained"
               color="primary"
-              onClick={handleSave}
-              disabled={!canSave}
+              onClick={onRequestSave}
+              disabled={!canOpenSave}
               size="large"
             >
               Speichern

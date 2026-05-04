@@ -14,6 +14,7 @@ export interface Player {
 export interface EventType {
   id: number;
   name: string;
+  code?: string;
 }
 
 export interface FieldAlias {

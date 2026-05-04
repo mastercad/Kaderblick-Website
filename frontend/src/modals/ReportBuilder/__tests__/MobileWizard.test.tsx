@@ -8,8 +8,8 @@
  *  – "Zurück"-Button ist ab Schritt 1 enabled und ruft setActiveStep auf
  *  – Schritt 0–2: "Weiter"-Button sichtbar, "Speichern" nicht
  *  – Schritt 3 (letzter): "Speichern"-Button sichtbar, "Weiter" nicht
- *  – "Speichern"-Button disabled wenn !canSave
- *  – "Speichern"-Button enabled und aufrufbar wenn canSave=true
+ *  – "Speichern"-Button disabled wenn xField/yField fehlen
+ *  – "Speichern"-Button enabled und ruft onRequestSave auf wenn xField+yField gesetzt
  *  – FAB NICHT sichtbar wenn hasPreview=false
  *  – FAB sichtbar wenn hasPreview=true
  *  – FAB-Klick ruft setPreviewDrawerOpen(true) auf
@@ -185,18 +185,36 @@ describe('MobileWizard – Navigationsbuttons', () => {
     expect(screen.queryByRole('button', { name: 'Weiter' })).not.toBeInTheDocument();
   });
 
-  it('"Speichern"-Button disabled wenn !canSave', () => {
-    render(<MobileWizard state={makeState({ activeStep: 3, canSave: false })} />);
+  it('"Speichern"-Button disabled wenn xField/yField fehlen', () => {
+    const state = makeState({
+      activeStep: 3,
+      currentReport: {
+        name: 'Test',
+        description: '',
+        isTemplate: false,
+        config: {
+          diagramType: 'bar',
+          xField: '',
+          yField: '',
+          filters: {},
+          metrics: [],
+          showLegend: true,
+          showLabels: false,
+        },
+      },
+    });
+    render(<MobileWizard state={state} onRequestSave={jest.fn()} />);
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled();
   });
 
-  it('"Speichern"-Button enabled und ruft handleSave auf wenn canSave=true', () => {
-    const state = makeState({ activeStep: 3, canSave: true });
-    render(<MobileWizard state={state} />);
+  it('"Speichern"-Button enabled und ruft onRequestSave auf wenn xField+yField gesetzt', () => {
+    const onRequestSave = jest.fn();
+    const state = makeState({ activeStep: 3 });
+    render(<MobileWizard state={state} onRequestSave={onRequestSave} />);
     const saveBtn = screen.getByRole('button', { name: 'Speichern' });
     expect(saveBtn).not.toBeDisabled();
     fireEvent.click(saveBtn);
-    expect(state.handleSave).toHaveBeenCalledTimes(1);
+    expect(onRequestSave).toHaveBeenCalledTimes(1);
   });
 });
 

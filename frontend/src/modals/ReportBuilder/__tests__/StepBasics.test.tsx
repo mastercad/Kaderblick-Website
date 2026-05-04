@@ -2,14 +2,9 @@
  * Tests für StepBasics
  *
  * Abgedeckt:
- *  – Name-Feld rendert aktuellen Wert und reagiert auf Eingabe
- *  – Name-Feld zeigt "Pflichtfeld"-Hinweis wenn name leer
- *  – Name-Feld zeigt Mui-error-Klasse wenn name leer UND activeStep > 0
- *  – Kein Fehler-Styling wenn name leer aber activeStep = 0
- *  – Name gefüllt → kein Hinweis mehr
- *  – Beschreibungs-Feld rendert aktuellen Wert und reagiert auf Eingabe
  *  – Vorlage-Chips werden angezeigt wenn Presets vorhanden sind
  *  – Klick auf Preset-Chip ruft setCurrentReport mit fusioniertem config auf
+ *  – Klick auf Preset setzt name auf den Vorlagentitel
  *  – Wenn keine Presets vorhanden, wird kein Preset-Bereich gerendert
  *  – isTemplate-Checkbox ist nur sichtbar für Admins (isAdmin=true)
  *  – isTemplate-Checkbox ist NICHT sichtbar für normale User (isAdmin=false)
@@ -74,105 +69,6 @@ function makeState(overrides: Partial<ReportBuilderState> = {}): ReportBuilderSt
 }
 
 // =============================================================================
-// Name-Feld
-// =============================================================================
-
-describe('StepBasics – Name-Feld', () => {
-  it('rendert den aktuellen Report-Namen', () => {
-    render(<StepBasics state={makeState()} />);
-    expect(screen.getByDisplayValue('Mein Report')).toBeInTheDocument();
-  });
-
-  it('ruft setCurrentReport beim Ändern des Namens auf', () => {
-    const state = makeState();
-    render(<StepBasics state={state} />);
-    fireEvent.change(screen.getByDisplayValue('Mein Report'), {
-      target: { value: 'Neuer Name' },
-    });
-    // Verify that setCurrentReport was called with an updater function
-    expect(state.setCurrentReport).toHaveBeenCalledTimes(1);
-    expect(typeof (state.setCurrentReport as jest.Mock).mock.calls[0][0]).toBe('function');
-  });
-
-  it('Name-Updater body wird ausgeführt wenn Eingabe geändert wird', () => {
-    // setCurrentReport mit einer Implementierung, die den Updater sofort aufruft
-    // (bevor React den kontrollierten Wert zurücksetzt)
-    const results: any[] = [];
-    const setCurrentReport = jest.fn().mockImplementation((fn: any) => {
-      if (typeof fn === 'function') results.push(fn(makeState().currentReport));
-    });
-    render(<StepBasics state={makeState({ setCurrentReport: setCurrentReport as any })} />);
-    fireEvent.change(screen.getByDisplayValue('Mein Report'), { target: { value: 'Neuer Titel' } });
-    expect(results).toHaveLength(1);
-    expect(results[0]).toHaveProperty('name', 'Neuer Titel');
-  });
-
-  it('zeigt "Pflichtfeld"-Hinweis wenn Name leer (immer)', () => {
-    const state = makeState({
-      currentReport: { ...makeState().currentReport, name: '' },
-      activeStep: 0,
-    });
-    render(<StepBasics state={state} />);
-    expect(screen.getByText('Pflichtfeld')).toBeInTheDocument();
-  });
-
-  it('zeigt "Pflichtfeld" mit Mui-error-Klasse wenn Name leer und activeStep > 0', () => {
-    const state = makeState({
-      currentReport: { ...makeState().currentReport, name: '' },
-      activeStep: 1,
-    });
-    render(<StepBasics state={state} />);
-    expect(screen.getByText('Pflichtfeld')).toHaveClass('Mui-error');
-  });
-
-  it('zeigt "Pflichtfeld" OHNE Mui-error-Klasse wenn Name leer aber activeStep = 0', () => {
-    const state = makeState({
-      currentReport: { ...makeState().currentReport, name: '' },
-      activeStep: 0,
-    });
-    render(<StepBasics state={state} />);
-    expect(screen.getByText('Pflichtfeld')).not.toHaveClass('Mui-error');
-  });
-
-  it('zeigt KEINEN Hinweis wenn Name gefüllt ist', () => {
-    render(<StepBasics state={makeState()} />);
-    expect(screen.queryByText('Pflichtfeld')).not.toBeInTheDocument();
-  });
-});
-
-// =============================================================================
-// Beschreibungs-Feld
-// =============================================================================
-
-describe('StepBasics – Beschreibungs-Feld', () => {
-  it('rendert die aktuelle Beschreibung', () => {
-    render(<StepBasics state={makeState()} />);
-    expect(screen.getByDisplayValue('Beschreibung')).toBeInTheDocument();
-  });
-
-  it('ruft setCurrentReport beim Ändern der Beschreibung auf', () => {
-    const state = makeState();
-    render(<StepBasics state={state} />);
-    fireEvent.change(screen.getByDisplayValue('Beschreibung'), {
-      target: { value: 'Neue Beschreibung' },
-    });
-    expect(state.setCurrentReport).toHaveBeenCalledTimes(1);
-    expect(typeof (state.setCurrentReport as jest.Mock).mock.calls[0][0]).toBe('function');
-  });
-
-  it('Beschreibungs-Updater body wird ausgeführt wenn Eingabe geändert wird', () => {
-    const results: any[] = [];
-    const setCurrentReport = jest.fn().mockImplementation((fn: any) => {
-      if (typeof fn === 'function') results.push(fn(makeState().currentReport));
-    });
-    render(<StepBasics state={makeState({ setCurrentReport: setCurrentReport as any })} />);
-    fireEvent.change(screen.getByDisplayValue('Beschreibung'), { target: { value: 'Neue Beschreibung' } });
-    expect(results).toHaveLength(1);
-    expect(results[0]).toHaveProperty('description', 'Neue Beschreibung');
-  });
-});
-
-// =============================================================================
 // Preset-Chips
 // =============================================================================
 
@@ -197,17 +93,35 @@ describe('StepBasics – Presets', () => {
 
   it('zeigt Preset-Chips wenn builderData.presets vorhanden', () => {
     render(<StepBasics state={stateWithPresets()} />);
-    expect(screen.getByText('Torjäger')).toBeInTheDocument();
-    expect(screen.getByText('Vorlagen')).toBeInTheDocument();
+    // TemplateGrid shows TEMPLATE_META titles, not raw preset labels
+    expect(screen.getByText('Torjäger-Ranking')).toBeInTheDocument();
+    expect(screen.getByText('Vorlagen-Ranking')).toBeInTheDocument();
   });
 
-  it('führt setCurrentReport mit fusioniertem config beim Klick auf Preset aus', () => {
+  it('führt setCurrentReport beim Klick auf Preset aus', () => {
     const state = stateWithPresets();
     render(<StepBasics state={state} />);
-    fireEvent.click(screen.getByText('Torjäger'));
+    // TemplateGrid renders TEMPLATE_META cards — click the Torjäger-Ranking card
+    fireEvent.click(screen.getByText('Torjäger-Ranking'));
+    expect(state.setCurrentReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('Preset-Klick setzt config.yField aus Vorlage', () => {
+    const state = stateWithPresets();
+    render(<StepBasics state={state} />);
+    fireEvent.click(screen.getByText('Torjäger-Ranking'));
     const updater = (state.setCurrentReport as jest.Mock).mock.calls[0][0];
     const result = updater(state.currentReport);
     expect(result.config.yField).toBe('goals');
+  });
+
+  it('Preset-Klick setzt name auf den Vorlagentitel', () => {
+    const state = stateWithPresets();
+    render(<StepBasics state={state} />);
+    fireEvent.click(screen.getByText('Torjäger-Ranking'));
+    const updater = (state.setCurrentReport as jest.Mock).mock.calls[0][0];
+    const result = updater(state.currentReport);
+    expect(result.name).toBe('Torjäger-Ranking');
   });
 
   it('zeigt KEINEN Preset-Bereich wenn keine Presets vorhanden', () => {
@@ -262,3 +176,4 @@ describe('StepBasics – isTemplate Admin-Checkbox', () => {
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 });
+

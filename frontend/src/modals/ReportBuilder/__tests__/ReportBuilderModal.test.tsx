@@ -281,20 +281,24 @@ describe('ReportBuilderModal — Inhalt & Regression', () => {
     expect(screen.getByTestId('DialogContent')).toBeInTheDocument();
   });
 
-  it('handleSave wird aufgerufen wenn der Speichern-Button geklickt wird', () => {
+  it('Speichern-Button ist klickbar und ruft state.handleSave NICHT direkt auf', () => {
     const handleSave = jest.fn();
-    renderModal({ handleSave, canSave: true, isMobile: false }, BUILDER_REPORT);
+    renderModal({ handleSave, isMobile: false }, BUILDER_REPORT);
 
-    // Der Speichern-Button ist im BaseModal-Footer — über den gemockten Button suchen
     const buttons = screen.getAllByRole('button');
     const saveButton = buttons.find(b => b.textContent?.toLowerCase().includes('speichern'));
     expect(saveButton).toBeDefined();
+    expect(saveButton).not.toBeDisabled();
+    // Clicking opens the SaveDialog — state.handleSave is NOT called directly
     saveButton!.click();
-    expect(handleSave).toHaveBeenCalledTimes(1);
+    expect(handleSave).not.toHaveBeenCalled();
   });
 
-  it('Speichern-Button ist deaktiviert wenn canSave=false', () => {
-    renderModal({ canSave: false, isMobile: false }, BUILDER_REPORT);
+  it('Speichern-Button ist deaktiviert wenn xField oder yField fehlt', () => {
+    renderModal({
+      isMobile: false,
+      currentReport: { name: 'Test', description: '', isTemplate: false, config: { ...BASE_CONFIG, xField: '', yField: '' } },
+    }, BUILDER_REPORT);
 
     const buttons = screen.getAllByRole('button');
     const saveButton = buttons.find(b => b.textContent?.toLowerCase().includes('speichern'));

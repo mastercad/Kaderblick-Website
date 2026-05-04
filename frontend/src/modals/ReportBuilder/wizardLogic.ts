@@ -69,9 +69,8 @@ export function buildConfig(
     filters.dateFrom = from.toISOString().split('T')[0];
     filters.dateTo = now.toISOString().split('T')[0];
   } else if (timeRange === 'season') {
-    const now = new Date();
-    const seasonYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
-    filters.dateFrom = `${seasonYear}-08-01`;
+    // Store semantic value — resolved dynamically at query time (frontend display + backend)
+    filters.seasonFilter = 'current';
   }
   // 'all' → no filter
 
@@ -120,6 +119,7 @@ export function buildConfig(
     if (topic === 'passes')       return { ...base, diagramType: 'bar', xField: 'player', yField: 'passes',          multiColor: true, showLegend: false, showLabels: true, filters };
     if (topic === 'minutesPlayed') return { ...base, diagramType: 'bar', xField: 'player', yField: 'minutesPlayed',  multiColor: true, showLegend: false, showLabels: true, filters };
     if (topic === 'distance')     return { ...base, diagramType: 'bar', xField: 'player', yField: 'distanceCovered', multiColor: true, showLegend: false, showLabels: true, filters };
+    if (topic === 'trend')        return { ...base, diagramType: 'line', xField: 'month', yField: 'goals', groupBy: 'player', showLegend: true, filters };
     /* goals (default) */          return { ...base, diagramType: 'bar', xField: 'player', yField: 'goals',           multiColor: true, showLegend: false, showLabels: true, filters };
   }
 
@@ -231,8 +231,11 @@ export function reverseMapWizardConfig(
 
   // ── TimeRange
   let timeRange: TimeRange = 'all';
-  const { dateFrom, dateTo } = f;
-  if (dateFrom && dateTo) {
+  const { dateFrom, dateTo, seasonFilter } = f;
+  if (seasonFilter === 'current' || (seasonFilter && /^\d{4}$/.test(seasonFilter))) {
+    // New semantic filter — both 'current' and fixed-year '2024' map back to the season step
+    timeRange = 'season';
+  } else if (dateFrom && dateTo) {
     const diffDays = (new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86_400_000;
     if (diffDays <= 35) {
       timeRange = 'last_month';
@@ -242,6 +245,7 @@ export function reverseMapWizardConfig(
       timeRange = (dateFrom === l10from && dateTo === l10to) ? 'last10' : 'all';
     }
   } else if (dateFrom && !dateTo) {
+    // Legacy: static season start date saved before seasonFilter was introduced
     if (/\d{4}-0[78]-01/.test(dateFrom)) timeRange = 'season';
   }
 
@@ -281,7 +285,7 @@ export function buildName(
 ): string {
   const subjectLabel: Record<Subject, string>   = { team: 'Mannschaft', player: 'Spieler', team_comparison: 'Vergleich', player_comparison: 'Spielervergleich' };
   const topicLabel:   Record<Topic, string>     = { goals: 'Tore', assists: 'Vorlagen', cards: 'Karten', trend: 'Saisonverlauf', overview: 'Stärken-Profil', shots: 'Torschüsse', fouls: 'Fouls', passes: 'Pässe', minutesPlayed: 'Spielminuten', distance: 'Laufleistung' };
-  const timeLabel:    Record<TimeRange, string> = { season: 'diese Saison', last10: 'letzte 10 Spiele', last_month: 'letzter Monat', all: '' };
+  const timeLabel:    Record<TimeRange, string> = { season: 'aktuelle Saison', last10: 'letzte 10 Spiele', last_month: 'letzter Monat', all: '' };
   const time = timeLabel[timeRange];
   const label = contextLabel || subjectLabel[subject];
   return `${label}: ${topicLabel[topic]}${time ? ` (${time})` : ''}`;

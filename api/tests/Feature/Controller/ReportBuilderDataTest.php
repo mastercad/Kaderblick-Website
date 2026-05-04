@@ -358,8 +358,118 @@ class ReportBuilderDataTest extends WebTestCase
     }
 
     // =========================================================================
+    //  GET /api/report/player-search?teams=… – Team-Filter
+    // =========================================================================
+
+    public function testPlayerSearchWithTeamsFilterReturnsOnlyPlayersFromThoseTeams(): void
+    {
+        $user = $this->fixtureUser;
+
+        [$teamA, $playerInA] = $this->createTeamWithPlayer('TeamA-TS', 'InTeamA', 'SearchTeam');
+        [$teamB, $playerNotInA] = $this->createTeamWithPlayer('TeamB-TS', 'NotInTeamA', 'SearchTeam');
+
+        $this->client->loginUser($user);
+        $this->client->request('GET', '/api/report/player-search?q=SearchTeam&teams=' . $teamA->getId());
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $ids = array_column($data, 'id');
+
+        $this->assertContains($playerInA->getId(), $ids, 'Spieler aus gefiltertem Team muss erscheinen.');
+        $this->assertNotContains($playerNotInA->getId(), $ids, 'Spieler aus anderem Team darf nicht erscheinen.');
+    }
+
+    public function testPlayerSearchWithMultipleTeamIdsReturnsPlayersFromAllSpecifiedTeams(): void
+    {
+        $user = $this->fixtureUser;
+
+        [$teamA, $playerA] = $this->createTeamWithPlayer('TeamMultiA-TS', 'MultiA', 'SearchMulti');
+        [$teamB, $playerB] = $this->createTeamWithPlayer('TeamMultiB-TS', 'MultiB', 'SearchMulti');
+        [$teamC, $playerC] = $this->createTeamWithPlayer('TeamMultiC-TS', 'MultiC', 'SearchMulti');
+
+        $this->client->loginUser($user);
+        $this->client->request('GET', sprintf(
+            '/api/report/player-search?q=SearchMulti&teams=%d,%d',
+            $teamA->getId(),
+            $teamB->getId(),
+        ));
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $ids = array_column($data, 'id');
+
+        $this->assertContains($playerA->getId(), $ids, 'Spieler aus Team A muss erscheinen.');
+        $this->assertContains($playerB->getId(), $ids, 'Spieler aus Team B muss erscheinen.');
+        $this->assertNotContains($playerC->getId(), $ids, 'Spieler aus Team C (nicht gefiltert) darf nicht erscheinen.');
+    }
+
+    public function testPlayerSearchWithEmptyTeamsParamReturnsAllMatchingPlayers(): void
+    {
+        $user = $this->fixtureUser;
+
+        [$teamA, $playerA] = $this->createTeamWithPlayer('TeamEmpty-A-TS', 'EmptyA', 'SearchNoFilter');
+        [$teamB, $playerB] = $this->createTeamWithPlayer('TeamEmpty-B-TS', 'EmptyB', 'SearchNoFilter');
+
+        $this->client->loginUser($user);
+        $this->client->request('GET', '/api/report/player-search?q=SearchNoFilter&teams=');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $ids = array_column($data, 'id');
+
+        $this->assertContains($playerA->getId(), $ids, 'Ohne Team-Filter: Spieler A muss erscheinen.');
+        $this->assertContains($playerB->getId(), $ids, 'Ohne Team-Filter: Spieler B muss erscheinen.');
+    }
+
+    public function testPlayerSearchWithInvalidTeamIdIgnoresIt(): void
+    {
+        $user = $this->fixtureUser;
+        $player = $this->createPlayer('Valid', 'SearchInvalid');
+
+        $this->client->loginUser($user);
+        // teams=0 is invalid (≤ 0) → filter is ignored → behaves like no teams filter
+        $this->client->request('GET', '/api/report/player-search?q=SearchInvalid&teams=0');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($this->client->getResponse()->getContent(), true);
+        $ids = array_column($data, 'id');
+
+        $this->assertContains($player->getId(), $ids, 'Ungültige Team-ID 0 wird ignoriert; Spieler muss trotzdem erscheinen.');
+    }
+
+    // =========================================================================
     //  Helpers
     // =========================================================================
+
+    /**
+     * Creates a team and a player assigned to it.
+     *
+     * @return array{0: Team, 1: Player}
+     */
+    private function createTeamWithPlayer(string $teamName, string $firstName, string $lastName): array
+    {
+        $ageGroup = $this->getOrCreateAgeGroup();
+        $team = new Team();
+        $team->setName(self::PREFIX . $teamName);
+        $team->setAgeGroup($ageGroup);
+        $this->em->persist($team);
+
+        $player = new Player();
+        $player->setFirstName($firstName);
+        $player->setLastName($lastName);
+        $player->setBirthdate(new DateTime('1990-01-01'));
+        $player->setMainPosition($this->getOrCreatePosition());
+        $this->em->persist($player);
+        $this->em->flush();
+
+        $assignment = new \App\Entity\PlayerTeamAssignment();
+        $assignment->setPlayer($player);
+        $assignment->setTeam($team);
+        $this->em->persist($assignment);
+        $this->em->flush();
+
+        return [$team, $player];
+    }
 
     private function createPlayer(string $firstName, string $lastName): Player
     {

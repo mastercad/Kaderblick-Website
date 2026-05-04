@@ -84,6 +84,17 @@ export function useReportBuilder(
       const data = await apiJson('/api/report/builder-data');
       setBuilderData(data);
       setAvailableFields(data.fields || []);
+      // Wenn kein Report bearbeitet wird (Neuerstellung) und der User einem Team zugeordnet ist,
+      // dieses als Default-Filter setzen — verhindert ungefilterte Komplettabfragen.
+      if (!report && data.defaultTeamId) {
+        setCurrentReport(prev => ({
+          ...prev,
+          config: {
+            ...prev.config,
+            filters: { team: String(data.defaultTeamId), ...(prev.config.filters ?? {}) },
+          },
+        }));
+      }
     } catch (error) {
       console.error('Error loading builder data:', error);
     }
@@ -161,7 +172,7 @@ export function useReportBuilder(
 
   // ──── Derived ────
 
-  const canSave = !!(currentReport.name && currentReport.config.xField && currentReport.config.yField);
+  const canSave = !!(currentReport.config.xField && currentReport.config.yField);
   const hasPreview = !!(currentReport.config.xField && currentReport.config.yField);
   const activeFilterCount = Object.values(currentReport.config.filters || {}).filter(Boolean).length;
   const diag = (currentReport.config.diagramType || '').toLowerCase();

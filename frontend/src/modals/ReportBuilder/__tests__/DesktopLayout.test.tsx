@@ -1,12 +1,13 @@
 /**
- * Tests für DesktopLayout – Einführungs-Banner
+ * Tests für DesktopLayout – Einführungs-Banner und Tab-Navigation
  *
  * Geprüft werden:
  *  – Banner wird angezeigt wenn noch kein xField gesetzt ist
  *  – Banner wird NICHT angezeigt wenn xField bereits gesetzt ist
  *  – Schließen-Button blendet den Banner aus
  *  – Banner beschreibt X-Achse, Y-Achse und Gruppierung
- *  – Alle vier Accordion-Sektionen werden gerendert
+ *  – Alle vier Tabs werden gerendert
+ *  – Tab-Klick ruft setExpandedSection auf
  */
 
 import React from 'react';
@@ -130,56 +131,41 @@ describe('DesktopLayout – Banner schließen', () => {
 });
 
 // =============================================================================
-//  Accordion-Sektionen
+//  Tab-Navigation
 // =============================================================================
 
-describe('DesktopLayout – Accordion-Sektionen', () => {
-  it('rendert alle vier Sektions-Titel', () => {
+describe('DesktopLayout – Tabs', () => {
+  it('rendert alle vier Tab-Labels', () => {
     render(<DesktopLayout state={makeState()} />);
-    expect(screen.getByText(/Basis-Informationen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Daten & Chart-Typ/i)).toBeInTheDocument();
-    // Use getAllByText because the word "Filter" also appears in the intro banner tip
-    const filterLabels = screen.getAllByText(/^Filter(\s*\(\d+\))?$/i);
-    expect(filterLabels.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Erweiterte Optionen/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Basis/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Daten & Chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Filter/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Optionen/i })).toBeInTheDocument();
   });
 
   it('zeigt Filter-Zähler wenn activeFilterCount > 0', () => {
     const state = makeState();
     (state as any).activeFilterCount = 3;
     render(<DesktopLayout state={state} />);
-    expect(screen.getByText(/Filter.*\(3\)|\(3\).*Filter/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Filter.*\(3\)/i })).toBeInTheDocument();
+  });
+
+  it('ruft setExpandedSection auf wenn ein anderer Tab angeklickt wird', () => {
+    const state = makeState('player'); // xField gesetzt → kein Intro-Banner
+    render(<DesktopLayout state={state} />);
+
+    const dataTab = screen.getByRole('tab', { name: /Daten & Chart/i });
+    fireEvent.click(dataTab);
+
+    expect(state.setExpandedSection).toHaveBeenCalledWith('data');
   });
 });
 
 // =============================================================================
-//  Accordion onChange + Hilfe-Button onClick
+//  Hilfe-Button onClick
 // =============================================================================
 
-describe('DesktopLayout – Accordion toggle und Hilfe-Button', () => {
-  it('ruft setExpandedSection auf wenn ein anderes Accordion geöffnet wird', () => {
-    const state = makeState('player'); // xField gesetzt → kein Intro-Banner
-    render(<DesktopLayout state={state} />);
-
-    // "Daten & Chart-Typ" ist nicht der aktuell geöffnete Abschnitt ('basics' ist offen)
-    const header = screen.getByText('Daten & Chart-Typ');
-    fireEvent.click(header);
-
-    expect(state.setExpandedSection).toHaveBeenCalledTimes(1);
-    expect(state.setExpandedSection).toHaveBeenCalledWith('data');
-  });
-
-  it('ruft setExpandedSection(false) auf wenn das aktuell offene Accordion geschlossen wird', () => {
-    const state = makeState('player');
-    render(<DesktopLayout state={state} />);
-
-    // 'basics' ist der aktuell geöffnete Abschnitt → Klick schließt ihn
-    const header = screen.getByText('Basis-Informationen');
-    fireEvent.click(header);
-
-    expect(state.setExpandedSection).toHaveBeenCalledWith(false);
-  });
-
+describe('DesktopLayout – Hilfe-Button', () => {
   it('ruft setHelpOpen(true) auf beim Klick auf den Hilfe-Button', () => {
     const state = makeState('player');
     render(<DesktopLayout state={state} />);

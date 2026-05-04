@@ -5,12 +5,10 @@ import {
   Paper,
   IconButton,
   Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Alert,
+  Tab,
+  Tabs,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -32,82 +30,72 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
   const [introDismissed, setIntroDismissed] = React.useState(false);
   const showIntro = !introDismissed && !currentReport.config.xField;
 
+  const activeTab = expandedSection || 'basics';
+
   const sections = [
-    { id: 'basics', label: 'Basis-Informationen', icon: <TextFieldsIcon fontSize="small" />, content: <StepBasics state={state} /> },
-    { id: 'data', label: 'Daten & Chart-Typ', icon: <BarChartIcon fontSize="small" />, content: <StepDataChart state={state} /> },
+    { id: 'basics',  label: 'Basis',             icon: <TextFieldsIcon fontSize="small" />, content: <StepBasics state={state} /> },
+    { id: 'data',    label: 'Daten & Chart',      icon: <BarChartIcon fontSize="small" />,   content: <StepDataChart state={state} /> },
     { id: 'filters', label: `Filter${activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}`, icon: <FilterListIcon fontSize="small" />, content: <StepFilters state={state} /> },
-    { id: 'options', label: 'Erweiterte Optionen', icon: <TuneIcon fontSize="small" />, content: <StepOptions state={state} /> },
+    { id: 'options', label: 'Optionen',            icon: <TuneIcon fontSize="small" />,       content: <StepOptions state={state} /> },
   ];
 
+  const activeSection = sections.find(s => s.id === activeTab) ?? sections[0];
+
   return (
-    <Box
-      display="flex"
-      gap={3}
-      sx={{ height: '70vh', minHeight: 500 }}
-    >
-      {/* Config column — scrollable */}
-      <Box
-        flex={1}
-        sx={{
-          overflowY: 'auto',
-          pr: 1,
-          '&::-webkit-scrollbar': { width: 6 },
-          '&::-webkit-scrollbar-thumb': { bgcolor: 'action.disabled', borderRadius: 3 },
-        }}
-      >
-        {showIntro && (
-          <Alert
-            severity="info"
-            onClose={() => setIntroDismissed(true)}
-            sx={{ mb: 2 }}
-          >
-            <Typography variant="body2" fontWeight={600} gutterBottom>
-              So funktioniert der manuelle Builder:
-            </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2 }}>
-              <li><strong>X-Achse</strong> = Dimension — Beschriftungen (z.&nbsp;B. Spieler, Monat, Team)</li>
-              <li><strong>Y-Achse</strong> = Metrik — Zahlenwerte (z.&nbsp;B. Tore, Vorlagen, Karten)</li>
-              <li><strong>Gruppierung</strong> = optionale zweite Dimension für verschiedene Farben/Linien</li>
-            </Box>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              Tipp: Setze zuerst einen Team-Filter, damit nur relevante Ereignisse ausgewertet werden.
-            </Typography>
-          </Alert>
-        )}
-        {sections.map((section) => (
-          <Accordion
-            key={section.id}
-            expanded={expandedSection === section.id}
-            onChange={(_, isExpanded) => setExpandedSection(isExpanded ? section.id : false)}
-            disableGutters
-            elevation={0}
-            sx={{
-              border: 1,
-              borderColor: 'divider',
-              mb: 1,
-              '&:before': { display: 'none' },
-              borderRadius: '8px !important',
-              overflow: 'hidden',
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              sx={{
-                bgcolor: expandedSection === section.id ? 'action.selected' : 'transparent',
-                '& .MuiAccordionSummary-content': {
-                  alignItems: 'center',
-                  gap: 1,
-                },
-              }}
+    <Box display="flex" gap={3} sx={{ height: '70vh', minHeight: 500 }}>
+      {/* Config column */}
+      <Box flex={1} sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Tab bar */}
+        <Tabs
+          value={activeTab}
+          onChange={(_, val: string) => setExpandedSection(val)}
+          variant="fullWidth"
+          sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}
+        >
+          {sections.map(s => (
+            <Tab
+              key={s.id}
+              value={s.id}
+              label={s.label}
+              icon={s.icon}
+              iconPosition="start"
+              sx={{ minHeight: 48, fontSize: '0.82rem', textTransform: 'none', px: 1 }}
+            />
+          ))}
+        </Tabs>
+
+        {/* Tab content — scrollable */}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            pt: 2,
+            pr: 1,
+            '&::-webkit-scrollbar': { width: 6 },
+            '&::-webkit-scrollbar-thumb': { bgcolor: 'action.disabled', borderRadius: 3 },
+          }}
+        >
+          {showIntro && (
+            <Alert
+              severity="info"
+              onClose={() => setIntroDismissed(true)}
+              sx={{ mb: 2 }}
             >
-              {section.icon}
-              <Typography variant="subtitle2">{section.label}</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={{ pt: 2 }}>
-              {section.content}
-            </AccordionDetails>
-          </Accordion>
-        ))}
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                So funktioniert der manuelle Builder:
+              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                <li><strong>X-Achse</strong> = Dimension — Beschriftungen (z.&nbsp;B. Spieler, Monat, Team)</li>
+                <li><strong>Y-Achse</strong> = Metrik — Zahlenwerte (z.&nbsp;B. Tore, Vorlagen, Karten)</li>
+                <li><strong>Gruppierung</strong> = optionale zweite Dimension für verschiedene Farben/Linien</li>
+              </Box>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                Tipp: Setze zuerst einen Team-Filter, damit nur relevante Ereignisse ausgewertet werden.
+              </Typography>
+            </Alert>
+          )}
+          {activeSection.content}
+        </Box>
       </Box>
 
       {/* Preview column — sticky */}

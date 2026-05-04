@@ -44,7 +44,8 @@ class ReportController extends AbstractController
 
         $eventTypesData = array_map(fn ($eventType) => [
             'id' => $eventType->getId(),
-            'name' => $eventType->getName()
+            'name' => $eventType->getName(),
+            'code' => $eventType->getCode(),
         ], $eventTypes);
 
         // Surface types for filter
@@ -122,6 +123,10 @@ class ReportController extends AbstractController
         // Presets: common report templates for non-technical users
         $presets = $this->buildPresets();
 
+        /** @var User $user */
+        $user = $this->getUser();
+        $defaultTeamId = $this->coachTeamPlayerService->resolveDefaultTeamId($user);
+
         $response = $this->json([
             'fields' => $fields,
             'advancedFields' => [],
@@ -134,6 +139,7 @@ class ReportController extends AbstractController
             'availableDates' => $availableDates,
             'minDate' => $minDate,
             'maxDate' => $maxDate,
+            'defaultTeamId' => $defaultTeamId,
         ]);
         // Cache for 5 minutes — event types, teams and dates change rarely
         $response->setMaxAge(300)->setPrivate();
@@ -153,14 +159,25 @@ class ReportController extends AbstractController
             return $this->json([]);
         }
 
-        $players = $em->createQuery(
-            'SELECT p FROM App\Entity\Player p
-             WHERE LOWER(p.firstName) LIKE :q OR LOWER(p.lastName) LIKE :q
-             ORDER BY p.lastName ASC, p.firstName ASC'
-        )
+        $teamsRaw = trim((string) $request->query->get('teams', ''));
+        $teamIds = array_values(array_filter(array_map('intval', '' !== $teamsRaw ? explode(',', $teamsRaw) : []), fn (int $id) => $id > 0));
+
+        $qb = $em->createQueryBuilder()
+            ->select('DISTINCT p')
+            ->from('App\Entity\Player', 'p')
+            ->where('LOWER(p.firstName) LIKE :q OR LOWER(p.lastName) LIKE :q')
             ->setParameter('q', '%' . mb_strtolower($q) . '%')
-            ->setMaxResults(20)
-            ->getResult();
+            ->orderBy('p.lastName', 'ASC')
+            ->addOrderBy('p.firstName', 'ASC')
+            ->setMaxResults(20);
+
+        if ([] !== $teamIds) {
+            $qb->join('p.playerTeamAssignments', 'pta')
+               ->andWhere('pta.team IN (:teamIds)')
+               ->setParameter('teamIds', $teamIds);
+        }
+
+        $players = $qb->getQuery()->getResult();
 
         return $this->json(array_map(static function ($p) {
             $firstAssignment = $p->getPlayerTeamAssignments()->first();

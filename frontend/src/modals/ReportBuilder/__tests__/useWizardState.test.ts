@@ -913,3 +913,187 @@ describe('initialConfig – async player-fetch muss vor step-4 abgeschlossen sei
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Fix-Regression: handleSave muss state.currentReport.config (inkl. hideEmpty /
+// horizontalBar / diagramType-Override) benutzen, NICHT buildConfig() neu aufrufen.
+//
+// Abgedeckt:
+//  – handleSave übergibt state.currentReport.config unverändert an onSave
+//  – hideEmpty=true im currentReport.config landet in onSave-Argument
+//  – horizontalBar=true im currentReport.config landet in onSave-Argument
+//  – diagramType-Override im currentReport.config bleibt erhalten
+//  – handleSave überschreibt nur name (auf reportName); alle anderen Felder von
+//    state.currentReport bleiben erhalten (description, id, isTemplate …)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('handleSave – verwendet state.currentReport statt buildConfig()', () => {
+  /** Bringt den Hook auf Step 4 (Confirm) mit 1 Team (kein Context-Step). */
+  function navigateToConfirm(result: any) {
+    act(() => { result.current.handleSelectSubject('team'); });
+    act(() => { jest.advanceTimersByTime(420); });
+    act(() => { result.current.handleSelectTopic('goals'); });
+    act(() => { jest.advanceTimersByTime(420); });
+    act(() => { result.current.handleSelectTimeRange('season'); });
+    act(() => { jest.advanceTimersByTime(420); });
+    expect(result.current.step).toBe(4);
+  }
+
+  it('gibt state.currentReport.config unverändert an onSave weiter', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+    // Simuliere, dass der Nutzer auf Step 4 hideEmpty aktiviert hat:
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      hideEmpty: true,
+      horizontalBar: true,
+      diagramType: 'bar',
+    } as any;
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    // Direkt nach goToConfirm wird currentReport durch setCurrentReport überschrieben.
+    // Wir simulieren, dass der Nutzer anschliessend hideEmpty/horizontalBar in
+    // state.currentReport gesetzt hat (wie GuidedWizard's confirm-step es tut).
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      hideEmpty: true,
+      horizontalBar: true,
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const saved = onSave.mock.calls[0][0];
+    expect((saved.config as any).hideEmpty).toBe(true);
+    expect((saved.config as any).horizontalBar).toBe(true);
+  });
+
+  it('hideEmpty=true in currentReport.config landet in gespeichertem Report', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    // goToConfirm schreibt fresh config → anschliessend Nutzer-Override
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      hideEmpty: true,
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    expect((saved.config as any).hideEmpty).toBe(true);
+  });
+
+  it('hideEmpty=false (explizit) in currentReport.config landet in gespeichertem Report', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      hideEmpty: false,
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    expect((saved.config as any).hideEmpty).toBe(false);
+  });
+
+  it('horizontalBar=true in currentReport.config landet in gespeichertem Report', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      horizontalBar: true,
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    expect((saved.config as any).horizontalBar).toBe(true);
+  });
+
+  it('diagramType-Override in currentReport.config wird nicht von buildConfig() überschrieben', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    // Nutzer wechselt auf Schritt 4 von doughnut zu line
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      diagramType: 'line',
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.config.diagramType).toBe('line');
+  });
+
+  it('handleSave benutzt reportName aus Hook, nicht aus currentReport.name', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+    state.currentReport.name = 'Alter Name';
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    act(() => { result.current.setReportName('Neuer Name'); });
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.name).toBe('Neuer Name');
+  });
+
+  it('buildConfig() wird bei handleSave NICHT mehr separat aufgerufen (kein frischer config-Build)', async () => {
+    // Verifikation: wenn hideEmpty=true in currentReport.config steht, muss es im
+    // gespeicherten Objekt ankommen – buildConfig() würde es nie setzen und der Wert
+    // wäre undefined/fehlen.
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const state = makeState(1);
+
+    const { result } = renderHook(() =>
+      useWizardState(makeInput({ onSave }, state)),
+    );
+    navigateToConfirm(result);
+
+    state.currentReport.config = {
+      ...state.currentReport.config,
+      hideEmpty: true,
+      horizontalBar: true,
+    } as any;
+
+    await act(async () => { await result.current.handleSave(); });
+
+    const saved = onSave.mock.calls[0][0];
+    // Wenn buildConfig() aufgerufen würde, wären beide Felder undefined
+    expect((saved.config as any).hideEmpty).not.toBeUndefined();
+    expect((saved.config as any).horizontalBar).not.toBeUndefined();
+  });
+});
+

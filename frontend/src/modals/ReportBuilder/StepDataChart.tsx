@@ -11,6 +11,7 @@ import {
   Paper,
   Chip,
   ListSubheader,
+  Divider,
   Switch,
   Tooltip,
   IconButton,
@@ -21,6 +22,160 @@ import SwapVertIcon from '@mui/icons-material/SwapVert';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { ReportBuilderState, FieldOption } from './types';
 import { DIAGRAM_TYPES } from './types';
+
+/** Mini SVG preview + short use-case hint for each chart type, used in the mobile card grid. */
+const DIAGRAM_TYPE_META: Record<string, { svg: React.ReactNode; desc: string }> = {
+  bar: {
+    desc: 'Vergleich',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor">
+        <rect x="3" y="14" width="9" height="16" rx="1" opacity={0.55}/>
+        <rect x="15.5" y="6" width="9" height="24" rx="1"/>
+        <rect x="28" y="10" width="9" height="20" rx="1" opacity={0.75}/>
+      </svg>
+    ),
+  },
+  line: {
+    desc: 'Zeitverlauf',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <polyline points="2,24 10,14 20,22 30,8 38,16" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        {([{cx:2,cy:24},{cx:10,cy:14},{cx:20,cy:22},{cx:30,cy:8},{cx:38,cy:16}] as {cx:number;cy:number}[]).map((p,i) => (
+          <circle key={i} cx={p.cx} cy={p.cy} r="2.5" stroke="none"/>
+        ))}
+      </svg>
+    ),
+  },
+  area: {
+    desc: 'Trend',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <polygon points="2,30 2,24 10,14 20,22 30,8 38,16 38,30" opacity={0.25} stroke="none"/>
+        <polyline points="2,24 10,14 20,22 30,8 38,16" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  stackedarea: {
+    desc: 'Gestapelt',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <polygon points="2,30 2,20 10,16 20,18 30,12 38,14 38,30" opacity={0.45} stroke="none"/>
+        <polygon points="2,20 2,12 10,8 20,10 30,6 38,8 38,14 30,12 20,18 10,16" opacity={0.25} stroke="none"/>
+        <polyline points="2,20 10,16 20,18 30,12 38,14" fill="none" strokeWidth="2" strokeLinecap="round"/>
+        <polyline points="2,12 10,8 20,10 30,6 38,8" fill="none" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  scatter: {
+    desc: 'Korrelation',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor">
+        <circle cx="8" cy="23" r="3"/><circle cx="14" cy="10" r="3"/>
+        <circle cx="22" cy="26" r="3"/><circle cx="28" cy="15" r="3"/>
+        <circle cx="36" cy="8" r="3"/><circle cx="11" cy="28" r="2"/>
+        <circle cx="32" cy="22" r="2"/>
+      </svg>
+    ),
+  },
+  pie: {
+    desc: 'Anteile',
+    svg: (
+      // 3 equal sectors (120° each), center (20,16), r=13
+      // Points: 0°→(33,16)  120°→(13.5,27.3)  240°→(13.5,4.7)
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor">
+        <path d="M20,16 L33,16 A13,13 0 0,1 13.5,27.3 Z"/>
+        <path d="M20,16 L13.5,27.3 A13,13 0 0,1 13.5,4.7 Z" opacity={0.6}/>
+        <path d="M20,16 L13.5,4.7 A13,13 0 0,1 33,16 Z" opacity={0.35}/>
+      </svg>
+    ),
+  },
+  doughnut: {
+    desc: 'Anteile',
+    svg: (
+      // Thick ring (r=11, strokeWidth=7 → outer≈14.5, inner≈7.5)
+      // strokeDasharray "21 2" repeats 3× over circumference≈69 ⇒ 3 equal segments
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="none" stroke="currentColor">
+        <circle cx="20" cy="16" r="11" strokeWidth="7" strokeDasharray="21 2" transform="rotate(-90 20 16)"/>
+      </svg>
+    ),
+  },
+  radar: {
+    desc: 'Profil',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <polygon points="20,2 34,10 34,22 20,30 6,22 6,10" fill="none" strokeWidth="1.5"/>
+        <polygon points="20,7.2 29.6,12.8 29.6,20.8 20,25.6 10.4,20.8 10.4,12.8" fill="none" strokeWidth="0.8" opacity={0.5}/>
+        <line x1="20" y1="2" x2="20" y2="30" strokeWidth="0.8" opacity={0.5}/>
+        <line x1="6" y1="10" x2="34" y2="22" strokeWidth="0.8" opacity={0.5}/>
+        <line x1="6" y1="22" x2="34" y2="10" strokeWidth="0.8" opacity={0.5}/>
+        <polygon points="20,5 31,13 28,22 15,26 8,18 11,9" fillOpacity={0.3} strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
+  radaroverlay: {
+    desc: 'Vergleich',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <polygon points="20,2 34,10 34,22 20,30 6,22 6,10" fill="none" strokeWidth="1.5"/>
+        <line x1="20" y1="2" x2="20" y2="30" strokeWidth="0.8" opacity={0.5}/>
+        <line x1="6" y1="10" x2="34" y2="22" strokeWidth="0.8" opacity={0.5}/>
+        <line x1="6" y1="22" x2="34" y2="10" strokeWidth="0.8" opacity={0.5}/>
+        <polygon points="20,5 31,13 28,22 15,26 8,18 11,9" fillOpacity={0.3} strokeWidth="1.5"/>
+        <polygon points="20,7 29,14 27,21 17,25 9,19 12,10" fillOpacity={0.2} strokeWidth="1.5" strokeDasharray="2 1.5"/>
+      </svg>
+    ),
+  },
+  faceted: {
+    desc: 'Panels',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <rect x="1" y="1" width="17" height="13" rx="1" fill="none" strokeWidth="1"/>
+        <rect x="3" y="8" width="3" height="5" opacity={0.5} stroke="none"/>
+        <rect x="7" y="5" width="3" height="8" stroke="none"/>
+        <rect x="11" y="7" width="3" height="6" opacity={0.75} stroke="none"/>
+        <rect x="22" y="1" width="17" height="13" rx="1" fill="none" strokeWidth="1"/>
+        <rect x="24" y="6" width="3" height="7" opacity={0.5} stroke="none"/>
+        <rect x="28" y="4" width="3" height="9" stroke="none"/>
+        <rect x="32" y="7" width="3" height="6" opacity={0.75} stroke="none"/>
+        <rect x="1" y="17" width="17" height="13" rx="1" fill="none" strokeWidth="1"/>
+        <rect x="3" y="24" width="3" height="5" opacity={0.5} stroke="none"/>
+        <rect x="7" y="21" width="3" height="8" stroke="none"/>
+        <rect x="11" y="23" width="3" height="6" opacity={0.75} stroke="none"/>
+        <rect x="22" y="17" width="17" height="13" rx="1" fill="none" strokeWidth="1"/>
+        <rect x="24" y="21" width="3" height="8" opacity={0.5} stroke="none"/>
+        <rect x="28" y="19" width="3" height="10" stroke="none"/>
+        <rect x="32" y="22" width="3" height="7" opacity={0.75} stroke="none"/>
+      </svg>
+    ),
+  },
+  pitchheatmap: {
+    desc: 'Heatmap',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32}>
+        <ellipse cx="20" cy="16" rx="18" ry="13" fill="currentColor" opacity={0.1}/>
+        <ellipse cx="20" cy="16" rx="13" ry="9" fill="currentColor" opacity={0.2}/>
+        <ellipse cx="20" cy="16" rx="7" ry="5" fill="currentColor" opacity={0.5}/>
+        <ellipse cx="20" cy="16" rx="3" ry="2" fill="currentColor" opacity={0.85}/>
+        <ellipse cx="20" cy="16" rx="18" ry="13" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+        <line x1="2" y1="16" x2="38" y2="16" stroke="currentColor" strokeWidth="0.8" opacity={0.4}/>
+        <rect x="15" y="11" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="0.8" opacity={0.4}/>
+      </svg>
+    ),
+  },
+  boxplot: {
+    desc: 'Verteilung',
+    svg: (
+      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor" stroke="currentColor">
+        <line x1="7" y1="16" x2="13" y2="16" strokeWidth="1.5"/>
+        <line x1="7" y1="12" x2="7" y2="20" strokeWidth="1.5"/>
+        <rect x="13" y="10" width="14" height="12" fillOpacity={0.2} strokeWidth="1.5"/>
+        <line x1="20" y1="10" x2="20" y2="22" strokeWidth="2.5"/>
+        <line x1="27" y1="16" x2="33" y2="16" strokeWidth="1.5"/>
+        <line x1="33" y1="12" x2="33" y2="20" strokeWidth="1.5"/>
+      </svg>
+    ),
+  },
+};
 
 /** Reusable tooltip info icon for field explanations */
 const Tip: React.FC<{ text: string }> = ({ text }) => (
@@ -40,6 +195,52 @@ function splitFields(fields: FieldOption[]) {
   return { dimensions, metrics };
 }
 
+/**
+ * Derive which diagram types are most suitable given the current x/y axis selection.
+ * This gives non-technical users a clear recommendation without limiting their choice.
+ */
+function getRecommendedDiagramTypes(
+  xField: string | undefined,
+  yField: string | undefined,
+  fields: FieldOption[],
+): Set<string> {
+  const rec = new Set<string>();
+  if (!xField || !yField) return rec;
+
+  const TIME_DIM_KEYS = ['month', 'matchday', 'date', 'season', 'year', 'week', 'day'];
+  const xIsTime = TIME_DIM_KEYS.some(k => xField.toLowerCase().includes(k));
+  const xMeta = fields.find(f => f.key === xField);
+  const yMeta = fields.find(f => f.key === yField);
+  const xIsMetric = !!xMeta?.isMetricCandidate;
+  const yIsMetric = !!yMeta?.isMetricCandidate;
+
+  if (xIsTime) {
+    // Time on X → trend charts work best
+    rec.add('line');
+    rec.add('area');
+    rec.add('stackedarea');
+    rec.add('bar');
+  } else if (xIsMetric && yIsMetric) {
+    // Both axes are numeric → scatter / correlation
+    rec.add('scatter');
+    rec.add('bar');
+  } else if (!xIsMetric && yIsMetric) {
+    // Categorical X + metric Y → the most common case
+    rec.add('bar');
+    if (['player', 'team'].includes(xField)) {
+      // Entity-level comparisons also work well as radar/profile
+      rec.add('radar');
+      rec.add('radaroverlay');
+    }
+    // Pie/Donut useful for share comparisons (few groups)
+    rec.add('pie');
+    rec.add('doughnut');
+  } else {
+    rec.add('bar');
+  }
+  return rec;
+}
+
 export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
   const {
     currentReport,
@@ -51,13 +252,29 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
     handleConfigChange,
   } = state;
 
-  const { dimensions, metrics } = splitFields(availableFields);
+  const { dimensions: backendDimensions, metrics } = splitFields(availableFields);
+
+  // 'player' is a special entity-level dimension used by the wizard but not returned
+  // in the backend's event-field list — inject it so the Select always has a valid option.
+  const PLAYER_DIMENSION: FieldOption = { key: 'player', label: 'Spieler', isMetricCandidate: false };
+  const dimensions = backendDimensions.some(f => f.key === 'player')
+    ? backendDimensions
+    : [PLAYER_DIMENSION, ...backendDimensions];
 
   const xField = currentReport.config.xField;
   const yField = currentReport.config.yField;
   const xIsMetric = !!xField && metrics.some(f => f.key === xField);
   // A dimension on Y is valid (e.g. count of event types per player) — only warn when a metric ends up on X
   const axesSwapped = xIsMetric;
+
+  // Recommended diagram types for the current axis configuration
+  const recommendedTypeKeys = getRecommendedDiagramTypes(xField, yField, availableFields);
+  const recDiagramTypes = DIAGRAM_TYPES.filter(dt => recommendedTypeKeys.has(dt.value));
+  const otherDiagramTypes = DIAGRAM_TYPES.filter(dt => !recommendedTypeKeys.has(dt.value));
+
+  /** Hebt ausgewählte Werte in Select-Feldern fett + primärfarbe hervor */
+  const selSx = (val: string | undefined | null) =>
+    val ? { '& .MuiSelect-select': { fontWeight: 600, color: 'primary.main' } } : undefined;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -106,17 +323,24 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             value={currentReport.config.xField ?? ''}
             onChange={(e) => handleConfigChange('xField', e.target.value)}
             label="X-Achse (Gruppierung) *"
+            sx={selSx(currentReport.config.xField)}
           >
             <MenuItem value="">
               <em>— Feld wählen —</em>
             </MenuItem>
-            {dimensions.length > 0 && <ListSubheader>Gruppierung</ListSubheader>}
+            {dimensions.length > 0 && [
+              <Divider key="div-dim" />,
+              <ListSubheader key="hdr-dim" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Gruppierung</ListSubheader>,
+            ]}
             {dimensions
               .filter(f => f.key !== currentReport.config.yField)
               .map(f => (
                 <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
             ))}
-            {metrics.length > 0 && <ListSubheader>Metriken</ListSubheader>}
+            {metrics.length > 0 && [
+              <Divider key="div-met" />,
+              <ListSubheader key="hdr-met" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Metriken</ListSubheader>,
+            ]}
             {metrics
               .filter(f => f.key !== currentReport.config.yField)
               .map(f => (
@@ -155,17 +379,24 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             value={currentReport.config.yField ?? ''}
             onChange={(e) => handleConfigChange('yField', e.target.value)}
             label="Y-Achse (Wert) *"
+            sx={selSx(currentReport.config.yField)}
           >
             <MenuItem value="">
               <em>— Feld wählen —</em>
             </MenuItem>
-            {metrics.length > 0 && <ListSubheader>Metriken</ListSubheader>}
+            {metrics.length > 0 && [
+              <Divider key="div-met" />,
+              <ListSubheader key="hdr-met" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Metriken</ListSubheader>,
+            ]}
             {metrics
               .filter(f => f.key !== currentReport.config.xField)
               .map(f => (
                 <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
             ))}
-            {dimensions.length > 0 && <ListSubheader>Gruppierung</ListSubheader>}
+            {dimensions.length > 0 && [
+              <Divider key="div-dim" />,
+              <ListSubheader key="hdr-dim" sx={{ fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: '32px', color: 'text.primary', bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>Gruppierung</ListSubheader>,
+            ]}
             {dimensions
               .filter(f => f.key !== currentReport.config.xField)
               .map(f => (
@@ -174,6 +405,27 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           </Select>
         </FormControl>
         <Tip text="Die Y-Achse bestimmt den gemessenen Wert – z.B. Anzahl Tore, Vorlagen oder Schüsse. Die Höhe jedes Balkens entspricht diesem Wert." />
+      </Box>
+
+      {/* Gruppierung */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+        <FormControl fullWidth>
+          <InputLabel>Gruppierung (optional)</InputLabel>
+          <Select
+            value={Array.isArray(currentReport.config.groupBy) ? (currentReport.config.groupBy[0] || '') : (currentReport.config.groupBy || '')}
+            onChange={(e) => handleConfigChange('groupBy', e.target.value)}
+            label="Gruppierung (optional)"
+            sx={selSx(Array.isArray(currentReport.config.groupBy) ? (currentReport.config.groupBy[0] || '') : (currentReport.config.groupBy || ''))}
+          >
+            <MenuItem value="">Keine Gruppierung</MenuItem>
+            {dimensions
+              .filter(f => f.key !== currentReport.config.xField)
+              .map((field) => (
+                <MenuItem key={field.key} value={field.key}>{field.label}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Tip text="Fügt eine zweite Unterscheidungsdimension hinzu – z.B. unterschiedlich eingefärbte Balken pro Ereignistyp für jeden Spieler. Ohne Gruppierung gibt es nur eine Datenreihe." />
       </Box>
 
       {/* Chart Type — card grid on mobile, select on desktop */}
@@ -185,70 +437,192 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           </Tooltip>
         </Box>
         {isMobile ? (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-              gap: 1,
-            }}
-          >
-            {DIAGRAM_TYPES.map(dt => (
-              <Paper
-                key={dt.value}
-                variant={currentReport.config.diagramType === dt.value ? 'elevation' : 'outlined'}
-                onClick={() => handleConfigChange('diagramType', dt.value)}
-                sx={{
-                  p: 1.5,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  bgcolor: currentReport.config.diagramType === dt.value ? 'primary.main' : 'background.paper',
-                  color: currentReport.config.diagramType === dt.value ? 'primary.contrastText' : 'text.primary',
-                  border: currentReport.config.diagramType === dt.value ? 2 : 1,
-                  borderColor: currentReport.config.diagramType === dt.value ? 'primary.main' : 'divider',
-                  transition: 'all 0.15s',
-                  '&:active': { transform: 'scale(0.97)' },
-                }}
-              >
-                <Typography variant="body2" fontWeight={currentReport.config.diagramType === dt.value ? 600 : 400}>
-                  {dt.label}
-                </Typography>
-              </Paper>
-            ))}
-          </Box>
+          (() => {
+            const hasRec = recDiagramTypes.length > 0;
+            const renderCard = (dt: typeof DIAGRAM_TYPES[number], dimmed = false) => {
+              const isSelected = currentReport.config.diagramType === dt.value;
+              const meta = DIAGRAM_TYPE_META[dt.value];
+              return (
+                <Paper
+                  key={dt.value}
+                  variant={isSelected ? 'elevation' : 'outlined'}
+                  onClick={() => handleConfigChange('diagramType', dt.value)}
+                  sx={{
+                    p: 1,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    opacity: dimmed && !isSelected ? 0.5 : 1,
+                    bgcolor: isSelected ? 'primary.main' : 'background.paper',
+                    color: isSelected ? 'primary.contrastText' : 'text.primary',
+                    border: 2,
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    transition: 'all 0.15s',
+                    '&:active': { transform: 'scale(0.97)' },
+                  }}
+                >
+                  {meta && (
+                    <Box sx={{ color: isSelected ? 'primary.contrastText' : dimmed ? 'text.disabled' : 'primary.main', lineHeight: 0 }}>
+                      {meta.svg}
+                    </Box>
+                  )}
+                  <Typography
+                    variant="caption"
+                    fontWeight={isSelected ? 600 : 400}
+                    display="block"
+                    sx={{ lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
+                  >
+                    {dt.label}
+                  </Typography>
+                  {meta && (
+                    <Typography variant="caption" display="block" sx={{ fontSize: '0.65rem', opacity: 0.7, lineHeight: 1 }}>
+                      {meta.desc}
+                    </Typography>
+                  )}
+                </Paper>
+              );
+            };
+
+            if (!hasRec) {
+              return (
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 1 }}>
+                  {DIAGRAM_TYPES.map(dt => renderCard(dt))}
+                </Box>
+              );
+            }
+
+            return (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Empfohlen für deine Einstellungen
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 1 }}>
+                    {recDiagramTypes.map(dt => renderCard(dt))}
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.75, fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Weitere Typen
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 1 }}>
+                    {otherDiagramTypes.map(dt => renderCard(dt, true))}
+                  </Box>
+                </Box>
+              </Box>
+            );
+          })()
         ) : (
           <FormControl fullWidth>
-            <InputLabel>Chart Typ</InputLabel>
+            <InputLabel>Chart-Typ</InputLabel>
             <Select
               value={currentReport.config.diagramType ?? 'bar'}
               onChange={(e) => handleConfigChange('diagramType', e.target.value)}
-              label="Chart Typ"
+              label="Chart-Typ"
+              renderValue={(value) => {
+                const dt = DIAGRAM_TYPES.find(d => d.value === value);
+                const meta = DIAGRAM_TYPE_META[value as string];
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {meta && (
+                      <Box sx={{ flexShrink: 0, color: 'primary.main', lineHeight: 0, '& svg': { width: 28, height: 22 } }}>
+                        {meta.svg}
+                      </Box>
+                    )}
+                    <Typography variant="body2" component="span">
+                      {dt?.label ?? String(value)}
+                    </Typography>
+                  </Box>
+                );
+              }}
             >
-              {DIAGRAM_TYPES.map(dt => (
-                <MenuItem key={dt.value} value={dt.value}>{dt.label}</MenuItem>
-              ))}
+              {/* Empfohlene Typen — abhängig von der X-/Y-Achsen-Konfiguration */}
+              {recDiagramTypes.length > 0 && (
+                <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                  Empfohlen für diese Konfiguration
+                </ListSubheader>
+              )}
+              {recDiagramTypes.map(dt => {
+                const meta = DIAGRAM_TYPE_META[dt.value];
+                return (
+                  <MenuItem key={dt.value} value={dt.value} sx={{ py: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      {meta && (
+                        <Box sx={{ flexShrink: 0, color: 'primary.main', lineHeight: 0 }}>
+                          {meta.svg}
+                        </Box>
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={600}>{dt.label}</Typography>
+                        {meta && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {meta.desc}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+
+              {/* Weitere Typen */}
+              {otherDiagramTypes.length > 0 && recDiagramTypes.length > 0 && (
+                <ListSubheader sx={{ lineHeight: '28px', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                  Weitere Typen
+                </ListSubheader>
+              )}
+              {otherDiagramTypes.map(dt => {
+                const meta = DIAGRAM_TYPE_META[dt.value];
+                return (
+                  <MenuItem key={dt.value} value={dt.value} sx={{ py: 0.75 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      {meta && (
+                        <Box sx={{ flexShrink: 0, color: 'text.disabled', lineHeight: 0 }}>
+                          {meta.svg}
+                        </Box>
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" color="text.secondary">{dt.label}</Typography>
+                        {meta && (
+                          <Typography variant="caption" color="text.disabled" display="block">
+                            {meta.desc}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
+
+              {/* Keine Empfehlung: alle Typen gleichwertig anzeigen */}
+              {recDiagramTypes.length === 0 && DIAGRAM_TYPES.map(dt => {
+                const meta = DIAGRAM_TYPE_META[dt.value];
+                return (
+                  <MenuItem key={dt.value} value={dt.value} sx={{ py: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                      {meta && (
+                        <Box sx={{ flexShrink: 0, color: 'primary.main', lineHeight: 0 }}>
+                          {meta.svg}
+                        </Box>
+                      )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2">{dt.label}</Typography>
+                        {meta && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {meta.desc}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
         )}
-      </Box>
-
-      {/* Gruppierung */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-        <FormControl fullWidth>
-          <InputLabel>Gruppierung (optional)</InputLabel>
-          <Select
-            value={Array.isArray(currentReport.config.groupBy) ? (currentReport.config.groupBy[0] || '') : (currentReport.config.groupBy || '')}
-            onChange={(e) => handleConfigChange('groupBy', e.target.value)}
-            label="Gruppierung (optional)"
-          >
-            <MenuItem value="">Keine Gruppierung</MenuItem>
-            {dimensions
-              .filter(f => f.key !== currentReport.config.xField)
-              .map((field) => (
-                <MenuItem key={field.key} value={field.key}>{field.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Tip text="Fügt eine zweite Unterscheidungsdimension hinzu – z.B. unterschiedlich eingefärbte Balken pro Ereignistyp für jeden Spieler. Ohne Gruppierung gibt es nur eine Datenreihe." />
       </Box>
 
       {/* Facet-By selector for faceted charts */}

@@ -25,7 +25,7 @@
  *   – Lehnt unbekannte diagramType / xField / yField ab
  */
 
-import { buildConfig, reverseMapWizardConfig, isWizardCompatible } from '../wizardLogic';
+import { buildConfig, reverseMapWizardConfig, isWizardCompatible, buildName } from '../wizardLogic';
 
 // ── Hilfskonstante ────────────────────────────────────────────────────────────
 
@@ -109,6 +109,14 @@ describe('buildConfig — diagramType', () => {
     expect(cfg.groupBy).toBe('team');
   });
 
+  it('player_comparison + trend → line, xField=month, groupBy=player, showLegend', () => {
+    const cfg = buildConfig('player_comparison', 'trend', 'all', NO_DATES);
+    expect(cfg.diagramType).toBe('line');
+    expect(cfg.xField).toBe('month');
+    expect(cfg.groupBy).toBe('player');
+    expect(cfg.showLegend).toBe(true);
+  });
+
   it('player + minutesPlayed → bar by month, yField=minutesPlayed', () => {
     const cfg = buildConfig('player', 'minutesPlayed', 'all', NO_DATES);
     expect(cfg.diagramType).toBe('bar');
@@ -187,9 +195,10 @@ describe('buildConfig — Zeitfilter', () => {
     expect(cfg.filters?.dateFrom).toBeUndefined();
   });
 
-  it('timeRange=season → dateFrom enthält YYYY-08-01 oder YYYY-07-01 Muster', () => {
+  it('timeRange=season → setzt seasonFilter="current" (kein festes Datum)', () => {
     const cfg = buildConfig('player', 'goals', 'season', NO_DATES);
-    expect(cfg.filters?.dateFrom).toMatch(/^\d{4}-0[78]-01$/);
+    expect(cfg.filters?.seasonFilter).toBe('current');
+    expect(cfg.filters?.dateFrom).toBeUndefined();
     expect(cfg.filters?.dateTo).toBeUndefined();
   });
 
@@ -370,6 +379,16 @@ describe('reverseMapWizardConfig — Topic-Erkennung', () => {
     );
     expect(r?.topic).toBe('distance');
   });
+
+  it('xField=month + filters.players → subject=player_comparison, topic=trend', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ xField: 'month', diagramType: 'line', groupBy: 'player', filters: { players: '3,5' } }),
+      NO_DATES,
+    );
+    expect(r?.subject).toBe('player_comparison');
+    expect(r?.topic).toBe('trend');
+    expect(r?.comparisonPlayerIds).toEqual([3, 5]);
+  });
 });
 
 describe('reverseMapWizardConfig — TimeRange-Erkennung', () => {
@@ -394,7 +413,23 @@ describe('reverseMapWizardConfig — TimeRange-Erkennung', () => {
     expect(r?.timeRange).toBe('last10');
   });
 
-  it('nur dateFrom mit YYYY-08-01-Muster → season', () => {
+  it('seasonFilter="current" → timeRange=season', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ filters: { seasonFilter: 'current' } }),
+      NO_DATES,
+    );
+    expect(r?.timeRange).toBe('season');
+  });
+
+  it('seasonFilter="2024" (feste Saison) → timeRange=season', () => {
+    const r = reverseMapWizardConfig(
+      cfg({ filters: { seasonFilter: '2024' } }),
+      NO_DATES,
+    );
+    expect(r?.timeRange).toBe('season');
+  });
+
+  it('nur dateFrom mit YYYY-08-01-Muster → season (Backward-Compat)', () => {
     const r = reverseMapWizardConfig(
       cfg({ filters: { dateFrom: '2024-08-01' } }),
       NO_DATES,
@@ -402,7 +437,7 @@ describe('reverseMapWizardConfig — TimeRange-Erkennung', () => {
     expect(r?.timeRange).toBe('season');
   });
 
-  it('nur dateFrom mit YYYY-07-01-Muster → season', () => {
+  it('nur dateFrom mit YYYY-07-01-Muster → season (Backward-Compat)', () => {
     const r = reverseMapWizardConfig(
       cfg({ filters: { dateFrom: '2024-07-01' } }),
       NO_DATES,
@@ -499,4 +534,89 @@ describe('isWizardCompatible', () => {
   it('scatter → nicht kompatibel', () => no({ diagramType: 'scatter' }));
   it('unbekanntes xField → nicht kompatibel', () => no({ xField: 'event_type' }));
   it('bar + player + duelsWonPercent → nicht kompatibel (kein Wizard-Thema)', () => no({ yField: 'duelsWonPercent' }));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildName
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildName — ohne contextLabel', () => {
+  it('player + goals + all → "Spieler: Tore"', () => {
+    expect(buildName('player', 'goals', 'all')).toBe('Spieler: Tore');
+  });
+
+  it('player + assists + all → "Spieler: Vorlagen"', () => {
+    expect(buildName('player', 'assists', 'all')).toBe('Spieler: Vorlagen');
+  });
+
+  it('player + cards + all → "Spieler: Karten"', () => {
+    expect(buildName('player', 'cards', 'all')).toBe('Spieler: Karten');
+  });
+
+  it('player + trend + all → "Spieler: Saisonverlauf"', () => {
+    expect(buildName('player', 'trend', 'all')).toBe('Spieler: Saisonverlauf');
+  });
+
+  it('player + overview + all → "Spieler: Stärken-Profil"', () => {
+    expect(buildName('player', 'overview', 'all')).toBe('Spieler: Stärken-Profil');
+  });
+
+  it('player + minutesPlayed + all → "Spieler: Spielminuten"', () => {
+    expect(buildName('player', 'minutesPlayed', 'all')).toBe('Spieler: Spielminuten');
+  });
+
+  it('player + distance + all → "Spieler: Laufleistung"', () => {
+    expect(buildName('player', 'distance', 'all')).toBe('Spieler: Laufleistung');
+  });
+
+  it('team + goals + all → "Mannschaft: Tore"', () => {
+    expect(buildName('team', 'goals', 'all')).toBe('Mannschaft: Tore');
+  });
+
+  it('team_comparison + goals + all → "Vergleich: Tore"', () => {
+    expect(buildName('team_comparison', 'goals', 'all')).toBe('Vergleich: Tore');
+  });
+
+  it('player_comparison + overview + all → "Spielervergleich: Stärken-Profil"', () => {
+    expect(buildName('player_comparison', 'overview', 'all')).toBe('Spielervergleich: Stärken-Profil');
+  });
+});
+
+describe('buildName — timeRange-Suffix', () => {
+  it('timeRange=season → Suffix "(aktuelle Saison)"', () => {
+    expect(buildName('player', 'goals', 'season')).toBe('Spieler: Tore (aktuelle Saison)');
+  });
+
+  it('timeRange=last10 → Suffix "(letzte 10 Spiele)"', () => {
+    expect(buildName('team', 'trend', 'last10')).toBe('Mannschaft: Saisonverlauf (letzte 10 Spiele)');
+  });
+
+  it('timeRange=last_month → Suffix "(letzter Monat)"', () => {
+    expect(buildName('player_comparison', 'overview', 'last_month')).toBe('Spielervergleich: Stärken-Profil (letzter Monat)');
+  });
+
+  it('timeRange=all → kein Suffix', () => {
+    expect(buildName('player', 'goals', 'all')).toBe('Spieler: Tore');
+    // kein trailing Leerzeichen, kein "()"
+    expect(buildName('player', 'goals', 'all')).not.toContain('(');
+  });
+});
+
+describe('buildName — mit contextLabel', () => {
+  it('contextLabel ersetzt subjectLabel', () => {
+    expect(buildName('player', 'goals', 'all', 'Max Mustermann')).toBe('Max Mustermann: Tore');
+  });
+
+  it('contextLabel mit timeRange', () => {
+    expect(buildName('player', 'goals', 'season', 'Max')).toBe('Max: Tore (aktuelle Saison)');
+  });
+
+  it('contextLabel für team_comparison', () => {
+    expect(buildName('team_comparison', 'trend', 'last10', 'U17 vs U19')).toBe('U17 vs U19: Saisonverlauf (letzte 10 Spiele)');
+  });
+
+  it('leerer contextLabel → fällt auf subjectLabel zurück (falsy)', () => {
+    // '' ist falsy → `contextLabel || subjectLabel[subject]` → subjectLabel
+    expect(buildName('player', 'goals', 'all', '')).toBe('Spieler: Tore');
+  });
 });
