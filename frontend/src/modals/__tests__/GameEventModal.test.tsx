@@ -515,3 +515,202 @@ describe('GameEventModal – Title & form modes', () => {
     sessionStorage.removeItem(`kb_evt_last_100`);
   });
 });
+
+// ── Coach / Trainer-Unterstützung ─────────────────────────────────────────────
+
+describe('GameEventModal – Trainer-Unterstützung', () => {
+  const { createGameEvent, updateGameEvent } = require('../../services/games') as {
+    createGameEvent: jest.Mock;
+    updateGameEvent: jest.Mock;
+  };
+
+  const mockSquadWithCoach = {
+    squad: [{ id: 1, fullName: 'Max Muster', shirtNumber: 7, teamId: HOME_TEAM_ID }],
+    allPlayers: [{ id: 1, fullName: 'Max Muster', shirtNumber: 7, teamId: HOME_TEAM_ID }],
+    coaches: [{ id: 10, fullName: 'Test Trainer', teamId: HOME_TEAM_ID }],
+    hasParticipationData: true,
+  };
+
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterAll(() => {
+    (console.error as jest.Mock).mockRestore();
+    (console.warn as jest.Mock).mockRestore();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fetchGameEventTypes as jest.Mock).mockResolvedValue([]);
+    (fetchSubstitutionReasons as jest.Mock).mockResolvedValue([]);
+    (fetchGameSquad as jest.Mock).mockResolvedValue(mockSquadWithCoach);
+  });
+
+  /** Hilfsfunktion: Team auswählen und warten bis Kader geladen */
+  async function selectHomeTeam() {
+    await waitFor(() => expect(fetchGameSquad).toHaveBeenCalled());
+    const comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[0]); });
+    const listbox = await waitFor(() => screen.getByRole('listbox'));
+    const homeOption = Array.from(listbox.querySelectorAll('[role="option"]')).find(
+      el => el.textContent?.includes('FC Home'),
+    );
+    if (homeOption) await act(async () => { fireEvent.click(homeOption); });
+    // Warte bis listbox schließt
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+  }
+
+  it('zeigt "Spieler" und "Trainer" ToggleButtons wenn Team ausgewählt', async () => {
+    await act(async () => {
+      render(<GameEventModal {...defaultProps} existingEvent={existingEventWithHomeTeam} />);
+    });
+
+    await waitFor(() => expect(fetchGameSquad).toHaveBeenCalled());
+
+    expect(screen.getAllByText('Spieler').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Trainer').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('Spieler-Dropdown ist sichtbar wenn personType=player (Standard)', async () => {
+    await act(async () => {
+      render(<GameEventModal {...defaultProps} existingEvent={existingEventWithHomeTeam} />);
+    });
+
+    await waitFor(() => expect(fetchGameSquad).toHaveBeenCalled());
+
+    // Im Player-Modus: mindestens ein combobox vorhanden (Team + Spieler)
+    const comboboxes = screen.getAllByRole('combobox');
+    expect(comboboxes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('Trainer-Dropdown erscheint nach Klick auf "Trainer" Toggle', async () => {
+    await act(async () => {
+      render(<GameEventModal {...defaultProps} existingEvent={existingEventWithHomeTeam} />);
+    });
+
+    await waitFor(() => expect(screen.getByText('Trainer')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Trainer'));
+    });
+
+    // "Test Trainer" sollte nun als auswählbare Option erscheinen (nach Öffnen des Dropdowns)
+    const comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[comboboxes.length - 1]); });
+
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(screen.getByText('Test Trainer')).toBeInTheDocument();
+    });
+  });
+
+  it('Speichern-Button ist deaktiviert wenn Trainer-Modus aber kein Trainer gewählt', async () => {
+    const yellowEventType = { id: 2, name: 'Gelbe Karte', code: 'yellow_card' };
+    (fetchGameEventTypes as jest.Mock).mockResolvedValue([yellowEventType]);
+
+    await act(async () => {
+      render(<GameEventModal {...defaultProps} existingEvent={existingEventWithHomeTeam} />);
+    });
+
+    await waitFor(() => expect(screen.getByText('Trainer')).toBeInTheDocument());
+
+    // Trainer-Toggle aktivieren
+    await act(async () => { fireEvent.click(screen.getByText('Trainer')); });
+
+    // Ereignistyp wählen
+    const comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[1]); });
+    const listbox = await waitFor(() => screen.getByRole('listbox'));
+    const yellowOption = Array.from(listbox.querySelectorAll('[role="option"]')).find(
+      el => el.textContent?.includes('Gelbe Karte'),
+    );
+    if (yellowOption) await act(async () => { fireEvent.click(yellowOption); });
+
+    // Kein Trainer ausgewählt → Button disabled
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Speichern/i })).toBeDisabled();
+    });
+  });
+
+  // ── Regression: personType-Reset beim Wiederoeffnen ────────────────────
+
+  it('wechselt zu Trainer-Tab wenn Modal nach handleClose mit Coach-Event erneut geoeffnet wird', async () => {
+    const coachEvent: any = {
+      id: 5,
+      teamId: HOME_TEAM_ID,
+      typeId: 2,
+      minute: '20',
+      description: '',
+      coachId: 10,
+    };
+
+    const { rerender } = await act(async () =>
+      render(<GameEventModal {...defaultProps} existingEvent={null} />)
+    );
+
+    // Schliessen (open=false simuliert handleClose-Effekt inkl. personType-Reset)
+    await act(async () => {
+      rerender(<GameEventModal {...defaultProps} open={false} existingEvent={null} />);
+    });
+
+    // Erneut oeffnen mit Coach-Event
+    await act(async () => {
+      rerender(<GameEventModal {...defaultProps} open={true} existingEvent={coachEvent} />);
+    });
+
+    await waitFor(() => expect(fetchGameSquad).toHaveBeenCalled());
+
+    // Der Trainer-Toggle muss aktiv sein
+    const trainerButton = screen.getByRole('button', { name: 'Trainer' });
+    expect(trainerButton).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('Teamwechsel setzt Trainer-Auswahl zurück', async () => {
+    const coachHome = { id: 10, fullName: 'Trainer Heim', teamId: HOME_TEAM_ID };
+    const coachAway = { id: 20, fullName: 'Trainer Gast', teamId: AWAY_TEAM_ID };
+    (fetchGameSquad as jest.Mock).mockResolvedValue({
+      squad: [],
+      allPlayers: [],
+      coaches: [coachHome, coachAway],
+      hasParticipationData: false,
+    });
+
+    await act(async () => {
+      render(<GameEventModal {...defaultProps} existingEvent={existingEventWithHomeTeam} />);
+    });
+
+    await waitFor(() => expect(fetchGameSquad).toHaveBeenCalled());
+    await act(async () => { fireEvent.click(screen.getByText('Trainer')); });
+
+    // Trainer für Heim wählen
+    let comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[comboboxes.length - 1]); });
+    let listbox = await waitFor(() => screen.getByRole('listbox'));
+    const trainerOption = Array.from(listbox.querySelectorAll('[role="option"]')).find(
+      el => el.textContent?.includes('Trainer Heim'),
+    );
+    if (trainerOption) await act(async () => { fireEvent.click(trainerOption); });
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+
+    // Jetzt Team wechseln → Trainer-Auswahl soll zurückgesetzt sein
+    comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[0]); });
+    listbox = await waitFor(() => screen.getByRole('listbox'));
+    const awayOption = Array.from(listbox.querySelectorAll('[role="option"]')).find(
+      el => el.textContent?.includes('SC Away'),
+    );
+    if (awayOption) await act(async () => { fireEvent.click(awayOption); });
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+
+    // Trainer-Dropdown öffnen – Trainer Heim darf nicht mehr ausgewählt sein
+    comboboxes = screen.getAllByRole('combobox');
+    await act(async () => { fireEvent.mouseDown(comboboxes[comboboxes.length - 1]); });
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      // Trainer Heim erscheint nicht in Gast-Liste
+      expect(screen.queryByText('Trainer Heim')).not.toBeInTheDocument();
+      expect(screen.getByText('Trainer Gast')).toBeInTheDocument();
+    });
+  });
+});

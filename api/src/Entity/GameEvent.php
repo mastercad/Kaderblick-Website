@@ -66,6 +66,12 @@ class GameEvent
     #[MaxDepth(1)]
     private ?SubstitutionReason $substitutionReason = null;
 
+    #[Groups(['game_event:read', 'game_event:write'])]
+    #[ORM\ManyToOne(targetEntity: Coach::class)]
+    #[ORM\JoinColumn(name: 'coach_id', referencedColumnName: 'id', nullable: true)]
+    #[MaxDepth(1)]
+    private ?Coach $coach = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -167,6 +173,18 @@ class GameEvent
         return $this;
     }
 
+    public function getCoach(): ?Coach
+    {
+        return $this->coach;
+    }
+
+    public function setCoach(?Coach $coach): self
+    {
+        $this->coach = $coach;
+
+        return $this;
+    }
+
     // Hilfsmethoden für Ein-/Auswechslungen
     public function isSubstitution(): bool
     {
@@ -189,6 +207,8 @@ class GameEvent
 
         if ($this->player) {
             $output .= ' - ' . $this->player->__toString();
+        } elseif ($this->coach) {
+            $output .= ' - Trainer: ' . $this->coach->getFullName();
         }
 
         $output .= ' (' . $this->timestamp->format('H:i') . ' Uhr)';

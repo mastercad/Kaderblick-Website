@@ -52,6 +52,8 @@ export interface WizardStateReturn {
   isMobile: boolean;
   // Derived
   teams: { id: number; name: string }[];
+  linkedTeams: { id: number; name: string }[];
+  linkedPlayers: { id: number; fullName: string; teamName?: string | null; isSelf: boolean; type?: 'player' | 'coach' }[];
   topicOptions: WizardOption<Topic>[];
   contextStepCanContinue: boolean;
   // Handlers
@@ -99,6 +101,8 @@ export function useWizardState({
   const { builderData, setCurrentReport } = state;
   const availableDates = builderData?.availableDates ?? [];
   const teams = useMemo(() => builderData?.teams ?? [], [builderData]);
+  const linkedTeams = useMemo(() => builderData?.linkedTeams ?? [], [builderData]);
+  const linkedPlayers = useMemo(() => builderData?.linkedPlayers ?? [], [builderData]);
   const topicOptions: WizardOption<Topic>[] = subject ? TOPIC_OPTIONS[subject] : [];
 
   // Whether the context step is relevant (skip if no meaningful choices available)
@@ -193,9 +197,18 @@ export function useWizardState({
   }, [initialConfig, builderData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Debounced player search ────────────────────────────────────────────────
+  // Keep a ref so the effect always sees the latest linkedPlayers without
+  // depending on it – avoids infinite-loop when the parent recreates state.
+  const linkedPlayersRef = useRef(linkedPlayers);
+  linkedPlayersRef.current = linkedPlayers;
+
   useEffect(() => {
     if (playerSearchInput.length < 2) {
-      setPlayerSearchOptions([]);
+      // Show linked players in dropdown when no search text entered
+      const opts = playerSearchInput.length === 0
+        ? linkedPlayersRef.current.map(p => ({ id: p.id, fullName: p.fullName, teamName: p.teamName ?? null, type: p.type }))
+        : [];
+      setPlayerSearchOptions(opts);
       return;
     }
     setPlayerSearchLoading(true);
@@ -209,7 +222,7 @@ export function useWizardState({
       clearTimeout(timer);
       setPlayerSearchLoading(false);
     };
-  }, [playerSearchInput]);
+  }, [playerSearchInput]); // linkedPlayers via ref – stable dep
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -257,10 +270,29 @@ export function useWizardState({
     setSelectedComparisonTeams([]);
     setSelectedComparisonPlayers([]);
     setPlayerSearchInput('');
-    setPlayerSearchOptions([]);
+    setPlayerSearchOptions(linkedPlayers.map(p => ({ id: p.id, fullName: p.fullName, teamName: p.teamName ?? null, type: p.type })));
+
+    // Pre-select: 1 linked → use it; multiple → prefer isSelf
+    const defaultPlayer = linkedPlayers.length === 1
+      ? linkedPlayers[0]
+      : (linkedPlayers.find(p => p.isSelf) ?? null);
+    const defaultTeam = linkedTeams.length === 1
+      ? linkedTeams[0]
+      : (linkedTeams.find(t => defaultPlayer && t.name === defaultPlayer.teamName) ?? null);
+
+    if ((val === 'player' || val === 'player_comparison') && defaultPlayer) {
+      const opt = { id: defaultPlayer.id, fullName: defaultPlayer.fullName, teamName: defaultPlayer.teamName ?? null, type: defaultPlayer.type };
+      if (val === 'player') setSelectedPlayer(opt);
+      else setSelectedComparisonPlayers([opt]);
+    }
+    if ((val === 'team' || val === 'team_comparison') && defaultTeam) {
+      if (val === 'team') setSelectedTeam(defaultTeam);
+      else setSelectedComparisonTeams([defaultTeam.id]);
+    }
+
     const t = autoAdvance(val, null, null, 0);
     return () => clearTimeout(t);
-  }, [autoAdvance]);
+  }, [autoAdvance, linkedPlayers, linkedTeams]);
 
   const handleSelectTopic = useCallback((val: Topic) => {
     setTopic(val);
@@ -314,6 +346,8 @@ export function useWizardState({
     nameRef,
     isMobile,
     teams,
+    linkedTeams,
+    linkedPlayers,
     topicOptions,
     contextStepCanContinue,
     hasContextStep,

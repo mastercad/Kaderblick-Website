@@ -125,7 +125,7 @@ class ReportController extends AbstractController
 
         /** @var User $user */
         $user = $this->getUser();
-        $defaultTeamId = $this->coachTeamPlayerService->resolveDefaultTeamId($user);
+        $linkedContext = $this->coachTeamPlayerService->resolveLinkedContext($user);
 
         $response = $this->json([
             'fields' => $fields,
@@ -139,7 +139,8 @@ class ReportController extends AbstractController
             'availableDates' => $availableDates,
             'minDate' => $minDate,
             'maxDate' => $maxDate,
-            'defaultTeamId' => $defaultTeamId,
+            'linkedTeams' => $linkedContext['linkedTeams'],
+            'linkedPlayers' => $linkedContext['linkedPlayers'],
         ]);
         // Cache for 5 minutes — event types, teams and dates change rarely
         $response->setMaxAge(300)->setPrivate();

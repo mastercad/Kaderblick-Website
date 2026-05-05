@@ -67,4 +67,6 @@ export interface ReportBuilderData {
   minDate: string;
   maxDate: string;
   presets?: Preset[];
+  linkedTeams?: { id: number; name: string }[];
+  linkedPlayers?: { id: number; fullName: string; teamName?: string | null; isSelf: boolean; type?: 'player' | 'coach' }[];
 }

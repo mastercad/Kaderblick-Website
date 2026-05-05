@@ -59,6 +59,8 @@ function getEventMeta(e: any, gameStartDate: string | null) {
     playerDisplay = e.player;
   } else if (e.player && typeof e.player === 'object') {
     playerDisplay = `${e.player.firstName ?? ''} ${e.player.lastName ?? ''}`.trim();
+  } else if (!e.player && typeof e.coach === 'string' && e.coach) {
+    playerDisplay = e.coach;
   }
 
   if (e.minute) {

@@ -29,6 +29,8 @@ export interface BuilderData {
   maxDate: string;
   /** ID des Teams, dem der aktuelle User primär zugeordnet ist. Dient als Default-Filter. */
   defaultTeamId?: number | null;
+  linkedTeams?: Array<{ id: number; name: string }>;
+  linkedPlayers?: Array<{ id: number; fullName: string; teamName?: string | null; isSelf: boolean; type?: 'player' | 'coach' }>;
 }
 
 /* ───────────────────────── Report ───────────────────────── */
@@ -45,7 +47,7 @@ export interface ReportConfig {
   diagramType: string;
   xField: string;
   yField: string;
-  groupBy?: string;
+  groupBy?: string | string[];
   facetBy?: string;
   facetSubType?: 'bar' | 'radar' | 'area' | 'line';
   facetTranspose?: boolean;
@@ -54,7 +56,6 @@ export interface ReportConfig {
   movingAverage?: { enabled: boolean; window: number; method?: 'mean' | 'median' };
   heatmapStyle?: string;
   heatmapSpatial?: boolean;
-  use_db_aggregates?: boolean;
   radarNormalize?: boolean;
   /** When true: activates cross-product radar mode — axes = xField × metrics, layers = groupBy. */
   crossAxes?: boolean;
@@ -166,7 +167,6 @@ export const DEFAULT_REPORT: Report = {
     diagramType: 'bar',
     xField: '',
     yField: '',
-    use_db_aggregates: false,
     groupBy: undefined,
     metrics: [],
     movingAverage: { enabled: false, window: 3, method: 'mean' },

@@ -164,18 +164,5 @@ describe('DesktopLayout – Tabs', () => {
 // =============================================================================
 //  Hilfe-Button onClick
 // =============================================================================
-
-describe('DesktopLayout – Hilfe-Button', () => {
-  it('ruft setHelpOpen(true) auf beim Klick auf den Hilfe-Button', () => {
-    const state = makeState('player');
-    render(<DesktopLayout state={state} />);
-
-    // Der Hilfe-Button befindet sich in der Box neben dem "Vorschau"-Heading
-    const vorschauHeading = screen.getByText('Vorschau');
-    const helpButton = vorschauHeading.closest('div')?.querySelector('button');
-    expect(helpButton).toBeDefined();
-    fireEvent.click(helpButton!);
-
-    expect(state.setHelpOpen).toHaveBeenCalledWith(true);
-  });
-});
+// Der Hilfe-Button neben "Vorschau" wurde entfernt (enthielt nur interne Heatmap-Infos).
+// Es gibt keinen Click-Handler mehr — kein Test nötig.

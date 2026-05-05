@@ -197,6 +197,99 @@ class CoachTeamPlayerService
     }
 
     /**
+     * Liefert alle mit dem User verknüpften Spieler und Teams für die Wizard-Vorauswahl.
+     *
+     * linkedPlayers: alle Spieler aus beliebigen UserRelations (z.B. self_player, Freund, Elternteil).
+     *               isSelf=true, wenn der RelationType-Identifier "self_player" ist.
+     *               Sortiert: self_player zuerst.
+     * linkedTeams:  alle Teams aus aktiven self_player- und self_coach-Relations, dedupliziert.
+     *
+     * @return array{linkedPlayers: list<array{id: int, fullName: string, teamName: string|null, isSelf: bool}>, linkedTeams: list<array{id: int, name: string}>}
+     */
+    public function resolveLinkedContext(User $user): array
+    {
+        $linkedPlayers = [];
+        $addedPlayerIds = [];
+        $linkedTeams = [];
+        $addedTeamIds = [];
+
+        foreach ($user->getUserRelations() as $relation) {
+            $identifier = $relation->getRelationType()->getIdentifier();
+
+            if ($player = $relation->getPlayer()) {
+                $isSelf = 'self_player' === $identifier;
+                $playerId = $player->getId();
+
+                if (null !== $playerId && !isset($addedPlayerIds[$playerId])) {
+                    $addedPlayerIds[$playerId] = true;
+
+                    $teamName = null;
+                    foreach ($player->getPlayerTeamAssignments() as $pta) {
+                        if ($this->isCurrentAssignment($pta->getStartDate(), $pta->getEndDate())) {
+                            $teamName = $pta->getTeam()->getName();
+                            break;
+                        }
+                    }
+
+                    $linkedPlayers[] = [
+                        'id' => $playerId,
+                        'fullName' => $player->getFullName(),
+                        'teamName' => $teamName,
+                        'isSelf' => $isSelf,
+                    ];
+                }
+
+                foreach ($player->getPlayerTeamAssignments() as $pta) {
+                    if ($this->isCurrentAssignment($pta->getStartDate(), $pta->getEndDate())) {
+                        $teamId = $pta->getTeam()->getId();
+                        if (null !== $teamId && !isset($addedTeamIds[$teamId])) {
+                            $addedTeamIds[$teamId] = true;
+                            $linkedTeams[] = ['id' => $teamId, 'name' => $pta->getTeam()->getName()];
+                        }
+                    }
+                }
+            }
+
+            if ($coach = $relation->getCoach()) {
+                if ('self_coach' === $identifier) {
+                    $coachId = $coach->getId();
+                    $coachTeamName = null;
+                    foreach ($coach->getCoachTeamAssignments() as $cta) {
+                        if ($this->isCurrentAssignment($cta->getStartDate(), $cta->getEndDate())) {
+                            $teamId = $cta->getTeam()->getId();
+                            if (null !== $teamId && !isset($addedTeamIds[$teamId])) {
+                                $addedTeamIds[$teamId] = true;
+                                $linkedTeams[] = ['id' => $teamId, 'name' => $cta->getTeam()->getName()];
+                            }
+                            if (null === $coachTeamName) {
+                                $coachTeamName = $cta->getTeam()->getName();
+                            }
+                        }
+                    }
+
+                    if (null !== $coachId && !isset($addedPlayerIds['coach_' . $coachId])) {
+                        $addedPlayerIds['coach_' . $coachId] = true;
+                        $linkedPlayers[] = [
+                            'id' => $coachId,
+                            'fullName' => $coach->getFullName(),
+                            'teamName' => $coachTeamName,
+                            'isSelf' => true,
+                            'type' => 'coach',
+                        ];
+                    }
+                }
+            }
+        }
+
+        usort($linkedPlayers, fn ($a, $b) => (int) $b['isSelf'] <=> (int) $a['isSelf']);
+
+        return [
+            'linkedPlayers' => $linkedPlayers,
+            'linkedTeams' => $linkedTeams,
+        ];
+    }
+
+    /**
      * Ermittelt die Coach-Entität eines Users, falls vorhanden.
      */
     public function resolveUserCoach(User $user): ?Coach

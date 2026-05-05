@@ -467,6 +467,8 @@ class GamesController extends ApiController
                 ] : null,
                 'timestamp' => $event->getTimestamp()?->format('c'),
                 'description' => $event->getDescription(),
+                'coach' => $event->getCoach()?->getFullName(),
+                'coachId' => $event->getCoach()?->getId(),
             ];
         };
         $gameEventsArr = array_map($serializeEvent, $gameEvents);
@@ -974,7 +976,45 @@ class GamesController extends ApiController
             'squad' => $squad,
             'allPlayers' => $allPlayers,
             'hasParticipationData' => $hasParticipationData,
+            'coaches' => $this->getCoachesForTeams($teamIds, new DateTime('today')),
         ]);
+    }
+
+    /**
+     * @param int[] $teamIds
+     *
+     * @return array<int, array{id: int, fullName: string, teamId: int}>
+     */
+    private function getCoachesForTeams(array $teamIds, DateTime $today): array
+    {
+        $rows = $this->entityManager->createQuery(
+            'SELECT c.id, c.firstName, c.lastName, IDENTITY(cta.team) as teamId
+            FROM App\Entity\Coach c
+            INNER JOIN c.coachTeamAssignments cta
+            WHERE IDENTITY(cta.team) IN (:teamIds)
+              AND (cta.endDate IS NULL OR cta.endDate >= :today)
+            ORDER BY c.lastName ASC, c.firstName ASC'
+        )
+            ->setParameter('teamIds', $teamIds)
+            ->setParameter('today', $today)
+            ->getArrayResult();
+
+        $seen = [];
+        $coaches = [];
+        foreach ($rows as $row) {
+            $key = $row['id'] . '_' . $row['teamId'];
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $coaches[] = [
+                'id' => $row['id'],
+                'fullName' => $row['firstName'] . ' ' . $row['lastName'],
+                'teamId' => (int) $row['teamId'],
+            ];
+        }
+
+        return $coaches;
     }
 
     /**

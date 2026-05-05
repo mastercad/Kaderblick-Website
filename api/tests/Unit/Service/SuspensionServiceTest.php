@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Entity\Coach;
+use App\Entity\CoachSuspension;
 use App\Entity\CoachTeamAssignment;
 use App\Entity\CompetitionCardRule;
 use App\Entity\Cup;
@@ -20,6 +21,7 @@ use App\Entity\Tournament;
 use App\Entity\TournamentMatch;
 use App\Entity\User;
 use App\Entity\UserRelation;
+use App\Repository\CoachSuspensionRepository;
 use App\Repository\CompetitionCardRuleRepository;
 use App\Repository\GameEventRepository;
 use App\Repository\PlayerSuspensionRepository;
@@ -39,6 +41,7 @@ class SuspensionServiceTest extends TestCase
     private EntityManagerInterface&MockObject $em;
     private GameEventRepository&MockObject $gameEventRepository;
     private PlayerSuspensionRepository&MockObject $suspensionRepository;
+    private CoachSuspensionRepository&MockObject $coachSuspensionRepository;
     private CompetitionCardRuleRepository&MockObject $cardRuleRepository;
     private NotificationService&MockObject $notificationService;
     private SuspensionService $service;
@@ -48,6 +51,7 @@ class SuspensionServiceTest extends TestCase
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->gameEventRepository = $this->createMock(GameEventRepository::class);
         $this->suspensionRepository = $this->createMock(PlayerSuspensionRepository::class);
+        $this->coachSuspensionRepository = $this->createMock(CoachSuspensionRepository::class);
         $this->cardRuleRepository = $this->createMock(CompetitionCardRuleRepository::class);
         $this->notificationService = $this->createMock(NotificationService::class);
 
@@ -55,6 +59,7 @@ class SuspensionServiceTest extends TestCase
             $this->em,
             $this->gameEventRepository,
             $this->suspensionRepository,
+            $this->coachSuspensionRepository,
             $this->cardRuleRepository,
             $this->notificationService,
         );
@@ -70,10 +75,39 @@ class SuspensionServiceTest extends TestCase
         $event = $this->createMock(GameEvent::class);
         $event->method('getGameEventType')->willReturn($eventType);
         $event->method('getPlayer')->willReturn($player ?? $this->makePlayer());
+        $event->method('getCoach')->willReturn(null);
         $event->method('getTeam')->willReturn($team ?? $this->makeTeam());
         $event->method('getGame')->willReturn($game ?? $this->makeGame());
 
         return $event;
+    }
+
+    private function makeCoachGameEvent(string $typeCode, ?Coach $coach = null, ?Team $team = null, ?Game $game = null): GameEvent
+    {
+        $eventType = $this->createMock(GameEventType::class);
+        $eventType->method('getCode')->willReturn($typeCode);
+
+        $event = $this->createMock(GameEvent::class);
+        $event->method('getGameEventType')->willReturn($eventType);
+        $event->method('getPlayer')->willReturn(null);
+        $event->method('getCoach')->willReturn($coach ?? $this->makeCoach());
+        $event->method('getTeam')->willReturn($team ?? $this->makeTeam());
+        $event->method('getGame')->willReturn($game ?? $this->makeGame());
+
+        return $event;
+    }
+
+    /** @param array<int, UserRelation> $coachUserRelations
+     *  @param array<int, CoachTeamAssignment> $coachTeamAssignments */
+    private function makeCoach(array $coachUserRelations = [], array $coachTeamAssignments = []): Coach
+    {
+        $coach = $this->createMock(Coach::class);
+        $coach->method('getUserRelations')->willReturn(new ArrayCollection($coachUserRelations));
+        $coach->method('getCoachTeamAssignments')->willReturn(new ArrayCollection($coachTeamAssignments));
+        $coach->method('getFullName')->willReturn('Test Trainer');
+        $coach->method('getId')->willReturn(99);
+
+        return $coach;
     }
 
     /** @param array<int, UserRelation> $userRelations */
@@ -621,6 +655,133 @@ class SuspensionServiceTest extends TestCase
 
         $this->notificationService->expects($this->never())->method('createNotification');
         $this->em->expects($this->never())->method('persist');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Keine Aktion bei fehlendem Trainer und fehlendem Spieler ─────
+
+    public function testHandleCardEventDoesNothingIfNoCoachAndNoPlayer(): void
+    {
+        $eventType = $this->createMock(GameEventType::class);
+        $eventType->method('getCode')->willReturn('yellow_card');
+
+        $event = $this->createMock(GameEvent::class);
+        $event->method('getGameEventType')->willReturn($eventType);
+        $event->method('getPlayer')->willReturn(null);
+        $event->method('getCoach')->willReturn(null);
+
+        $this->notificationService->expects($this->never())->method('createNotification');
+        $this->em->expects($this->never())->method('persist');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Gelbe Karte ohne Schwellenwert-Überschreitung ───────────────
+
+    public function testHandleCoachYellowCardBelowThreshold(): void
+    {
+        $league = $this->makeLeague();
+        $game = $this->makeGame($league);
+        $rule = $this->makeRule(warningThreshold: 4, suspensionThreshold: 5);
+
+        $event = $this->makeCoachGameEvent('yellow_card', game: $game);
+
+        $this->cardRuleRepository->method('findApplicableRule')->willReturn($rule);
+        $this->coachSuspensionRepository->method('findLastYellowCardsSuspension')->willReturn(null);
+        $this->gameEventRepository->method('countYellowCardsForCoachInCompetition')->willReturn(2);
+
+        $this->notificationService->expects($this->never())->method('createNotification');
+        $this->em->expects($this->never())->method('persist');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Gelbe Karte mit Warnung ─────────────────────────────────────
+
+    public function testHandleCoachYellowCardSendsWarningNotification(): void
+    {
+        $league = $this->makeLeague();
+        $game = $this->makeGame($league);
+        $rule = $this->makeRule(warningThreshold: 4, suspensionThreshold: 5);
+
+        $user = $this->createMock(User::class);
+        $coachRelation = $this->makeUserRelation('coach', $user);
+        $coach = $this->makeCoach([$coachRelation]);
+        $event = $this->makeCoachGameEvent('yellow_card', $coach, game: $game);
+
+        $this->cardRuleRepository->method('findApplicableRule')->willReturn($rule);
+        $this->coachSuspensionRepository->method('findLastYellowCardsSuspension')->willReturn(null);
+        $this->gameEventRepository->method('countYellowCardsForCoachInCompetition')->willReturn(4);
+
+        $this->notificationService->expects($this->atLeastOnce())->method('createNotification');
+        $this->em->expects($this->never())->method('persist');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Gelbe-Karten-Sperre ─────────────────────────────────────────
+
+    public function testHandleCoachYellowCardTriggersSuspension(): void
+    {
+        $league = $this->makeLeague();
+        $game = $this->makeGame($league);
+        $rule = $this->makeRule(warningThreshold: 4, suspensionThreshold: 5);
+
+        $user = $this->createMock(User::class);
+        $coachRelation = $this->makeUserRelation('coach', $user);
+        $coach = $this->makeCoach([$coachRelation]);
+        $event = $this->makeCoachGameEvent('yellow_card', $coach, game: $game);
+
+        $this->cardRuleRepository->method('findApplicableRule')->willReturn($rule);
+        $this->coachSuspensionRepository->method('findLastYellowCardsSuspension')->willReturn(null);
+        $this->gameEventRepository->method('countYellowCardsForCoachInCompetition')->willReturn(5);
+
+        $this->em->expects($this->once())->method('persist')
+            ->with($this->isInstanceOf(CoachSuspension::class));
+        $this->notificationService->expects($this->atLeastOnce())->method('createNotification');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Rote Karte → Direktsperre ────────────────────────────────────
+
+    public function testHandleCoachRedCardTriggersSuspension(): void
+    {
+        $league = $this->makeLeague();
+        $game = $this->makeGame($league);
+
+        $user = $this->createMock(User::class);
+        $coachRelation = $this->makeUserRelation('coach', $user);
+        $coach = $this->makeCoach([$coachRelation]);
+        $event = $this->makeCoachGameEvent('red_card', $coach, game: $game);
+
+        $this->cardRuleRepository->method('findApplicableRule')->willReturn(null);
+
+        $this->em->expects($this->once())->method('persist')
+            ->with($this->isInstanceOf(CoachSuspension::class));
+        $this->notificationService->expects($this->atLeastOnce())->method('createNotification');
+
+        $this->service->handleCardEvent($event);
+    }
+
+    // ── Trainer: Gelb-Rote Karte → Direktsperre ───────────────────────────────
+
+    public function testHandleCoachYellowRedCardTriggersSuspension(): void
+    {
+        $league = $this->makeLeague();
+        $game = $this->makeGame($league);
+
+        $user = $this->createMock(User::class);
+        $coachRelation = $this->makeUserRelation('coach', $user);
+        $coach = $this->makeCoach([$coachRelation]);
+        $event = $this->makeCoachGameEvent('yellow_red_card', $coach, game: $game);
+
+        $this->cardRuleRepository->method('findApplicableRule')->willReturn(null);
+
+        $this->em->expects($this->once())->method('persist')
+            ->with($this->isInstanceOf(CoachSuspension::class));
+        $this->notificationService->expects($this->atLeastOnce())->method('createNotification');
 
         $this->service->handleCardEvent($event);
     }

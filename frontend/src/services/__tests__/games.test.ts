@@ -53,6 +53,7 @@ describe('fetchGameSquad', () => {
         { id: 2, fullName: 'Erika Muster', shirtNumber: null, teamId: 10 },
         { id: 3, fullName: 'Karl Kühn', shirtNumber: 11, teamId: 10 },
       ],
+      coaches: [],
       hasParticipationData: true,
     };
     mockApiJson.mockResolvedValue(fixture);
@@ -65,7 +66,7 @@ describe('fetchGameSquad', () => {
   });
 
   it('returns empty squad and hasParticipationData: false when no participations exist', async () => {
-    const fixture: GameSquadData = { squad: [], allPlayers: [], hasParticipationData: false };
+    const fixture: GameSquadData = { squad: [], allPlayers: [], coaches: [], hasParticipationData: false };
     mockApiJson.mockResolvedValue(fixture);
 
     const result = await fetchGameSquad(99);
@@ -75,7 +76,7 @@ describe('fetchGameSquad', () => {
   });
 
   it('returns empty squad and hasParticipationData: true when participations exist but nobody attending', async () => {
-    const fixture: GameSquadData = { squad: [], allPlayers: [], hasParticipationData: true };
+    const fixture: GameSquadData = { squad: [], allPlayers: [], coaches: [], hasParticipationData: true };
     mockApiJson.mockResolvedValue(fixture);
 
     const result = await fetchGameSquad(7);

@@ -90,12 +90,8 @@ function makeState(
 // =============================================================================
 
 describe('StepDataChart – Orientierungshinweis', () => {
-  it('wird angezeigt wenn weder X noch Y gesetzt sind', () => {
-    render(<StepDataChart state={makeState('', '')} />);
-    const alerts = screen.getAllByRole('alert');
-    const infoAlert = alerts.find(el => el.textContent?.includes('So funktioniert es'));
-    expect(infoAlert).toBeTruthy();
-  });
+  // Der initiale Info-Alert wurde entfernt (permanente Info-Box war störend).
+  // Verbleibende Tests prüfen nur noch, dass er wirklich nicht erscheint.
 
   it('wird nicht angezeigt wenn X-Achse gesetzt ist', () => {
     render(<StepDataChart state={makeState('player', '')} />);
@@ -109,12 +105,10 @@ describe('StepDataChart – Orientierungshinweis', () => {
     expect(alerts.every(el => !el.textContent?.includes('So funktioniert es'))).toBe(true);
   });
 
-  it('erklärt X-Achse als Dimension und Y-Achse als Metrik', () => {
+  it('zeigt auch ohne X/Y keinen "So funktioniert es"-Alert', () => {
     render(<StepDataChart state={makeState('', '')} />);
-    const alerts = screen.getAllByRole('alert');
-    const hint = alerts.find(el => el.textContent?.includes('So funktioniert es'))!;
-    expect(hint.textContent).toContain('X-Achse');
-    expect(hint.textContent).toContain('Y-Achse');
+    const alerts = screen.queryAllByRole('alert');
+    expect(alerts.every(el => !el.textContent?.includes('So funktioniert es'))).toBe(true);
   });
 });
 
@@ -126,8 +120,8 @@ describe('StepDataChart – Achsen-Vertausch-Warnung', () => {
   it('wird angezeigt wenn xField eine Metrik ist', () => {
     render(<StepDataChart state={makeState('goals', '')} />);
     const alerts = screen.getAllByRole('alert');
-    // Neue Meldung: nennt den echten Feldnamen und erklärt dass er auf Y-Achse gehört
-    const warning = alerts.find(el => el.textContent?.includes('Y-Achse'));
+    // Meldung: „Tore" ist ein Messwert — als Auswertungs-Dimension ergibt das nur „Unbekannt".
+    const warning = alerts.find(el => el.textContent?.includes('Messwert'));
     expect(warning).toBeTruthy();
   });
 
@@ -157,8 +151,8 @@ describe('StepDataChart – Achsen-Vertausch-Warnung', () => {
   it('zeigt nur den Metrik-Feldnamen wenn sowohl X eine Metrik als auch Y eine Dimension ist', () => {
     render(<StepDataChart state={makeState('goals', 'player')} />);
     const alerts = screen.getAllByRole('alert');
-    // Nur der X-Metrik-Warner erscheint (enthält "Tore" und Hinweis auf Y-Achse)
-    const warning = alerts.find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Y-Achse'));
+    // Warner enthält den Feldnamen und "Messwert"
+    const warning = alerts.find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Messwert'));
     expect(warning).toBeTruthy();
   });
 
@@ -182,10 +176,10 @@ describe('StepDataChart – Tauschen-Button in der Warnung', () => {
     render(<StepDataChart state={makeState('goals', 'player', mockSet)} />);
 
     // Der Tauschen-Button befindet sich im Action-Bereich des Warning-Alerts
-    // Warner zeigt: X ist Metrik (Tore) — verschiebe auf Y-Achse
+    // Warner zeigt: X ist Messwert — darf nicht als Auswertungs-Dimension genutzt werden
     const warningAlert = screen
       .getAllByRole('alert')
-      .find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Y-Achse'))!;
+      .find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Messwert'))!;
     const swapBtn = within(warningAlert).getByRole('button');
     fireEvent.click(swapBtn);
 
@@ -209,7 +203,7 @@ describe('StepDataChart – Tauschen-Button in der Warnung', () => {
 
     const warningAlert = screen
       .getAllByRole('alert')
-      .find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Y-Achse'))!;
+      .find(el => el.textContent?.includes('Tore') && el.textContent?.includes('Messwert'))!;
     const swapBtn = within(warningAlert).getByRole('button');
     fireEvent.click(swapBtn);
 
@@ -243,7 +237,7 @@ describe('StepDataChart – eigenständiger Tauschen-Button', () => {
     // Wenn axesSwapped=true wird der eigenständige Button NICHT gerendert;
     // der einzige Swap-Button ist der im Action-Bereich des Warning-Alerts
     const warningAlerts = screen.getAllByRole('alert').filter(el =>
-      el.textContent?.includes('Tore') && el.textContent?.includes('Y-Achse'),
+      el.textContent?.includes('Tore') && el.textContent?.includes('Messwert'),
     );
     expect(warningAlerts).toHaveLength(1);
 
@@ -443,6 +437,267 @@ describe('StepDataChart – Desktop Chart-Typ-Select (Rich-Select)', () => {
     expect(screen.queryByText('Empfohlen für diese Konfiguration')).not.toBeInTheDocument();
     expect(screen.queryByText('Weitere Typen')).not.toBeInTheDocument();
   });
+
+  it('zeigt Empfehlungen wenn nur yField gesetzt (kein metrics-Array) — effectiveMetricKeys-Fallback', () => {
+    // yField='goals', metrics=[] → effectiveMetricKeys=['goals'] → Empfehlungen erscheinen
+    render(<StepDataChart state={makeStateWith('player', 'goals', { currentReport: {
+      name: 'Test', description: '', isTemplate: false,
+      config: { diagramType: 'bar', xField: 'player', yField: 'goals', metrics: [], filters: {}, showLegend: true, showLabels: false },
+    }})} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[3]);
+    expect(screen.getByText('Empfohlen für diese Konfiguration')).toBeInTheDocument();
+  });
+
+  it('zeigt Empfehlungen wenn metrics gesetzt aber yField leer — multi-select Szenario', () => {
+    // metrics=['goals'], yField='' → effectiveMetricKeys=['goals'] → Empfehlungen erscheinen
+    render(<StepDataChart state={makeStateWith('player', '', { currentReport: {
+      name: 'Test', description: '', isTemplate: false,
+      config: { diagramType: 'bar', xField: 'player', yField: '', metrics: ['goals'], filters: {}, showLegend: true, showLabels: false },
+    }})} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[3]);
+    expect(screen.getByText('Empfohlen für diese Konfiguration')).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+//  getRecommendedDiagramTypes – Empfehlungslogik (via Komponente)
+// =============================================================================
+
+/**
+ * Testet die Empfehlungslogik durch das Chart-Typ-Dropdown.
+ * Öffnet den Chart-Typ-Select (combobox[3] auf Desktop) und prüft ob
+ * bestimmte Typen unter "Empfohlen" oder "Weitere Typen" erscheinen.
+ *
+ * Index-Übersicht für Desktop (bar-diag, multi-select Y-Achse):
+ *   combobox[0] = X-Achse Select
+ *   combobox[1] = Y-Achse Autocomplete
+ *   combobox[2] = Gruppierung Autocomplete
+ *   combobox[3] = Chart-Typ Select
+ */
+
+function makeStateForRec(
+  xField: string,
+  metricsKeys: string[],
+  groupBy: string | string[] = [],
+  diagramType = 'bar',
+): ReportBuilderState {
+  return {
+    ...makeState(xField, metricsKeys[0] ?? ''),
+    availableFields: FIELDS_WITH_TEAM,
+    currentReport: {
+      name: 'Test', description: '', isTemplate: false,
+      config: {
+        diagramType,
+        xField,
+        yField: metricsKeys[0] ?? '',
+        metrics: metricsKeys,
+        groupBy,
+        filters: {},
+        showLegend: true,
+        showLabels: false,
+      },
+    },
+  } as unknown as ReportBuilderState;
+}
+
+/** Öffnet Chart-Typ-Select und gibt alle Texte in der "Empfohlen"-Sektion zurück. */
+function getRecommendedChartTypes(): string[] {
+  const comboboxes = screen.getAllByRole('combobox');
+  fireEvent.mouseDown(comboboxes[comboboxes.length - 1]); // Chart-Typ = letzter Select
+  const listbox = screen.getByRole('listbox');
+  const recHeader = within(listbox).queryByText('Empfohlen für diese Konfiguration');
+  if (!recHeader) return [];
+  // Sammle alle folgenden Optionen bis zur nächsten Subheader-Gruppe
+  const items = within(listbox).queryAllByRole('option');
+  return items.map(el => el.textContent ?? '').filter(Boolean);
+}
+
+function isRecommended(chartLabel: string): boolean {
+  return getRecommendedChartTypes().some(t => t.includes(chartLabel));
+}
+
+describe('getRecommendedDiagramTypes – Empfehlungslogik', () => {
+  // ── Mehrere Metriken ────────────────────────────────────────────────────────
+  describe('mehrere Metriken ausgewählt', () => {
+    it('empfiehlt Bar wenn mehrere Metriken gesetzt', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals', 'assists'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('Empfohlen für diese Konfiguration')).toBeInTheDocument();
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      expect(recItems.some(el => el.textContent?.includes('Balkendiagramm'))).toBe(true);
+    });
+
+    it('empfiehlt Liniendiagramm wenn mehrere Metriken gesetzt', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals', 'assists'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allOptions = within(listbox).queryAllByRole('option');
+      expect(allOptions.some(o => o.textContent?.includes('Liniendiagramm'))).toBe(true);
+    });
+
+    it('empfiehlt KEIN Kreisdiagramm/Donut wenn mehrere Metriken gesetzt', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals', 'assists'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const recHeader = within(listbox).queryByText('Empfohlen für diese Konfiguration');
+      expect(recHeader).toBeInTheDocument();
+      // Alle Optionen VOR "Weitere Typen" sind die empfohlenen
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(false);
+      expect(recTexts.some(t => t.includes('Donut'))).toBe(false);
+    });
+  });
+
+  // ── Multi-groupBy ────────────────────────────────────────────────────────────
+  describe('mehrere Gruppierungsdimensionen', () => {
+    it('empfiehlt Bar wenn groupBy zwei Dimensionen hat', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals'], ['team', 'eventType'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('Empfohlen für diese Konfiguration')).toBeInTheDocument();
+    });
+
+    it('empfiehlt Liniendiagramm wenn groupBy zwei Dimensionen hat', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals'], ['team', 'eventType'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      expect(recItems.some(el => el.textContent?.includes('Liniendiagramm'))).toBe(true);
+    });
+
+    it('empfiehlt KEIN Kreisdiagramm/Donut bei Multi-groupBy', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals'], ['team', 'eventType'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(false);
+      expect(recTexts.some(t => t.includes('Donut'))).toBe(false);
+    });
+  });
+
+  // ── Zeitachse ───────────────────────────────────────────────────────────────
+  describe('Zeitdimension auf X-Achse', () => {
+    it('empfiehlt Liniendiagramm wenn xField=month', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('Empfohlen für diese Konfiguration')).toBeInTheDocument();
+    });
+
+    it('empfiehlt KEIN Kreisdiagramm wenn xField=month', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(false);
+    });
+
+    it('empfiehlt Flächendiagramm + Gestapeltes Fläche wenn xField=month und groupBy gesetzt', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals'], ['team'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      // stackedarea soll bei Zeit + groupBy empfohlen werden
+      expect(recTexts.some(t => t.includes('Gestapelt'))).toBe(true);
+    });
+  });
+
+  // ── Kategorisch + groupBy ────────────────────────────────────────────────────
+  describe('kategorische X-Achse mit groupBy', () => {
+    it('empfiehlt KEIN Kreisdiagramm wenn groupBy (string) gesetzt ist', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals'], 'team')} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(false);
+      expect(recTexts.some(t => t.includes('Donut'))).toBe(false);
+    });
+
+    it('empfiehlt KEIN Kreisdiagramm wenn groupBy (Array mit einem Eintrag) gesetzt ist', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals'], ['team'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(false);
+    });
+
+    it('empfiehlt Kreisdiagramm und Donut wenn keine Gruppierung (häufigster Basis-Fall)', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals'], [])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Kreisdiagramm'))).toBe(true);
+      expect(recTexts.some(t => t.includes('Donut'))).toBe(true);
+    });
+  });
+
+  // ── Radar-Empfehlung ─────────────────────────────────────────────────────────
+  describe('Radar-Empfehlung bei mehreren Metriken (nicht Zeitachse)', () => {
+    it('empfiehlt Spinnennetz bei xField=player und mehreren Metriken', () => {
+      render(<StepDataChart state={makeStateForRec('player', ['goals', 'assists'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      // Spinnennetz/Radar soll empfohlen sein
+      expect(recTexts.some(t => t.includes('Spinnennetz') || t.includes('Radar'))).toBe(true);
+    });
+
+    it('empfiehlt KEIN Spinnennetz wenn xField=month (Zeitachse) mit mehreren Metriken', () => {
+      render(<StepDataChart state={makeStateForRec('month', ['goals', 'assists'])} />);
+      const comboboxes = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(comboboxes[comboboxes.length - 1]);
+      const listbox = screen.getByRole('listbox');
+      const allItems = Array.from(listbox.querySelectorAll('li'));
+      const weitereIdx = allItems.findIndex(el => el.textContent?.includes('Weitere Typen'));
+      const recItems = weitereIdx >= 0 ? allItems.slice(0, weitereIdx) : allItems;
+      const recTexts = recItems.map(el => el.textContent ?? '');
+      expect(recTexts.some(t => t.includes('Spinnennetz') || t.includes('Radar'))).toBe(false);
+    });
+  });
 });
 
 // =============================================================================
@@ -546,7 +801,7 @@ describe('StepDataChart – Y-Achse multi-select (bar/line/radar/radaroverlay)',
   multiSelectDiags.forEach((diag) => {
     it(`zeigt Autocomplete (multiple) für diag=${diag}`, () => {
       render(<StepDataChart state={makeStateWithBuilderData(diag)} />);
-      expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+      expect(screen.queryAllByText(/Was messen\?/i).length).toBeGreaterThan(0);
       const inputs = document.querySelectorAll('input[type="text"]');
       expect(inputs.length).toBeGreaterThan(0);
     });
@@ -704,21 +959,21 @@ describe('StepDataChart – Y-Achse single-select (pie/doughnut/scatter/etc.)', 
 // =============================================================================
 
 describe('StepDataChart – Radar-Y-Achse (ehemals Metriken-Autocomplete)', () => {
-  it('zeigt "Y-Achse (Wert) *" Label bei diag=radar (kein separates "Metriken"-Feld mehr)', () => {
+  it('zeigt "Was messen? *" Label bei diag=radar (kein separates "Metriken"-Feld mehr)', () => {
     render(<StepDataChart state={makeStateWithBuilderData('radar')} />);
-    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/Was messen\?/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
   });
 
-  it('zeigt "Y-Achse (Wert) *" Label bei diag=radaroverlay', () => {
+  it('zeigt "Was messen? *" Label bei diag=radaroverlay', () => {
     render(<StepDataChart state={makeStateWithBuilderData('radaroverlay')} />);
-    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/Was messen\?/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
   });
 
-  it('zeigt "Y-Achse (Wert) *" auch bei diag=bar (multi-select ausgeweitet)', () => {
+  it('zeigt "Was messen? *" auch bei diag=bar (multi-select ausgeweitet)', () => {
     render(<StepDataChart state={makeStateWithBuilderData('bar')} />);
-    expect(screen.queryAllByText(/Y-Achse \(Wert\)/i).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/Was messen\?/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/^Metriken$/)).not.toBeInTheDocument();
   });
 });
@@ -792,6 +1047,286 @@ describe('StepDataChart – Hervorhebung ausgewählter Werte (selSx)', () => {
     fireEvent.mouseDown(comboboxes[0]);
     const listbox = screen.getByRole('listbox');
     expect(within(listbox).getByText(/Feld wählen/)).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+//  effectiveMetricKeys – Fallback yField → angezeigte Chips (Y-Achse Autocomplete)
+// =============================================================================
+
+/**
+ * Wenn config.metrics leer/undefined ist aber config.yField gesetzt, soll
+ * effectiveMetricKeys den yField-Wert als Fallback verwenden und im
+ * Y-Achse-Autocomplete einen Chip anzeigen.
+ */
+
+describe('StepDataChart – effectiveMetricKeys Fallback', () => {
+  it('zeigt Chip für yField wenn metrics leer und yField gesetzt ist (bar)', () => {
+    const state = makeStateWithBuilderData('bar', []);
+    (state.currentReport.config as any).yField = 'goals';
+    render(<StepDataChart state={state} />);
+    // Der Chip 'Tore' soll im Y-Achse-Autocomplete sichtbar sein
+    expect(screen.getByText('Tore')).toBeInTheDocument();
+  });
+
+  it('zeigt Chip für yField wenn metrics leer und yField gesetzt ist (line)', () => {
+    const state = makeStateWithBuilderData('line', []);
+    (state.currentReport.config as any).yField = 'assists';
+    render(<StepDataChart state={state} />);
+    expect(screen.getByText('Vorlagen')).toBeInTheDocument();
+  });
+
+  it('config.metrics hat Vorrang vor yField wenn beide gesetzt sind', () => {
+    // metrics=['assists'], yField='goals' → nur 'Vorlagen'-Chip, KEIN 'Tore'-Chip
+    const state = makeStateWithBuilderData('bar', ['assists']);
+    (state.currentReport.config as any).yField = 'goals';
+    render(<StepDataChart state={state} />);
+    expect(screen.getByText('Vorlagen')).toBeInTheDocument();
+    // Dropdown ist geschlossen → 'Tore' darf nur als Chip erscheinen, nicht als Option
+    const chips = document.querySelectorAll('.MuiChip-label');
+    const chipTexts = Array.from(chips).map(c => c.textContent);
+    expect(chipTexts).not.toContain('Tore');
+  });
+
+  it('zeigt keinen Chip wenn metrics leer und yField leer sind', () => {
+    const state = makeStateWithBuilderData('bar', []);
+    render(<StepDataChart state={state} />);
+    // Keine Chips im Y-Achse-Autocomplete
+    const chips = document.querySelectorAll('.MuiChip-label');
+    expect(chips).toHaveLength(0);
+  });
+
+  it('Fallback gilt nicht für pie (single Select — kein Autocomplete)', () => {
+    // Bei diag=pie wird kein Autocomplete gerendert, daher kein Chip-Fallback
+    const state = makeStateWith('player', 'goals', { diag: 'pie' });
+    render(<StepDataChart state={state} />);
+    // kein MuiChip-label für den yField-Wert erwartet
+    const chips = document.querySelectorAll('.MuiChip-label');
+    const chipTexts = Array.from(chips).map(c => c.textContent);
+    expect(chipTexts).not.toContain('Tore');
+  });
+
+  it('onChange des Y-Achse-Autocomplete synchronisiert yField auf ersten Metrik-Key', () => {
+    const handleConfigChange = jest.fn();
+    const state = makeStateWithBuilderData('bar', [], { handleConfigChange });
+    render(<StepDataChart state={state} />);
+    // Dropdown öffnen und 'Tore' wählen
+    const openBtn = document.querySelector('.MuiAutocomplete-popupIndicator') as HTMLElement;
+    if (openBtn) fireEvent.click(openBtn);
+    const listbox = screen.getByRole('listbox');
+    fireEvent.click(within(listbox).getByText('Tore'));
+    // handleConfigChange('metrics', ['goals']) und handleConfigChange('yField', 'goals')
+    expect(handleConfigChange).toHaveBeenCalledWith('metrics', ['goals']);
+    expect(handleConfigChange).toHaveBeenCalledWith('yField', 'goals');
+  });
+
+  it('onChange des Y-Achse-Autocomplete setzt yField auf leer wenn alle Metriken entfernt', () => {
+    const handleConfigChange = jest.fn();
+    const state = makeStateWithBuilderData('bar', ['goals'], { handleConfigChange });
+    render(<StepDataChart state={state} />);
+    // Chip 'Tore' entfernen via Delete-Button
+    const deleteBtn = document.querySelector('.MuiChip-deleteIcon') as HTMLElement;
+    if (deleteBtn) fireEvent.click(deleteBtn);
+    expect(handleConfigChange).toHaveBeenCalledWith('yField', '');
+  });
+});
+
+// =============================================================================
+//  Gruppierung – Multi-Select Autocomplete
+// =============================================================================
+
+/** Erweiterte Felder mit team- und eventType-Dimension für Multi-Select-Tests */
+const FIELDS_WITH_TEAM = [
+  { key: 'player',    label: 'Spieler',     isMetricCandidate: false },
+  { key: 'month',     label: 'Monat',       isMetricCandidate: false },
+  { key: 'team',      label: 'Mannschaft',  isMetricCandidate: false },
+  { key: 'eventType', label: 'Ereignistyp', isMetricCandidate: false },
+  { key: 'goals',     label: 'Tore',        isMetricCandidate: true  },
+  { key: 'assists',   label: 'Vorlagen',    isMetricCandidate: true  },
+];
+
+/** Baut State für Gruppierung-Tests mit vorgegebenem groupBy (string oder string[]). */
+function makeStateWithGroupBy(
+  groupBy: string | string[],
+  xField = 'player',
+  overrides: Record<string, any> = {},
+): ReportBuilderState {
+  return {
+    ...makeState(xField, 'goals'),
+    availableFields: FIELDS_WITH_TEAM,
+    currentReport: {
+      name: 'Test',
+      description: '',
+      isTemplate: false,
+      config: {
+        diagramType: 'bar',
+        xField,
+        yField: 'goals',
+        metrics: ['goals'],
+        groupBy,
+        filters: {},
+        showLegend: true,
+        showLabels: false,
+      },
+    },
+    handleConfigChange: jest.fn(),
+    ...overrides,
+  } as unknown as ReportBuilderState;
+}
+
+/**
+ * Öffnet das Gruppierung-Autocomplete-Dropdown.
+ * Da Y-Achse (bar) und Gruppierung beide Autocomplete sind, sind zwei
+ * popupIndicator-Buttons im DOM: Index 0 = Y-Achse, Index 1 = Gruppierung.
+ */
+function openGroupByAutocomplete() {
+  const btns = document.querySelectorAll('.MuiAutocomplete-popupIndicator');
+  const groupByBtn = btns[btns.length - 1] as HTMLElement; // Gruppierung ist das letzte Autocomplete
+  if (groupByBtn) fireEvent.click(groupByBtn);
+  return screen.getByRole('listbox');
+}
+
+describe('StepDataChart – Gruppierung Multi-Select Autocomplete', () => {
+  it('zeigt Chip für Dimension wenn groupBy als Array mit einem Eintrag gesetzt', () => {
+    render(<StepDataChart state={makeStateWithGroupBy(['month'])} />);
+    // MUI Autocomplete-Chips: 'Monat' muss als Chip-Label erscheinen
+    const chips = Array.from(document.querySelectorAll('.MuiChip-label')).map(c => c.textContent);
+    expect(chips).toContain('Monat');
+  });
+
+  it('zeigt Chip für Dimension wenn groupBy als String (Rückwärtskompatibilität)', () => {
+    render(<StepDataChart state={makeStateWithGroupBy('month')} />);
+    const chips = Array.from(document.querySelectorAll('.MuiChip-label')).map(c => c.textContent);
+    expect(chips).toContain('Monat');
+  });
+
+  it('zeigt mehrere Chips bei groupBy mit mehreren Dimensionen', () => {
+    render(<StepDataChart state={makeStateWithGroupBy(['month', 'team'])} />);
+    const chips = Array.from(document.querySelectorAll('.MuiChip-label')).map(c => c.textContent);
+    expect(chips).toContain('Monat');
+    expect(chips).toContain('Mannschaft');
+  });
+
+  it('zeigt keinen Chip wenn groupBy leer ist (Array)', () => {
+    render(<StepDataChart state={makeStateWithGroupBy([])} />);
+    // Y-Achse-Chip ('Tore') ist vorhanden, aber kein groupBy-Chip
+    const chips = Array.from(document.querySelectorAll('.MuiChip-label')).map(c => c.textContent);
+    // Keine Dimension-Labels als Chips
+    expect(chips).not.toContain('Monat');
+    expect(chips).not.toContain('Mannschaft');
+    expect(chips).not.toContain('Ereignistyp');
+  });
+
+  it('blendet das xField aus den Gruppierung-Optionen aus', () => {
+    // xField='player' → 'Spieler' darf nicht im Gruppierung-Dropdown erscheinen
+    render(<StepDataChart state={makeStateWithGroupBy([], 'player')} />);
+    const listbox = openGroupByAutocomplete();
+    expect(within(listbox).queryByText('Spieler')).not.toBeInTheDocument();
+    // Andere Dimensionen sind verfügbar
+    expect(within(listbox).getByText('Monat')).toBeInTheDocument();
+    expect(within(listbox).getByText('Mannschaft')).toBeInTheDocument();
+  });
+
+  it('enthält nur Dimensionen (keine Metriken) im Gruppierung-Dropdown', () => {
+    render(<StepDataChart state={makeStateWithGroupBy([], 'player')} />);
+    const listbox = openGroupByAutocomplete();
+    // Metriken dürfen nicht als Gruppierungs-Optionen erscheinen
+    expect(within(listbox).queryByText('Tore')).not.toBeInTheDocument();
+    expect(within(listbox).queryByText('Vorlagen')).not.toBeInTheDocument();
+  });
+
+  it('onChange ruft handleConfigChange("groupBy", [...]) mit Array auf', () => {
+    const handleConfigChange = jest.fn();
+    render(<StepDataChart state={makeStateWithGroupBy([], 'player', { handleConfigChange })} />);
+    const listbox = openGroupByAutocomplete();
+    fireEvent.click(within(listbox).getByText('Monat'));
+    expect(handleConfigChange).toHaveBeenCalledWith('groupBy', expect.arrayContaining(['month']));
+    const [, value] = handleConfigChange.mock.calls.find(([k]) => k === 'groupBy')!;
+    expect(Array.isArray(value)).toBe(true);
+  });
+
+  it('onChange ruft handleConfigChange("groupBy", []) auf wenn Chip entfernt wird', () => {
+    const handleConfigChange = jest.fn();
+    render(<StepDataChart state={makeStateWithGroupBy(['month'], 'player', { handleConfigChange })} />);
+    // Chip 'Monat' hat einen Delete-Button
+    // Da Y-Achse-Chip ('Tore') und Gruppierung-Chip ('Monat') beide vorhanden sind,
+    // nehmen wir den letzten Delete-Button (Gruppierung-Chip)
+    const deleteBtns = document.querySelectorAll('.MuiChip-deleteIcon');
+    const groupByDeleteBtn = deleteBtns[deleteBtns.length - 1] as HTMLElement;
+    fireEvent.click(groupByDeleteBtn);
+    expect(handleConfigChange).toHaveBeenCalledWith('groupBy', []);
+  });
+
+  it('zeigt kein Chip für groupBy-Eintrag der gleich dem xField ist (Guard)', () => {
+    // groupBy=['player'] mit xField='player' → Guard filtert 'player' heraus → kein Chip
+    render(<StepDataChart state={makeStateWithGroupBy(['player'], 'player')} />);
+    const chips = Array.from(document.querySelectorAll('.MuiChip-label')).map(c => c.textContent);
+    expect(chips).not.toContain('Spieler');
+  });
+});
+
+// =============================================================================
+//  X-Achse onChange — Array-groupBy Konflikt-Auflösung
+// =============================================================================
+
+describe('StepDataChart – X-Achse onChange löscht conflicting groupBy-Einträge', () => {
+  it('entfernt das neue xField aus groupBy wenn es dort bereits vorhanden ist', () => {
+    const handleConfigChange = jest.fn();
+    // groupBy=['month'] → Änderung xField auf 'month' → 'month' muss aus groupBy entfernt werden
+    const state: ReportBuilderState = {
+      ...makeStateWithGroupBy(['month'], 'player', { handleConfigChange }),
+      availableFields: FIELDS_WITH_TEAM,
+    } as unknown as ReportBuilderState;
+    render(<StepDataChart state={state} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[0]); // X-Achse öffnen
+    const listbox = screen.getByRole('listbox');
+    fireEvent.click(within(listbox).getByText('Monat')); // xField auf 'month' setzen
+    // handleConfigChange('xField', 'month') muss aufgerufen werden
+    expect(handleConfigChange).toHaveBeenCalledWith('xField', 'month');
+    // handleConfigChange('groupBy', []) muss aufgerufen werden (month entfernt)
+    const groupByCalls = handleConfigChange.mock.calls.filter(([k]) => k === 'groupBy');
+    expect(groupByCalls.length).toBeGreaterThan(0);
+    const [, removedGroupBy] = groupByCalls[0];
+    expect(removedGroupBy).not.toContain('month');
+  });
+
+  it('lässt groupBy unverändert wenn das neue xField nicht in groupBy ist', () => {
+    const handleConfigChange = jest.fn();
+    // groupBy=['team'] → xField auf 'month' → 'month' nicht in groupBy → kein groupBy-Update
+    const state: ReportBuilderState = {
+      ...makeStateWithGroupBy(['team'], 'player', { handleConfigChange }),
+      availableFields: FIELDS_WITH_TEAM,
+    } as unknown as ReportBuilderState;
+    render(<StepDataChart state={state} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[0]);
+    const listbox = screen.getByRole('listbox');
+    fireEvent.click(within(listbox).getByText('Monat'));
+    // xField wurde gesetzt
+    expect(handleConfigChange).toHaveBeenCalledWith('xField', 'month');
+    // groupBy darf NICHT geändert worden sein (kein Konflikt)
+    const groupByCalls = handleConfigChange.mock.calls.filter(([k]) => k === 'groupBy');
+    expect(groupByCalls).toHaveLength(0);
+  });
+
+  it('entfernt nur das konfliktierenden Eintrag aus groupBy, andere bleiben erhalten', () => {
+    const handleConfigChange = jest.fn();
+    // groupBy=['month', 'team'] → xField auf 'month' → groupBy=['team'] übrig
+    const state: ReportBuilderState = {
+      ...makeStateWithGroupBy(['month', 'team'], 'player', { handleConfigChange }),
+      availableFields: FIELDS_WITH_TEAM,
+    } as unknown as ReportBuilderState;
+    render(<StepDataChart state={state} />);
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(comboboxes[0]);
+    const listbox = screen.getByRole('listbox');
+    fireEvent.click(within(listbox).getByText('Monat'));
+    const groupByCalls = handleConfigChange.mock.calls.filter(([k]) => k === 'groupBy');
+    expect(groupByCalls.length).toBeGreaterThan(0);
+    const [, newGroupBy] = groupByCalls[0];
+    expect(newGroupBy).toEqual(['team']);
+    expect(newGroupBy).not.toContain('month');
   });
 });
 

@@ -63,10 +63,18 @@ export interface SquadPlayer {
   teamId: number;
 }
 
+export interface SquadCoach {
+  id: number;
+  fullName: string;
+  teamId: number;
+}
+
 export interface GameSquadData {
   squad: SquadPlayer[];
   /** Alle aktiven Spieler der beteiligten Teams (unabhängig von Zusagen) */
   allPlayers: SquadPlayer[];
+  /** Aktive Trainer der beteiligten Teams */
+  coaches: SquadCoach[];
   /** true wenn überhaupt Teilnahme-Daten für den CalendarEvent existieren */
   hasParticipationData: boolean;
 }
@@ -85,6 +93,7 @@ export async function createGameEvent(gameId: number, eventData: {
   eventType: number;
   player?: number;
   relatedPlayer?: number;
+  coach?: number;
   minute: string;
   description?: string;
   reason?: number;
@@ -100,6 +109,7 @@ export async function updateGameEvent(gameId: number, eventId: number, eventData
   eventType?: number;
   player?: number;
   relatedPlayer?: number;
+  coach?: number;
   minute?: string;
   description?: string;
   reason?: number;

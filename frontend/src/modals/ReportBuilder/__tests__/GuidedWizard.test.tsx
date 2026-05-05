@@ -35,9 +35,9 @@ jest.mock('@mui/material', () => {
   const actual = jest.requireActual('@mui/material') as Record<string, unknown>;
   return {
     ...actual,
-    // Chip mock: renders label + accessible delete button
-    Chip: ({ label, onDelete }: any) => (
-      <div role="listitem">
+    // Chip mock: renders label + accessible delete button; forwards onClick for clickable chips
+    Chip: ({ label, onDelete, onClick }: any) => (
+      <div role="listitem" onClick={onClick}>
         <span>{label}</span>
         {onDelete && (
           <button aria-label={`Remove ${label}`} onClick={onDelete} type="button" />
@@ -832,5 +832,163 @@ describe('GuidedWizard — Schritt 4: Bestätigung', () => {
     });
     // Nach handleSave bleibt der Schritt-4-Inhalt kurz sichtbar (saving-State)
     expect(nameInput).toBeInTheDocument();
+  });
+});
+
+// =============================================================================
+//  Schritt 4 — Diagrammtyp-Chips und hideEmpty-Checkbox (fehlende Abdeckung)
+// =============================================================================
+
+describe('GuidedWizard — Schritt 4: Diagrammtyp-Chip und Checkbox', () => {
+  // STEP4_CONFIG: xField='player' → subject='player', diagramType='radaroverlay' → topic='overview'
+  // getSuggestedTypes('player', 'overview') = ['radaroverlay'] → Chip-Label: 'Radar'
+  const CHIP_TEST_CONFIG = {
+    diagramType: 'radaroverlay',
+    xField: 'player',
+    yField: 'goals',
+    metrics: ['goals', 'assists'],
+    showLegend: true,
+    filters: {},
+  };
+
+  async function renderStep4WithState() {
+    const state = makeState(makeBuilderData());
+    render(
+      <GuidedWizard
+        state={state}
+        onSave={jest.fn()}
+        onClose={jest.fn()}
+        onOpenBuilder={jest.fn()}
+        onBack={jest.fn()}
+        initialConfig={CHIP_TEST_CONFIG as any}
+      />,
+    );
+    await act(async () => { await Promise.resolve(); });
+    return state;
+  }
+
+  beforeEach(() => {
+    mockFetchPlayerById.mockResolvedValue(null);
+  });
+
+  it('zeigt "Darstellungsart"-Sektion wenn subject und topic gesetzt sind', async () => {
+    await renderStep4WithState();
+    expect(screen.getByText('Darstellungsart')).toBeInTheDocument();
+  });
+
+  it('klick auf Diagrammtyp-Chip ruft setCurrentReport auf', async () => {
+    const state = await renderStep4WithState();
+    // 'Radar' ist der Label für 'radaroverlay' in WIZARD_DIAGRAM_TYPE_LABELS
+    const radarChip = screen.getByText('Radar');
+    await act(async () => {
+      fireEvent.click(radarChip);
+    });
+    expect(state.setCurrentReport).toHaveBeenCalled();
+  });
+
+  it('Checkbox "Einträge ohne Wert ausblenden" ruft setCurrentReport auf', async () => {
+    const state = await renderStep4WithState();
+    const checkbox = screen.getByRole('checkbox');
+    await act(async () => {
+      fireEvent.click(checkbox);
+    });
+    expect(state.setCurrentReport).toHaveBeenCalled();
+  });
+});
+
+// =============================================================================
+//  Weiter-Button onClick-Handler (fehlende Abdeckung, Zeilen 296-299)
+// =============================================================================
+
+describe('GuidedWizard — Weiter-Button onClick-Handler', () => {
+  beforeEach(() => {
+    mockFetchPlayerById.mockResolvedValue(null);
+  });
+
+  it('navigiert von Schritt 0 zu Schritt 2 bei team-Subjekt und 1 Team', async () => {
+    renderWizard({ builderData: makeBuilderData(1) });
+    // Team-Subjekt auswählen (Timer NICHT voranschreiten — nur State setzen)
+    await act(async () => { selectTeamSubject(); });
+    // Weiter-Button direkt klicken (statt Auto-Advance abwarten)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Weiter/i }));
+    });
+    expect(screen.getByText('Was möchtest du wissen?')).toBeInTheDocument();
+  });
+
+  it('navigiert von Schritt 1 (player-Kontext) zu Schritt 2 nach Klick auf Weiter', async () => {
+    mockSearch.mockResolvedValue([
+      { id: 7, fullName: 'Test Spieler', firstName: 'Test', lastName: 'Spieler', teamName: 'B-Jugend' },
+    ]);
+    renderWizard();
+    // Schritt 0 → 1 (player-Subjekt mit Kontext-Schritt)
+    await act(async () => {
+      selectPlayerSubject();
+      jest.advanceTimersByTime(500);
+    });
+    // Spieler suchen und auswählen
+    await act(async () => {
+      fireEvent.change(getSearchInput(), { target: { value: 'Te' } });
+      jest.advanceTimersByTime(300);
+    });
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('player-option-0'));
+    });
+    // Weiter-Button klicken
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Weiter/i }));
+    });
+    expect(screen.getByText('Was möchtest du wissen?')).toBeInTheDocument();
+  });
+
+  it('navigiert von Schritt 2 zu Schritt 3 nach Topic-Auswahl und Weiter-Klick', async () => {
+    renderWizard({ builderData: makeBuilderData(1) });
+    // Schritt 0 → 2 (team mit 1 Team, kein Kontext-Schritt)
+    await act(async () => {
+      selectTeamSubject();
+      jest.advanceTimersByTime(500);
+    });
+    // Topic auswählen (Timer NICHT voranschreiten)
+    await act(async () => {
+      const cards = screen.getAllByRole('button');
+      const goalsCard = cards.find(btn => btn.textContent?.includes('Tore & Torjäger'));
+      if (!goalsCard) throw new Error('Topic-Karte "Tore & Torjäger" nicht gefunden');
+      fireEvent.click(goalsCard);
+    });
+    // Weiter-Button klicken
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Weiter/i }));
+    });
+    expect(screen.getByText('Wie weit zurückschauen?')).toBeInTheDocument();
+  });
+
+  it('navigiert von Schritt 3 zu Schritt 4 nach Zeitraum-Auswahl und Weiter-Klick', async () => {
+    renderWizard({ builderData: makeBuilderData(1) });
+    // Schritt 0 → 2 (team, 1 Team)
+    await act(async () => {
+      selectTeamSubject();
+      jest.advanceTimersByTime(500);
+    });
+    // Schritt 2 → 3 (Topic auswählen + Auto-Advance)
+    await act(async () => {
+      const cards = screen.getAllByRole('button');
+      const goalsCard = cards.find(btn => btn.textContent?.includes('Tore & Torjäger'));
+      if (!goalsCard) throw new Error('Topic-Karte "Tore & Torjäger" nicht gefunden');
+      fireEvent.click(goalsCard);
+      jest.advanceTimersByTime(500);
+    });
+    // Zeitraum auswählen (Timer NICHT voranschreiten)
+    await act(async () => {
+      const cards = screen.getAllByRole('button');
+      const seasonCard = cards.find(btn => btn.textContent?.includes('Aktuelle Saison'));
+      if (!seasonCard) throw new Error('Zeitraum-Karte "Aktuelle Saison" nicht gefunden');
+      fireEvent.click(seasonCard);
+    });
+    // Weiter-Button klicken
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Weiter/i }));
+    });
+    expect(screen.getByText('✅ Fast fertig!')).toBeInTheDocument();
   });
 });

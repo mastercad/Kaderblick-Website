@@ -37,7 +37,7 @@ export const TEMPLATE_META: Record<string, TemplateMeta> = {
     title: 'Saisonverlauf',
     desc: 'Wie hat sich das Team im Laufe der Saison entwickelt?',
     category: 'team',
-    config: { diagramType: 'line', xField: 'month', yField: 'goals', showLegend: false, showLabels: false, filters: {} },
+    config: { diagramType: 'line', xField: 'month', yField: 'goals', metrics: ['goals'], showLegend: false, showLabels: false, filters: {} },
   },
   goals_per_team: {
     emoji: '⚔️',

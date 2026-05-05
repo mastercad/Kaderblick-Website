@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Coach;
 use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\Player;
@@ -294,5 +295,102 @@ class GameEventRepository extends ServiceEntityRepository implements OptimizedRe
             ->addOrderBy('e.timestamp', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Zählt die Gelben Karten eines Trainers innerhalb eines Wettbewerbs.
+     *
+     * @param string   $competitionType one of CompetitionCardRule::TYPE_*
+     * @param int|null $competitionId   league_id / cup_id / tournament_id – NULL für Friendly-Spiele
+     */
+    public function countYellowCardsForCoachInCompetition(
+        Coach $coach,
+        string $competitionType,
+        ?int $competitionId,
+    ): int {
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->join('e.gameEventType', 'et')
+            ->join('e.game', 'g')
+            ->where('e.coach = :coach')
+            ->andWhere('et.code = :code')
+            ->setParameter('coach', $coach)
+            ->setParameter('code', 'yellow_card');
+
+        switch ($competitionType) {
+            case 'league':
+                $qb->join('g.league', 'l')
+                   ->andWhere('l.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'cup':
+                $qb->join('g.cup', 'c')
+                   ->andWhere('c.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'tournament':
+                $qb->join('g.tournamentMatch', 'tm')
+                   ->join('tm.tournament', 't')
+                   ->andWhere('t.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            default: // 'friendly'
+                $qb->andWhere('g.league IS NULL')
+                   ->andWhere('g.cup IS NULL')
+                   ->andWhere('g.tournamentMatch IS NULL');
+                break;
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Zählt Gelbe Karten eines Trainers in einem Wettbewerb, jedoch nur ab einem bestimmten Datum.
+     *
+     * @param DateTimeInterface $afterDate nur Karten aus Spielen NACH diesem Datum werden gezählt
+     */
+    public function countYellowCardsForCoachInCompetitionAfterDate(
+        Coach $coach,
+        string $competitionType,
+        ?int $competitionId,
+        DateTimeInterface $afterDate,
+    ): int {
+        $qb = $this->createQueryBuilder('e')
+            ->select('COUNT(e.id)')
+            ->join('e.gameEventType', 'et')
+            ->join('e.game', 'g')
+            ->join('g.calendarEvent', 'ce')
+            ->where('e.coach = :coach')
+            ->andWhere('et.code = :code')
+            ->andWhere('ce.startDate > :afterDate')
+            ->setParameter('coach', $coach)
+            ->setParameter('code', 'yellow_card')
+            ->setParameter('afterDate', $afterDate);
+
+        switch ($competitionType) {
+            case 'league':
+                $qb->join('g.league', 'l')
+                   ->andWhere('l.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'cup':
+                $qb->join('g.cup', 'c')
+                   ->andWhere('c.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            case 'tournament':
+                $qb->join('g.tournamentMatch', 'tm')
+                   ->join('tm.tournament', 't')
+                   ->andWhere('t.id = :competitionId')
+                   ->setParameter('competitionId', $competitionId);
+                break;
+            default: // 'friendly'
+                $qb->andWhere('g.league IS NULL')
+                   ->andWhere('g.cup IS NULL')
+                   ->andWhere('g.tournamentMatch IS NULL');
+                break;
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 }

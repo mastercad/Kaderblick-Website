@@ -1,12 +1,9 @@
-import React, { Dispatch, SetStateAction } from 'react';
+import React, { Dispatch, SetStateAction, useState } from 'react';
 import {
   Autocomplete,
   Box,
-  Checkbox,
   Chip,
   CircularProgress,
-  FormControlLabel,
-  FormGroup,
   TextField,
   Typography,
 } from '@mui/material';
@@ -33,6 +30,8 @@ export interface StepContextProps {
   playerSearchLoading: boolean;
   // Teams list (for team / team_comparison selectors)
   teams: { id: number; name: string }[];
+  // Only the teams linked to the current user
+  linkedTeams: { id: number; name: string }[];
 }
 
 /** Step 1 content: context selection. Renders one of four sub-variants depending on subject. */
@@ -45,7 +44,10 @@ export const StepContext: React.FC<StepContextProps> = ({
   playerSearchInput, setPlayerSearchInput,
   playerSearchOptions, playerSearchLoading,
   teams,
+  linkedTeams,
 }) => {
+  const [teamCompInput, setTeamCompInput] = useState('');
+  const [teamInput, setTeamInput] = useState('');
   // ── Single player ──────────────────────────────────────────────────────────
   if (subject === 'player') {
     return (
@@ -58,8 +60,11 @@ export const StepContext: React.FC<StepContextProps> = ({
         </Typography>
         <Autocomplete
           options={playerSearchOptions}
-          getOptionLabel={(o) => o.teamName ? `${o.fullName} · ${o.teamName}` : o.fullName}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
+          getOptionLabel={(o) => {
+            const suffix = o.type === 'coach' ? ' (Trainer)' : '';
+            return o.teamName ? `${o.fullName}${suffix} · ${o.teamName}` : `${o.fullName}${suffix}`;
+          }}
+          isOptionEqualToValue={(a, b) => a.id === b.id && a.type === b.type}
           value={selectedPlayer}
           inputValue={playerSearchInput}
           loading={playerSearchLoading}
@@ -94,6 +99,9 @@ export const StepContext: React.FC<StepContextProps> = ({
 
   // ── Single team ────────────────────────────────────────────────────────────
   if (subject === 'team') {
+    const teamOptions = teamInput === ''
+      ? linkedTeams
+      : teams.filter(t => t.name.toLowerCase().includes(teamInput.toLowerCase()));
     return (
       <Box>
         <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
@@ -103,11 +111,15 @@ export const StepContext: React.FC<StepContextProps> = ({
           Wähle die Mannschaft, für die du die Auswertung erstellen möchtest.
         </Typography>
         <Autocomplete
-          options={teams}
+          options={teamOptions}
           getOptionLabel={(o) => o.name}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
           value={selectedTeam}
+          inputValue={teamInput}
+          onInputChange={(_, v) => setTeamInput(v)}
           onChange={(_, v) => setSelectedTeam(v)}
-          noOptionsText="Keine Mannschaften gefunden"
+          filterOptions={(x) => x}
+          noOptionsText={teamInput === '' ? 'Keine verknüpften Mannschaften' : 'Keine Mannschaft gefunden'}
           renderInput={(params) => (
             <TextField
               {...params}
@@ -127,34 +139,56 @@ export const StepContext: React.FC<StepContextProps> = ({
 
   // ── Team comparison ────────────────────────────────────────────────────────
   if (subject === 'team_comparison') {
+    const selectedTeamObjects = teams.filter(t => selectedComparisonTeams.includes(t.id));
+    const teamCompOptions = teamCompInput === ''
+      ? linkedTeams.filter(t => !selectedComparisonTeams.includes(t.id))
+      : teams.filter(t => !selectedComparisonTeams.includes(t.id) && t.name.toLowerCase().includes(teamCompInput.toLowerCase()));
     return (
       <Box>
         <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
           Welche Mannschaften vergleichen?
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Wähle die Mannschaften aus, die du vergleichen möchtest. Ohne Auswahl werden alle verfügbaren Mannschaften verglichen.
+          Tippe einen Namen ein und füge Mannschaften zur Vergleichsliste hinzu.
         </Typography>
-        <FormGroup>
-          {teams.map(team => (
-            <FormControlLabel
-              key={team.id}
-              control={
-                <Checkbox
-                  checked={selectedComparisonTeams.includes(team.id)}
-                  onChange={(e) => {
-                    setSelectedComparisonTeams(prev =>
-                      e.target.checked ? [...prev, team.id] : prev.filter(id => id !== team.id)
-                    );
-                  }}
-                  size="small"
-                />
-              }
-              label={team.name}
+        <Autocomplete
+          options={teamCompOptions}
+          getOptionLabel={(o) => o.name}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
+          value={null}
+          inputValue={teamCompInput}
+          onInputChange={(_, v) => setTeamCompInput(v)}
+          onChange={(_, v) => {
+            if (v) setSelectedComparisonTeams(prev => [...prev, v.id]);
+            setTeamCompInput('');
+          }}
+          filterOptions={(x) => x}
+          noOptionsText={teamCompInput === '' ? 'Keine verknüpften Mannschaften' : 'Keine Mannschaft gefunden'}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Mannschaft hinzufügen"
+              placeholder="Name eintippen…"
+              size="small"
+              autoFocus
             />
-          ))}
-        </FormGroup>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          )}
+        />
+        {selectedTeamObjects.length > 0 && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.5 }}>
+            {selectedTeamObjects.map(t => (
+              <Chip
+                key={t.id}
+                label={t.name}
+                onDelete={() => setSelectedComparisonTeams(prev => prev.filter(id => id !== t.id))}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            ))}
+          </Box>
+        )}
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
           Optional — ohne Auswahl werden alle Mannschaften im Vergleich angezeigt.
         </Typography>
       </Box>
@@ -172,14 +206,17 @@ export const StepContext: React.FC<StepContextProps> = ({
       </Typography>
       <Autocomplete
         options={playerSearchOptions}
-        getOptionLabel={(o) => o.teamName ? `${o.fullName} · ${o.teamName}` : o.fullName}
-        isOptionEqualToValue={(a, b) => a.id === b.id}
+        getOptionLabel={(o) => {
+          const suffix = o.type === 'coach' ? ' (Trainer)' : '';
+          return o.teamName ? `${o.fullName}${suffix} · ${o.teamName}` : `${o.fullName}${suffix}`;
+        }}
+        isOptionEqualToValue={(a, b) => a.id === b.id && a.type === b.type}
         value={null}
         inputValue={playerSearchInput}
         loading={playerSearchLoading}
         onInputChange={(_, value) => setPlayerSearchInput(value)}
         onChange={(_, v) => {
-          if (v && !selectedComparisonPlayers.some(p => p.id === v.id)) {
+          if (v && !selectedComparisonPlayers.some(p => p.id === v.id && p.type === v.type)) {
             setSelectedComparisonPlayers(prev => [...prev, v]);
           }
           // Clearing the input triggers the debounce effect which will clear options
@@ -212,8 +249,8 @@ export const StepContext: React.FC<StepContextProps> = ({
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.5 }}>
           {selectedComparisonPlayers.map(p => (
             <Chip
-              key={p.id}
-              label={p.teamName ? `${p.fullName} · ${p.teamName}` : p.fullName}
+              key={`${p.type ?? 'player'}-${p.id}`}
+              label={p.teamName ? `${p.fullName}${p.type === 'coach' ? ' (Trainer)' : ''} · ${p.teamName}` : `${p.fullName}${p.type === 'coach' ? ' (Trainer)' : ''}`}
               onDelete={() => setSelectedComparisonPlayers(prev => prev.filter(x => x.id !== p.id))}
               size="small"
               color="primary"

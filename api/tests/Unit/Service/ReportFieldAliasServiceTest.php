@@ -7,6 +7,7 @@ use DateTime;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use stdClass;
 
 #[AllowMockObjectsWithoutExpectations]
 class ReportFieldAliasServiceTest extends TestCase
@@ -1289,5 +1290,120 @@ class ReportFieldAliasServiceTest extends TestCase
             }
         };
         $this->assertSame(0, ($aliases['goals']['aggregate'])([$eventWithNullType]));
+    }
+
+    // =========================================================================
+    //  eventCount – Ereignisse (Anzahl)
+    // =========================================================================
+
+    public function testEventCountAliasExists(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $this->assertArrayHasKey('eventCount', $aliases);
+    }
+
+    public function testEventCountHasCorrectLabel(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $this->assertSame('Ereignisse (Anzahl)', $aliases['eventCount']['label']);
+    }
+
+    public function testEventCountIsMetric(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $this->assertSame('metric', $aliases['eventCount']['category']);
+    }
+
+    public function testEventCountHasCallableAggregate(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $this->assertArrayHasKey('aggregate', $aliases['eventCount']);
+        $this->assertTrue(is_callable($aliases['eventCount']['aggregate']));
+    }
+
+    public function testEventCountAggregateReturnsZeroForEmptyArray(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $result = ($aliases['eventCount']['aggregate'])([]);
+
+        $this->assertSame(0, $result);
+    }
+
+    public function testEventCountAggregateCountsAllEvents(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $events = [new stdClass(), new stdClass(), new stdClass()];
+
+        $result = ($aliases['eventCount']['aggregate'])($events);
+
+        $this->assertSame(3, $result);
+    }
+
+    public function testEventCountAggregateCountsSingleEvent(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $result = ($aliases['eventCount']['aggregate'])([new stdClass()]);
+
+        $this->assertSame(1, $result);
+    }
+
+    public function testEventCountAggregateCountsIndependentlyOfEventType(): void
+    {
+        // eventCount must count all events regardless of their type
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $makeEvent = static function (string $code): object {
+            return new class ($code) {
+                public function __construct(private string $code)
+                {
+                }
+
+                public function getGameEventType(): object
+                {
+                    return new class ($this->code) {
+                        public function __construct(private string $code)
+                        {
+                        }
+
+                        public function getCode(): string
+                        {
+                            return $this->code;
+                        }
+
+                        public function getId(): int
+                        {
+                            return 0;
+                        }
+                    };
+                }
+            };
+        };
+
+        $events = [
+            $makeEvent('goal'),
+            $makeEvent('yellow_card'),
+            $makeEvent('assist'),
+            $makeEvent('foul'),
+        ];
+
+        $result = ($aliases['eventCount']['aggregate'])($events);
+
+        $this->assertSame(4, $result);
+    }
+
+    public function testEventCountIsIncludedInMetricsContainsCheck(): void
+    {
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+
+        $metrics = array_filter($aliases, fn ($a) => 'metric' === $a['category']);
+
+        $this->assertArrayHasKey('eventCount', $metrics);
     }
 }

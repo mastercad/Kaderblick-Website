@@ -64,9 +64,11 @@ export function useReportBuilder(
     if (open) loadBuilderData();
   }, [open]);
 
-  // Update preview when config changes
+  // Update preview when config changes.
+  // Mirror effectiveMetricKeys logic: yField OR non-empty metrics counts as "Y-axis is set".
   useEffect(() => {
-    if (open && currentReport.config.xField && currentReport.config.yField) {
+    const hasY = !!(currentReport.config.yField || currentReport.config.metrics?.length);
+    if (open && currentReport.config.xField && hasY) {
       loadPreview();
     }
   }, [currentReport.config, open]);
@@ -101,7 +103,8 @@ export function useReportBuilder(
   };
 
   const loadPreview = async () => {
-    if (!currentReport.config.xField || !currentReport.config.yField) {
+    const hasY = !!(currentReport.config.yField || currentReport.config.metrics?.length);
+    if (!currentReport.config.xField || !hasY) {
       setPreviewData(null);
       return;
     }
@@ -118,6 +121,13 @@ export function useReportBuilder(
         setPreviewData(null);
         setPreviewError(true);
         return;
+      }
+      // Mirror the effectiveMetricKeys fallback from StepDataChart: if metrics is empty
+      // but yField is set, populate metrics from yField so the backend can route to the
+      // correct code path (generateReportDataForMultiMetricGroup) which includes the
+      // metric label in dataset labels (e.g. "FC Sonnenberg – Tore" instead of just "FC Sonnenberg").
+      if (!safeConfig.metrics?.length && safeConfig.yField) {
+        safeConfig = { ...safeConfig, metrics: [safeConfig.yField] };
       }
       const data = await apiJson('/api/report/preview', {
         method: 'POST',
@@ -142,7 +152,9 @@ export function useReportBuilder(
       // means each dataset = groupBy-value × metric → groupedMetrics must be true.
       const isRadarOverlay = (next.diagramType ?? '').toLowerCase() === 'radaroverlay';
       const hasMultiMetrics = Array.isArray(next.metrics) && next.metrics.length > 1;
-      const hasGroupBy = !!(next.groupBy);
+      const hasGroupBy = Array.isArray(next.groupBy)
+        ? next.groupBy.filter(Boolean).length > 0
+        : !!next.groupBy;
       next.groupedMetrics = isRadarOverlay && hasMultiMetrics && hasGroupBy;
       return { ...prev, config: next };
     });

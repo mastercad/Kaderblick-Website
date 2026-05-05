@@ -371,29 +371,6 @@ describe('StepOptions – Legende & Datenlabels', () => {
 });
 
 // =============================================================================
-// SuperAdmin: DB-Aggregate
-// =============================================================================
-
-describe('StepOptions – db_aggregates (SuperAdmin)', () => {
-  it('db_aggregates-Sektion NICHT für normale User', () => {
-    render(<StepOptions state={makeState({ isSuperAdmin: false })} />);
-    expect(screen.queryByLabelText('DB-Aggregate (opt-in)')).not.toBeInTheDocument();
-  });
-
-  it('db_aggregates-Sektion für SuperAdmin sichtbar', () => {
-    render(<StepOptions state={makeState({ isSuperAdmin: true })} />);
-    expect(screen.getByLabelText('DB-Aggregate (opt-in)')).toBeInTheDocument();
-  });
-
-  it('db_aggregates-Checkbox ruft handleConfigChange auf', () => {
-    const state = makeState({ isSuperAdmin: true });
-    render(<StepOptions state={state} />);
-    fireEvent.click(screen.getByLabelText('DB-Aggregate (opt-in)'));
-    expect(state.handleConfigChange).toHaveBeenCalledWith('use_db_aggregates', expect.any(Boolean));
-  });
-});
-
-// =============================================================================
 // Anzeige-Optionen: Ausrichtung (horizontalBar) – nur für diag='bar'
 // =============================================================================
 

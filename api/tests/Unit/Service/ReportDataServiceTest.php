@@ -1387,11 +1387,10 @@ class ReportDataServiceTest extends TestCase
         $this->assertArrayHasKey('radarHasData', $result['meta']);
     }
 
-    // ── DB aggregate path tests ────────────────────────────────────────
+    // ── QueryBuilder mock helper ──────────────────────────────────────
 
     /**
-     * Creates a fully-mocked QueryBuilder that supports all chaining methods used by
-     * both the DB-aggregate path and the PHP-fallback path.
+     * Creates a fully-mocked QueryBuilder that supports all chaining methods.
      *
      * @param array<int, array<string,mixed>> $arrayResult rows for getArrayResult()
      * @param array<int, mixed>               $result      rows for getResult()
@@ -1415,187 +1414,6 @@ class ReportDataServiceTest extends TestCase
         $qb->method('getQuery')->willReturn($query);
 
         return compact('qb', 'query');
-    }
-
-    public function testGenerateReportDataDbAggregateSuccessReturnsLabelAndData(): void
-    {
-        ['qb' => $qb] = $this->makeFullQbMock(
-            [['label' => 'Alice', 'value' => '3'], ['label' => 'Bob', 'value' => '1']]
-        );
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $svc = new ReportDataService($em);
-
-        $result = $svc->generateReportData([
-            'xField' => 'player',
-            'yField' => 'goals',
-            'groupBy' => ['player'],
-            'use_db_aggregates' => true,
-        ]);
-
-        $this->assertSame(['Alice', 'Bob'], $result['labels']);
-        $this->assertSame([3.0, 1.0], $result['datasets'][0]['data']);
-        $this->assertTrue($result['meta']['dbAggregate']);
-    }
-
-    public function testGenerateReportDataDbAggregateGoalsMetric(): void
-    {
-        // Verifies that the metric code-map path is hit for 'goals'
-        ['qb' => $qb] = $this->makeFullQbMock([['label' => 'TeamX', 'value' => '5']]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'team',
-            'yField' => 'goals',
-            'groupBy' => ['team'],
-            'use_db_aggregates' => true,
-        ]);
-
-        $this->assertSame(['TeamX'], $result['labels']);
-        $this->assertSame([5.0], $result['datasets'][0]['data']);
-        $this->assertTrue($result['meta']['dbAggregate']);
-    }
-
-    public function testGenerateReportDataDbAggregateEventTypeIdField(): void
-    {
-        // yField matching 'eventType:42' triggers the regex path
-        ['qb' => $qb] = $this->makeFullQbMock([['label' => 'Max', 'value' => '2']]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'player',
-            'yField' => 'eventType:42',
-            'groupBy' => ['player'],
-            'use_db_aggregates' => true,
-        ]);
-
-        $this->assertSame(['Max'], $result['labels']);
-        $this->assertTrue($result['meta']['dbAggregate']);
-    }
-
-    public function testGenerateReportDataDbAggregateUnsupportedMetricFallsBackToPhp(): void
-    {
-        // 'duelsWonPercent' is NOT in $dbSupportedMetrics → falls back to PHP
-        $ev = $this->createMock(GameEvent::class);
-
-        ['qb' => $qb] = $this->makeFullQbMock([], [$ev]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'player',
-            'yField' => 'duelsWonPercent',
-            'groupBy' => ['player'],
-            'use_db_aggregates' => true,
-        ]);
-
-        // PHP fallback: result has dbAggregate = false (or not set, or meta.suggestions has hint)
-        $this->assertArrayHasKey('meta', $result);
-        // suggestions should mention that the metric needs PHP processing
-        $this->assertStringContainsString('not supported', implode(' ', $result['meta']['suggestions'] ?? []));
-    }
-
-    public function testGenerateReportDataDbAggregateNoJoinPathFallsBackToPhp(): void
-    {
-        // 'homeAway' has joinHint = null → canUseDb becomes false
-        $ev = $this->createMock(GameEvent::class);
-
-        ['qb' => $qb] = $this->makeFullQbMock([], [$ev]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'player',
-            'yField' => 'goals',
-            'groupBy' => ['homeAway'],  // joinHint = null → canUseDb = false
-            'use_db_aggregates' => true,
-        ]);
-
-        $this->assertArrayHasKey('meta', $result);
-        // Should have fallen back to PHP path with userSuggestions set
-        $this->assertArrayHasKey('userSuggestions', $result['meta']);
-    }
-
-    public function testGenerateReportDataDbAggregateWithDateFilters(): void
-    {
-        // Covers the dateFrom / dateTo filter branches in the DB aggregate path
-        ['qb' => $qb] = $this->makeFullQbMock([['label' => 'Alice', 'value' => '1']]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'player',
-            'yField' => 'assists',
-            'groupBy' => ['player'],
-            'use_db_aggregates' => true,
-            'filters' => [
-                'team' => 1,
-                'player' => 2,
-                'dateFrom' => '2024-01-01',
-                'dateTo' => '2024-12-31',
-            ],
-        ]);
-
-        $this->assertTrue($result['meta']['dbAggregate']);
-    }
-
-    public function testGenerateReportDataDbAggregateWithSurfaceTypeFilter(): void
-    {
-        // Covers the surfaceType / gameType filter branches in the DB aggregate path
-        ['qb' => $qb] = $this->makeFullQbMock([['label' => 'Rasen', 'value' => '2']]);
-
-        $repo = $this->createMock(EntityRepository::class);
-        $repo->method('createQueryBuilder')->willReturn($qb);
-        $repo->method('findAll')->willReturn([]);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getRepository')->willReturn($repo);
-
-        $result = (new ReportDataService($em))->generateReportData([
-            'xField' => 'surfaceType',
-            'yField' => 'shots',
-            'groupBy' => ['player'],
-            'use_db_aggregates' => true,
-            'filters' => [
-                'surfaceType' => 3,
-                'gameType' => 2,
-            ],
-        ]);
-
-        $this->assertTrue($result['meta']['dbAggregate']);
     }
 
     // ── Spatial heatmap via generateReportData ─────────────────────────
@@ -2311,5 +2129,326 @@ class ReportDataServiceTest extends TestCase
         foreach ($result['datasets'] as $ds) {
             $this->assertStringNotContainsString(' – ', $ds['label'] ?? '');
         }
+    }
+
+    // =========================================================================
+    //  generateReportDataForRadarSingleMetric – Unit tests (via Reflection)
+    // =========================================================================
+
+    private function makeEventWithPlayerAndEventType(string $playerName, string $eventTypeName): object
+    {
+        $eventType = $this->createMock(GameEventType::class);
+        $eventType->method('getName')->willReturn($eventTypeName);
+        $eventType->method('getCode')->willReturn(strtolower($eventTypeName));
+        $eventType->method('getId')->willReturn(crc32($eventTypeName));
+
+        $player = $this->createMock(Player::class);
+        $player->method('getFullName')->willReturn($playerName);
+        $player->method('__toString')->willReturn($playerName);
+
+        $ev = $this->createMock(GameEvent::class);
+        $ev->method('getPlayer')->willReturn($player);
+        $ev->method('getGameEventType')->willReturn($eventType);
+
+        return $ev;
+    }
+
+    public function testRadarSingleMetricSpokesAreGroupByValues(): void
+    {
+        $svc = new ReportDataService($this->createMock(EntityManagerInterface::class));
+
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Alice', 'Gelbe Karte'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Tor'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarSingleMetric');
+        $m->setAccessible(true);
+
+        // Spokes = eventType (groupBy), overlays = player (xField)
+        $result = $m->invokeArgs($svc, [$events, 'player', 'eventCount', ['eventType']]);
+
+        $this->assertArrayHasKey('labels', $result);
+        // Spoke labels must be event type names
+        $this->assertContains('Tor', $result['labels']);
+        $this->assertContains('Gelbe Karte', $result['labels']);
+    }
+
+    public function testRadarSingleMetricOverlaysAreXFieldValues(): void
+    {
+        $svc = new ReportDataService($this->createMock(EntityManagerInterface::class));
+
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Tor'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarSingleMetric');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', 'eventCount', ['eventType']]);
+
+        $this->assertArrayHasKey('datasets', $result);
+        $dsLabels = array_column($result['datasets'], 'label');
+        // Each dataset = one player (overlay layer)
+        $this->assertContains('Alice', $dsLabels);
+        $this->assertContains('Bob', $dsLabels);
+    }
+
+    public function testRadarSingleMetricCountsCorrectlyPerBucket(): void
+    {
+        $svc = new ReportDataService($this->createMock(EntityManagerInterface::class));
+
+        // Alice: 2 goals, 1 yellow card; Bob: 1 goal, 0 yellow cards
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Alice', 'Gelbe Karte'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Tor'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarSingleMetric');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', 'eventCount', ['eventType']]);
+
+        $dsLabels = array_column($result['datasets'], 'label');
+        $aliceIdx = array_search('Alice', $dsLabels, true);
+        $bobIdx = array_search('Bob', $dsLabels, true);
+        $this->assertNotFalse($aliceIdx);
+        $this->assertNotFalse($bobIdx);
+
+        $torIdx = array_search('Tor', $result['labels'], true);
+        $yellowIdx = array_search('Gelbe Karte', $result['labels'], true);
+
+        $this->assertSame(2, $result['datasets'][$aliceIdx]['data'][$torIdx]);
+        $this->assertSame(1, $result['datasets'][$aliceIdx]['data'][$yellowIdx]);
+        $this->assertSame(1, $result['datasets'][$bobIdx]['data'][$torIdx]);
+        $this->assertSame(0, $result['datasets'][$bobIdx]['data'][$yellowIdx]);
+    }
+
+    public function testRadarSingleMetricDataLengthMatchesSpokeCount(): void
+    {
+        $svc = new ReportDataService($this->createMock(EntityManagerInterface::class));
+
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Alice', 'Vorlage'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Foul'),
+        ];
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarSingleMetric');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [$events, 'player', 'eventCount', ['eventType']]);
+
+        $spokeCount = count($result['labels']);
+        foreach ($result['datasets'] as $ds) {
+            $this->assertCount($spokeCount, $ds['data'], 'Jedes Dataset muss so viele Werte haben wie es Speichen gibt');
+        }
+    }
+
+    public function testRadarSingleMetricEmptyEventsReturnsEmptyLabelsAndDatasets(): void
+    {
+        $svc = new ReportDataService($this->createMock(EntityManagerInterface::class));
+
+        $ref = new ReflectionClass(ReportDataService::class);
+        $m = $ref->getMethod('generateReportDataForRadarSingleMetric');
+        $m->setAccessible(true);
+
+        $result = $m->invokeArgs($svc, [[], 'player', 'eventCount', ['eventType']]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        $this->assertEmpty($result['labels']);
+        $this->assertEmpty($result['datasets']);
+    }
+
+    // =========================================================================
+    //  Routing: radaroverlay + 1 metric + groupBy → RadarSingleMetric
+    // =========================================================================
+
+    public function testRoutingRadarOverlaySingleMetricDispatchesToSingleMetricMethod(): void
+    {
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Bob', 'Tor'),
+            $this->makeEventWithPlayerAndEventType('Alice', 'Gelbe Karte'),
+        ];
+
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'eventCount',
+            'groupBy' => ['eventType'],
+            'metrics' => ['eventCount'],
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+
+        // Spokes must be event type names (groupBy), not metric labels
+        $this->assertNotContains('Ereignisse (Anzahl)', $result['labels'], 'Speichen dürfen nicht der Metrik-Name sein');
+
+        // Each dataset = one overlay layer (player)
+        $dsLabels = array_column($result['datasets'], 'label');
+        $this->assertContains('Alice', $dsLabels);
+        $this->assertContains('Bob', $dsLabels);
+    }
+
+    public function testRoutingRadarOverlayMultipleMetricsDoesNotDispatchToSingleMetricMethod(): void
+    {
+        // 2 metrics → must NOT use the single-metric path (would lose a metric)
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'groupBy' => ['competitionType'],
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+        // Multi-metric radar uses metric labels as spokes
+        $this->assertTrue(
+            in_array('Gelbe Karten', $result['labels'], true) || count($result['labels']) >= 2,
+            'Multi-Metrik-Pfad muss mehrere Speichen liefern'
+        );
+    }
+
+    public function testRoutingRadarSingleMetricWithoutGroupByFallsThrough(): void
+    {
+        // 1 metric but NO groupBy → must NOT use single-metric path
+        $events = [
+            $this->makeEventWithPlayerAndEventType('Alice', 'Tor'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'eventCount',
+            'metrics' => ['eventCount'],
+            // groupBy intentionally omitted
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+    }
+
+    // =========================================================================
+    //  Radar Overlay: mehrere Metriken, kein groupBy → xField als Overlay
+    // =========================================================================
+
+    public function testRadarOverlayMultiMetricNoGroupBySpokesArePlayers(): void
+    {
+        // Regression: ohne groupBy kollabiert radaroverlay auf 1 Dataset "All"
+        // Fix: Speichen = xField-Werte (Spieler), Datasets = eine Linie pro Metrik
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'red_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'metrics' => ['yellowCards', 'redCards'],
+            // groupBy intentionally omitted
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+
+        // Speichen = Spieler
+        $this->assertContains('Alice', $result['labels'], 'Alice muss als Speiche (label) erscheinen');
+        $this->assertContains('Bob', $result['labels'], 'Bob muss als Speiche (label) erscheinen');
+    }
+
+    public function testRadarOverlayMultiMetricNoGroupByDatasetsAreMetrics(): void
+    {
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $dsLabels = array_column($result['datasets'], 'label');
+        // Datasets = eine Linie pro Metrik, NICHT ein Dreieck pro Spieler
+        $this->assertContains('Gelbe Karten', $dsLabels, 'Dataset "Gelbe Karten" erwartet');
+        $this->assertContains('Rote Karten', $dsLabels, 'Dataset "Rote Karten" erwartet');
+        // Kein "All"-Catch-All-Dataset
+        $this->assertNotContains('All', $dsLabels, 'Kein "All"-Dataset erwartet');
+    }
+
+    public function testRadarOverlayMultiMetricNoGroupByDataLengthMatchesSpokeCount(): void
+    {
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'red_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'metrics' => ['yellowCards', 'redCards'],
+        ]);
+
+        $spokeCount = count($result['labels']);
+        foreach ($result['datasets'] as $ds) {
+            $this->assertCount($spokeCount, $ds['data'], 'Datenpunkte je Dataset müssen Speichenanzahl entsprechen');
+        }
+    }
+
+    public function testRadarOverlayMultiMetricEmptyGroupByArrayBehavesLikeNoGroupBy(): void
+    {
+        // Regression: groupBy=[] (leeres Array vom Frontend nach Entfernen der Gruppierung)
+        // muss denselben Pfad nehmen wie groupBy nicht gesetzt
+        $events = [
+            $this->makeCardEvent('Alice', 'Liga', 'yellow_card'),
+            $this->makeCardEvent('Bob', 'Liga', 'red_card'),
+        ];
+        $svc = new ReportDataService($this->buildEmMockForEvents($events));
+
+        $result = $svc->generateReportData([
+            'diagramType' => 'radaroverlay',
+            'xField' => 'player',
+            'yField' => 'yellowCards',
+            'metrics' => ['yellowCards', 'redCards'],
+            'groupBy' => [],  // leeres Array statt omitted
+        ]);
+
+        $this->assertArrayHasKey('labels', $result);
+        $this->assertArrayHasKey('datasets', $result);
+
+        // Speichen = Spieler (gleich wie ohne groupBy)
+        $this->assertContains('Alice', $result['labels']);
+        $this->assertContains('Bob', $result['labels']);
+        // Datasets = Metriken, kein "All"
+        $dsLabels = array_column($result['datasets'], 'label');
+        $this->assertNotContains('All', $dsLabels, 'Leeres groupBy-Array darf nicht zu "All"-Dataset führen');
+        $this->assertContains('Gelbe Karten', $dsLabels);
     }
 }

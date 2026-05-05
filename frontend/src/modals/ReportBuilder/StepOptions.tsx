@@ -56,7 +56,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             }
             label="Gleitender Durchschnitt"
           />
-          <Tooltip title="Glättet die Serie über ein wählbares Fenster.">
+          <Tooltip title="Statt einzelner Spieltags-Werte siehst du den Durchschnitt aus mehreren aufeinanderfolgenden Spielen – Ausreißer werden abgeschwächt und der Trend wird klarer sichtbar.">
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
           </Tooltip>
         </Box>
@@ -133,7 +133,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
                 <MenuItem value="both">Beides</MenuItem>
               </Select>
             </FormControl>
-            <Tooltip title="Geglättet: Kernel-Dichte-Schätzung für weiche Farbverläufe. Klassisch: gleichmäßiges Gitter zeigt Zonen-Häufigkeit. Beides: beide Darstellungen überlagert." placement="top-end">
+            <Tooltip title="Geglättet: Weiche Farbflächen zeigen, wo die meisten Ereignisse stattfanden. Klassisch: Das Spielfeld wird in Kacheln aufgeteilt – jede zeigt wie viele Ereignisse dort auftraten. Beides: beide Ansichten gleichzeitig." placement="top-end">
               <InfoOutlinedIcon fontSize="small" sx={{ mt: 1, color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
             </Tooltip>
           </Box>
@@ -152,7 +152,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
               }
               label="Räumliche Heatmap (x/y)"
             />
-            <Tooltip title="Verwendet die gespeicherten X/Y-Koordinaten der Ereignisse um eine positionsgenaue Spielfeldkarte zu zeichnen, statt eine Raster-Aggregation zu verwenden." placement="top-end">
+            <Tooltip title="Zeigt Ereignisse an ihrer genauen Position auf dem Spielfeld – nur verfügbar wenn Positionsdaten zu den Ereignissen gespeichert wurden." placement="top-end">
               <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
             </Tooltip>
           </Box>
@@ -179,7 +179,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             }
             label="Pro Dataset normalisieren"
           />
-          <Tooltip title="Skaliert jeden Datensatz unabhängig auf 0–100 %, sodass Spieler oder Teams mit unterschiedlichen Gesamtzahlen direkt verglichen werden können." placement="top-end">
+          <Tooltip title="Nützlich wenn Spieler sehr unterschiedlich viele Einsätze hatten: Die Werte werden auf einer gemeinsamen Skala (0–100 %) dargestellt, damit ein Spieler mit wenigen Spielen fair mit einem aus vielen verglichen werden kann." placement="top-end">
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
@@ -198,7 +198,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             }
             label="Legende anzeigen"
           />
-          <Tooltip title="Blendet eine Farblegende ein, die erklärt welche Farbe welchen Datensatz (z.B. welchen Spieler) repräsentiert." placement="top-end">
+          <Tooltip title="Zeigt eine Erklärung welche Farbe zu welchem Spieler, Team oder Wert gehört – hilfreich wenn mehrere Linien oder Balkengruppen im Diagramm zu sehen sind." placement="top-end">
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
@@ -212,7 +212,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             }
             label="Datenlabels anzeigen"
           />
-          <Tooltip title="Zeigt den genauen Zahlenwert direkt auf oder neben jedem Balken bzw. Punkt im Diagramm an – nützlich wenn genaue Werte ohne Hover erkennbar sein sollen." placement="top-end">
+          <Tooltip title="Schreibt den genauen Zahlenwert direkt an jeden Balken oder Punkt – so siehst du die Werte auf einen Blick, ohne mit der Maus darüber fahren zu müssen." placement="top-end">
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
@@ -227,7 +227,7 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
               }
               label="Horizontal anzeigen"
             />
-            <Tooltip title="Dreht das Balkendiagramm – die Achsen werden getauscht, sodass die Balken waagrecht verlaufen. Nützlich bei langen Beschriftungen." placement="top-end">
+            <Tooltip title="Dreht das Diagramm so, dass die Balken von links nach rechts verlaufen statt nach oben. Praktisch wenn die Beschriftungen (z.B. Spielernamen) sehr lang sind." placement="top-end">
               <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
             </Tooltip>
           </Box>
@@ -242,29 +242,12 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
             }
             label="Einträge ohne Wert ausblenden"
           />
-          <Tooltip title="Blendet Beschriftungen und Datenpunkte aus, bei denen alle Datensätze den Wert 0, null oder leer haben – hält das Diagramm übersichtlicher." placement="top-end">
+          <Tooltip title="Versteckt Spieler, Monate oder Kategorien, für die kein einziger Wert vorliegt – so bleibt das Diagramm übersichtlich und zeigt nur das Wesentliche." placement="top-end">
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
       </Paper>
 
-      {/* DB aggregates (admin only) */}
-      {isSuperAdmin && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={!!currentReport.config.use_db_aggregates}
-                onChange={(e) => handleConfigChange('use_db_aggregates', e.target.checked)}
-              />
-            }
-            label="DB-Aggregate (opt-in)"
-          />
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-            Berechnet Aggregation in der Datenbank statt in PHP
-          </Typography>
-        </Paper>
-      )}
     </Box>
   );
 };

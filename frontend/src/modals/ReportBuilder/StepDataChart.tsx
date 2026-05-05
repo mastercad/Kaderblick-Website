@@ -196,16 +196,36 @@ function splitFields(fields: FieldOption[]) {
 }
 
 /**
- * Derive which diagram types are most suitable given the current x/y axis selection.
- * This gives non-technical users a clear recommendation without limiting their choice.
+ * Derive which diagram types are most suitable given the current configuration.
+ * Takes effectiveMetricKeys (the real Y-selection, accounting for the multi-select
+ * fallback) and groupBy (now potentially an array) so recommendations stay accurate
+ * after the multi-select refactoring.
+ *
+ * Rules of thumb for non-technical users:
+ *  – Multiple metrics → radar / radaroverlay / bar / line (NOT pie/doughnut: no multi-series)
+ *  – groupBy with ≥2 dimensions → bar / line only (composite keys break pie/doughnut)
+ *  – groupBy with 1 dimension → pie/doughnut only if xField also has very few distinct values
+ *  – Time on X → line / area first, then bar
+ *  – Entity (player/team) on X, one metric → bar / radar / pie
+ *  – Both axes numeric → scatter
  */
 function getRecommendedDiagramTypes(
   xField: string | undefined,
-  yField: string | undefined,
+  effectiveMetricKeys: string[],
   fields: FieldOption[],
+  groupBy?: string | string[],
 ): Set<string> {
   const rec = new Set<string>();
-  if (!xField || !yField) return rec;
+  if (!xField || effectiveMetricKeys.length === 0) return rec;
+
+  const yField = effectiveMetricKeys[0];
+  const hasMultipleMetrics = effectiveMetricKeys.length > 1;
+
+  const groupByKeys: string[] = Array.isArray(groupBy)
+    ? groupBy.filter(Boolean)
+    : (groupBy ? [groupBy] : []);
+  const hasGroupBy = groupByKeys.length > 0;
+  const hasMultiGroupBy = groupByKeys.length > 1;
 
   const TIME_DIM_KEYS = ['month', 'matchday', 'date', 'season', 'year', 'week', 'day'];
   const xIsTime = TIME_DIM_KEYS.some(k => xField.toLowerCase().includes(k));
@@ -214,30 +234,65 @@ function getRecommendedDiagramTypes(
   const xIsMetric = !!xMeta?.isMetricCandidate;
   const yIsMetric = !!yMeta?.isMetricCandidate;
 
-  if (xIsTime) {
-    // Time on X → trend charts work best
+  // ── Multiple metrics selected ────────────────────────────────────────────
+  // Pie/doughnut can only show one value series → not recommended.
+  if (hasMultipleMetrics) {
+    rec.add('bar');
     rec.add('line');
-    rec.add('area');
-    rec.add('stackedarea');
-    rec.add('bar');
-  } else if (xIsMetric && yIsMetric) {
-    // Both axes are numeric → scatter / correlation
-    rec.add('scatter');
-    rec.add('bar');
-  } else if (!xIsMetric && yIsMetric) {
-    // Categorical X + metric Y → the most common case
-    rec.add('bar');
-    if (['player', 'team'].includes(xField)) {
-      // Entity-level comparisons also work well as radar/profile
+    if (!xIsTime) {
+      // Radar/overlay: great for multi-metric player/team profiles
       rec.add('radar');
       rec.add('radaroverlay');
     }
-    // Pie/Donut useful for share comparisons (few groups)
-    rec.add('pie');
-    rec.add('doughnut');
-  } else {
-    rec.add('bar');
+    return rec;
   }
+
+  // ── Multiple groupBy dimensions → composite dataset labels ───────────────
+  // Pie/doughnut break with composite keys (too many segments, no clear hierarchy).
+  if (hasMultiGroupBy) {
+    rec.add('bar');
+    rec.add('line');
+    return rec;
+  }
+
+  // ── Time on X ─────────────────────────────────────────────────────────────
+  if (xIsTime) {
+    rec.add('line');
+    rec.add('area');
+    rec.add('bar');
+    if (hasGroupBy) {
+      // With a single groupBy on a time axis, stacked area shows composition over time
+      rec.add('stackedarea');
+    }
+    // Pie/doughnut don't convey time-series information → omit
+    return rec;
+  }
+
+  // ── Both axes numeric ─────────────────────────────────────────────────────
+  if (xIsMetric && yIsMetric) {
+    rec.add('scatter');
+    rec.add('bar');
+    return rec;
+  }
+
+  // ── Categorical X + metric Y (the most common case) ──────────────────────
+  if (!xIsMetric && yIsMetric) {
+    rec.add('bar');
+    if (['player', 'team'].includes(xField)) {
+      // Entity-level comparisons → radar profile charts
+      rec.add('radar');
+      rec.add('radaroverlay');
+    }
+    if (!hasGroupBy) {
+      // Pie/Donut: only sensible without a groupBy (otherwise too many slices)
+      rec.add('pie');
+      rec.add('doughnut');
+    }
+    return rec;
+  }
+
+  // ── Fallback ──────────────────────────────────────────────────────────────
+  rec.add('bar');
   return rec;
 }
 
@@ -267,8 +322,19 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
   // A dimension on Y is valid (e.g. count of event types per player) — only warn when a metric ends up on X
   const axesSwapped = xIsMetric;
 
-  // Recommended diagram types for the current axis configuration
-  const recommendedTypeKeys = getRecommendedDiagramTypes(xField, yField, availableFields);
+  // Effective metric keys: use explicit metrics when set, else fall back to yField.
+  // Must be computed BEFORE recommendedTypeKeys so recommendations reflect the real Y-selection.
+  const effectiveMetricKeys: string[] = currentReport.config.metrics?.length
+    ? currentReport.config.metrics
+    : (currentReport.config.yField ? [currentReport.config.yField] : []);
+
+  // Recommended diagram types — now aware of multi-metric and multi-groupBy state
+  const recommendedTypeKeys = getRecommendedDiagramTypes(
+    xField,
+    effectiveMetricKeys,
+    availableFields,
+    currentReport.config.groupBy,
+  );
   const recDiagramTypes = DIAGRAM_TYPES.filter(dt => recommendedTypeKeys.has(dt.value));
   const otherDiagramTypes = DIAGRAM_TYPES.filter(dt => !recommendedTypeKeys.has(dt.value));
 
@@ -283,13 +349,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
-      {/* Orientation hint for new users */}
-      {!xField && !yField && (
-        <Alert severity="info" sx={{ mb: 0.5 }}>
-          <strong>So funktioniert es:</strong> Die <strong>X-Achse</strong> ist immer eine Dimension (z.B. Spieler, Monat, Team) — sie bestimmt die Beschriftungen. Die <strong>Y-Achse</strong> ist eine Metrik (z.B. Tore, Vorlagen) — sie bestimmt die Höhe der Balken.
-        </Alert>
-      )}
 
       {/* Boxplot explanation — shown as soon as boxplot is selected */}
       {isBoxplot && !boxplotYInvalid && (
@@ -331,15 +390,26 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         <Alert
           severity="warning"
           action={
-            <Tooltip title="X- und Y-Achse tauschen">
+            <Tooltip title="Felder tauschen">
               <IconButton
                 size="small"
                 color="inherit"
                 onClick={() =>
-                  setCurrentReport(prev => ({
-                    ...prev,
-                    config: { ...prev.config, xField: prev.config.yField, yField: prev.config.xField },
-                  }))
+                  setCurrentReport(prev => {
+                    const cfg = prev.config;
+                    const newX = cfg.yField ?? '';
+                    const newY = cfg.xField ?? '';
+                    const curGroupBy: string[] = Array.isArray(cfg.groupBy)
+                      ? cfg.groupBy.filter(Boolean)
+                      : cfg.groupBy ? [cfg.groupBy as string] : [];
+                    const newGroupBy = curGroupBy.filter(k => k !== newX);
+                    const isRadarOverlay = (cfg.diagramType ?? '').toLowerCase() === 'radaroverlay';
+                    const newGroupedMetrics = isRadarOverlay && false && newGroupBy.length > 0;
+                    return {
+                      ...prev,
+                      config: { ...cfg, xField: newX, yField: newY, metrics: [newY].filter(Boolean), groupBy: newGroupBy, groupedMetrics: newGroupedMetrics },
+                    };
+                  })
                 }
               >
                 <SwapVertIcon fontSize="small" />
@@ -349,8 +419,7 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         >
           {(() => {
             const xLabel = availableFields.find(f => f.key === xField)?.label ?? xField;
-            // Only fires when xIsMetric — simplify to single message
-            return <><strong>„{xLabel}"</strong> ist eine Metrik — auf der X-Achse erscheint dadurch nur „Unbekannt" als Beschriftung. Verschiebe <strong>{xLabel}</strong> auf die Y-Achse.</>;
+            return <><strong>„{xLabel}"</strong> ist ein Messwert — als Auswertungs-Dimension ergibt das nur „Unbekannt". Klicke auf den Pfeil um die Felder zu tauschen.</>;
           })()}
         </Alert>
       )}
@@ -358,21 +427,21 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
       {/* X-Axis — typically a dimension (Spieler, Team, Monat...) */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <FormControl fullWidth>
-          <InputLabel>X-Achse (Gruppierung) *</InputLabel>
+          <InputLabel>Auswertung nach *</InputLabel>
           <Select
             value={currentReport.config.xField ?? ''}
             onChange={(e) => {
               const newX = e.target.value;
               handleConfigChange('xField', newX);
-              // Auto-clear groupBy when it would conflict with the new xField
-              const curGroupBy = Array.isArray(currentReport.config.groupBy)
-                ? (currentReport.config.groupBy[0] || '')
-                : (currentReport.config.groupBy || '');
-              if (curGroupBy && curGroupBy === newX) {
-                handleConfigChange('groupBy', '');
+              // Auto-clear groupBy entries that would conflict with the new xField
+              const curGroupBy: string[] = Array.isArray(currentReport.config.groupBy)
+                ? currentReport.config.groupBy.filter(Boolean)
+                : currentReport.config.groupBy ? [currentReport.config.groupBy] : [];
+              if (curGroupBy.includes(newX)) {
+                handleConfigChange('groupBy', curGroupBy.filter(k => k !== newX));
               }
             }}
-            label="X-Achse (Gruppierung) *"
+            label="Auswertung nach *"
             sx={selSx(currentReport.config.xField)}
           >
             <MenuItem value="">
@@ -398,20 +467,31 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             ))}
           </Select>
         </FormControl>
-        <Tip text="Die X-Achse bestimmt die Beschriftung und Gruppierung der Balken/Punkte – z.B. Spieler, Monat oder Team. Jeder eindeutige Wert dieses Feldes ergibt eine eigene Kategorie." />
+        <Tip text="Wähle die Dimension, nach der ausgewertet werden soll – z.B. Spieler, Monat oder Team. Jeder eindeutige Wert ergibt eine eigene Kategorie im Diagramm." />
       </Box>
 
-      {/* Swap X ↔ Y axes — compact button between the two selects, only shown when no swapped-warning is active */}
-      {!axesSwapped && (
+      {/* Swap: only shown in single-metric mode when both fields are set and no axes-swapped warning is active */}
+      {!axesSwapped && effectiveMetricKeys.length <= 1 && !!(xField) && !!(yField) && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: -0.5 }}>
-          <Tooltip title="X- und Y-Achse tauschen">
+          <Tooltip title="Felder tauschen">
             <IconButton
               size="small"
               onClick={() =>
-                setCurrentReport(prev => ({
-                  ...prev,
-                  config: { ...prev.config, xField: prev.config.yField, yField: prev.config.xField },
-                }))
+                setCurrentReport(prev => {
+                  const cfg = prev.config;
+                  const newX = cfg.yField ?? '';
+                  const newY = cfg.xField ?? '';
+                  const curGroupBy: string[] = Array.isArray(cfg.groupBy)
+                    ? cfg.groupBy.filter(Boolean)
+                    : cfg.groupBy ? [cfg.groupBy as string] : [];
+                  const newGroupBy = curGroupBy.filter(k => k !== newX);
+                  const isRadarOverlay = (cfg.diagramType ?? '').toLowerCase() === 'radaroverlay';
+                  const newGroupedMetrics = isRadarOverlay && false && newGroupBy.length > 0;
+                  return {
+                    ...prev,
+                    config: { ...cfg, xField: newX, yField: newY, metrics: [newY].filter(Boolean), groupBy: newGroupBy, groupedMetrics: newGroupedMetrics },
+                  };
+                })
               }
               sx={{ color: 'primary.main' }}
             >
@@ -431,19 +511,19 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             groupBy={(opt) => opt.isMetricCandidate ? 'Metriken' : 'Gruppierung'}
             getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label}
             getOptionDisabled={(opt) => {
-              const selected = availableFields.filter(f => (currentReport.config.metrics || []).includes(f.key));
+              const selected = availableFields.filter(f => effectiveMetricKeys.includes(f.key));
               const hasMetric = selected.some(f => f.isMetricCandidate);
               const hasDimension = selected.some(f => !f.isMetricCandidate);
               // Keine Mischung: wenn Metrik(en) gewählt → Dimensionen sperren; wenn Dimension gewählt → Metriken + weitere Dimensionen sperren
               if (opt.isMetricCandidate) return hasDimension;
               return hasMetric || hasDimension;
             }}
-            value={availableFields.filter((f) => (currentReport.config.metrics || []).includes(f.key))}
+            value={availableFields.filter((f) => effectiveMetricKeys.includes(f.key))}
             onChange={(_, newValue) => {
               const keys = newValue.map((v: any) => v.key);
               handleConfigChange('metrics', keys);
-              // keep yField in sync so backend fallback paths work
-              if (keys.length > 0) handleConfigChange('yField', keys[0]);
+              // Sync yField: use first selected metric, or clear it when all metrics removed
+              handleConfigChange('yField', keys[0] ?? '');
             }}
             renderTags={(value: any[], getTagProps) =>
               value.map((option: any, index: number) => (
@@ -461,20 +541,20 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
               </li>
             )}
             renderInput={(params) => (
-              <TextField {...params} label="Y-Achse (Wert) *" placeholder="Feld(er) wählen…" />
+              <TextField {...params} label="Was messen? *" placeholder="Feld(er) wählen…" />
             )}
             ListboxProps={{ sx: { pt: 0 } }}
           />
-          <Tip text="Wähle ein oder mehrere Felder. Bei Radar wird jedes zur Achse; bei Balken-/Liniendiagrammen entsteht pro Feld eine eigene Dataset-Gruppe." />
+          <Tip text="Wähle was gemessen werden soll – z.B. Tore, Karten oder Vorlagen. Bei Radar- und Liniendiagrammen können mehrere Werte gleichzeitig verglichen werden." />
         </Box>
       ) : (
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
           <FormControl fullWidth>
-            <InputLabel>Y-Achse (Wert) *</InputLabel>
+              <InputLabel>Was messen? *</InputLabel>
             <Select
               value={currentReport.config.yField ?? ''}
               onChange={(e) => handleConfigChange('yField', e.target.value)}
-              label="Y-Achse (Wert) *"
+              label="Was messen? *"
               sx={selSx(currentReport.config.yField)}
             >
               <MenuItem value="">
@@ -501,36 +581,40 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
               ))}
             </Select>
           </FormControl>
-          <Tip text="Die Y-Achse bestimmt den gemessenen Wert – z.B. Anzahl Tore, Vorlagen oder Schüsse. Die Höhe jedes Balkens entspricht diesem Wert." />
+          <Tip text="Wähle was gemessen werden soll – z.B. Tore, Karten oder Vorlagen. Die Höhe jedes Balkens entspricht diesem Wert." />
         </Box>
       )}
 
-      {/* Gruppierung */}
+      {/* Gruppierung — multi-select: the backend already supports groupBy as an array,
+          concatenating group keys with " | " to form composite dataset labels.
+          This lets users break down data by e.g. both Team AND Ereignistyp simultaneously. */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-        <FormControl fullWidth>
-          <InputLabel>Gruppierung (optional)</InputLabel>
-          <Select
-            value={(() => {
-              const v = Array.isArray(currentReport.config.groupBy) ? (currentReport.config.groupBy[0] || '') : (currentReport.config.groupBy || '');
-              // Guard: groupBy must not equal xField (that dimension is filtered out of options)
-              return v === currentReport.config.xField ? '' : v;
-            })()}
-            onChange={(e) => handleConfigChange('groupBy', e.target.value)}
-            label="Gruppierung (optional)"
-            sx={selSx((() => {
-              const v = Array.isArray(currentReport.config.groupBy) ? (currentReport.config.groupBy[0] || '') : (currentReport.config.groupBy || '');
-              return v === currentReport.config.xField ? '' : v;
-            })())}
-          >
-            <MenuItem value="">Keine Gruppierung</MenuItem>
-            {dimensions
-              .filter(f => f.key !== currentReport.config.xField)
-              .map((field) => (
-                <MenuItem key={field.key} value={field.key}>{field.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Tip text="Fügt eine zweite Unterscheidungsdimension hinzu – z.B. unterschiedlich eingefärbte Balken pro Ereignistyp für jeden Spieler. Ohne Gruppierung gibt es nur eine Datenreihe." />
+        <Autocomplete
+          multiple
+          fullWidth
+          options={dimensions.filter(f => f.key !== currentReport.config.xField)}
+          getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label}
+          value={(() => {
+            const raw = currentReport.config.groupBy;
+            const keys: string[] = Array.isArray(raw)
+              ? raw.filter((k): k is string => !!k && k !== currentReport.config.xField)
+              : raw && raw !== currentReport.config.xField ? [raw] : [];
+            return dimensions.filter(f => keys.includes(f.key));
+          })()}
+          onChange={(_, newValue) => {
+            const keys = newValue.map((v: any) => v.key);
+            handleConfigChange('groupBy', keys);
+          }}
+          renderTags={(value: any[], getTagProps) =>
+            value.map((option: any, index: number) => (
+              <Chip label={option.label} {...getTagProps({ index })} key={option.key} size="small" />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField {...params} label="Zusätzlich unterteilen nach" placeholder="Dimension(en) wählen…" />
+          )}
+        />
+        <Tip text="Optional: Unterteile die Daten weiter – z.B. nach Wettbewerb oder Ereignistyp. Jede Kombination ergibt eine eigene farbige Linie oder Balkengruppe." />
       </Box>
 
       {/* Chart Type — card grid on mobile, select on desktop */}

@@ -137,6 +137,12 @@ export interface Player {
   jerseyNumber?: number;
 }
 
+export interface SquadCoach {
+  id: number;
+  fullName: string;
+  teamId: number;
+}
+
 export interface SubstitutionReason {
   id: number;
   name: string;
@@ -158,6 +164,8 @@ export interface GameEvent {
   minute?: number;
   reason?: string;
   type?: string;
+  coach?: string;
+  coachId?: number;
 }
 
 export interface GameWithScore {

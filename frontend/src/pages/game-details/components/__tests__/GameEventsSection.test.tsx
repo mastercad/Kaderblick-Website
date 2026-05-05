@@ -253,6 +253,49 @@ describe('GameEventsSection', () => {
     expect(screen.getByText('Spieler Raus')).toBeInTheDocument();
   });
 
+  // ── Coach-Events ────────────────────────────────────────────────────────
+
+  it('zeigt Coach-Namen wenn kein Spieler gesetzt aber coach-String vorhanden', () => {
+    const event = makeEvent({
+      player: undefined,
+      coach: 'Test Trainer',
+      coachId: 10,
+    });
+    render(<GameEventsSection {...defaultProps} gameEvents={[event]} />);
+    expect(screen.getByText('Test Trainer')).toBeInTheDocument();
+  });
+
+  it('zeigt keinen Coach-Namen wenn player gesetzt ist (player hat Vorrang)', () => {
+    const event = makeEvent({
+      player: { id: 5, firstName: 'Max', lastName: 'Müller', jerseyNumber: 9 },
+      coach: 'Test Trainer',
+      coachId: 10,
+    });
+    render(<GameEventsSection {...defaultProps} gameEvents={[event]} />);
+    expect(screen.getByText('Max Müller')).toBeInTheDocument();
+    expect(screen.queryByText('Test Trainer')).not.toBeInTheDocument();
+  });
+
+  it('übergibt Coach-Event vollständig an onEditEvent-Callback', () => {
+    const onEdit = jest.fn();
+    const event = makeEvent({
+      player: undefined,
+      coach: 'Test Trainer',
+      coachId: 10,
+    });
+    render(
+      <GameEventsSection
+        {...defaultProps}
+        gameEvents={[event]}
+        canCreateEvents={true}
+        onEditEvent={onEdit}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /ereignis-optionen/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /bearbeiten/i }));
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ coachId: 10, coach: 'Test Trainer' }));
+  });
+
   it('appends "(verletzt)" to the injured player name for injury substitution', () => {
     const event = makeEvent({
       id: 4,

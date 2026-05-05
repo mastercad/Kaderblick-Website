@@ -42,196 +42,12 @@ class ReportDataService
 
         // (keine Area-spezifische Logik hier - Chart 'area' wird im Frontend als Line+Fill gerendert)
 
-        // Load alias metadata and check feature flag for DB-based aggregates
+        // Load alias metadata
         $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
-        $useDbAggregates = isset($config['use_db_aggregates']) ? (bool) $config['use_db_aggregates'] : false;
 
         // Route PlayerGameStats metrics to a dedicated data path
         if (($fieldAliases[$yField]['dataSource'] ?? null) === 'playerGameStats') {
             return $this->generatePlayerGameStatsData($config);
-        }
-
-        // If DB aggregates are enabled and a groupBy is provided, attempt a DB-side aggregation
-        // supporting multiple groupBy fields. We only handle simple COUNT-based aggregates
-        // and a couple of common metric filters (e.g. goals, shots). If unsupported, we
-        // fall back to in-memory aggregation and provide meta.suggestions explaining why.
-        if ($useDbAggregates && !empty($groupBy)) {
-            $metaLocal = ['eventsCount' => 0, 'dbAggregate' => false, 'warnings' => [], 'suggestions' => []];
-
-            // Determine whether the requested yField can be computed in DB
-            $yAlias = $fieldAliases[$yField] ?? null;
-            $supportedMetric = false;
-            // All named aggregate metrics can be computed via simple event-code counting in DB
-            $dbSupportedMetrics = ['goals', 'assists', 'shots', 'yellowCards', 'yellowRedCards', 'redCards', 'fouls',
-                'dribbles', 'saves', 'passes', 'tackles', 'interceptions'];
-            if ($yAlias && isset($yAlias['aggregate']) && is_callable($yAlias['aggregate'])) {
-                if (in_array($yField, $dbSupportedMetrics, true)) {
-                    $supportedMetric = true;
-                } else {
-                    // Percentage metrics (shotAccuracy, duelsWonPercent) require PHP post-processing
-                    $supportedMetric = false;
-                    $metaLocal['suggestions'][] = "DB-Aggregate: metric '{$yField}' not supported for DB aggregation (complex PHP aggregate).";
-                }
-            } else {
-                // tokens like eventType:ID or generic count are supported
-                $supportedMetric = true;
-            }
-
-            if ($supportedMetric) {
-                $qb = $this->em->getRepository(GameEvent::class)->createQueryBuilder('e');
-
-                $groupLabelParts = [];
-                $groupByIdExprs = [];
-                $gbIndex = 0;
-                $canUseDb = true;
-
-                foreach ($groupBy as $gField) {
-                    $groupAlias = $fieldAliases[$gField] ?? null;
-                    if (!$groupAlias || !($groupAlias['accessibleFromEvent'] ?? false)) {
-                        $metaLocal['suggestions'][] = "Cannot DB-aggregate by '{$gField}' as it is not accessible from GameEvent.";
-                        $canUseDb = false;
-                        break;
-                    }
-
-                    // Use joinHint if provided, otherwise use path
-                    $joinPath = $groupAlias['joinHint'] ?? $groupAlias['path'] ?? [];
-                    $labelField = $groupAlias['subfield'] ?? $groupAlias['field'] ?? null;
-
-                    if (empty($joinPath) || !is_array($joinPath)) {
-                        $metaLocal['suggestions'][] = "No join path for groupBy '{$gField}', cannot DB-aggregate.";
-                        $canUseDb = false;
-                        break;
-                    }
-
-                    $prevAlias = 'e';
-                    $i = 0;
-                    $lastAlias = null;
-                    foreach ($joinPath as $segment) {
-                        $clean = preg_replace('/[^a-zA-Z0-9_]/', '_', $segment);
-                        $alias = 'g_' . $clean . '_' . $gbIndex . '_' . $i;
-                        // use LEFT JOIN to avoid dropping rows with missing relations
-                        $qb->leftJoin($prevAlias . '.' . $segment, $alias);
-                        $prevAlias = $alias;
-                        $lastAlias = $alias;
-                        ++$i;
-                    }
-
-                    // joinPath is non-empty (checked above), so lastAlias will be set; no need for extra null-check
-
-                    // Build a COALESCE label part for this group element
-                    $part = "COALESCE({$lastAlias}.name, {$lastAlias}.title, {$lastAlias}.label, {$lastAlias}.fullName, " .
-                        "CONCAT(COALESCE({$lastAlias}.firstName, ''), ' ', COALESCE({$lastAlias}.lastName, '')), CONCAT('', {$lastAlias}.id))";
-                    $groupLabelParts[] = $part;
-                    $groupByIdExprs[] = $lastAlias . '.id';
-
-                    ++$gbIndex;
-                }
-
-                if ($canUseDb && !empty($groupByIdExprs)) {
-                    // Metric-specific WHEREs — map metric key to GameEventType codes
-                    $metricCodeMap = [
-                        'goals' => ['goal', 'penalty_goal', 'freekick_goal', 'header_goal', 'corner_goal', 'cross_goal', 'counter_goal', 'pressing_goal'],
-                        'assists' => ['assist'],
-                        'shots' => [
-                            'shot_on_target',
-                            'shot_off_target',
-                            'shot_blocked',
-                            'header_on_target',
-                            'header_off_target',
-                            'long_shot',
-                            'volley',
-                            'bicycle_kick',
-                            'shot_post',
-                            'shot_bar'
-                        ],
-                        'yellowCards' => ['yellow_card'],
-                        'redCards' => ['red_card', 'yellow_red_card'],
-                        'fouls' => ['foul', 'foul_holding', 'foul_push', 'foul_shove', 'foul_bump', 'foul_trip', 'foul_kick', 'foul_elbow'],
-                        'dribbles' => ['dribble_success'],
-                        'saves' => ['save', 'keeper_hold', 'keeper_punch', 'penalty_save'],
-                        'passes' => ['pass_normal', 'pass_through', 'cross', 'pass_back', 'pass_sideways', 'chip_ball', 'pass_cut', 'long_ball', 'switch_play', 'header_pass'],
-                        'tackles' => ['tackle_success'],
-                        'interceptions' => ['interception', 'intercept_cross', 'ball_win'],
-                    ];
-
-                    if (isset($metricCodeMap[$yField])) {
-                        $codes = $metricCodeMap[$yField];
-                        $qb->leftJoin('e.gameEventType', 'et');
-                        $placeholders = [];
-                        foreach ($codes as $ci => $code) {
-                            $param = 'mc_' . $ci;
-                            $placeholders[] = ':' . $param;
-                            $qb->setParameter($param, $code);
-                        }
-                        $qb->andWhere('et.code IN (' . implode(',', $placeholders) . ')');
-                    } elseif (preg_match('/^eventType:(\d+)$/', $yField, $m)) {
-                        $qb->andWhere('e.gameEventType = :evtype')->setParameter('evtype', (int) $m[1]);
-                    }
-
-                    // Apply standard filters (same as non-DB path)
-                    if (isset($filters['teams']) && '' !== $filters['teams']) {
-                        $teamIds = array_map('intval', explode(',', (string) $filters['teams']));
-                        $qb->andWhere('e.team IN (:teams)')->setParameter('teams', $teamIds);
-                    } elseif (isset($filters['team'])) {
-                        $qb->andWhere('e.team = :team')->setParameter('team', $filters['team']);
-                    }
-                    if (isset($filters['eventType'])) {
-                        $qb->andWhere('e.gameEventType = :eventType')->setParameter('eventType', $filters['eventType']);
-                    }
-                    if (isset($filters['player'])) {
-                        $qb->andWhere('e.player = :player')->setParameter('player', $filters['player']);
-                    }
-                    if (isset($filters['players']) && '' !== $filters['players']) {
-                        $playerIds = array_map('intval', explode(',', (string) $filters['players']));
-                        $qb->andWhere('e.player IN (:players)')->setParameter('players', $playerIds);
-                    }
-                    if (isset($filters['surfaceType'])) {
-                        $qb->leftJoin('e.game', 'g2')->leftJoin('g2.location', 'loc2')
-                            ->andWhere('loc2.surfaceType = :surfaceType')->setParameter('surfaceType', (int) $filters['surfaceType']);
-                    }
-                    if (isset($filters['gameType'])) {
-                        $qb->leftJoin('e.game', 'ggt')->andWhere('ggt.gameType = :gameType')->setParameter('gameType', (int) $filters['gameType']);
-                    }
-                    if (isset($filters['dateFrom'])) {
-                        $qb->andWhere('DATE(e.timestamp) >= DATE(:dateFrom)')->setParameter('dateFrom', new DateTimeImmutable($filters['dateFrom']));
-                    }
-                    if (isset($filters['dateTo'])) {
-                        $qb->andWhere('DATE(e.timestamp) <= DATE(:dateTo)')->setParameter('dateTo', new DateTimeImmutable($filters['dateTo']));
-                    }
-
-                    // Build label expression by concatenating parts with ' | '
-                    $labelExpr = 'CONCAT(' . implode(", ' | ', ", $groupLabelParts) . ')';
-                    $qb->addSelect($labelExpr . ' AS label');
-                    foreach ($groupByIdExprs as $idx => $gexpr) {
-                        $qb->addGroupBy($gexpr);
-                    }
-
-                    $qb->select('label');
-                    $qb->addSelect('COUNT(e.id) AS value');
-                    $rows = $qb->getQuery()->getArrayResult();
-
-                    $labels = array_map(fn ($r) => $r['label'] ?? 'Unbekannt', $rows);
-                    $data = array_map(fn ($r) => (float) $r['value'], $rows);
-
-                    $datasetLabel = $fieldAliases[$yField]['label'] ?? $yField;
-                    $metaLocal['eventsCount'] = array_sum($data);
-                    $metaLocal['dbAggregate'] = true;
-
-                    return [
-                        'labels' => $labels,
-                        'datasets' => [
-                            ['label' => $datasetLabel, 'data' => $data]
-                        ],
-                        'meta' => $metaLocal,
-                    ];
-                }
-            }
-            // If we reach here, DB-aggregate wasn't possible — suggestions were pushed
-            // Create concise, user-facing tips (no DB-internals) for the UI and
-            // keep the technical suggestions in `metaLocal['suggestions']` for admins.
-            $metaLocal['userSuggestions'] = $this->deriveUserSuggestions($metaLocal['suggestions'], $metaLocal['warnings']);
-
-            // Fall back to loading events in PHP below.
         }
 
         $qb = $this->em->getRepository(GameEvent::class)->createQueryBuilder('e');
@@ -308,26 +124,6 @@ class ReportDataService
         $meta = [];
         $meta['eventsCount'] = count($events);
 
-        // If DB-aggregate was attempted earlier, merge its meta information
-        // (technical suggestions remain for admins; userSuggestions are safe for end users).
-        if (isset($metaLocal)) {
-            // keep technical suggestions/warnings available for admins
-            // phpstan: metaLocal keys are built above but static analysis may be confused
-            // @phpstan-ignore-next-line
-            if (isset($metaLocal['suggestions']) && count($metaLocal['suggestions']) > 0) {
-                $meta['suggestions'] = $metaLocal['suggestions'];
-            }
-            // @phpstan-ignore-next-line
-            if (isset($metaLocal['warnings']) && count($metaLocal['warnings']) > 0) {
-                $meta['warnings'] = $metaLocal['warnings'];
-            }
-            // ensure dbAggregate is always a boolean
-            $meta['dbAggregate'] = (bool) $metaLocal['dbAggregate'];
-            // user-friendly tips to show to normal users
-            // @phpstan-ignore-next-line
-            $meta['userSuggestions'] = $metaLocal['userSuggestions'] ?? $this->deriveUserSuggestions($metaLocal['suggestions'] ?? [], $metaLocal['warnings'] ?? []);
-        }
-
         // Spatial heatmap support: if client requested spatial points, try to emit {x:0..100, y:0..100, intensity}
         if (isset($config['diagramType']) && 'pitchheatmap' === $config['diagramType'] && !empty($config['heatmapSpatial'])) {
             $meta['spatialRequested'] = true;
@@ -375,6 +171,29 @@ class ReportDataService
             $gmResult['meta']['eventsCount'] = $meta['eventsCount'];
 
             return $gmResult;
+        }
+
+        // radaroverlay with multiple metrics and NO explicit groupBy:
+        // Spokes = xField values (e.g. players), one dataset per metric.
+        // Without this, all events collapse into a single "All" dataset and skewed metric
+        // distributions make the polygon degenerate to a single spoke.
+        if ('radaroverlay' === $diagramType && is_array($metrics) && count($metrics) > 1 && empty($groupBy) && !empty($xField)) {
+            $radarResult = $this->generateReportDataForRadarMultiMetricNoGroup($events, $xField, $metrics);
+            $radarResult['meta'] = $radarResult['meta'] ?? [];
+            $radarResult['meta']['eventsCount'] = $meta['eventsCount'];
+
+            return $radarResult;
+        }
+
+        // radaroverlay with exactly 1 metric and non-empty groupBy: transpose axes.
+        // Spokes = groupBy values (e.g. event types), overlays = xField values (e.g. players).
+        // Without this, a single metric produces only 1 spoke → degenerate line chart.
+        if ('radaroverlay' === $diagramType && 1 === count($metrics) && !empty($groupBy) && !empty($xField)) {
+            $radarResult = $this->generateReportDataForRadarSingleMetric($events, $xField, $metrics[0], $groupBy);
+            $radarResult['meta'] = $radarResult['meta'] ?? [];
+            $radarResult['meta']['eventsCount'] = $meta['eventsCount'];
+
+            return $radarResult;
         }
 
         if (in_array($diagramType, ['radar', 'radaroverlay'], true) && is_array($metrics) && !empty($metrics)) {
@@ -921,6 +740,129 @@ class ReportDataService
 
         return [
             'labels' => $axisLabels,
+            'datasets' => $datasets,
+        ];
+    }
+
+    /**
+     * Radar overlay for a single metric with groupBy values as spokes.
+     *
+     * Spokes = unique groupBy values (e.g. event types).
+     * Overlay layers = unique xField values (e.g. players).
+     * Value per spoke/layer = aggregate of the metric for that (xField, groupBy) bucket.
+     *
+     * @param array<string, mixed> $events
+     *
+     * @return array<string, mixed>
+     */
+    /**
+     * Radar Overlay mit mehreren Metriken ohne Gruppierung:
+     * Speichen = xField-Werte (z.B. Spieler), je ein Dataset pro Metrik.
+     *
+     * @param list<mixed>        $events
+     * @param array<int, string> $metrics
+     *
+     * @return array<string, mixed>
+     */
+    private function generateReportDataForRadarMultiMetricNoGroup(array $events, string $xField, array $metrics): array
+    {
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+
+        $axisValues = [];
+        /** @var array<string, list<mixed>> $buckets */
+        $buckets = [];
+
+        foreach ($events as $event) {
+            $xVal = $this->stringifyValue($this->retrieveFieldValue($event, $xField));
+            $axisValues[$xVal] = true;
+            $buckets[$xVal][] = $event;
+        }
+
+        $labels = array_keys($axisValues);
+        sort($labels);
+
+        $datasets = [];
+        foreach ($metrics as $metric) {
+            $metricLabel = $fieldAliases[$metric]['label'] ?? $metric;
+            $data = [];
+
+            foreach ($labels as $axisVal) {
+                $bucketEvents = $buckets[$axisVal] ?? [];
+                if (!empty($bucketEvents) && isset($fieldAliases[$metric]['aggregate']) && is_callable($fieldAliases[$metric]['aggregate'])) {
+                    $data[] = $fieldAliases[$metric]['aggregate']($bucketEvents);
+                } else {
+                    $data[] = 0;
+                }
+            }
+
+            $datasets[] = ['label' => $metricLabel, 'data' => $data];
+        }
+
+        return ['labels' => $labels, 'datasets' => $datasets];
+    }
+
+    /**
+     * @param list<mixed>        $events
+     * @param array<int, string> $groupBy
+     *
+     * @return array<string, mixed>
+     */
+    private function generateReportDataForRadarSingleMetric(
+        array $events,
+        string $xField,
+        string $metric,
+        array $groupBy,
+    ): array {
+        $fieldAliases = ReportFieldAliasService::fieldAliases($this->em);
+        $aggregate = isset($fieldAliases[$metric]['aggregate']) && is_callable($fieldAliases[$metric]['aggregate'])
+            ? $fieldAliases[$metric]['aggregate']
+            : null;
+
+        $spokeValues = [];
+        $spokeSortKeys = [];
+        $layerValues = [];
+        /** @var array<string, array<string, list<mixed>>> $buckets */
+        $buckets = [];
+
+        foreach ($events as $event) {
+            $layerRaw = $this->retrieveFieldValue($event, $xField);
+            $layerKey = $this->stringifyValue($layerRaw);
+            $layerValues[$layerKey] = true;
+
+            $spokeKeyParts = [];
+            foreach ($groupBy as $gField) {
+                $spokeKeyParts[] = $this->stringifyValue($this->retrieveFieldValue($event, $gField));
+            }
+            $spokeKey = implode(' | ', $spokeKeyParts);
+
+            if (!isset($spokeSortKeys[$spokeKey])) {
+                $spokeSortKeys[$spokeKey] = $this->retrieveSortKey($event, $groupBy[0] ?? $xField);
+            }
+            $spokeValues[$spokeKey] = true;
+            $buckets[$layerKey][$spokeKey][] = $event;
+        }
+
+        $spokeLabels = array_keys($spokeValues);
+        usort($spokeLabels, fn ($a, $b) => strcmp($spokeSortKeys[$a] ?? $a, $spokeSortKeys[$b] ?? $b));
+
+        $layers = array_keys($layerValues);
+        sort($layers);
+
+        $datasets = [];
+        foreach ($layers as $layerKey) {
+            $data = [];
+            foreach ($spokeLabels as $spokeKey) {
+                $bucket = $buckets[$layerKey][$spokeKey] ?? [];
+                $data[] = null !== $aggregate ? $aggregate($bucket) : count($bucket);
+            }
+            $datasets[] = [
+                'label' => $layerKey,
+                'data' => $data,
+            ];
+        }
+
+        return [
+            'labels' => $spokeLabels,
             'datasets' => $datasets,
         ];
     }

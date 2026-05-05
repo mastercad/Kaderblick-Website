@@ -3,13 +3,10 @@ import {
   Box,
   Typography,
   Paper,
-  IconButton,
-  Tooltip,
   Alert,
   Tab,
   Tabs,
 } from '@mui/material';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -26,9 +23,16 @@ interface DesktopLayoutProps {
 }
 
 export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
-  const { expandedSection, setExpandedSection, activeFilterCount, setHelpOpen, currentReport } = state;
-  const [introDismissed, setIntroDismissed] = React.useState(false);
+  const { expandedSection, setExpandedSection, activeFilterCount, currentReport } = state;
+  const [introDismissed, setIntroDismissed] = React.useState(
+    () => localStorage.getItem('reportBuilder.introDismissed') === '1',
+  );
   const showIntro = !introDismissed && !currentReport.config.xField;
+
+  const handleDismissIntro = () => {
+    localStorage.setItem('reportBuilder.introDismissed', '1');
+    setIntroDismissed(true);
+  };
 
   const activeTab = expandedSection || 'basics';
 
@@ -78,7 +82,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
           {showIntro && (
             <Alert
               severity="info"
-              onClose={() => setIntroDismissed(true)}
+              onClose={handleDismissIntro}
               sx={{ mb: 2 }}
             >
               <Typography variant="body2" fontWeight={600} gutterBottom>
@@ -111,14 +115,7 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
           overflowY: 'auto',
         }}
       >
-        <Box display="flex" alignItems="center" gap={1} mb={1}>
-          <Typography variant="h6">Vorschau</Typography>
-          <Tooltip title="Hilfe zur räumlichen Heatmap">
-            <IconButton size="small" onClick={() => setHelpOpen(true)}>
-              <InfoOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        <Typography variant="h6" mb={1}>Vorschau</Typography>
         <Paper
           variant="outlined"
           sx={{

@@ -458,6 +458,13 @@ class ReportFieldAliasService
 
             // ─── Metrics (Y-Axis / countable values) ─────────────────────
 
+            'eventCount' => [
+                'label' => 'Ereignisse (Anzahl)',
+                'category' => 'metric',
+                'aggregate' => static function (array $events): int {
+                    return count($events);
+                },
+            ],
             'goals' => [
                 'label' => 'Tore',
                 'category' => 'metric',

@@ -1097,3 +1097,281 @@ describe('handleSave – verwendet state.currentReport statt buildConfig()', () 
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// handleSelectSubject – Vorauswahl aus linkedPlayers / linkedTeams
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Baut builderData mit linkedPlayers und linkedTeams */
+function makeStateWithLinked(opts: {
+  linkedPlayers?: { id: number; fullName: string; teamName?: string | null; isSelf: boolean; type?: 'player' | 'coach' }[];
+  linkedTeams?: { id: number; name: string }[];
+  teamCount?: number;
+}) {
+  const base = makeState(opts.teamCount ?? 2);
+  return {
+    ...base,
+    builderData: {
+      ...base.builderData,
+      linkedPlayers: opts.linkedPlayers ?? [],
+      linkedTeams: opts.linkedTeams ?? [],
+    },
+  };
+}
+
+describe('handleSelectSubject – Vorauswahl: genau 1 verknüpft', () => {
+  it('wählt bei subject=player den einzigen verknüpften Spieler vor', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [{ id: 7, fullName: 'Max Muster', teamName: 'U17', isSelf: false }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player'); });
+
+    expect(result.current.selectedPlayer).toMatchObject({ id: 7, fullName: 'Max Muster' });
+  });
+
+  it('wählt bei subject=team das einzige verknüpfte Team vor', () => {
+    const state = makeStateWithLinked({
+      linkedTeams: [{ id: 10, name: 'U17' }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team'); });
+
+    expect(result.current.selectedTeam).toMatchObject({ id: 10, name: 'U17' });
+  });
+
+  it('wählt bei subject=player_comparison den einzigen Spieler als erstes Chip-Element vor', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [{ id: 7, fullName: 'Max Muster', teamName: 'U17', isSelf: false }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player_comparison'); });
+
+    expect(result.current.selectedComparisonPlayers).toHaveLength(1);
+    expect(result.current.selectedComparisonPlayers[0]).toMatchObject({ id: 7 });
+  });
+
+  it('wählt bei subject=team_comparison das einzige Team als erstes Chip-Element vor', () => {
+    const state = makeStateWithLinked({
+      linkedTeams: [{ id: 10, name: 'U17' }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team_comparison'); });
+
+    expect(result.current.selectedComparisonTeams).toEqual([10]);
+  });
+});
+
+describe('handleSelectSubject – Vorauswahl: mehrere verknüpft, isSelf bevorzugt', () => {
+  it('bevorzugt den isSelf-Spieler wenn mehrere verknüpft sind (subject=player)', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 5, fullName: 'Freund', teamName: 'U17', isSelf: false },
+        { id: 9, fullName: 'Ich selbst', teamName: 'U19', isSelf: true },
+      ],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player'); });
+
+    expect(result.current.selectedPlayer).toMatchObject({ id: 9, fullName: 'Ich selbst' });
+  });
+
+  it('bevorzugt das Team des isSelf-Spielers wenn mehrere Teams verknüpft sind (subject=team)', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 9, fullName: 'Ich selbst', teamName: 'U19', isSelf: true },
+      ],
+      linkedTeams: [
+        { id: 10, name: 'U17' },
+        { id: 20, name: 'U19' },
+      ],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team'); });
+
+    // Erwartet das Team das zum isSelf-Spieler passt (teamName-Abgleich)
+    expect(result.current.selectedTeam).toMatchObject({ id: 20, name: 'U19' });
+  });
+
+  it('bevorzugt isSelf-Spieler in player_comparison wenn mehrere vorhanden', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 5, fullName: 'Freund', teamName: 'U17', isSelf: false },
+        { id: 9, fullName: 'Ich selbst', teamName: 'U19', isSelf: true },
+      ],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player_comparison'); });
+
+    expect(result.current.selectedComparisonPlayers).toHaveLength(1);
+    expect(result.current.selectedComparisonPlayers[0]).toMatchObject({ id: 9 });
+  });
+
+  it('bevorzugt isSelf-Team in team_comparison wenn mehrere verknüpft sind', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 9, fullName: 'Ich selbst', teamName: 'U19', isSelf: true },
+      ],
+      linkedTeams: [
+        { id: 10, name: 'U17' },
+        { id: 20, name: 'U19' },
+      ],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team_comparison'); });
+
+    // Nur das passende Team soll vorausgewählt sein, nicht alle
+    expect(result.current.selectedComparisonTeams).toEqual([20]);
+  });
+});
+
+describe('handleSelectSubject – Vorauswahl: kein verknüpfter Eintrag', () => {
+  it('setzt keinen selectedPlayer wenn keine linkedPlayers vorhanden (subject=player)', () => {
+    const state = makeStateWithLinked({ linkedPlayers: [] });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player'); });
+
+    expect(result.current.selectedPlayer).toBeNull();
+  });
+
+  it('setzt kein selectedTeam wenn keine linkedTeams vorhanden (subject=team)', () => {
+    const state = makeStateWithLinked({ linkedTeams: [] });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team'); });
+
+    expect(result.current.selectedTeam).toBeNull();
+  });
+
+  it('setzt keine selectedComparisonPlayers wenn keine linkedPlayers (subject=player_comparison)', () => {
+    const state = makeStateWithLinked({ linkedPlayers: [] });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player_comparison'); });
+
+    expect(result.current.selectedComparisonPlayers).toHaveLength(0);
+  });
+
+  it('setzt keine selectedComparisonTeams wenn keine linkedTeams (subject=team_comparison)', () => {
+    const state = makeStateWithLinked({ linkedTeams: [] });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team_comparison'); });
+
+    expect(result.current.selectedComparisonTeams).toHaveLength(0);
+  });
+});
+
+describe('handleSelectSubject – Vorauswahl: selbst-Coach (type=coach)', () => {
+  it('wählt Coach-Eintrag als Spieler vor (subject=player)', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 42, fullName: 'Coach Müller', teamName: 'Herren', isSelf: true, type: 'coach' },
+      ],
+      linkedTeams: [{ id: 30, name: 'Herren' }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player'); });
+
+    expect(result.current.selectedPlayer).toMatchObject({ id: 42, type: 'coach' });
+  });
+
+  it('wählt Team des Coaches vor (subject=team)', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [
+        { id: 42, fullName: 'Coach Müller', teamName: 'Herren', isSelf: true, type: 'coach' },
+      ],
+      linkedTeams: [{ id: 30, name: 'Herren' }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team'); });
+
+    expect(result.current.selectedTeam).toMatchObject({ id: 30, name: 'Herren' });
+  });
+});
+
+describe('handleSelectSubject – Vorauswahl: Reset bei neuem Subject', () => {
+  it('setzt selectedPlayer zurück wenn subject gewechselt wird', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [{ id: 7, fullName: 'Max', teamName: null, isSelf: true }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('player'); });
+    expect(result.current.selectedPlayer).not.toBeNull();
+
+    act(() => { result.current.handleSelectSubject('team'); });
+    expect(result.current.selectedPlayer).toBeNull();
+  });
+
+  it('setzt selectedTeam zurück wenn subject gewechselt wird', () => {
+    const state = makeStateWithLinked({
+      linkedTeams: [{ id: 10, name: 'U17' }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.handleSelectSubject('team'); });
+    expect(result.current.selectedTeam).not.toBeNull();
+
+    act(() => { result.current.handleSelectSubject('player'); });
+    expect(result.current.selectedTeam).toBeNull();
+  });
+});
+
+describe('debounced player search – leeres Feld zeigt linkedPlayers', () => {
+  it('zeigt linkedPlayers als Optionen wenn playerSearchInput leer ist', () => {
+    const linked = [
+      { id: 1, fullName: 'Verknüpfter Spieler', teamName: 'U17', isSelf: true },
+    ];
+    const state = makeStateWithLinked({ linkedPlayers: linked });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    // Input ist leer → linkedPlayers sollen als Optionen erscheinen
+    act(() => { result.current.setPlayerSearchInput(''); });
+
+    expect(result.current.playerSearchOptions).toHaveLength(1);
+    expect(result.current.playerSearchOptions[0]).toMatchObject({ id: 1, fullName: 'Verknüpfter Spieler' });
+    expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it('zeigt keine Optionen (leere Liste) wenn playerSearchInput = 1 Zeichen', () => {
+    const state = makeStateWithLinked({
+      linkedPlayers: [{ id: 1, fullName: 'Spieler', teamName: null, isSelf: true }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.setPlayerSearchInput('A'); });
+
+    expect(result.current.playerSearchOptions).toHaveLength(0);
+    expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it('startet API-Suche ab 2 Zeichen und ignoriert linkedPlayers dabei', async () => {
+    const apiResult = [{ id: 99, fullName: 'API-Spieler' }];
+    mockSearch.mockResolvedValue(apiResult);
+
+    const state = makeStateWithLinked({
+      linkedPlayers: [{ id: 1, fullName: 'Verknüpft', teamName: null, isSelf: true }],
+    });
+    const { result } = renderHook(() => useWizardState(makeInput({}, state)));
+
+    act(() => { result.current.setPlayerSearchInput('Ma'); });
+    act(() => { jest.advanceTimersByTime(300); });
+    await act(async () => {});
+
+    expect(mockSearch).toHaveBeenCalledWith('Ma');
+    expect(result.current.playerSearchOptions).toHaveLength(1);
+    expect(result.current.playerSearchOptions[0]).toMatchObject({ id: 99 });
+  });
+});
+

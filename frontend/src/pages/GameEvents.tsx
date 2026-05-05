@@ -211,6 +211,13 @@ export default function GameEvents({ gameId }: GameEventsProps) {
                             variant="outlined"
                           />
                         )}
+                        {!event.player && event.coach && (
+                          <Chip 
+                            label={event.coach}
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
                         <Chip 
                           label={event.team?.name || 'Unbekannt'}
                           size="small"

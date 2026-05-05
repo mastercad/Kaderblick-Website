@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { getApiErrorMessage } from '../utils/api';
 import {
   Button,
@@ -21,6 +23,7 @@ import {
   updateGameEvent,
   fetchGameSquad,
   type SquadPlayer,
+  type SquadCoach,
 } from '../services/games';
 import { Game, GameEvent, GameEventType, SubstitutionReason } from '../types/games';
 import BaseModal from './BaseModal';
@@ -108,6 +111,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         eventType: existingEvent.gameEventType?.id?.toString() || existingEvent.typeId?.toString() || '',
         player: existingEvent.player?.id?.toString() || existingEvent.playerId?.toString() || '',
         relatedPlayer: existingEvent.relatedPlayer?.id?.toString() || existingEvent.relatedPlayerId?.toString() || '',
+        coach: existingEvent.coachId?.toString() || '',
         minute: String(minute),
         stoppage: String(stoppage),
         description: existingEvent.description || '',
@@ -122,6 +126,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
       eventType: ctx.eventType ?? '',
       player: '',
       relatedPlayer: '',
+      coach: '',
       minute: initialMinute !== undefined ? String(secondsToMinute(initialMinute)) : '',
       stoppage: '0',
       description: '',
@@ -141,7 +146,11 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   const [squadByTeam, setSquadByTeam] = useState<Record<number, SquadPlayer[]>>({});
   /** Alle aktiven Teamspieler pro teamId */
   const [allPlayersByTeam, setAllPlayersByTeam] = useState<Record<number, SquadPlayer[]>>({});
+  const [coachesByTeam, setCoachesByTeam] = useState<Record<number, SquadCoach[]>>({});
   const [hasParticipationData, setHasParticipationData] = useState(false);
+  const [personType, setPersonType] = useState<'player' | 'coach'>(
+    existingEvent?.coachId ? 'coach' : 'player'
+  );
   const [lastEvent, setLastEvent] = useState<LastEventCtx | null>(null);
   const prevOpen = useRef(false);
 
@@ -168,6 +177,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   useEffect(() => {
     if (open && !prevOpen.current) {
       setFormData(getInitialFormData());
+      setPersonType(existingEvent?.coachId ? 'coach' : 'player');
       setLastEvent(existingEvent ? null : loadLastEvent(gameId));
     }
     prevOpen.current = open;
@@ -198,7 +208,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
       const [eventTypesRaw, reasonsData, squadData] = await Promise.all([
         fetchGameEventTypes(),
         fetchSubstitutionReasons(),
-        fetchGameSquad(gameId).catch(() => ({ squad: [], allPlayers: [], hasParticipationData: false })),
+        fetchGameSquad(gameId).catch(() => ({ squad: [], allPlayers: [], coaches: [], hasParticipationData: false })),
       ]);
       const eventTypesData = Array.isArray(eventTypesRaw)
         ? eventTypesRaw
@@ -221,6 +231,14 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         allByTeam[p.teamId].push(p);
       }
       setAllPlayersByTeam(allByTeam);
+
+      // Trainer nach teamId gruppieren
+      const coachByTeam: Record<number, SquadCoach[]> = {};
+      for (const c of (squadData.coaches ?? [])) {
+        if (!coachByTeam[c.teamId]) coachByTeam[c.teamId] = [];
+        coachByTeam[c.teamId].push(c);
+      }
+      setCoachesByTeam(coachByTeam);
       setHasParticipationData(squadData.hasParticipationData);
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -233,7 +251,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   // ── Helpers ────────────────────────────────────────────────────────────────
   const handleInputChange = (field: string, value: string | number) => {
     if (field === 'team') {
-      setFormData(prev => ({ ...prev, team: String(value), player: '', relatedPlayer: '' }));
+      setFormData(prev => ({ ...prev, team: String(value), player: '', relatedPlayer: '', coach: '' }));
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
@@ -315,11 +333,12 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
       );
       const submitData = {
         eventType: Number(formData.eventType),
-        player: formData.player ? Number(formData.player) : undefined,
-        relatedPlayer: formData.relatedPlayer ? Number(formData.relatedPlayer) : undefined,
         minute: String(sec),
         description: formData.description,
         reason: formData.reason ? Number(formData.reason) : undefined,
+        player: personType === 'player' && formData.player ? Number(formData.player) : undefined,
+        relatedPlayer: personType === 'player' && formData.relatedPlayer ? Number(formData.relatedPlayer) : undefined,
+        coach: personType === 'coach' && formData.coach ? Number(formData.coach) : undefined,
       };
       if (existingEvent) {
         await updateGameEvent(gameId, existingEvent.id, submitData);
@@ -351,9 +370,10 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   const handleClose = () => {
     setSubmitError(null);
     setFormData({
-      team: '', eventType: '', player: '', relatedPlayer: '',
+      team: '', eventType: '', player: '', relatedPlayer: '', coach: '',
       minute: '', stoppage: '0', description: '', reason: 0, playerId: 0, teamId: 0,
     });
+    setPersonType('player');
     onClose();
   };
 
@@ -381,7 +401,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
             onClick={handleSubmit}
             variant="contained"
             color="primary"
-            disabled={loading || !formData.eventType || !formData.team || !formData.player || !isTimeValid}
+            disabled={loading || !formData.eventType || !formData.team || (personType === 'player' ? !formData.player : !formData.coach) || !isTimeValid}
             sx={{ minHeight: 48, flex: 1 }}
           >
             {loading ? 'Speichere…' : 'Speichern'}
@@ -563,18 +583,47 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           );
         })()}
 
-        <FormControl fullWidth required sx={{ mb: 2 }}>
-          <InputLabel>Spieler</InputLabel>
-          <Select
-            value={formData.player}
-            onChange={e => handleInputChange('player', e.target.value)}
-            label="Spieler"
-          >
-            {renderPlayerOptions(formData.team)}
-          </Select>
-        </FormControl>
+        {/* ── Person-Typ-Umschalter ────────────────────────────────────────── */}
+        <ToggleButtonGroup
+          value={personType}
+          exclusive
+          onChange={(_e, val) => { if (val) { setPersonType(val); setFormData(prev => ({ ...prev, player: '', coach: '' })); } }}
+          size="small"
+          fullWidth
+          sx={{ mb: 2 }}
+        >
+          <ToggleButton value="player">Spieler</ToggleButton>
+          <ToggleButton value="coach">Trainer</ToggleButton>
+        </ToggleButtonGroup>
 
-        {isSubstitution() && (
+        {personType === 'player' ? (
+          <FormControl fullWidth required sx={{ mb: 2 }}>
+            <InputLabel>Spieler</InputLabel>
+            <Select
+              value={formData.player}
+              onChange={e => handleInputChange('player', e.target.value)}
+              label="Spieler"
+            >
+              {renderPlayerOptions(formData.team)}
+            </Select>
+          </FormControl>
+        ) : (
+          <FormControl fullWidth required sx={{ mb: 2 }}>
+            <InputLabel>Trainer</InputLabel>
+            <Select
+              value={formData.coach}
+              onChange={e => handleInputChange('coach', e.target.value)}
+              label="Trainer"
+            >
+              <MenuItem value="">Trainer wählen…</MenuItem>
+              {(coachesByTeam[Number(formData.team)] ?? []).map(c => (
+                <MenuItem key={c.id} value={c.id}>{c.fullName}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
+        {personType === 'player' && isSubstitution() && (
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Eingewechselter Spieler</InputLabel>
             <Select
@@ -587,7 +636,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           </FormControl>
         )}
 
-        {isSubstitution() && (
+        {personType === 'player' && isSubstitution() && (
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Grund für Wechsel</InputLabel>
             <Select

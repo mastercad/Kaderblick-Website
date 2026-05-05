@@ -102,6 +102,7 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           playerSearchOptions={wiz.playerSearchOptions}
           playerSearchLoading={wiz.playerSearchLoading}
           teams={wiz.teams}
+          linkedTeams={wiz.linkedTeams}
         />
       )}
 

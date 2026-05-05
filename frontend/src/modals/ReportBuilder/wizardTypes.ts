@@ -35,6 +35,7 @@ export type PlayerOption = {
   id: number;
   fullName: string;
   teamName?: string | null;
+  type?: 'player' | 'coach';
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ export const TOPIC_OPTIONS: Record<Subject, WizardOption<Topic>[]> = {
 };
 
 export const TIME_OPTIONS: WizardOption<TimeRange>[] = [
-  { value: 'season',     emoji: '�', title: 'Aktuelle Saison',        desc: 'Immer die laufende Saison — bleibt auch nach dem Saisonwechsel aktuell' },
+  { value: 'season',     emoji: '🗓️', title: 'Aktuelle Saison',        desc: 'Immer die laufende Saison — bleibt auch nach dem Saisonwechsel aktuell' },
   { value: 'last10',     emoji: '🔟', title: 'Letzte 10 Spiele',       desc: 'Die 10 zuletzt ausgetragenen Spiele' },
   { value: 'last_month', emoji: '📆', title: 'Letzter Monat',          desc: 'Die vergangenen 30 Tage' },
   { value: 'all',        emoji: '📚', title: 'Alle verfügbaren Daten', desc: 'Gesamte Datenhistorie' },

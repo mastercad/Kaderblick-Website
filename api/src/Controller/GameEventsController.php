@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\Coach;
 use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\Player;
 use App\Event\GameEventCreatedEvent;
 use App\Event\GameEventUpdatedEvent;
+use App\Repository\CoachRepository;
 use App\Repository\GameEventRepository;
 use App\Repository\GameEventTypeRepository;
 use App\Repository\PlayerRepository;
@@ -63,6 +65,7 @@ class GameEventsController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         PlayerRepository $playerRepo,
+        CoachRepository $coachRepo,
         GameEventTypeRepository $eventTypeRepo,
         SubstitutionReasonRepository $substitutionReasonRepo,
         EventDispatcherInterface $dispatcher,
@@ -78,7 +81,11 @@ class GameEventsController extends AbstractController
         $event->setGame($game);
         $eventType = $eventTypeRepo->find($data['eventType'] ?? null);
         $event->setGameEventType($eventType);
-        $event->setPlayer($playerRepo->find($data['player'] ?? null));
+
+        $coach = !empty($data['coach']) ? $coachRepo->find($data['coach']) : null;
+        $player = null === $coach ? $playerRepo->find($data['player'] ?? null) : null;
+        $event->setCoach($coach);
+        $event->setPlayer($player);
 
         $isSubstitution = false;
         if ($eventType) {
@@ -92,7 +99,6 @@ class GameEventsController extends AbstractController
             $event->setRelatedPlayer(null);
         }
 
-        $player = $event->getPlayer();
         $team = null;
         if ($player) {
             $assignments = $player->getPlayerTeamAssignments();
@@ -106,6 +112,21 @@ class GameEventsController extends AbstractController
                     break;
                 }
             }
+        } elseif ($coach) {
+            $currentDate = new DateTime();
+            foreach ($coach->getCoachTeamAssignments() as $cta) {
+                $ctaTeam = $cta->getTeam();
+                $ctaEnd = $cta->getEndDate();
+                $isActive = (null === $ctaEnd) || ($ctaEnd >= $currentDate);
+                if ($isActive && ($ctaTeam === $game->getHomeTeam() || $ctaTeam === $game->getAwayTeam())) {
+                    $team = $ctaTeam;
+                    break;
+                }
+            }
+        }
+        // Fallback: team from request data
+        if (null === $team && !empty($data['team'])) {
+            $team = $em->find(\App\Entity\Team::class, (int) $data['team']);
         }
         $event->setTeam($team);
 
@@ -150,6 +171,8 @@ class GameEventsController extends AbstractController
                 'playerAvatarUrl' => $this->retrievePlayerAvatarUrl($event->getPlayer()),
                 'relatedPlayer' => $event->getRelatedPlayer()?->getFullName(),
                 'relatedPlayerId' => $event->getRelatedPlayer()?->getId(),
+                'coach' => $event->getCoach()?->getFullName(),
+                'coachId' => $event->getCoach()?->getId(),
                 'teamId' => $event->getTeam()->getId(),
                 'description' => $event->getDescription(),
             ];
@@ -187,6 +210,7 @@ class GameEventsController extends AbstractController
         EntityManagerInterface $em,
         GameEventRepository $eventRepo,
         PlayerRepository $playerRepo,
+        CoachRepository $coachRepo,
         GameEventTypeRepository $eventTypeRepo,
         SubstitutionReasonRepository $substitutionReasonRepo,
         EventDispatcherInterface $dispatcher,
@@ -209,6 +233,15 @@ class GameEventsController extends AbstractController
         }
         if (isset($data['player'])) {
             $event->setPlayer($playerRepo->find($data['player']));
+            $event->setCoach(null); // player takes precedence
+        }
+        if (array_key_exists('coach', $data)) {
+            if (null !== $data['coach']) {
+                $event->setCoach($coachRepo->find($data['coach']));
+                $event->setPlayer(null); // coach takes precedence
+            } else {
+                $event->setCoach(null);
+            }
         }
         if (isset($data['relatedPlayer'])) {
             $event->setRelatedPlayer($playerRepo->find($data['relatedPlayer']));

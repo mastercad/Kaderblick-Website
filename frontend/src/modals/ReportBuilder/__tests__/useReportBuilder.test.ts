@@ -729,3 +729,72 @@ describe('useReportBuilder – computePreviewWarnings', () => {
     expect(Object.keys(warnings)).toHaveLength(0);
   });
 });
+
+// =============================================================================
+// groupedMetrics – leeres groupBy-Array (Bug-Fix: !![] === true)
+// =============================================================================
+
+describe('useReportBuilder – groupedMetrics: leeres groupBy-Array', () => {
+  const radarReport: Report = {
+    ...SAMPLE_REPORT,
+    config: {
+      ...SAMPLE_REPORT.config,
+      diagramType: 'radaroverlay',
+      xField: 'player',
+      yField: 'yellowCards',
+      metrics: ['yellowCards', 'yellowRedCards', 'redCards'],
+      groupBy: 'competitionType',
+    },
+  };
+
+  it('setzt groupedMetrics=false wenn groupBy auf leeres Array gesetzt wird', async () => {
+    // Regression: !![] === true in JS würde groupedMetrics fälschlicherweise true lassen
+    let result: any;
+    await act(async () => {
+      ({ result } = renderHook(() =>
+        useReportBuilder(true, radarReport, jest.fn(), jest.fn()),
+      ));
+    });
+    // Erst verifizieren dass groupedMetrics true ist
+    act(() => {
+      result.current.handleConfigChange('showLegend', true);
+    });
+    expect(result.current.currentReport.config.groupedMetrics).toBe(true);
+
+    // Jetzt groupBy auf leeres Array setzen (simuliert: Nutzer entfernt alle Gruppierungen)
+    act(() => {
+      result.current.handleConfigChange('groupBy', []);
+    });
+    expect(result.current.currentReport.config.groupedMetrics).toBe(false);
+  });
+
+  it('setzt groupedMetrics=false wenn groupBy Array nur leere Strings enthält', async () => {
+    let result: any;
+    await act(async () => {
+      ({ result } = renderHook(() =>
+        useReportBuilder(true, radarReport, jest.fn(), jest.fn()),
+      ));
+    });
+    act(() => {
+      result.current.handleConfigChange('groupBy', ['', '']);
+    });
+    expect(result.current.currentReport.config.groupedMetrics).toBe(false);
+  });
+
+  it('setzt groupedMetrics=true wenn groupBy Array einen gültigen Wert enthält', async () => {
+    const reportNoGroup: Report = {
+      ...radarReport,
+      config: { ...radarReport.config, groupBy: [] as any },
+    };
+    let result: any;
+    await act(async () => {
+      ({ result } = renderHook(() =>
+        useReportBuilder(true, reportNoGroup, jest.fn(), jest.fn()),
+      ));
+    });
+    act(() => {
+      result.current.handleConfigChange('groupBy', ['competitionType']);
+    });
+    expect(result.current.currentReport.config.groupedMetrics).toBe(true);
+  });
+});
