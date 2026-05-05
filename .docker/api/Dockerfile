@@ -74,7 +74,9 @@ RUN apk add --no-cache --virtual .build-deps \
     && apk del .build-deps
 
 # nginx als www-data ausführen (konsistent mit PHP-FPM-User)
-RUN sed -i 's/user nginx;/user www-data;/' /etc/nginx/nginx.conf
+RUN sed -i 's/user nginx;/user www-data;/' /etc/nginx/nginx.conf \
+    && mkdir -p /var/lib/nginx/tmp/client_body \
+    && chown -R www-data:www-data /var/lib/nginx/tmp
 
 COPY .docker/api/conf.d/ /usr/local/etc/php/conf.d/
 COPY .docker/api/nginx.conf /etc/nginx/http.d/default.conf
