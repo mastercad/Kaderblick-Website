@@ -1,0 +1,23 @@
+{% extends 'emails/base.txt.twig' %}
+
+{% block title %}Neue Demo-Anfrage von {{ demoRequest.name }}{% endblock %}
+
+{% block content %}
+Hallo,
+
+eine neue Demo-Anfrage ist eingegangen:
+
+Name:    {{ demoRequest.name }}
+E-Mail:  {{ demoRequest.email }}
+{% if demoRequest.phone %}Telefon: {{ demoRequest.phone }}
+{% endif %}{% if demoRequest.clubName %}Verein:  {{ demoRequest.clubName }}
+{% endif %}{% if demoRequest.league %}Liga:    {{ demoRequest.league }}
+{% endif %}{% if demoRequest.ageGroup %}Altersgruppe / Team: {{ demoRequest.ageGroup }}
+{% endif %}Eingegangen: {{ demoRequest.createdAt|date('d.m.Y H:i') }} Uhr
+{% if demoRequest.message %}
+Kommentar:
+{{ demoRequest.message }}
+{% endif %}
+
+Anfrage im Admin öffnen: {{ adminUrl }}
+{% endblock %}

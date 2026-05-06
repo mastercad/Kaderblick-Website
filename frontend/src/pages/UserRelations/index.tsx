@@ -6,19 +6,22 @@ import { AdminPageLayout } from '../../components/AdminPageLayout';
 import UsersTab            from './UsersTab';
 import RequestsTab         from './RequestsTab';
 import SupporterRequestsTab from './SupporterRequestsTab';
-import { RequestCounts }   from './types';
+import DemoRequestsTab      from './DemoRequestsTab';
+import { DemoRequestCounts, RequestCounts }   from './types';
 
 const UserRelations: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const resolveTab = (tab: string | null) => {
     if (tab === 'requests') return 1;
     if (tab === 'supporter-requests') return 2;
+    if (tab === 'demo-requests') return 3;
     return 0;
   };
 
   const [activeTab, setActiveTab] = useState(() => resolveTab(searchParams.get('tab')));
   const [requestCounts, setRequestCounts] = useState<RequestCounts>({ pending: 0, approved: 0, rejected: 0 });
   const [supporterRequestCounts, setSupporterRequestCounts] = useState<RequestCounts>({ pending: 0, approved: 0, rejected: 0 });
+  const [demoRequestCounts, setDemoRequestCounts] = useState<DemoRequestCounts>({ pending: 0, demo_sent: 0, contacted: 0, rejected: 0 });
 
   React.useEffect(() => {
     setActiveTab(resolveTab(searchParams.get('tab')));
@@ -34,11 +37,15 @@ const UserRelations: React.FC = () => {
       setSearchParams({ tab: 'supporter-requests' }, { replace: true });
       return;
     }
+    if (newValue === 3) {
+      setSearchParams({ tab: 'demo-requests' }, { replace: true });
+      return;
+    }
     setSearchParams({}, { replace: true });
   };
 
   const tabs = (
-    <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+    <Tabs value={activeTab} onChange={handleTabChange}>
       <Tab label="Benutzer & Zuordnungen" />
       <Tab
         label={
@@ -62,6 +69,17 @@ const UserRelations: React.FC = () => {
           </Badge>
         }
       />
+      <Tab
+        label={
+          <Badge
+            badgeContent={demoRequestCounts.pending}
+            color="error"
+            sx={{ pr: demoRequestCounts.pending > 0 ? 1.5 : 0 }}
+          >
+            Demo-Anfragen
+          </Badge>
+        }
+      />
     </Tabs>
   );
 
@@ -76,8 +94,10 @@ const UserRelations: React.FC = () => {
       {activeTab === 0 && <UsersTab />}
       {activeTab === 1 && <RequestsTab onCountsChange={setRequestCounts} />}
       {activeTab === 2 && <SupporterRequestsTab onCountsChange={setSupporterRequestCounts} />}
+      {activeTab === 3 && <DemoRequestsTab onCountsChange={setDemoRequestCounts} />}
     </AdminPageLayout>
   );
 };
 
 export default UserRelations;
+

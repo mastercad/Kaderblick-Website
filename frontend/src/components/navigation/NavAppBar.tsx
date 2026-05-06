@@ -22,11 +22,12 @@ import UserAvatar from '../UserAvatar';
 
 interface NavAppBarProps {
   onOpenAuth: () => void;
+  onOpenDemo: () => void;
   onOpenNotifications: (e: React.MouseEvent<HTMLElement>) => void;
   onOpenUserMenu: (e: React.MouseEvent<HTMLElement>) => void;
 }
 
-export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserMenu }: NavAppBarProps) {
+export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications, onOpenUserMenu }: NavAppBarProps) {
   const { user, isAuthenticated } = useAuth();
   const { isOnHeroSection } = useHomeScroll();
   const { unreadCount } = useNotifications();
@@ -39,18 +40,31 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
 
   const isHome = location.pathname === '/' || location.pathname === '';
   const isPublicSeoRoute = isPublicSeoPath(location.pathname);
-  const showLoginButton = !isHome || (isHome && isOnHeroSection);
+  const showLoginButton = !user && (!isHome || isOnHeroSection || isPublicSeoRoute);
+  const showHomeMarketingHeader = !user && isHome;
+
+  const homeMenuItems = [
+    { label: 'Funktionen', href: '#funktionen', active: true },
+    { label: 'Vorteile', href: '/vorteile' },
+    { label: 'Preise', href: '/preise' },
+    { label: 'Ueber uns', href: '#ueber-uns' },
+    { label: 'Kontakt', href: '/kontakt' },
+  ];
 
   return (
     <AppBar
       position="fixed"
       sx={{
-        background: isHome
+        background: showHomeMarketingHeader
+          ? 'rgba(11, 14, 12, 0.92)'
+          : isHome
           ? 'transparent'
           : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+        backdropFilter: showHomeMarketingHeader ? 'blur(14px)' : undefined,
         backgroundColor: 'transparent',
         boxShadow: 'none',
         color: isHome ? '#fff' : 'primary.contrastText',
+        borderBottom: showHomeMarketingHeader ? '1px solid rgba(255,255,255,0.08)' : 'none',
         transition: 'background 0.3s, min-height 0.25s ease',
       }}
     >
@@ -58,27 +72,39 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
         sx={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: showHomeMarketingHeader ? 'space-between' : 'flex-start',
           color: isHome ? '#fff' : 'primary.contrastText',
-          px: { xs: 1, sm: 2 },
+          px: { xs: 1.25, sm: 2, lg: 3 },
           height: 'var(--app-header-height)',
           transition: 'height 0.25s ease',
           overflow: 'hidden',
+          gap: 2,
         }}
       >
-        {/* Logo — auf Desktop ausgeblendet wenn Sidebar sichtbar (zeigt eigenes Brand) */}
         <Typography
           variant="h6"
           component="div"
-          sx={{ flexGrow: 1, cursor: 'pointer', userSelect: 'none' }}
+          sx={{
+            flexGrow: showHomeMarketingHeader ? 0 : 1,
+            cursor: 'pointer',
+            userSelect: 'none',
+            minWidth: 0,
+          }}
           onClick={() => navigate('/')}
           title="Zur Startseite"
           style={{
-            fontFamily: 'ImpactWeb, Impact, "Arial Black", sans-serif',
-            fontSize: isScrolled ? '1.1rem' : '2rem',
+            fontFamily: 'Impact, "Arial Black", sans-serif',
+            fontSize: showHomeMarketingHeader ? (isMobile ? '1.2rem' : '1.6rem') : (isScrolled ? '1.1rem' : '2rem'),
+            letterSpacing: showHomeMarketingHeader ? '-0.03em' : undefined,
             transition: 'font-size 0.25s ease',
           }}
         >
-          {location.pathname !== '/' && (
+          {showHomeMarketingHeader ? (
+            <>
+              <span style={{ fontFamily: 'Impact', color: '#34b74a' }}>K</span>
+              <span style={{ fontFamily: 'Impact', color: '#ffffff' }}>ADERBLICK</span>
+            </>
+          ) : (
             <>
               <span style={{ color: '#018606', textShadow: '0 1px 6px #fff, 0 0px 2px #fff' }}>K</span>ADERBLICK
             </>
@@ -134,7 +160,41 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
           </Box>
         ) : (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isMobile && isPublicSeoRoute && (
+            {!isMobile && showHomeMarketingHeader && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mx: 'auto' }}>
+                {homeMenuItems.map((item) => (
+                  <Button
+                    key={item.label}
+                    component="a"
+                    href={item.href}
+                    className="navigation-transparent-btn"
+                    sx={{
+                      color: item.active ? '#ffffff' : 'rgba(255,255,255,0.82)',
+                      fontWeight: item.active ? 700 : 500,
+                      borderRadius: 999,
+                      px: 1.4,
+                      position: 'relative',
+                      '&::after': item.active
+                        ? {
+                            content: '""',
+                            position: 'absolute',
+                            left: 16,
+                            right: 16,
+                            bottom: 4,
+                            height: 2,
+                            borderRadius: 999,
+                            background: '#35b24c',
+                          }
+                        : undefined,
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </Box>
+            )}
+
+            {!isMobile && isPublicSeoRoute && !showHomeMarketingHeader && (
               <>
                 <Button
                   onClick={() => navigate('/funktionen')}
@@ -162,23 +222,64 @@ export default function NavAppBar({ onOpenAuth, onOpenNotifications, onOpenUserM
                 </Button>
               </>
             )}
-            {!user && showLoginButton && (
-              <Button
-                variant="contained"
-                onClick={onOpenAuth}
-                sx={{
-                  fontWeight: 500,
-                  borderRadius: 2,
-                  minWidth: 'auto',
-                  px: 2,
-                  py: 1,
-                  color: theme.palette.primary.contrastText,
-                  '&:hover': { backgroundColor: 'primary.dark', boxShadow: 3 },
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                Login / Register
-              </Button>
+
+            {showHomeMarketingHeader ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {showLoginButton && (
+                  <Button
+                    variant="outlined"
+                    onClick={onOpenAuth}
+                    sx={{
+                      fontWeight: 600,
+                      borderRadius: '0.8rem',
+                      minWidth: 'auto',
+                      px: { xs: 1.25, sm: 1.8 },
+                      py: 0.85,
+                      borderColor: 'rgba(255,255,255,0.55)',
+                      color: '#ffffff',
+                      textTransform: 'none',
+                    }}
+                  >
+                    Login
+                  </Button>
+                )}
+                <Button
+                  onClick={onOpenDemo}
+                  variant="contained"
+                  sx={{
+                    fontWeight: 700,
+                    borderRadius: '0.8rem',
+                    minWidth: 'auto',
+                    px: { xs: 1.4, sm: 2 },
+                    py: 0.9,
+                    textTransform: 'none',
+                    background: 'linear-gradient(180deg, #35b24c 0%, #1f9739 100%)',
+                    color: '#ffffff',
+                    boxShadow: 'none',
+                  }}
+                >
+                  Demo anfragen
+                </Button>
+              </Box>
+            ) : (
+              !user && showLoginButton && (
+                <Button
+                  variant="contained"
+                  onClick={onOpenAuth}
+                  sx={{
+                    fontWeight: 500,
+                    borderRadius: 2,
+                    minWidth: 'auto',
+                    px: 2,
+                    py: 1,
+                    color: theme.palette.primary.contrastText,
+                    '&:hover': { backgroundColor: 'primary.dark', boxShadow: 3 },
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  Login / Register
+                </Button>
+              )
             )}
           </Box>
         )}

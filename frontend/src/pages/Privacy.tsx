@@ -1,63 +1,128 @@
 import React from 'react';
-import { Container } from '@mui/material';
+import { Box, Container, Stack, Typography } from '@mui/material';
+import PublicSiteHeader from '../components/public/PublicSiteHeader';
+import Seo from '../seo/Seo';
+import '../styles/public-features.css';
 
 const Privacy: React.FC = () => (
-  <Container maxWidth="md" sx={{ py: 4 }}>
-    <div className="container py-4">
-      <h1>Datenschutzerklärung</h1>
-      <p className="lead">Der Schutz Ihrer persönlichen Daten ist uns ein besonderes Anliegen. Wir verarbeiten Ihre Daten daher ausschließlich auf Grundlage der gesetzlichen Bestimmungen (DSGVO, TKG 2003).</p>
+  <Box className="public-features">
+    <Seo
+      title="Datenschutz | Kaderblick"
+      description="Datenschutzhinweise von Kaderblick zu Verarbeitung, Google-SSO, Cookies und den Rechten betroffener Personen."
+      canonicalPath="/privacy"
+    />
 
-      <h2>1. Verantwortlicher</h2>
-      <p>Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:<br />
-        <strong>Andreas Kempe</strong> (Seitenbetreiber, privat)<br />
-        E-Mail: <a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a></p>
+    <Box component="section" className="public-features-hero">
+      <Box className="public-features-hero-overlay" />
 
-      <h2>2. Erhebung und Verarbeitung personenbezogener Daten</h2>
-      <ul>
-        <li>Beim Besuch der Webseite (Server-Logs, IP-Adresse, Browser, Uhrzeit)</li>
-        <li>Bei der Registrierung und Nutzung (Name, E-Mail, Profilangaben, Teamzugehörigkeit)</li>
-        <li>Bei der Anmeldung über Google SSO (Google-ID, Name, E-Mail, Profilbild)</li>
-        <li>Feedback-Formular und Kontaktaufnahme</li>
-      </ul>
+      <Container maxWidth="xl" className="public-features-shell">
+        <PublicSiteHeader />
+        <Box className="public-features-hero-shell">
+          <Box className="public-features-hero-copy">
+            <Typography className="public-features-kicker">Datenschutz</Typography>
+            <Typography component="h1" className="public-features-title">
+              Datenschutzerklärung
+            </Typography>
+            <Typography className="public-features-intro">
+              Der Schutz persönlicher Daten ist ein zentrales Thema. Hier findest du die maßgeblichen Hinweise zur Verarbeitung auf der öffentlichen Kaderblick-Webseite.
+            </Typography>
+          </Box>
 
-      <h2>3. Google Single Sign-On (SSO)</h2>
-      <p>Wir bieten die Anmeldung über Google SSO an. Dabei werden Sie zu Google weitergeleitet, um sich mit Ihrem Google-Konto anzumelden. Wir erhalten von Google folgende Daten:</p>
-      <ul>
-        <li>Ihren Namen</li>
-        <li>E-Mail-Adresse</li>
-        <li>Google-User-ID (sub)</li>
-        <li>Profilbild (optional)</li>
-      </ul>
-      <p>Weitere Informationen zur Datenverarbeitung durch Google finden Sie in der <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google-Datenschutzerklärung</a>.</p>
+          <Box className="public-features-hero-panel">
+            <Typography className="public-features-panel-kicker">Grundlage</Typography>
+            <Typography className="public-features-panel-title">Verarbeitung nach gesetzlichen Bestimmungen</Typography>
+            <Typography className="public-features-panel-item-text">
+              Die Verarbeitung erfolgt auf Grundlage der einschlägigen Datenschutzvorschriften, insbesondere DSGVO und weiterer anwendbarer Regelungen.
+            </Typography>
+          </Box>
+        </Box>
+      </Container>
+    </Box>
 
-      <h2>4. Zweck der Datenverarbeitung</h2>
-      <ul>
-        <li>Organisation und Kommunikation innerhalb von Sportteams (z.B. Fußballmannschaften, A-Jugend)</li>
-        <li>Bereitstellung und Verbesserung der Webseite</li>
-        <li>Authentifizierung und Zugangskontrolle</li>
-        <li>Feedback-Auswertung</li>
-        <li>Statistische Analysen</li>
-      </ul>
+    <Container maxWidth="xl" className="public-features-shell public-features-main public-features-main-tight">
+      <Box className="public-features-content-shell">
+        <Box className="public-features-legal-grid">
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>1. Verantwortlicher</h2>
+            <p>
+              Verantwortlich für die Datenverarbeitung auf dieser Webseite ist:
+              <br />
+              <strong>Andreas Kempe</strong>
+              <br />
+              E-Mail: <a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a>
+            </p>
+          </Box>
 
-      <h2>5. Weitergabe von Daten</h2>
-      <p>Ihre Daten werden nicht an Dritte weitergegeben, außer es besteht eine gesetzliche Verpflichtung oder es ist für die Nutzung der Plattform technisch erforderlich.</p>
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>2. Erhebung und Verarbeitung personenbezogener Daten</h2>
+            <ul>
+              <li>Beim Besuch der Webseite, etwa Server-Logs, IP-Adresse, Browser und Uhrzeit</li>
+              <li>Bei Registrierung und Nutzung, etwa Name, E-Mail, Profilangaben und Teamzugehörigkeit</li>
+              <li>Bei Anmeldung über Google SSO, etwa Google-ID, Name, E-Mail und optionales Profilbild</li>
+              <li>Bei Feedback-Formularen und Kontaktaufnahmen</li>
+            </ul>
+          </Box>
 
-      <h2>6. Cookies & lokale Speicherung</h2>
-      <p>Wir verwenden Cookies und Local Storage, um die Funktionalität der Seite zu gewährleisten (z.B. Login-Status, Theme-Auswahl). Sie können dies in Ihrem Browser einschränken oder deaktivieren.</p>
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>3. Google Single Sign-On (SSO)</h2>
+            <p>Wir bieten die Anmeldung über Google SSO an. Dabei wirst du zu Google weitergeleitet, um dich mit deinem Google-Konto anzumelden. Wir erhalten von Google insbesondere Namen, E-Mail-Adresse, Google-User-ID und optional ein Profilbild.</p>
+            <p>Weitere Informationen zur Datenverarbeitung durch Google findest du in der <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google-Datenschutzerklärung</a>.</p>
+          </Box>
 
-      <h2>7. Ihre Rechte</h2>
-      <ul>
-        <li>Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung</li>
-        <li>Datenübertragbarkeit</li>
-        <li>Widerruf einer Einwilligung</li>
-        <li>Beschwerde bei der Datenschutzbehörde</li>
-      </ul>
-      <p>Bitte wenden Sie sich bei Fragen an: <a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a></p>
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>4. Zweck der Datenverarbeitung</h2>
+            <ul>
+              <li>Organisation und Kommunikation innerhalb von Sportteams, zum Beispiel Fußballmannschaften</li>
+              <li>Bereitstellung und Verbesserung der Webseite</li>
+              <li>Authentifizierung und Zugangskontrolle</li>
+              <li>Feedback-Auswertung</li>
+              <li>Statistische Analysen</li>
+            </ul>
+          </Box>
 
-      <h2>8. Änderungen</h2>
-      <p>Wir behalten uns vor, diese Datenschutzerklärung zu aktualisieren. Die jeweils aktuelle Version finden Sie auf dieser Seite.</p>
-    </div>
-  </Container>
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>5. Weitergabe von Daten</h2>
+            <p>Deine Daten werden nicht an Dritte weitergegeben, außer es besteht eine gesetzliche Verpflichtung oder dies ist für die technische Bereitstellung der Plattform erforderlich.</p>
+          </Box>
+
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>6. Cookies und lokale Speicherung</h2>
+            <p>Wir verwenden Cookies und Local Storage, um die Funktionalität der Seite zu gewährleisten, zum Beispiel für Login-Status oder Theme-Auswahl. Du kannst dies in deinem Browser einschränken oder deaktivieren.</p>
+          </Box>
+
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>7. Deine Rechte</h2>
+            <ul>
+              <li>Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung</li>
+              <li>Datenübertragbarkeit</li>
+              <li>Widerruf einer Einwilligung</li>
+              <li>Beschwerde bei der Datenschutzbehörde</li>
+            </ul>
+            <p>Bei Fragen kannst du dich an <a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a> wenden.</p>
+          </Box>
+
+          <Box className="public-features-summary-card public-features-legal-section">
+            <h2>8. Änderungen</h2>
+            <p>Wir behalten uns vor, diese Datenschutzerklärung zu aktualisieren. Die jeweils aktuelle Version findest du auf dieser Seite.</p>
+          </Box>
+        </Box>
+
+        <Stack spacing={2.2}>
+          <Box className="public-features-docs-card">
+            <Box className="public-features-docs-body">
+              <Typography className="public-features-card-kicker">Kontakt</Typography>
+              <Typography component="h2" className="public-features-docs-title">
+                Datenschutzanfragen
+              </Typography>
+              <Typography className="public-features-docs-text">
+                E-Mail: <a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a>
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
+      </Box>
+    </Container>
+  </Box>
 );
 
 export default Privacy;

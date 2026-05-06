@@ -3,10 +3,15 @@
     {
       "slug": "vereinskalender-events",
       "name": "Events & Vereinskalender",
-      "teaser": "Trainings, Spiele, Treffen und Vereinsaktionen an einem Ort planen und sichtbar machen.",
-      "summary": "Diese Seite fasst den organisatorischen Einstieg in Kaderblick zusammen. Die funktionale Tiefe zu Kalender, Ansichten, Filtern, Wetter, Termin-Details und Teilnahme wird in der Dokumentation Schritt fuer Schritt beschrieben.",
-      "seoTitle": "Vereinskalender fuer Fussballvereine | Kaderblick",
-      "seoDescription": "Plane Spiele, Trainings und Vereinsveranstaltungen in einem zentralen Vereinskalender fuer Fussballvereine. Mobil nutzbar, teamfaehig und klar organisiert.",
+      "teaser": "Alle Termine, Treffpunkte und Änderungen an einem Ort, damit im Vereinsalltag endlich dieselbe Information bei allen ankommt.",
+      "summary": "Ein guter Vereinskalender sorgt nicht nur für Übersicht, sondern verhindert organisatorische Reibung im Alltag. Wenn Trainings, Spiele, Treffpunkte und Änderungen zentral zusammenlaufen, wissen Trainer, Eltern und Spieler ohne Nachfragen, was wann wo passiert. Genau daraus entsteht der eigentliche Mehrwert: weniger Abstimmungschaos, weniger vergessene Änderungen und deutlich mehr Verlässlichkeit in der Wochenplanung.",
+      "summaryTitle": "Der Kalender, auf den sich wirklich alle verlassen können",
+      "valueTitle": "Was Vereine mit dem Kalender konkret gewinnen",
+      "valueIntro": "Nicht nur ein hübscher Terminplaner, sondern die zentrale Arbeitsfläche für alles, was im Wochenrhythmus zuverlässig organisiert werden muss.",
+      "galleryTitle": "Was auf einen Blick sichtbar wird",
+      "galleryIntro": "Die Ansichten zeigen keine beliebigen Screenshots, sondern typische Momente aus dem Vereinsalltag: Planung, Zusage, Überblick und Trainersteuerung.",
+      "seoTitle": "Vereinskalender für Fußballvereine | Kaderblick",
+      "seoDescription": "Plane Spiele, Trainings und Vereinsveranstaltungen in einem zentralen Vereinskalender für Fußballvereine. Mobil nutzbar, teamfähig und klar organisiert.",
       "image": "/images/landing_page/calendar.png",
       "additionalImages": [
         "/images/landing_page/calendar.png",
@@ -15,10 +20,17 @@
         "/images/landing_page/game_overview.png",
         "/images/landing_page/coach.png"
       ],
+      "imageCaptions": [
+        "Trainings, Spiele und Maßnahmen liegen in einer gemeinsamen Kalenderansicht statt in verteilten Einzelterminen.",
+        "Zu- und Absagen hängen direkt am Termin und nicht in separaten Chatverläufen.",
+        "Begleitende Abstimmungen lassen sich im selben organisatorischen Umfeld anstoßen.",
+        "Spieltage und organisatorische Details bleiben auch bei mehreren Terminen übersichtlich.",
+        "Trainer sehen ihre Woche nicht nur als Liste, sondern als steuerbaren Arbeitsplan."
+      ],
       "benefits": [
-        "Ein zentraler Einstieg fuer Termine, Spiele und Vereinsorganisation",
-        "Kalender und Teilnahme bleiben auf der Website bewusst nur auf Ueberblicksebene",
-        "Die konkrete Bedienung und alle Detailoptionen liegen in der Dokumentation"
+        "Terminänderungen müssen nicht mehr mühsam nachkommuniziert werden, weil der aktuelle Stand zentral sichtbar bleibt",
+        "Trainer, Eltern und Spieler orientieren sich an derselben Quelle statt an unterschiedlichen Chatverläufen oder Screenshots",
+        "Aus Planung wird Verlässlichkeit, weil Ort, Uhrzeit, Treffpunkt und organisatorischer Kontext direkt am Termin zusammenstehen"
       ],
       "suitableFor": ["Trainer", "Admins", "Eltern", "Spieler"],
       "docsLinks": [
@@ -29,15 +41,18 @@
     {
       "slug": "zusagen-teilnahmen",
       "name": "Teilnahmen & Zusagen",
-      "teaser": "Zu- und Absagen direkt am Termin erfassen und den Planungsstand in Echtzeit sehen.",
-      "summary": "Kaderblick bildet Zu- und Absagen als Teil des Termin-Workflows ab. Auf der Website bleibt das eine Nutzenbeschreibung; Statusoptionen, Teilnehmerlisten und Benachrichtigungen sind in der Dokumentation detailliert beschrieben.",
-      "seoTitle": "Teilnahmen fuer Training und Spiel verwalten | Kaderblick",
-      "seoDescription": "Erfasse Zu- und Absagen fuer Training, Spiel und Vereinsveranstaltungen direkt digital. Mehr Transparenz fuer Trainer, Eltern und Vereinsorganisation.",
+      "teaser": "Früh wissen, wer wirklich dabei ist, damit Training, Spieltag und Fahrten planbar werden statt bis zuletzt offen zu bleiben.",
+      "summary": "Teilnahmen sind keine Nebenfunktion, sondern die Grundlage für jede vernünftige Planung im Verein. Ob Training, Spieltag oder Auswärtsfahrt: Wer nicht früh erkennt, wie viele wirklich kommen, organisiert ständig unter Vorbehalt. Kaderblick macht aus losen Rückmeldungen einen verlässlichen Planungsstand. Genau das schafft Ruhe, weil Entscheidungen nicht mehr aus Bauchgefühl oder verstreuten Nachrichten getroffen werden müssen.",
+      "summaryTitle": "Verlässliche Rückmeldungen statt spätes Hinterhertelefonieren",
+      "valueTitle": "Warum Zusagen für den Alltag so viel verändern",
+      "valueIntro": "Sichtbare Teilnahme ist kein Detail, sondern die Voraussetzung für sinnvolle Entscheidungen vor Training, Spiel und Auswärtsfahrt.",
+      "seoTitle": "Teilnahmen für Training und Spiel verwalten | Kaderblick",
+      "seoDescription": "Erfasse Zu- und Absagen für Training, Spiel und Vereinsveranstaltungen direkt digital. Mehr Transparenz für Trainer, Eltern und Vereinsorganisation.",
       "image": "/images/landing_page/event_zusage.png",
       "benefits": [
-        "Rueckmeldungen werden im Kontext eines Termins organisiert",
-        "Trainer, Eltern und Organisation sehen den Planungsstand fruehzeitig",
-        "Die konkrete Statuslogik ist in der Doku statt auf der Marketingseite beschrieben"
+        "Trainer erkennen früh, ob ein Training wie geplant stattfinden kann oder organisatorisch umgebaut werden muss",
+        "Eltern und Betreuer bekommen eine einfache, klare Rückmeldelogik statt Nachfragen und Einzelabsprachen",
+        "Der reale Stand ist sofort sichtbar, ohne dass irgendjemand Zusagen erst aus mehreren Nachrichten zusammensuchen muss"
       ],
       "suitableFor": ["Trainer", "Teammanager", "Eltern"],
       "docsLinks": [
@@ -48,15 +63,18 @@
     {
       "slug": "umfragen-feedback",
       "name": "Umfragen & Feedback",
-      "teaser": "Abstimmungen, Stimmungsbilder und Feedback strukturiert aus dem Verein einsammeln.",
-      "summary": "Kaderblick deckt Umfragen und Feedback als eigene Arbeitsbereiche ab. Welche Fragetypen, Assistenten und Rueckmeldewege konkret vorhanden sind, wird in der Dokumentation und nicht in dieser kompakten Einstiegsseite erklaert.",
-      "seoTitle": "Umfragen fuer Vereine und Teams erstellen | Kaderblick",
-      "seoDescription": "Erstelle Umfragen fuer Mannschaften, Eltern und Vereinsmitglieder. Mit Auswahlfragen, Freitext, Skalen und grafischer Auswertung.",
+      "teaser": "Meinungen strukturiert einsammeln, damit Entscheidungen nicht auf Vermutungen, Lautstärke oder Chat-Reaktionen beruhen.",
+      "summary": "Sobald mehrere Personen von einer Entscheidung betroffen sind, wird informelles Feedback schnell wertlos. Zurufe, Emojis und lose Rückmeldungen zeigen selten ein belastbares Gesamtbild. Mit Umfragen und Feedback schafft Kaderblick einen geordneten Rückkanal für Stimmungen, Prioritäten und Entscheidungen. Das ist besonders wertvoll, wenn Vereine Beteiligung ernst meinen und nicht nur hoffen wollen, dass wichtige Meinungen schon irgendwie ankommen.",
+      "summaryTitle": "Meinungen einsammeln, ohne im Nachrichtenchaos zu versinken",
+      "valueTitle": "Wann Umfragen und Feedback echten Nutzen stiften",
+      "valueIntro": "Immer dann, wenn Verantwortungsträger mehr brauchen als Bauchgefühl und lose Rückmeldungen aus mehreren Kanälen.",
+      "seoTitle": "Umfragen für Vereine und Teams erstellen | Kaderblick",
+      "seoDescription": "Erstelle Umfragen für Mannschaften, Eltern und Vereinsmitglieder. Mit Auswahlfragen, Freitext, Skalen und grafischer Auswertung.",
       "image": "/images/landing_page/surveys.png",
       "benefits": [
-        "Umfragen und Feedback werden strukturiert statt ad hoc gesammelt",
-        "Teams und Vereinsverantwortliche behalten einen klaren Rueckkanal",
-        "Die fachlichen Details sind ueber die Dokumentation direkt erreichbar"
+        "Entscheidungen stützen sich auf ein sichtbares Stimmungsbild statt auf die lautesten Einzelmeinungen",
+        "Rückmeldungen gehen nicht mehr zwischen Chats, Gesprächen und E-Mails verloren, sondern bleiben gesammelt auswertbar",
+        "Beteiligung wird planbar, weil Vereinsleitung und Trainer gezielt fragen können, statt nur auf spontane Reaktionen zu warten"
       ],
       "suitableFor": ["Vereinsvorstand", "Trainer", "Jugendleitung"],
       "docsLinks": [
@@ -67,15 +85,18 @@
     {
       "slug": "spielanalyse-spielverwaltung",
       "name": "Spielverwaltung & Analyse",
-      "teaser": "Spiele dokumentieren, Ereignisse erfassen und Videos gezielt mit Szenen verknuepfen.",
-      "summary": "Kaderblick verbindet Spielverwaltung, Ereignisdokumentation und Video-Bezug. Die Website beschreibt nur den thematischen Zusammenhang; Detailfunktionen, Ereignistypen und Analyseablaeufe sind in der Dokumentation nachlesbar.",
-      "seoTitle": "Spielanalyse Software fuer Amateurfussball | Kaderblick",
-      "seoDescription": "Dokumentiere Spiele, erfasse Ereignisse mit Zeitstempel und verknuepfe Szenen mit Videoanalyse. Ideal fuer Trainer, Analysten und ambitionierte Teams.",
+      "teaser": "Spieltag, Ereignisse, Video und Auswertung in einem Ablauf, damit Analyse im Amateurfußball überhaupt praktikabel wird.",
+      "summary": "Analyse scheitert im Amateurfußball selten am Interesse, sondern fast immer am Aufwand. Ereignisse werden separat notiert, Videos liegen woanders und brauchbare Auswertung kostet zu viel Handarbeit. Kaderblick verbindet Spieldokumentation, Szenen und Analyse so, dass aus dem Spieltag direkt eine belastbare Nachbereitung entstehen kann. Der Mehrwert liegt nicht in mehr Technik, sondern in weniger Medienbruch und deutlich schnellerer Auswertung.",
+      "summaryTitle": "Vom Spieltag direkt in die Analyse kommen",
+      "valueTitle": "Wie Spielverwaltung und Analyse zusammenarbeiten",
+      "valueIntro": "Nicht als lose Sammlung von Statistikfunktionen, sondern als durchgängiger Ablauf von Erfassung, Sichtung und Auswertung.",
+      "seoTitle": "Spielanalyse Software für Amateurfußball | Kaderblick",
+      "seoDescription": "Dokumentiere Spiele, erfasse Ereignisse mit Zeitstempel und verknüpfe Szenen mit Videoanalyse. Ideal für Trainer, Analysten und ambitionierte Teams.",
       "image": "/images/landing_page/game_overview.png",
       "benefits": [
-        "Spieltag, Dokumentation und spaetere Analyse greifen ineinander",
-        "Der Nutzen fuer Trainer und Analysearbeit wird sichtbar, ohne Doku-Inhalte zu duplizieren",
-        "Detaillierte Arbeitsablaeufe bleiben auf docs.kaderblick.de"
+        "Ereignisse, Spielsituationen und Video gehören direkt zusammen statt in getrennten Werkzeugen zu enden",
+        "Trainer können ein Spiel deutlich schneller nachbereiten, weil der Ablauf nicht erst mühsam rekonstruiert werden muss",
+        "Analyse wird im Alltag nutzbar, weil Daten und Szenen sofort anschlussfähig für Besprechung und Training bleiben"
       ],
       "suitableFor": ["Trainer", "Analysten", "Leistungsorientierte Teams"],
       "docsLinks": [
@@ -86,15 +107,18 @@
     {
       "slug": "trainer-tools-formationen",
       "name": "Trainer-Tools & Formationen",
-      "teaser": "Aufstellungen, Taktiken und Vorbereitungen digital statt auf Notizzetteln organisieren.",
-      "summary": "In diesem Bereich können Trainer ihre Aufstellungen für Spiele planen, die mit Vermerken versehen und pro Aufstellung Taktiken hinterlegen, die sie dann vor dem Spiel mit den Spielern besprechen können.",
+      "teaser": "Aufstellungen und Vorbereitung so organisieren, dass aus spontanen Trainerideen eine wiederverwendbare, klare Spielvorbereitung wird.",
+      "summary": "Gute Spielvorbereitung besteht nicht nur aus einer Aufstellung auf dem letzten Zettel. Trainer müssen Varianten planen, Rollen verteilen, Hinweise festhalten und Besprechungen vorbereiten. Kaderblick gibt dieser Arbeit einen festen digitalen Ort. Das macht Vorbereitung nachvollziehbar, teilbar und wiederverwendbar, statt jedes Wochenende wieder bei null zu beginnen.",
+      "summaryTitle": "Taktische Vorbereitung mit mehr Substanz als einem Whiteboardfoto",
+      "valueTitle": "Was Trainer mit Formationen besser vorbereiten können",
+      "valueIntro": "Von der Grundordnung bis zur konkreten Besprechung vor dem Spiel wird Vorbereitung dokumentierbar, teilbar und wieder aufgreifbar.",
       "seoTitle": "Aufstellungen und Taktik digital planen | Kaderblick",
-      "seoDescription": "Plane Formationen, Aufstellungen und taktische Varianten digital. Ein Trainer-Tool fuer Fussballvereine mit Drag-and-drop und nachvollziehbarer Vorbereitung.",
+      "seoDescription": "Plane Formationen, Aufstellungen und taktische Varianten digital. Ein Trainer-Tool für Fußballvereine mit Drag-and-drop und nachvollziehbarer Vorbereitung.",
       "image": "/images/landing_page/coach.png",
       "benefits": [
-        "Trainer erhalten einen thematischen Einstieg statt einer verkappten Bedienungsanleitung",
-        "Aufstellungen und Vorbereitung werden als Anwendungsfall klar eingeordnet",
-        "Die konkrete Fachlogik liegt in den Doku-Kapiteln"
+        "Aufstellungen und Varianten werden geplant statt kurz vor Anpfiff improvisiert",
+        "Taktische Hinweise verschwinden nicht mehr in Whiteboardfotos oder privaten Notizen",
+        "Trainerteams arbeiten auf einer gemeinsamen Grundlage, die auch für spätere Spiele wieder nutzbar bleibt"
       ],
       "suitableFor": ["Trainer", "Co-Trainer", "Sportliche Leitung"],
       "docsLinks": [
@@ -105,15 +129,18 @@
     {
       "slug": "vereins-stammdaten",
       "name": "Vereins- & Stammdaten",
-      "teaser": "Vereine, Teams, Spieler und Trainer sauber strukturiert pflegen und verknuepfen.",
-      "summary": "Kaderblick bringt Vereinsstruktur, Teams und Personen in eine gemeinsame Datenbasis. Welche Felder, Rollen, Zuordnungen und Verwaltungsablaeufe konkret vorhanden sind, dokumentiert die separate Doku im Detail.",
-      "seoTitle": "Vereinsverwaltung fuer Teams, Spieler und Trainer | Kaderblick",
+      "teaser": "Teams, Rollen und Personen sauber pflegen, damit Vereinsorganisation nicht auf veralteten Listen und Einzelwissen aufbaut.",
+      "summary": "Viele Vereine organisieren sich auf einer Datenbasis, die über Jahre gewachsen, aber nie sauber zusammengeführt wurde. Teams stehen in einer Liste, Trainer in der nächsten, Kontaktdaten irgendwo anders. Genau daraus entstehen Missverständnisse, doppelte Pflege und Abhängigkeit von einzelnen Personen. Kaderblick bündelt diese Stammdaten in einer belastbaren Struktur. Das klingt unspektakulär, ist aber die Voraussetzung für saubere Kommunikation, klare Zuständigkeiten und stabile Vereinsprozesse.",
+      "summaryTitle": "Saubere Datenbasis statt verstreuter Vereinslisten",
+      "valueTitle": "Warum Stammdaten über mehr entscheiden als nur Verwaltung",
+      "valueIntro": "Wenn Personen, Teams und Rollen sauber gepflegt sind, werden auch Kommunikation, Organisation und Auswertungen deutlich robuster.",
+      "seoTitle": "Vereinsverwaltung für Teams, Spieler und Trainer | Kaderblick",
       "seoDescription": "Verwalte Vereine, Teams, Spieler und Trainer zentral in einer digitalen Vereinsverwaltung. Mit Profilen, Rollen, Zuweisungen und sauberer Datenbasis.",
       "image": "/images/landing_page/create_event.png",
       "benefits": [
-        "Die Website zeigt den organisatorischen Nutzen ohne technische Uebererzaehlung",
-        "Vereinsleitung und Administration bekommen einen klaren Themen-Einstieg",
-        "Fachliche Details werden an die dafuer bestehende Doku delegiert"
+        "Teams, Spieler und Trainer werden konsistent gepflegt statt an mehreren Stellen unterschiedlich zu existieren",
+        "Verantwortlichkeiten bleiben auch bei Wechseln oder Wachstum des Vereins nachvollziehbar",
+        "Kommunikation, Planung und Auswertung bauen auf verlässlichen Daten auf statt auf provisorischen Listen"
       ],
       "suitableFor": ["Admins", "Jugendleitung", "Vorstand"],
       "docsLinks": [
@@ -123,17 +150,20 @@
       ]
     },
     {
-      "slug": "spielstaetten-navigation",
-      "name": "Spielstaetten & Navigation",
-      "teaser": "Orte mit Adresse, Karte und Navigation sauber hinterlegen und direkt teilen.",
-      "summary": "Standorte und Anfahrtskontext sind fuer Spieltage und Elternkommunikation relevant. Die Website benennt den Nutzen; wo Standorte gepflegt und im Termin genutzt werden, erklaert die Dokumentation tiefer. Näheres dazu findet man in der Dokumentation.",
-      "seoTitle": "Spielstaetten und Anfahrt fuer Teams organisieren | Kaderblick",
-      "seoDescription": "Verwalte Spiel- und Trainingsorte mit Adresse, Karte und Navigationslink. Ideal fuer Elternkommunikation, Auswaertsspiele und Fahrgemeinschaften.",
+      "slug": "spielstätten-navigation",
+      "name": "Spielstätten & Navigation",
+      "teaser": "Klare Spielorte und Treffpunkte, damit vor Training und Spiel nicht jedes Mal dieselben Rückfragen zur Anfahrt entstehen.",
+      "summary": "Ein unklarer Treffpunkt reicht aus, um vor einem Spieltag unnötige Unruhe auszulösen. Wo genau? Welche Zufahrt? Welcher Platz? Kaderblick macht Orte zu einem festen Teil der Organisation und nicht zu einer beiläufigen Textinfo im Chat. Gerade bei Auswärtsspielen und Elternkommunikation entsteht daraus ein spürbarer Mehrwert: weniger Missverständnisse, weniger Rückfragen und deutlich weniger Stress kurz vor Abfahrt.",
+      "summaryTitle": "Weniger Rückfragen, weil Ort und Anfahrt klar sind",
+      "valueTitle": "Warum Spielstätten organisatorisch wichtig sind",
+      "valueIntro": "Treffpunktlogik funktioniert erst dann sauber, wenn der Ort nicht nur genannt, sondern eindeutig hinterlegt und teilbar ist.",
+      "seoTitle": "Spielstätten und Anfahrt für Teams organisieren | Kaderblick",
+      "seoDescription": "Verwalte Spiel- und Trainingsorte mit Adresse, Karte und Navigationslink. Ideal für Elternkommunikation, Auswärtsspiele und Fahrgemeinschaften.",
       "image": "/images/landing_page/location_navigationlink.png",
       "benefits": [
-        "Treffpunkte und Anfahrt werden als Vereinsproblem klar adressiert",
-        "Die oeffentliche Seite bleibt beim Problem-Nutzen-Fit",
-        "Die konkrete Systemnutzung wird ueber die Doku erschlossen"
+        "Eltern, Trainer und Betreuer sehen sofort den richtigen Ort statt sich auf unpräzise Beschreibungen zu verlassen",
+        "Treffpunkt und Navigation gehören direkt zum Termin statt als Zusatzinfo irgendwo nachgereicht zu werden",
+        "Vor allem vor Auswärtsspielen sinkt der Abstimmungsaufwand deutlich, weil Orientierung nicht mehr improvisiert werden muss"
       ],
       "suitableFor": ["Eltern", "Trainer", "Betreuer"],
       "docsLinks": [
@@ -144,15 +174,18 @@
     {
       "slug": "berichte-analysen",
       "name": "Berichte & Analysen",
-      "teaser": "Kennzahlen aus Spiel, Training und Vereinsarbeit strukturiert auswerten.",
-      "summary": "Berichte und Analysen sind ein eigener Themenbereich in Kaderblick. Die Website grenzt den Nutzen fuer Trainer und Vereinsverantwortliche ab; Report-Assistent, Presets und Diagrammtypen sind in der Dokumentation beschrieben.",
-      "seoTitle": "Berichte und Statistiken fuer Fussballvereine | Kaderblick",
-      "seoDescription": "Erstelle Berichte und Analysen fuer Spielereignisse, Trainingsbeteiligung und Vereinsdaten. Mit Diagrammen, Presets und nutzbarer Datengrundlage.",
+      "teaser": "Berichte, die Entscheidungen unterstützen statt nur Zahlen zu zeigen, damit Entwicklung und Probleme früher sichtbar werden.",
+      "summary": "Berichte sind nur dann wertvoll, wenn sie Verhalten, Entwicklung und Handlungsbedarf sichtbar machen. Genau dort setzt Kaderblick an. Statt Daten nur zu sammeln, werden sie so aufbereitet, dass Trainer, Jugendleitung oder Vorstand daraus Entscheidungen ableiten können. Der eigentliche Nutzen liegt darin, Probleme früher zu erkennen und Entwicklung gezielter zu steuern, statt erst spät oder aus dem Bauch heraus zu reagieren.",
+      "summaryTitle": "Zahlen, aus denen echte Entscheidungen entstehen",
+      "valueTitle": "Was Berichte im Vereinsalltag leisten sollen",
+      "valueIntro": "Nicht mehr Daten um der Daten willen, sondern Auswertungen, die Verhalten, Entwicklung und Prioritäten besser sichtbar machen.",
+      "seoTitle": "Berichte und Statistiken für Fußballvereine | Kaderblick",
+      "seoDescription": "Erstelle Berichte und Analysen für Spielereignisse, Trainingsbeteiligung und Vereinsdaten. Mit Diagrammen, Presets und nutzbarer Datengrundlage.",
       "image": "/images/landing_page/reports.png",
       "benefits": [
-        "Auswertungen werden als eigener Produktbereich sichtbar",
-        "Die Seite vermeidet unnoetige Wiederholung der Reporting-Doku",
-        "Vertiefung erfolgt direkt ueber die passenden Doku-Kapitel"
+        "Trends und Muster werden früh sichtbar, bevor sie im Alltag untergehen oder zu spät auffallen",
+        "Trainer und Verantwortliche entscheiden auf belastbarer Grundlage statt auf Vermutungen oder Einzelwahrnehmungen",
+        "Entwicklung, Beteiligung und organisatorische Qualität lassen sich gezielter steuern statt nur rückblickend beschreiben"
       ],
       "suitableFor": ["Trainer", "Vorstand", "Jugendleitung"],
       "docsLinks": [
@@ -163,15 +196,18 @@
     {
       "slug": "vereins-kommunikation",
       "name": "Kommunikation & News",
-      "teaser": "Nachrichten, News und Hinweise zentral statt verteilt ueber Messenger-Gruppen.",
-      "summary": "Kommunikation ist bei Kaderblick kein einzelner Messenger-Ersatz, sondern ein eigener Bereich mit Nachrichten, News und Benachrichtigungen. Die Website bleibt bei der Einordnung, waehrend die Doku die tatsaechlichen Arbeitsablaeufe beschreibt.",
+      "teaser": "Wichtige Informationen zentral ausspielen, damit sie nicht zwischen Messenger-Gruppen, Privatnachrichten und Zurufen untergehen.",
+      "summary": "In vielen Vereinen ist nicht zu wenig Kommunikation das Problem, sondern zu viel ungeordnete Kommunikation. Wichtige Hinweise gehen in Messenger-Gruppen unter, News erreichen die falschen Personen oder kommen zu spät an. Kaderblick bündelt Nachrichten, Hinweise und News in einem organisatorischen Kontext. Daraus entsteht echter Mehrwert: weniger Streuverlust, mehr Verlässlichkeit und deutlich weniger Abhängigkeit von Einzelpersonen, die Informationen irgendwie weitertragen sollen.",
+      "summaryTitle": "Kommunikation, die ankommt statt untergeht",
+      "valueTitle": "Warum zentrale Kommunikation für Vereine so wichtig ist",
+      "valueIntro": "Je mehr Gruppen, Rollen und Themen parallel laufen, desto wichtiger wird ein gemeinsamer Ort für relevante Informationen.",
       "seoTitle": "Vereinskommunikation digital organisieren | Kaderblick",
       "seoDescription": "Organisiere Vereinskommunikation mit News, Nachrichten und Hinweisen in einer Plattform statt in mehreren Messenger-Gruppen.",
       "image": "/images/landing_page/news.png",
       "benefits": [
-        "Kommunikation wird als strukturierter Plattform-Baustein verstanden",
-        "Zielgruppen und Anwendungskontexte werden klar umrissen",
-        "Die funktionale Tiefe wird ueber die Doku statt ueber Marketingtext erschlossen"
+        "Wichtige Informationen bleiben sichtbar statt in privaten Chats oder Messenger-Fluten unterzugehen",
+        "Teams, Eltern und Verantwortliche bekommen Updates dort, wo sie organisatorisch hingehören",
+        "Kommunikation wird planbarer und nachvollziehbarer statt vom Einsatz einzelner Personen abzuhängen"
       ],
       "suitableFor": ["Verein", "Teams", "Eltern", "Admins"],
       "docsLinks": [
@@ -183,40 +219,45 @@
   ],
   "faqEntries": [
     {
-      "question": "Fuer wen eignet sich Kaderblick?",
-      "answer": "Kaderblick richtet sich an Fussballvereine, Trainerteams, Jugendleitungen, Eltern und Vereinsverantwortliche, die Organisation, Kommunikation und sportliche Analyse in einer Plattform zusammenfuehren wollen."
+      "question": "Für wen eignet sich Kaderblick?",
+      "answer": "Kaderblick richtet sich an Fußballvereine, Trainerteams, Jugendleitungen, Eltern und Vereinsverantwortliche, die Organisation, Kommunikation und sportliche Analyse in einer Plattform zusammenführen wollen."
     },
     {
       "question": "Ist Kaderblick eine klassische native App?",
-      "answer": "Nein. Kaderblick ist als moderne Web-App aufgebaut und kann als PWA auf Mobilgeraeten und Desktop installiert werden. Dadurch bleibt die Nutzung flexibel, ohne ueber App-Stores ausgerollt werden zu muessen."
+      "answer": "Nein. Kaderblick ist als moderne Web-App aufgebaut und kann als PWA auf Mobilgeräten und Desktop installiert werden. Dadurch bleibt die Nutzung flexibel, ohne über App-Stores ausgerollt werden zu müssen."
     },
     {
-      "question": "Wo finde ich genauere Erklaerungen zu einzelnen Bereichen?",
-      "answer": "Ausfuehrlichere Erklaerungen zu Kalender, Spielen, Berichten, Kommunikation und weiteren Bereichen findest du in der Dokumentation auf docs.kaderblick.de."
+      "question": "Wo finde ich genauere Erklärungen zu einzelnen Bereichen?",
+      "answer": "Ausführlichere Erklärungen zu Kalender, Spielen, Berichten, Kommunikation und weiteren Bereichen findest du in der Dokumentation auf docs.kaderblick.de."
     },
     {
-      "question": "Kann Kaderblick auch fuer Elternkommunikation genutzt werden?",
-      "answer": "Ja. Gerade Termine, Zu- und Absagen, Spielorte, Fahrgemeinschaften und News sind fuer Elternkommunikation sehr hilfreich und reduzieren den Abstimmungsaufwand deutlich."
+      "question": "Kann Kaderblick auch für Elternkommunikation genutzt werden?",
+      "answer": "Ja. Gerade Termine, Zu- und Absagen, Spielorte, Fahrgemeinschaften und News sind für Elternkommunikation sehr hilfreich und reduzieren den Abstimmungsaufwand deutlich."
     },
     {
-      "question": "Ist die Plattform eher fuer Leistungsteams oder auch fuer Amateurvereine gedacht?",
-      "answer": "Beides. Die Plattform ist so aufgebaut, dass sowohl alltaegliche Vereinsorganisation im Amateurfussball als auch strukturiertere Analyse- und Trainerprozesse unterstuetzt werden."
+      "question": "Ist die Plattform eher für Leistungsteams oder auch für Amateurvereine gedacht?",
+      "answer": "Beides. Die Plattform ist so aufgebaut, dass sowohl alltägliche Vereinsorganisation im Amateurfußball als auch strukturiertere Analyse- und Trainerprozesse unterstützt werden."
     }
   ],
   "intentPages": [
     {
-      "slug": "fuer-trainer",
-      "path": "/fuer-trainer",
-      "label": "Fuer Trainer",
-      "seoTitle": "Software fuer Fussballtrainer | Kaderblick",
-      "seoDescription": "Digitale Software fuer Fussballtrainer mit Kalender, Teilnahmen, Formationen, Spielanalyse und Berichten fuer den Trainings- und Spielalltag.",
-      "headline": "Kaderblick fuer Trainer",
-      "intro": "Trainer brauchen keine zweite Nachrichtenflut, sondern einen belastbaren Arbeitsbereich fuer Termine, Zusagen, Formationen, Analyse und Kommunikation.",
-      "summary": "Diese Landingpage ist ein Einstiegs- und Entscheidungsdokument fuer Trainer. Die konkrete Nutzung einzelner Bereiche wie Kalender, Spiele, Aufstellungen oder Berichte bleibt in der Dokumentation gebuendelt und nachvollziehbar beschrieben.",
+      "slug": "für-trainer",
+      "path": "/für-trainer",
+      "label": "für Trainer",
+      "seoTitle": "Software für Fußballtrainer | Kaderblick",
+      "seoDescription": "Digitale Software für Fußballtrainer mit Kalender, Teilnahmen, Formationen, Spielanalyse und Berichten für den Trainings- und Spielalltag.",
+      "headline": "Kaderblick für Trainer",
+      "intro": "Trainer brauchen keine weitere App mit Einzel-Features, sondern ein Werkzeug, das Planung, Rückmeldungen, Vorbereitung und Analyse in einem alltagstauglichen Ablauf zusammenführt.",
+      "summary": "Trainerarbeit besteht nicht nur aus Training auf dem Platz, sondern aus permanenter Organisation davor und Auswertung danach. Genau dort verliert man im Alltag schnell Zeit: Zusagen fehlen, Aufstellungen liegen getrennt, Analyse beginnt wieder bei null. Kaderblick bündelt diese Arbeit in einer durchgehenden Arbeitsfläche. Der Mehrwert ist nicht theoretisch, sondern ganz praktisch: weniger Organisationsballast, mehr Überblick und eine deutlich sauberere Vorbereitung auf Training und Spieltag.",
+      "summaryTitle": "Warum die Plattform für Trainer relevant ist",
+      "valueTitle": "Was Trainer im Alltag spürbar entlastet",
+      "valueIntro": "Die größten Hebel liegen nicht in einzelnen Features, sondern darin, dass Planung, Rückmeldung, Vorbereitung und Nachbereitung zusammenhängen.",
+      "docsTitle": "Relevante Kapitel für Trainer",
+      "docsIntro": "Wenn du in Abläufe, Bedienung und Tiefe gehen willst, sind diese Doku-Kapitel der direkte nächste Schritt.",
       "benefits": [
-        "Spiel- und Trainingsplanung mit klarer Teilnahmeuebersicht",
-        "Aufstellungen, Taktik und Formationen digital vorbereiten",
-        "Spielanalyse und Berichte fuer Nachbereitung und Entwicklung"
+        "Trainings- und Spielplanung wird verlässlicher, weil Rückmeldungen und Organisation direkt mitlaufen",
+        "Vorbereitung, Aufstellung und Taktik liegen an einem Ort statt verteilt auf Zettel, Bilder und Chats",
+        "Analyse wird anschlussfähig für die nächste Einheit, weil Spieltag und Auswertung direkt zusammenhängen"
       ],
       "linkedFeatures": [
         "vereinskalender-events",
@@ -234,23 +275,28 @@
       ]
     },
     {
-      "slug": "fuer-eltern",
-      "path": "/fuer-eltern",
-      "label": "Fuer Eltern",
-      "seoTitle": "Elternkommunikation im Fussballverein digital organisieren | Kaderblick",
-      "seoDescription": "Digitale Elternkommunikation fuer Fussballvereine mit Terminen, Zu- und Absagen, Spielorten, Fahrgemeinschaften und News an einem Ort.",
-      "headline": "Kaderblick fuer Eltern im Fussballverein",
-      "intro": "Eltern brauchen schnelle Orientierung: Wann findet was statt, wo ist der Treffpunkt, wer faehrt und was ist neu?",
-      "summary": "Diese Seite beantwortet die Suchintention Elternkommunikation im Verein nur auf Einstiegsniveau. Wie Termine, Zu- und Absagen, Fahrgemeinschaften und Nachrichten konkret genutzt werden, ist in der Dokumentation bereits sauber beschrieben.",
+      "slug": "für-eltern",
+      "path": "/für-eltern",
+      "label": "für Eltern",
+      "seoTitle": "Elternkommunikation im Fußballverein digital organisieren | Kaderblick",
+      "seoDescription": "Digitale Elternkommunikation für Fußballvereine mit Terminen, Zu- und Absagen, Spielorten, Fahrgemeinschaften und News an einem Ort.",
+      "headline": "Kaderblick für Eltern im Fußballverein",
+      "intro": "Für Eltern zählt nicht Feature-Tiefe, sondern schnelle Klarheit: Wann ist Treffpunkt, was hat sich geändert, wer fährt und was ist bereits zugesagt?",
+      "summary": "Elternkommunikation wird im Vereinsalltag oft unterschätzt, bis sie unnötig anstrengend wird. Wenn Termine, Orte, Fahrten und Änderungen über mehrere Kanäle laufen, entsteht aus jeder Kleinigkeit neue Unsicherheit. Kaderblick bündelt genau diese Informationen an einem Ort. Der spürbare Mehrwert ist ein ruhigerer Alltag für Familien und weniger Rückfragen für Trainer und Betreuer.",
+      "summaryTitle": "Warum Elternkommunikation oft unnötig anstrengend wird",
+      "valueTitle": "Was Eltern konkret schneller überblicken können",
+      "valueIntro": "Je klarer Informationen zu Termin, Ort und Organisation fließen, desto weniger Rückfragen und Unsicherheit entstehen im Alltag.",
+      "docsTitle": "Hilfreiche Kapitel für Elternkommunikation",
+      "docsIntro": "Diese Doku-Kapitel zeigen die Bereiche, die für Eltern im Vereinsalltag besonders relevant sind.",
       "benefits": [
-        "Termine, Orte und Zusagen auf einen Blick",
-        "Weniger Rueckfragen bei Treffpunkten und Fahrgemeinschaften",
-        "Bessere Kommunikation zwischen Eltern, Team und Trainer"
+        "Termine, Orte und Zusagen sind sofort greifbar statt erst aus Chatverläufen zusammengesucht werden zu müssen",
+        "Treffpunkte und Fahrgemeinschaften verursachen deutlich weniger Rückfragen und Missverständnisse",
+        "Der Informationsfluss zwischen Eltern, Team und Trainern wird spürbar ruhiger und verlässlicher"
       ],
       "linkedFeatures": [
         "vereinskalender-events",
         "zusagen-teilnahmen",
-        "spielstaetten-navigation",
+        "spielstätten-navigation",
         "vereins-kommunikation"
       ],
       "docsLinks": [
@@ -261,18 +307,23 @@
       ]
     },
     {
-      "slug": "fuer-jugendleitung",
-      "path": "/fuer-jugendleitung",
-      "label": "Fuer Jugendleitung",
-      "seoTitle": "Digitale Vereinsorganisation fuer Jugendleitung | Kaderblick",
-      "seoDescription": "Software fuer Jugendleitung und Vereinsverantwortliche mit Teams, Stammdaten, Kommunikation, Umfragen und Auswertungen fuer den Jugendfussball.",
-      "headline": "Kaderblick fuer Jugendleitung und Vereinsverantwortliche",
-      "intro": "Jugendleitung braucht Ueberblick ueber Teams, Trainer, Kommunikation und organisatorische Prozesse statt verteilte Listen und Einzeltools.",
-      "summary": "Diese Landingpage ordnet Kaderblick fuer Jugendleitung und Vereinsorganisation ein. Teamverwaltung, Administration, Umfragen und Berichte sind fachlich bereits in der Doku dokumentiert und werden hier nur bewusst verdichtet verlinkt.",
+      "slug": "für-jugendleitung",
+      "path": "/für-jugendleitung",
+      "label": "für Jugendleitung",
+      "seoTitle": "Digitale Vereinsorganisation für Jugendleitung | Kaderblick",
+      "seoDescription": "Software für Jugendleitung und Vereinsverantwortliche mit Teams, Stammdaten, Kommunikation, Umfragen und Auswertungen für den Jugendfußball.",
+      "headline": "Kaderblick für Jugendleitung und Vereinsverantwortliche",
+      "intro": "Jugendleitung braucht keinen weiteren Flickenteppich aus Listen und Tools, sondern einen belastbaren Überblick über Struktur, Zuständigkeiten und Kommunikation im Verein.",
+      "summary": "Wer Jugendleitung verantwortet, steuert nicht nur einzelne Teams, sondern Strukturen. Genau deshalb werden verstreute Listen, unklare Zuständigkeiten und personenabhängige Kommunikation irgendwann zum echten Problem. Kaderblick schafft einen gemeinsamen organisatorischen Rahmen für Teams, Rollen, Kommunikation und Entscheidungen. Der Mehrwert ist mehr Steuerbarkeit im Verein und deutlich weniger Abhängigkeit von gewachsenen Behelfslösungen.",
+      "summaryTitle": "Warum Jugendleitung einen zentralen Überblick braucht",
+      "valueTitle": "Wobei Kaderblick auf Vereinsebene hilft",
+      "valueIntro": "Nicht nur im Tagesgeschäft einzelner Teams, sondern in der übergreifenden Steuerung von Struktur, Kommunikation und Entscheidungen.",
+      "docsTitle": "Relevante Kapitel für Jugendleitung und Administration",
+      "docsIntro": "Diese Kapitel führen direkt in die Bereiche, die für Vereinsverantwortliche am meisten Wirkung entfalten.",
       "benefits": [
-        "Stammdaten, Teams und Rollen zentral verwalten",
-        "Kommunikation und Umfragen auf Vereinsebene strukturieren",
-        "Berichte und Kennzahlen fuer Entscheidungen nutzen"
+        "Teams, Rollen und Verantwortlichkeiten bleiben zentral gepflegt statt auf mehrere Listen verteilt zu sein",
+        "Kommunikation, Abstimmung und Feedback lassen sich auf Vereinsebene deutlich strukturierter organisieren",
+        "Berichte und Kennzahlen helfen bei echten Entscheidungen statt nur im Nachhinein Zahlen zu sammeln"
       ],
       "linkedFeatures": [
         "vereins-stammdaten",
@@ -292,15 +343,20 @@
       "slug": "spielanalyse-software",
       "path": "/spielanalyse-software",
       "label": "Spielanalyse",
-      "seoTitle": "Spielanalyse Software fuer Amateurfussball | Kaderblick",
-      "seoDescription": "Spielanalyse Software fuer Amateurfussball mit Ereigniserfassung, Videoverknuepfung, Auswertung und nutzbaren Reports fuer Trainer und Teams.",
-      "headline": "Spielanalyse Software fuer den Amateurfussball",
-      "intro": "Zwischen Live-Spielereignissen, Videos und Auswertung fehlt im Amateurfussball oft eine durchgaengige Loesung. Genau hier setzt Kaderblick an.",
-      "summary": "Diese Landingpage adressiert die Suchintention Spielanalyse Software als Ueberblick. Wie Spiele, Videos, Aufstellungen und Berichte konkret zusammenspielen, wird bereits in mehreren Doku-Kapiteln tief und fachlich beschrieben.",
+      "seoTitle": "Spielanalyse Software für Amateurfußball | Kaderblick",
+      "seoDescription": "Spielanalyse Software für Amateurfußball mit Ereigniserfassung, Videoverknüpfung, Auswertung und nutzbaren Reports für Trainer und Teams.",
+      "headline": "Spielanalyse Software für den Amateurfußball",
+      "intro": "Spielanalyse ist im Amateurfußball nur dann wertvoll, wenn sie nicht an Medienbrüchen, Handarbeit und zu viel Aufwand scheitert.",
+      "summary": "Viele Analyse-Lösungen klingen stark, helfen im Amateuralltag aber zu wenig, weil der Workflow nicht trägt. Ereignisse, Videos und Auswertung bleiben getrennt, und aus einem Spiel belastbare Erkenntnisse zu ziehen kostet zu viel Zeit. Kaderblick verbindet genau diese Schritte in einem nutzbaren Ablauf. Der Mehrwert liegt darin, dass Analyse nicht nur möglich, sondern im Traineralltag tatsächlich praktikabel wird.",
+      "summaryTitle": "Was eine Spielanalyse-Lösung im Alltag leisten muss",
+      "valueTitle": "Worauf es bei Analyse im Amateurfußball ankommt",
+      "valueIntro": "Nicht auf maximalen Technik-Overkill, sondern auf einen Ablauf, der für Trainer und Teams wirklich nutzbar bleibt.",
+      "docsTitle": "Kapitel für Analyse, Spieltag und Nachbereitung",
+      "docsIntro": "Hier geht es zu den Bereichen, in denen Spielereignisse, Videos, Aufstellungen und Berichte konkret zusammenlaufen.",
       "benefits": [
-        "Spielereignisse mit Zeitstempel strukturiert erfassen",
-        "Videos mit Szenen und Analyse verknuepfen",
-        "Aus Berichten und Kennzahlen konkrete Entwicklung ableiten"
+        "Spielereignisse werden so erfasst, dass daraus später ohne Umwege eine brauchbare Auswertung entstehen kann",
+        "Videos und Spielsituationen bleiben direkt anschlussfähig statt in getrennten Werkzeugen zu enden",
+        "Aus der Analyse lassen sich konkrete nächste Trainingsschwerpunkte ableiten statt nur interessante Einzelbeobachtungen"
       ],
       "linkedFeatures": [
         "spielanalyse-spielverwaltung",

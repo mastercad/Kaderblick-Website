@@ -19,8 +19,8 @@ jest.mock('../config', () => ({
 jest.mock('./seo/siteConfig', () => {
   const SITE_URL = 'https://kaderblick.de';
   const EXACT_PUBLIC_PATHS = new Set([
-    '/', '/funktionen', '/fuer-trainer', '/fuer-eltern', '/fuer-jugendleitung',
-    '/spielanalyse-software', '/faq', '/kontakt', '/imprint', '/privacy',
+    '/', '/funktionen', '/vorteile', '/preise', '/fuer-trainer', '/fuer-eltern', '/fuer-jugendleitung',
+    '/spielanalyse-software', '/faq', '/kontakt', '/ueber-uns', '/imprint', '/privacy',
   ]);
 
   function normalizePathname(pathname: string): string {
@@ -46,8 +46,8 @@ jest.mock('./seo/siteConfig', () => {
     DOCS_URL: 'https://docs.kaderblick.de',
     DEFAULT_SHARE_IMAGE_PATH: '/images/share_bg.jpg',
     DEFAULT_SHARE_IMAGE_URL: `${SITE_URL}/images/share_bg.jpg`,
-    DEFAULT_SEO_TITLE: 'Kaderblick - Vereinssoftware fuer Fussballvereine, Trainer und Teams',
-    DEFAULT_SEO_DESCRIPTION: 'Kaderblick ist die Vereinssoftware fuer Fussballvereine.',
+    DEFAULT_SEO_TITLE: 'Kaderblick - Vereinssoftware fuer Fußballvereine, Trainer und Teams',
+    DEFAULT_SEO_DESCRIPTION: 'Kaderblick ist die Vereinssoftware fuer Fußballvereine.',
     APP_NOINDEX_TITLE: 'Kaderblick App',
     APP_NOINDEX_DESCRIPTION: 'Interner Arbeitsbereich von Kaderblick.',
     normalizePathname,

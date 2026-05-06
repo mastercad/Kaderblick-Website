@@ -1,0 +1,21 @@
+{% extends 'emails/base.txt.twig' %}
+
+{% block title %}Demo-Anfrage eingegangen – Kaderblick{% endblock %}
+
+{% block content %}
+Hallo {{ demoRequest.name }},
+
+vielen Dank für deine Demo-Anfrage! Wir haben sie erhalten und melden uns so schnell wie möglich bei dir.
+
+Du hast folgende Angaben gemacht:
+
+E-Mail: {{ demoRequest.email }}
+{% if demoRequest.clubName %}Verein: {{ demoRequest.clubName }}
+{% endif %}{% if demoRequest.league %}Liga:   {{ demoRequest.league }}
+{% endif %}{% if demoRequest.ageGroup %}Altersgruppe / Team: {{ demoRequest.ageGroup }}
+{% endif %}
+
+Sportliche Grüße
+Andreas Kempe
+Kaderblick
+{% endblock %}

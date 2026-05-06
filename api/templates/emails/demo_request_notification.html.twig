@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Neue Demo-Anfrage – Kaderblick</title>
+	<link rel="stylesheet" href="/css/email.css">
+</head>
+<body>
+	<div class="email-container">
+		<div class="email-header" style="background: linear-gradient(135deg, #018606 0%, #015504 100%); color: #fff; border-radius: 8px 8px 0 0; padding: 20px; text-align: center;">
+			<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px;">Neue Demo-Anfrage</h1>
+		</div>
+		<div class="email-content" style="background: #fff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(16,185,129,0.08);">
+			<p style="margin-top:0; color: #059669; font-weight: 600;">Hallo,</p>
+			<p style="color: #475569;">eine neue Demo-Anfrage ist eingegangen:</p>
+
+			<table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151; width: 36%;">Name</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.name }}</td>
+				</tr>
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">E-Mail</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;"><a href="mailto:{{ demoRequest.email }}" style="color: #059669;">{{ demoRequest.email }}</a></td>
+				</tr>
+				{% if demoRequest.phone %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Telefon</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.phone }}</td>
+				</tr>
+				{% endif %}
+				{% if demoRequest.clubName %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Verein</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.clubName }}</td>
+				</tr>
+				{% endif %}
+				{% if demoRequest.league %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Liga</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.league }}</td>
+				</tr>
+				{% endif %}
+				{% if demoRequest.ageGroup %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Altersgruppe / Team</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.ageGroup }}</td>
+				</tr>
+				{% endif %}
+				{% if demoRequest.message %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Kommentar</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569; white-space: pre-wrap;">{{ demoRequest.message }}</td>
+				</tr>
+				{% endif %}
+				<tr>
+					<td style="padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600; color: #374151;">Eingegangen am</td>
+					<td style="padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569;">{{ demoRequest.createdAt|date('d.m.Y H:i') }} Uhr</td>
+				</tr>
+			</table>
+
+			<div style="text-align: center; margin: 32px 0;">
+				<a href="{{ adminUrl }}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #018606 0%, #015504 100%); color: #fff; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 16px; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(16,185,129,0.10);">Anfrage im Admin öffnen</a>
+			</div>
+
+			<p style="color: #059669; font-weight: 500;">Sportliche Grüße<br>Dein Kaderblick-Team</p>
+		</div>
+		<div class="email-footer" style="text-align: center; padding: 20px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; margin-top: 20px;">
+			<p style="margin: 0 0 4px 0;">Diese E-Mail wurde automatisch generiert. Bitte antworte nicht darauf.</p>
+			<p style="margin: 0;">&copy; {{ "now"|date("Y") }} Kaderblick. Alle Rechte vorbehalten.</p>
+		</div>
+	</div>
+</body>
+</html>

@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 // ── Contexts ───────────────────────────────────────────────────────────────
@@ -60,7 +60,11 @@ jest.mock('../seo/Seo', () => ({
 // ── Components ──────────────────────────────────────────────────────────────
 jest.mock('../components/Navigation', () => ({
   __esModule: true,
-  default: () => <div data-testid="navigation" />,
+  default: ({ onOpenDemo }: any) => (
+    <div data-testid="navigation">
+      <button data-testid="nav-open-demo" onClick={onOpenDemo} />
+    </div>
+  ),
 }));
 jest.mock('../components/navigation/NavSidebar', () => ({
   __esModule: true,
@@ -119,6 +123,15 @@ jest.mock('../modals/QRCodeShareModal', () => ({
   __esModule: true,
   default: ({ open }: any) =>
     open ? <div data-testid="qr-share-modal" /> : null,
+}));
+jest.mock('../modals/DemoRequestModal', () => ({
+  __esModule: true,
+  default: ({ open, onClose }: any) =>
+    open ? (
+      <div data-testid="demo-request-modal">
+        <button data-testid="close-demo-modal" onClick={onClose} />
+      </div>
+    ) : null,
 }));
 
 // ── Pages (static) ───────────────────────────────────────────────────────────
@@ -352,5 +365,35 @@ describe('App – Deep-Link ?modal=register', () => {
 
     renderApp('/?modal=register');
     expect(screen.queryByTestId('auth-modal')).not.toBeInTheDocument();
+  });
+});
+
+describe('App – DemoRequestModal', () => {
+  it('DemoRequestModal ist initial nicht sichtbar', () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
+    renderApp('/');
+    expect(screen.queryByTestId('demo-request-modal')).not.toBeInTheDocument();
+  });
+
+  it('DemoRequestModal öffnet sich wenn Navigation onOpenDemo aufruft', async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
+    renderApp('/');
+    fireEvent.click(screen.getByTestId('nav-open-demo'));
+    await waitFor(() => {
+      expect(screen.getByTestId('demo-request-modal')).toBeInTheDocument();
+    });
+  });
+
+  it('DemoRequestModal schließt sich wenn onClose aufgerufen wird', async () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
+    renderApp('/');
+    fireEvent.click(screen.getByTestId('nav-open-demo'));
+    await waitFor(() => {
+      expect(screen.getByTestId('demo-request-modal')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('close-demo-modal'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('demo-request-modal')).not.toBeInTheDocument();
+    });
   });
 });

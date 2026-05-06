@@ -450,4 +450,89 @@ describe('NotificationDetailModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // ── demo_request type ──
+
+  it('shows label "Demo-Anfrage" chip for demo_request type', () => {
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({ type: 'demo_request' as any, data: { url: '/admin/user-relations?tab=demo-requests&requestId=5', requestId: 5 } })}
+        open={true}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId('Chip')).toHaveTextContent('Demo-Anfrage');
+  });
+
+  it('renders "Anfrage öffnen" button for demo_request type', () => {
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({ type: 'demo_request' as any, data: { url: '/admin/user-relations?tab=demo-requests&requestId=5', requestId: 5 } })}
+        open={true}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: /Anfrage öffnen/i })).toBeInTheDocument();
+  });
+
+  it('navigates to data.url and calls onClose when "Anfrage öffnen" is clicked', () => {
+    const onClose = jest.fn();
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({
+          type: 'demo_request' as any,
+          data: { url: '/admin/user-relations?tab=demo-requests&requestId=5', requestId: 5 },
+        })}
+        open={true}
+        onClose={onClose}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Anfrage öffnen/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/user-relations?tab=demo-requests&requestId=5');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to /admin/user-relations?tab=demo-requests when data.url is absent', () => {
+    const onClose = jest.fn();
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({ type: 'demo_request' as any, data: { requestId: 7 } })}
+        open={true}
+        onClose={onClose}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Anfrage öffnen/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/user-relations?tab=demo-requests');
+  });
+
+  it('does NOT show requestId as visible text for demo_request type', () => {
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({
+          type: 'demo_request' as any,
+          data: { url: '/admin/user-relations?tab=demo-requests&requestId=42', requestId: 42 },
+        })}
+        open={true}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.queryByText(/requestId/i)).not.toBeInTheDocument();
+    // "42" may appear in the URL string rendered elsewhere, so check specifically for "requestId: 42"
+    expect(screen.queryByText(/requestId:\s*42/i)).not.toBeInTheDocument();
+  });
+
+  it('does NOT show requestId as visible text via renderSmartData fallback', () => {
+    render(
+      <NotificationDetailModal
+        notification={makeNotification({
+          type: 'unknown_type' as any,
+          data: { requestId: 99, visible: 'shown' },
+        })}
+        open={true}
+        onClose={jest.fn()}
+      />
+    );
+    expect(screen.queryByText(/requestId/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/shown/)).toBeInTheDocument();
+  });
+
 });

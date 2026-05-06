@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="theme-color" content="#B5AD9D" />
-    <meta name="description" content="Kaderblick ist die Vereinssoftware fuer Fussballvereine mit Kalender, Spielanalyse, Formationen, Kommunikation, News und Berichten fuer Trainer, Teams, Eltern und Vereinsverantwortliche." />
+    <meta name="description" content="Kaderblick ist die Vereinssoftware fuer Fußballvereine mit Kalender, Spielanalyse, Formationen, Kommunikation, News und Berichten fuer Trainer, Teams, Eltern und Vereinsverantwortliche." />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     
     <meta name="author" content="Andreas Kempe">
@@ -35,13 +35,13 @@
       }
     </style>
 
-    <title>Kaderblick - Vereinssoftware fuer Fussballvereine, Trainer und Teams</title>
+    <title>Kaderblick - Vereinssoftware fuer Fußballvereine, Trainer und Teams</title>
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:site_name" content="Kaderblick">
     <meta property="og:locale" content="de_DE" />
-    <meta property="og:title" content="Kaderblick - Vereinssoftware fuer Fussballvereine" />
-    <meta property="og:description" content="Organisiere deinen Fussballverein mit Kalender, Spielanalyse, Formationen, Kommunikation, News und Berichten in einer modernen Vereinssoftware." />
+    <meta property="og:title" content="Kaderblick - Vereinssoftware für Fußballvereine" />
+    <meta property="og:description" content="Organisiere deinen Fußballverein mit Kalender, Spielanalyse, Formationen, Kommunikation, News und Berichten in einer modernen Vereinssoftware." />
     <meta property="og:image" content="https://kaderblick.de/images/share_bg.jpg" />
     <meta property="og:image:secure_url" content="https://kaderblick.de/images/share_bg.jpg" />
     <meta itemprop="image" content="https://kaderblick.de/images/share_bg.jpg" />
@@ -52,8 +52,8 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Kaderblick - Vereinssoftware fuer Fussballvereine" />
-    <meta name="twitter:description" content="Kalender, Spielanalyse, Kommunikation, Formationen und Berichte fuer Fussballvereine in einer modernen Web-App." />
+    <meta name="twitter:title" content="Kaderblick - Vereinssoftware für Fußballvereine" />
+    <meta name="twitter:description" content="Kalender, Spielanalyse, Kommunikation, Formationen und Berichte für Fußballvereine in einer modernen Web-App." />
     <meta name="twitter:image" content="https://kaderblick.de/images/share_bg.png" />
     <script type="application/ld+json">
       {
@@ -74,122 +74,348 @@
     </script>
     
     <style>
-      .preload-nav-spacer {
-        height: 64px;
+      :root {
+        --preload-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        --preload-background: #0c0e0d;
+        --preload-foreground: #ffffff;
+        --preload-muted: rgba(255, 255, 255, 0.76);
+        --preload-accent: #33b448;
+        --preload-accent-dark: #22a53b;
       }
-      @media (max-width: 600px) {
-        .preload-nav-spacer {
-          height: 56px;
-        }
+
+      .preload-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: var(--preload-background);
+        color: var(--preload-foreground);
+        font-family: var(--preload-font-family);
       }
-      
-      .preload-outer {
-        height: calc(100% - 64px);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-end;
-        padding-right: 7%;
+
+      .preload-screen::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('/images/landing_page/background_central.jpg');
+        background-size: auto 100%;
+        background-position: 100% 46%;
+        background-repeat: no-repeat;
+      }
+
+      .preload-screen::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(12, 14, 13, 1) 0%, rgba(12, 14, 13, 1) 35%, rgba(12, 14, 13, 0.97) 45%, rgba(12, 14, 13, 0.83) 53%, rgba(12, 14, 13, 0.6) 60%, rgba(12, 14, 13, 0.34) 66%, rgba(12, 14, 13, 0.14) 72%, rgba(12, 14, 13, 0.04) 77%, rgba(12, 14, 13, 0) 82%);
+      }
+
+      .preload-shell {
         position: relative;
+        z-index: 1;
+        min-height: 100%;
+        padding: 0 1.25rem;
       }
-      .preload-content {
+
+      .preload-header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 1rem;
+        min-height: 4.5rem;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        padding-left: clamp(0.75rem, 2vw, 1.5rem);
+        padding-right: clamp(0.75rem, 2vw, 1.5rem);
+        box-sizing: border-box;
+        background: rgba(11, 14, 12, 0.92);
+        backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .preload-logo-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .preload-logo-mark {
+        display: inline-grid;
+        grid-template-columns: repeat(2, 0.42rem);
+        gap: 0.14rem;
+        transform: skewX(-12deg);
+      }
+
+      .preload-logo-mark span {
+        width: 0.42rem;
+        height: 0.72rem;
+        border-radius: 0.08rem;
+      }
+
+      .preload-logo-mark span:first-child {
+        background: #ffffff;
+      }
+
+      .preload-logo-mark span:last-child {
+        background: var(--preload-accent);
+      }
+
+      .preload-logo-text {
+        display: inline-flex;
+        align-items: baseline;
+        font-size: 1.85rem;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        line-height: 1;
+      }
+
+      .preload-logo-k {
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        color: var(--preload-accent);
+      }
+
+      .preload-logo-aderblick {
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        color: #ffffff;
+      }
+
+      .preload-status {
+        justify-self: end;
+        padding: 0.7rem 1.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .preload-hero {
+        position: relative;
+        z-index: 1;
         display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        text-align: right;
-        font-family: 'ImpactWeb', 'Anton', Impact, 'Arial Black', sans-serif;
-        gap: 0;
+        align-items: center;
+        min-height: calc(100vh - 4.5rem);
+        padding: 3rem 0 4rem 4rem;
       }
+
+      .preload-copy {
+        max-width: 58rem;
+      }
+
       .preload-title {
-        font-size: clamp(4rem, 12vw, 12rem) !important;
-        color: #fff !important;
-        white-space: nowrap !important;
-        line-height: 0.9 !important;
-        font-family: 'ImpactWeb', 'Anton', Impact, 'Arial Black', sans-serif !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: block !important;
+        margin: 0;
+        font-size: clamp(3.25rem, 5.4vw, 4.5rem);
+        font-weight: 800;
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+        color: #ffffff;
       }
-      .preload-title-highlight {
-        color: #018606 !important;
+
+      .preload-title span {
+        display: block;
+        color: var(--preload-accent);
       }
-      .preload-subtitle {
-        font-size: clamp(2rem, 6.08vw, 6.08rem) !important;
-        color: #fff !important;
-        white-space: nowrap !important;
-        line-height: 0.9 !important;
-        font-family: 'ImpactWeb', 'Anton', Impact, 'Arial Black', sans-serif !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        margin-top: 0rem !important;
-        display: block !important;
+
+      .preload-text {
+        max-width: 34rem;
+        margin: 1.4rem 0 0;
+        font-size: 1.08rem;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.88);
       }
-      @media (max-width: 1600px) {
-        .preload-title { font-size: clamp(3.5rem, 11vw, 11rem) !important; }
-        .preload-subtitle { font-size: clamp(1.75rem, 5.5vw, 5.5rem) !important; }
+
+      .preload-progress {
+        width: min(100%, 26rem);
+        margin-top: 3.25rem;
       }
-      @media (max-width: 1200px) {
-        .preload-title { font-size: clamp(3rem, 9vw, 9rem) !important; }
-        .preload-subtitle { font-size: clamp(1.5rem, 4.5vw, 4.5rem) !important; }
+
+      .preload-progress-label {
+        margin-bottom: 1.1rem;
+        color: var(--preload-muted);
+        font-size: 0.92rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
-      @media (max-width: 900px) {
-        .preload-title { font-size: clamp(2.5rem, 8vw, 8rem) !important; }
-        .preload-subtitle { font-size: clamp(1.25rem, 4vw, 4rem) !important; }
-      }
-      .preload-progress-wrapper {
-        margin-top: 3rem;
+
+      .preload-progress-rail {
         width: 100%;
-        max-width: 500px;
+        height: 6px;
+        border-radius: 999px;
+        background-color: rgba(255, 255, 255, 0.14);
+        overflow: hidden;
       }
+
+      .preload-progress-bar {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #38bc4f 0%, #22a53b 100%);
+        box-shadow: 0 0 14px rgba(51, 180, 72, 0.38);
+        transition: width 0.3s ease;
+      }
+
+      .preload-progress-text {
+        margin-top: 0.8rem;
+        color: var(--preload-muted);
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .preload-highlights {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        max-width: 52rem;
+        margin-top: 3.25rem;
+      }
+
+      .preload-highlight {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 1rem 1.05rem;
+        border-radius: 1rem;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+      }
+
+      .preload-highlight-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: rgba(51, 180, 72, 0.16);
+        color: var(--preload-accent);
+        font-size: 1rem;
+        font-weight: 900;
+        flex-shrink: 0;
+      }
+
+      .preload-highlight-title {
+        margin: 0;
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .preload-highlight-text {
+        margin: 0.18rem 0 0;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      @media (max-width: 900px) {
+        .preload-highlights {
+          grid-template-columns: 1fr;
+          max-width: 28rem;
+        }
+      }
+
       @media (max-width: 600px) {
-        .preload-outer {
-          height: calc(100% - 56px);
-          justify-content: center;
-          align-items: center;
-          padding: 0;
+        .preload-shell {
+          padding: 0 1rem;
         }
-        .preload-content {
-          align-items: center;
-          text-align: center;
-          width: 80%;
+
+        .preload-header {
+          grid-template-columns: auto auto;
+          justify-content: space-between;
         }
+
+        .preload-status {
+          padding: 0.58rem 1rem;
+          font-size: 0.8rem;
+        }
+
+        .preload-hero {
+          align-items: flex-start;
+          min-height: calc(100vh - 4.5rem);
+          padding: 2.5rem 0 3rem;
+        }
+
         .preload-title {
-          font-size: clamp(3rem, 16vw, 6rem) !important;
-          text-align: center;
-          width: 100%;
-          white-space: normal;
-          word-wrap: break-word;
+          font-size: clamp(2.6rem, 11vw, 3.6rem);
         }
-        .preload-subtitle {
-          font-size: clamp(1.5rem, 8vw, 3rem) !important;
-          text-align: center;
-          margin-top: 0;
-          width: 100%;
-          white-space: normal;
-          word-wrap: break-word;
+
+        .preload-text {
+          font-size: 1rem;
+          max-width: 100%;
         }
-        .preload-progress-wrapper {
-          max-width: 90%;
-          margin-top: 10rem;
+
+        .preload-progress {
+          width: 100%;
+          margin-top: 2.4rem;
+        }
+
+        .preload-highlights {
+          margin-top: 2.4rem;
         }
       }
     </style>
   </head>
   <body style="margin:0 !important;padding:0 !important;overflow:hidden !important;width:100vw !important;height:100vh !important;position:fixed !important;">
-    <div id="preload-fallback" style="position:fixed;inset:0;z-index:999999;background-image:url('/images/landing_page/background.jpg');background-size:cover;background-position:center;background-repeat:no-repeat;background-color:#000;">
-      <div class="preload-outer">
-        <div class="preload-content">
-          <span class="preload-title">
-            <span class="preload-title-highlight">K</span>ADERBLICK
-          </span>
-          <span class="preload-subtitle">
-            DEINEN VEREIN IM BLICK
-          </span>
-          <div class="preload-progress-wrapper">
-            <div style="width:100%;height:8px;border-radius:4px;background-color:rgba(255,255,255,0.2);overflow:hidden;">
-              <div id="preload-progress-bar" style="height:100%;width:0%;border-radius:4px;background-color:#018606;box-shadow:0 0 10px rgba(1,134,6,0.5);transition:width 0.3s ease;"></div>
+    <div id="preload-fallback" class="preload-screen">
+      <div class="preload-shell">
+        <div class="preload-header">
+          <div class="preload-logo-link" aria-label="Kaderblick lädt Inhalte">
+            <div class="preload-logo-mark" aria-hidden="true">
+              <span></span>
+              <span></span>
             </div>
-            <div id="preload-progress-text" style="margin-top:0.75rem;color:#fff;font-size:0.9rem;font-weight:500;text-shadow:0 2px 4px rgba(0,0,0,0.5);font-family:'Roboto',sans-serif;letter-spacing:1px;text-align:center;opacity:0.9;">0%</div>
+            <div class="preload-logo-text">
+              <span class="preload-logo-k">K</span><span class="preload-logo-aderblick">ADERBLICK</span>
+            </div>
+          </div>
+          <div></div>
+          <div class="preload-status">Inhalte werden geladen</div>
+        </div>
+
+        <div class="preload-hero">
+          <div class="preload-copy">
+            <h1 class="preload-title">Die Software für<span>Fußballvereine</span></h1>
+            <p class="preload-text">
+              Kaderblick hilft Vereinen, Trainern, Eltern und Jugendleitungen,
+              das Vereinsleben effizient zu organisieren. Einen Moment bitte,
+              die Inhalte werden gerade vorbereitet.
+            </p>
+
+            <div class="preload-progress">
+              <div class="preload-progress-label">Inhalte werden geladen</div>
+              <div class="preload-progress-rail">
+                <div id="preload-progress-bar" class="preload-progress-bar"></div>
+              </div>
+              <div id="preload-progress-text" class="preload-progress-text">0%</div>
+            </div>
+
+            <div class="preload-highlights">
+              <div class="preload-highlight">
+                <div class="preload-highlight-icon">✓</div>
+                <div>
+                  <p class="preload-highlight-title">Einfach zu bedienen</p>
+                  <p class="preload-highlight-text">Intuitiv & schnell startklar</p>
+                </div>
+              </div>
+              <div class="preload-highlight">
+                <div class="preload-highlight-icon">✓</div>
+                <div>
+                  <p class="preload-highlight-title">Alles an einem Ort</p>
+                  <p class="preload-highlight-text">Organisation leicht gemacht</p>
+                </div>
+              </div>
+              <div class="preload-highlight">
+                <div class="preload-highlight-icon">✓</div>
+                <div>
+                  <p class="preload-highlight-title">Für alle Vereinsgrößen</p>
+                  <p class="preload-highlight-text">Von Jugend bis Profis</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

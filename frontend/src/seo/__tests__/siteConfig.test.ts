@@ -87,6 +87,7 @@ describe('isPublicSeoPath', () => {
     '/spielanalyse-software',
     '/faq',
     '/kontakt',
+    '/ueber-uns',
     '/imprint',
     '/privacy',
   ];

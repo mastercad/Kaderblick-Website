@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiJson } from '../utils/api';
 import RegistrationContextDialog from '../modals/RegistrationContextDialog';
+import { isPublicSeoPath } from '../seo/siteConfig';
 import { useViewportPinnedBottomNav, MOBILE_BOTTOM_NAV_HEIGHT } from './navigation/useViewportPinnedBottomNav';
 import NavAppBar from './navigation/NavAppBar';
 import NavMobileDrawer from './navigation/NavMobileDrawer';
@@ -16,18 +17,21 @@ import NavUserMenu from './navigation/NavUserMenu';
 
 interface NavigationProps {
   onOpenAuth: () => void;
+  onOpenDemo: () => void;
   onOpenProfile: () => void;
   onOpenQRShare: () => void;
   openMessages: () => void;
 }
 
-export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare, openMessages }: NavigationProps) {
+export default function Navigation({ onOpenAuth, onOpenDemo, onOpenProfile, onOpenQRShare, openMessages }: NavigationProps) {
   const { isAuthenticated } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const viewportPinnedBottomNav = useViewportPinnedBottomNav(isMobile && isAuthenticated, MOBILE_BOTTOM_NAV_HEIGHT);
   const location = useLocation();
-  const isHome = location.pathname === '/' || location.pathname === '';
+  const isPublicSeoRoute = isPublicSeoPath(location.pathname);
+  const shouldShowGlobalTopNav = isAuthenticated || !isPublicSeoRoute;
+  const shouldShowMobileAppNav = isMobile && isAuthenticated;
 
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [notifAnchorEl, setNotifAnchorEl]       = useState<null | HTMLElement>(null);
@@ -57,15 +61,18 @@ export default function Navigation({ onOpenAuth, onOpenProfile, onOpenQRShare, o
 
   return (
     <>
-      {!isHome && <Box sx={{ height: 'var(--app-header-height)', transition: 'height 0.25s ease' }} />}
+      {shouldShowGlobalTopNav && <Box sx={{ height: 'var(--app-header-height)', transition: 'height 0.25s ease' }} />}
 
-      <NavAppBar
-        onOpenAuth={onOpenAuth}
-        onOpenNotifications={(e) => setNotifAnchorEl(e.currentTarget)}
-        onOpenUserMenu={(e) => setUserMenuAnchorEl(e.currentTarget)}
-      />
+      {shouldShowGlobalTopNav && (
+        <NavAppBar
+          onOpenAuth={onOpenAuth}
+          onOpenDemo={onOpenDemo}
+          onOpenNotifications={(e) => setNotifAnchorEl(e.currentTarget)}
+          onOpenUserMenu={(e) => setUserMenuAnchorEl(e.currentTarget)}
+        />
+      )}
 
-      {isMobile && isAuthenticated && (
+      {shouldShowMobileAppNav && (
         <>
           <NavMobileDrawer
             open={mobileMenuOpen}
