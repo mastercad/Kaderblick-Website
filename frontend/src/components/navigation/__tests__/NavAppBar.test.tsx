@@ -66,6 +66,7 @@ let mockPathname = '/dashboard';
 const theme = createTheme();
 
 const mockOnOpenAuth          = jest.fn();
+const mockOnOpenDemo          = jest.fn();
 const mockOnOpenNotifications = jest.fn();
 const mockOnOpenUserMenu      = jest.fn();
 
@@ -74,6 +75,7 @@ function renderAppBar() {
     <ThemeProvider theme={theme}>
       <NavAppBar
         onOpenAuth={mockOnOpenAuth}
+        onOpenDemo={mockOnOpenDemo}
         onOpenNotifications={mockOnOpenNotifications}
         onOpenUserMenu={mockOnOpenUserMenu}
       />
@@ -142,7 +144,7 @@ describe('unauthenticated', () => {
     mockPathname = '/';
     mockUseHomeScroll.mockReturnValue({ isOnHeroSection: true, setIsOnHeroSection: jest.fn() });
     renderAppBar();
-    expect(screen.getByText('Login / Register')).toBeInTheDocument();
+    expect(screen.getByText('Login')).toBeInTheDocument();
   });
 });
 
@@ -256,5 +258,45 @@ describe('public SEO nav links (desktop, not authenticated, public route)', () =
     mockUseMediaQuery.mockReturnValue(true); // mobile
     renderAppBar();
     expect(screen.queryByText('Funktionen')).not.toBeInTheDocument();
+  });
+});
+
+// ── "Demo anfragen" button ────────────────────────────────────────────────────
+
+describe('"Demo anfragen" button (Home, not authenticated)', () => {
+  beforeEach(() => {
+    mockPathname = '/';
+    mockUseAuth.mockReturnValue({
+      user: null, isAuthenticated: false, isLoading: false,
+      isSuperAdmin: false, isAdmin: false,
+      login: jest.fn(), loginWithGoogle: jest.fn(),
+      logout: jest.fn(), checkAuthStatus: jest.fn(),
+    });
+    const mockUseMediaQuery = require('@mui/material/useMediaQuery') as jest.Mock;
+    mockUseMediaQuery.mockReturnValue(false); // desktop
+    mockIsPublicSeoPath.mockReturnValue(false);
+  });
+
+  it('shows "Demo anfragen" button on home page when not authenticated', () => {
+    renderAppBar();
+    expect(screen.getByText('Demo anfragen')).toBeInTheDocument();
+  });
+
+  it('calls onOpenDemo when "Demo anfragen" button is clicked', () => {
+    renderAppBar();
+    fireEvent.click(screen.getByText('Demo anfragen'));
+    expect(mockOnOpenDemo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show "Demo anfragen" button when authenticated', () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 1, name: 'Test User' } as any,
+      isAuthenticated: true, isLoading: false,
+      isSuperAdmin: false, isAdmin: false,
+      login: jest.fn(), loginWithGoogle: jest.fn(),
+      logout: jest.fn(), checkAuthStatus: jest.fn(),
+    });
+    renderAppBar();
+    expect(screen.queryByText('Demo anfragen')).not.toBeInTheDocument();
   });
 });

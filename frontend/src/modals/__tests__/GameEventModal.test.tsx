@@ -633,9 +633,9 @@ describe('GameEventModal – Trainer-Unterstützung', () => {
     });
   });
 
-  // ── Regression: personType-Reset beim Wiederoeffnen ────────────────────
+  // ── Regression: personType-Reset beim Wiederöffnen ────────────────────
 
-  it('wechselt zu Trainer-Tab wenn Modal nach handleClose mit Coach-Event erneut geoeffnet wird', async () => {
+  it('wechselt zu Trainer-Tab wenn Modal nach handleClose mit Coach-Event erneut geöffnet wird', async () => {
     const coachEvent: any = {
       id: 5,
       teamId: HOME_TEAM_ID,
@@ -654,7 +654,7 @@ describe('GameEventModal – Trainer-Unterstützung', () => {
       rerender(<GameEventModal {...defaultProps} open={false} existingEvent={null} />);
     });
 
-    // Erneut oeffnen mit Coach-Event
+    // Erneut öffnen mit Coach-Event
     await act(async () => {
       rerender(<GameEventModal {...defaultProps} open={true} existingEvent={coachEvent} />);
     });

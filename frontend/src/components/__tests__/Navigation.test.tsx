@@ -25,12 +25,15 @@ jest.mock('../../context/AuthContext', () => ({
 // Mock all sub-components to simple stubs so we only test orchestration logic
 jest.mock('../navigation/NavAppBar', () => ({
   __esModule: true,
-  default: ({ onOpenAuth, onOpenNotifications, onOpenUserMenu }: any) => (
+  default: ({ onOpenAuth, onOpenNotifications, onOpenUserMenu, onOpenDemo }: any) => (
     <div
       data-testid="nav-appbar"
       data-open-auth={Boolean(onOpenAuth)}
+      data-has-open-demo={Boolean(onOpenDemo)}
       onClick={() => onOpenNotifications?.({ currentTarget: document.createElement('button') })}
-    />
+    >
+      <button data-testid="nav-appbar-demo-btn" onClick={onOpenDemo} />
+    </div>
   ),
 }));
 
@@ -95,6 +98,7 @@ const theme = createTheme();
 
 const defaultProps = {
   onOpenAuth:    jest.fn(),
+  onOpenDemo:    jest.fn(),
   onOpenProfile: jest.fn(),
   onOpenQRShare: jest.fn(),
   openMessages:  jest.fn(),
@@ -215,5 +219,22 @@ describe('mobile menu body class', () => {
     fireEvent.click(screen.getByTestId('mehr-toggle')); // open
     fireEvent.click(screen.getByTestId('drawer-close')); // close
     expect(document.body).not.toHaveClass('menu-open');
+  });
+});
+
+// ── onOpenDemo prop forwarding ────────────────────────────────────────────────
+
+describe('onOpenDemo prop forwarding', () => {
+  it('passes onOpenDemo to NavAppBar', () => {
+    const mockOnOpenDemo = jest.fn();
+    renderNav({ onOpenDemo: mockOnOpenDemo });
+    expect(screen.getByTestId('nav-appbar').dataset.hasOpenDemo).toBe('true');
+  });
+
+  it('calls onOpenDemo when NavAppBar demo button is clicked', () => {
+    const mockOnOpenDemo = jest.fn();
+    renderNav({ onOpenDemo: mockOnOpenDemo });
+    fireEvent.click(screen.getByTestId('nav-appbar-demo-btn'));
+    expect(mockOnOpenDemo).toHaveBeenCalledTimes(1);
   });
 });

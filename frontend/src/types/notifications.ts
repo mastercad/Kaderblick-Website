@@ -1,6 +1,6 @@
 export interface AppNotification {
   id: string;
-  type: 'news' | 'message' | 'participation' | 'system' | 'survey' | 'team_ride' | 'team_ride_booking' | 'team_ride_cancel' | 'team_ride_deleted' | 'event_cancelled' | 'event_created' | 'event_updated' | 'event_deleted' | 'feedback' | 'new_user_registration' | 'registration_request' | 'registration_request_approved' | 'supporter_request' | 'supporter_request_approved' | 'supporter_request_rejected';
+  type: 'news' | 'message' | 'participation' | 'system' | 'survey' | 'team_ride' | 'team_ride_booking' | 'team_ride_cancel' | 'team_ride_deleted' | 'event_cancelled' | 'event_created' | 'event_updated' | 'event_deleted' | 'feedback' | 'new_user_registration' | 'registration_request' | 'registration_request_approved' | 'supporter_request' | 'supporter_request_approved' | 'supporter_request_rejected' | 'demo_request';
   title: string;
   message: string;
   timestamp: Date;
@@ -41,4 +41,5 @@ export const NOTIFICATION_TYPES = {
   SUPPORTER_REQUEST: 'supporter_request' as const,
   SUPPORTER_REQUEST_APPROVED: 'supporter_request_approved' as const,
   SUPPORTER_REQUEST_REJECTED: 'supporter_request_rejected' as const,
+  DEMO_REQUEST: 'demo_request' as const,
 } as const;

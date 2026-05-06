@@ -39,11 +39,15 @@ const navigationLinks = [
 ];
 
 function escapeHtml(value) {
-  return value
+  return String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+function getFaqQuestion(entry) {
+  return entry.question ?? entry['qüstion'] ?? '';
 }
 
 function renderNav() {
@@ -61,14 +65,14 @@ function renderHome() {
 
   return {
     route: '/',
-    title: 'Kaderblick - Vereinssoftware fuer Fussballvereine, Trainer und Teams',
-    description: 'Digitale Vereinssoftware fuer Fussballvereine mit Kalender, Spielanalyse, Aufstellungen, Kommunikation und Vereinsorganisation.',
+    title: 'Kaderblick - Vereinssoftware für Fußballvereine, Trainer und Teams',
+    description: 'Digitale Vereinssoftware für Fußballvereine mit Kalender, Spielanalyse, Aufstellungen, Kommunikation und Vereinsorganisation.',
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
         <p class="seo-eyebrow">Statisch vorgerenderte Public Site</p>
-        <h1>Kaderblick fuer Vereine, Trainer, Eltern und Jugendleitung</h1>
-        <p>Kaderblick gibt einen kompakten Ueberblick ueber die wichtigsten Bereiche fuer den Vereinsalltag. Fuer Details gibt es die passende Dokumentation.</p>
+        <h1>Kaderblick für Vereine, Trainer, Eltern und Jugendleitung</h1>
+        <p>Kaderblick gibt einen kompakten Überblick über die wichtigsten Bereiche für den Vereinsalltag. Für Details gibt es die passende Dokumentation.</p>
         <a class="seo-cta" href="https://docs.kaderblick.de">Zur Dokumentation</a>
         <div class="seo-grid">${cards}</div>
       </main>
@@ -87,14 +91,14 @@ function renderFeaturesOverview() {
 
   return {
     route: '/funktionen',
-    title: 'Funktionen fuer Fussballvereine | Kaderblick',
-    description: 'Entdecke die wichtigsten Funktionen von Kaderblick fuer Fussballvereine: Kalender, Teilnahmen, Spielanalyse, Formationen, Kommunikation und Berichte.',
+    title: 'Funktionen für Fußballvereine | Kaderblick',
+    description: 'Entdecke die wichtigsten Funktionen von Kaderblick für Fußballvereine: Kalender, Teilnahmen, Spielanalyse, Formationen, Kommunikation und Berichte.',
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
-        <p class="seo-eyebrow">Funktionsuebersicht</p>
-        <h1>Funktionen fuer Vereine, Trainer und Teams</h1>
-        <p>Hier findest du die zentralen Bereiche von Kaderblick im kompakten Ueberblick. Fuer konkrete Ablaeufe und Funktionen gibt es die passende Dokumentation.</p>
+        <p class="seo-eyebrow">Funktionsübersicht</p>
+        <h1>Funktionen für Vereine, Trainer und Teams</h1>
+        <p>Hier findest du die zentralen Bereiche von Kaderblick im kompakten Überblick. Für konkrete Abläufe und Funktionen gibt es die passende Dokumentation.</p>
         <div class="seo-grid">${cards}</div>
       </main>
     `,
@@ -133,7 +137,7 @@ function renderIntentPages() {
         <p>${escapeHtml(page.intro)}</p>
         <ul class="seo-list">${page.benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join('')}</ul>
         <div class="seo-grid">
-          ${page.docsLinks.map((entry) => `<article class="seo-card"><h2>${escapeHtml(entry.label)}</h2><p>Weiterfuehrende Erklaerung in der Dokumentation.</p><a href="${entry.url}">Zur Dokumentation</a></article>`).join('')}
+          ${page.docsLinks.map((entry) => `<article class="seo-card"><h2>${escapeHtml(entry.label)}</h2><p>Weiterführende Erklärung in der Dokumentation.</p><a href="${entry.url}">Zur Dokumentation</a></article>`).join('')}
           ${page.linkedFeatures.map((slug) => {
             const feature = publicSiteData.features.find((entry) => entry.slug === slug);
             if (!feature) {
@@ -152,15 +156,65 @@ function renderFaq() {
   return {
     route: '/faq',
     title: 'FAQ zur Vereinssoftware Kaderblick',
-    description: 'Antworten auf haeufige Fragen zu Kaderblick, zur Vereinsorganisation und zur Nutzung im Amateurfussball.',
+    description: 'Antworten auf häufige Fragen zu Kaderblick, zur Vereinsorganisation und zur Nutzung im Amateurfußball.',
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
         <p class="seo-eyebrow">FAQ</p>
         <h1>FAQ zu Kaderblick</h1>
-        <p>Antworten auf haeufige Fragen rund um Nutzung, Zielgruppen und Einsatz von Kaderblick im Vereinsalltag.</p>
+        <p>Antworten auf häufige Fragen rund um Nutzung, Zielgruppen und Einsatz von Kaderblick im Vereinsalltag.</p>
         <div class="seo-grid">
-          ${publicSiteData.faqEntries.map((entry) => `<article class="seo-card"><h2>${escapeHtml(entry.question)}</h2><p>${escapeHtml(entry.answer)}</p></article>`).join('')}
+          ${publicSiteData.faqEntries.map((entry) => `<article class="seo-card"><h2>${escapeHtml(getFaqQuestion(entry))}</h2><p>${escapeHtml(entry.answer)}</p></article>`).join('')}
+        </div>
+      </main>
+    `,
+  };
+}
+
+function renderImprint() {
+  return {
+    route: '/imprint',
+    title: 'Impressum | Kaderblick',
+    description: 'Impressum von Kaderblick mit Anbieterangaben, Kontaktinformationen und rechtlichen Hinweisen.',
+    body: `
+      <main class="seo-snapshot">
+        ${renderNav()}
+        <p class="seo-eyebrow">Rechtliches</p>
+        <h1>Impressum</h1>
+        <div class="seo-grid">
+          <article class="seo-card">
+            <h2>Angaben gemäß § 5 TMG</h2>
+            <p>Andreas Kempe<br>Glück-Auf-Straße 11c<br>01705 Freital<br>Deutschland</p>
+          </article>
+          <article class="seo-card">
+            <h2>Kontakt</h2>
+            <p><a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a></p>
+          </article>
+        </div>
+      </main>
+    `,
+  };
+}
+
+function renderPrivacy() {
+  return {
+    route: '/privacy',
+    title: 'Datenschutz | Kaderblick',
+    description: 'Datenschutzhinweise von Kaderblick zu Verarbeitung, Google-SSO, Cookies und den Rechten betroffener Personen.',
+    body: `
+      <main class="seo-snapshot">
+        ${renderNav()}
+        <p class="seo-eyebrow">Datenschutz</p>
+        <h1>Datenschutzerklärung</h1>
+        <div class="seo-grid">
+          <article class="seo-card">
+            <h2>Verantwortlicher</h2>
+            <p>Andreas Kempe<br><a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a></p>
+          </article>
+          <article class="seo-card">
+            <h2>Verarbeitungszwecke</h2>
+            <p>Bereitstellung der Webseite, Authentifizierung, Organisation, Kommunikation, Feedback und statistische Analysen.</p>
+          </article>
         </div>
       </main>
     `,
@@ -171,13 +225,13 @@ function renderContact() {
   return {
     route: '/kontakt',
     title: 'Kontakt zu Kaderblick',
-    description: 'Kontaktseite fuer Kaderblick. Austausch zu Vereinsorganisation, Trainer-Workflows, Produktfragen und Einsatz im Fussballverein.',
+    description: 'Kontaktseite für Kaderblick. Austausch zu Vereinsorganisation, Trainer-Workflows, Produktfragen und Einsatz im Fußballverein.',
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
         <p class="seo-eyebrow">Kontakt</p>
         <h1>Austausch zu Kaderblick</h1>
-        <p>Wenn du Kaderblick fuer deinen Verein einordnen moechtest, ist diese statisch vorgerenderte Kontaktseite der oeffentliche Einstiegspunkt.</p>
+        <p>Wenn du Kaderblick für deinen Verein einordnen möchtest, ist diese statisch vorgerenderte Kontaktseite der öffentliche Einstiegspunkt.</p>
         <article class="seo-card">
           <h2>Direkter Kontakt</h2>
           <p>Andreas Kempe</p>
@@ -221,6 +275,8 @@ const routes = [
   ...renderIntentPages(),
   renderFaq(),
   renderContact(),
+  renderImprint(),
+  renderPrivacy(),
 ];
 
 const baseHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');

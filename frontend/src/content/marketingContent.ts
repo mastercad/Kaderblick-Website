@@ -10,6 +10,12 @@ export interface MarketingFeature {
   name: string;
   teaser: string;
   summary: string;
+  summaryTitle?: string;
+  valueTitle?: string;
+  valueIntro?: string;
+  galleryTitle?: string;
+  galleryIntro?: string;
+  imageCaptions?: string[];
   seoTitle: string;
   seoDescription: string;
   image: string;
@@ -33,6 +39,11 @@ export interface IntentLandingPage {
   headline: string;
   intro: string;
   summary: string;
+  summaryTitle?: string;
+  valueTitle?: string;
+  valueIntro?: string;
+  docsTitle?: string;
+  docsIntro?: string;
   benefits: string[];
   linkedFeatures: string[];
   docsLinks: DocumentationLink[];

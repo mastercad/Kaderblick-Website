@@ -4,7 +4,6 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { ThemeProvider as MuiThemeProvider, useTheme as useMuiTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
 import { lightTheme, darkTheme } from './theme/theme';
 import { NotificationProvider } from './context/NotificationContext';
 import { HomeScrollProvider, useHomeScroll } from './context/HomeScrollContext';
@@ -34,7 +33,9 @@ import { TwoFactorWarningBanner } from './components/TwoFactorWarningBanner';
 import RegistrationContextDialog from './modals/RegistrationContextDialog';
 import QRCodeShareModal from './modals/QRCodeShareModal';
 import ContactModal from './modals/ContactModal';
+import DemoRequestModal from './modals/DemoRequestModal';
 import Seo from './seo/Seo';
+import PublicLoadingScreen from './components/public/PublicLoadingScreen';
 import {
   APP_NOINDEX_DESCRIPTION,
   APP_NOINDEX_TITLE,
@@ -91,26 +92,18 @@ const Cameras = lazy(() => import('./pages/Cameras'));
 const VideoTypes = lazy(() => import('./pages/VideoTypes'));
 const Teams = lazy(() => import('./pages/Teams'));
 const FeaturesOverview = lazy(() => import('./pages/FeaturesOverview'));
+const BenefitsOverview = lazy(() => import('./pages/BenefitsOverview'));
+const PricingOverview = lazy(() => import('./pages/PricingOverview'));
 const FeatureDetail = lazy(() => import('./pages/FeatureDetail'));
 const Faq = lazy(() => import('./pages/Faq'));
 const ContactPage = lazy(() => import('./pages/Contact'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
 const PublicIntentPage = lazy(() => import('./pages/PublicIntentPage'));
 const Matchday = lazy(() => import('./pages/Matchday'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 
 function RouteFallback() {
-  return (
-    <Box
-      sx={{
-        minHeight: '40vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <CircularProgress size={28} />
-    </Box>
-  );
+  return <PublicLoadingScreen />;
 }
 
 function RouteSeoBoundary() {
@@ -136,6 +129,7 @@ function App() {
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   const [showAuth, setShowAuth] = useState(false);
+  const [showDemoRequest, setShowDemoRequest] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [showProfile, setShowProfile] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState(0);
@@ -166,6 +160,8 @@ function App() {
   const { isOnHeroSection } = useHomeScroll();
 
   const isHome = location.pathname === '/' || location.pathname === '';
+  const isPublicSeoRoute = isPublicSeoPath(location.pathname);
+  const showAuthenticatedAppChrome = !!user;
   const showLoginButton = !isHome || (isHome && isOnHeroSection);
 
   // Deep-link: push notification with ?modal=messages&messageId=X
@@ -195,8 +191,8 @@ function App() {
 
   // Dynamische theme-color für die Statusleiste im mobilen Browser
   // Reguläre Browser unterstützen NUR Farben (kein Bild möglich).
-  // Home (Hero-Bereich): #B5AD9D = exakte Durchschnittsfarbe vom oberen Bildrand des Hero-Hintergrunds
-  // Home (Landing-Sections): #4e4e4e passend zum Section-Hintergrund
+  // Home (Hero-Bereich): dunkles Hero-Overlay
+  // Home (Landing-Sections): heller Landing-Hintergrund
   // Alle anderen Seiten: AppBar-Grün #018606 passend zum Gradient-Start
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]');
@@ -204,11 +200,11 @@ function App() {
 
     let color: string;
     if (isHome && isOnHeroSection) {
-      color = '#B5AD9D'; // Matches top edge of /images/landing_page/background.jpg
+      color = '#0d110e';
     } else if (isHome) {
-      color = '#4e4e4e'; // Landing sections background
+      color = '#f5f1e8';
     } else {
-      color = '#018606'; // AppBar green
+      color = '#018606';
     }
     meta.setAttribute('content', color);
   }, [isHome, isOnHeroSection]);
@@ -274,6 +270,20 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const onOpenAuthModal = (event: Event) => {
+      const customEvent = event as CustomEvent<{ initialTab?: 'login' | 'register' }>;
+      setAuthInitialTab(customEvent.detail?.initialTab ?? 'login');
+      setShowAuth(true);
+    };
+
+    window.addEventListener('openAuthModal', onOpenAuthModal as EventListener);
+
+    return () => {
+      window.removeEventListener('openAuthModal', onOpenAuthModal as EventListener);
+    };
+  }, []);
+
   // Keep rendering even during loading - preload screen will stay visible
   if (isLoading) {
     return null; // Return null while loading, preload screen stays visible
@@ -295,13 +305,14 @@ function App() {
               <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
                 <Navigation
                   onOpenAuth={() => { setAuthInitialTab('login'); setShowAuth(true); }}
+                  onOpenDemo={() => setShowDemoRequest(true)}
                   onOpenProfile={() => setShowProfile(true)}
                   onOpenQRShare={() => setShowQRShare(true)}
                   openMessages={() => setShowMessages(true)}
                 />
                 {/* flex-row: sticky sidebar + content (sidebar endet am Footer) */}
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row' }}>
-                  {user && !isMobile && (
+                  {showAuthenticatedAppChrome && !isMobile && (
                     <Box
                       sx={{
                         position: 'sticky',
@@ -324,21 +335,27 @@ function App() {
                     </Box>
                   )}
                 <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                {!isHome && <PushWarningBanner />}
-                {!isHome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
-              <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: user ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
-                {user && <PageTabBar />}
+                {!isHome && showAuthenticatedAppChrome && <PushWarningBanner />}
+                {!isHome && showAuthenticatedAppChrome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
+              <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: showAuthenticatedAppChrome ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
+                {showAuthenticatedAppChrome && <PageTabBar />}
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
                     <Route path="/" element={user ? <Navigate to={(location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/dashboard'} replace /> : <Home />} />
                     <Route path="/funktionen" element={<FeaturesOverview />} />
+                    <Route path="/vorteile" element={<BenefitsOverview />} />
+                    <Route path="/preise" element={<PricingOverview />} />
                     <Route path="/funktionen/:slug" element={<FeatureDetail />} />
-                    <Route path="/fuer-trainer" element={<PublicIntentPage />} />
-                    <Route path="/fuer-eltern" element={<PublicIntentPage />} />
-                    <Route path="/fuer-jugendleitung" element={<PublicIntentPage />} />
+                    <Route path="/für-trainer" element={<PublicIntentPage />} />
+                    <Route path="/für-eltern" element={<PublicIntentPage />} />
+                    <Route path="/für-jugendleitung" element={<PublicIntentPage />} />
+                    <Route path="/fuer-trainer" element={<Navigate to="/für-trainer" replace />} />
+                    <Route path="/fuer-eltern" element={<Navigate to="/für-eltern" replace />} />
+                    <Route path="/fuer-jugendleitung" element={<Navigate to="/für-jugendleitung" replace />} />
                     <Route path="/spielanalyse-software" element={<PublicIntentPage />} />
                     <Route path="/faq" element={<Faq />} />
                     <Route path="/wissenspool" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
+                    <Route path="/ueber-uns" element={<AboutUs />} />
                     <Route path="/kontakt" element={<ContactPage />} />
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -402,6 +419,7 @@ function App() {
                 </Suspense>
               </Box>
               <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialTab={authInitialTab} />
+              <DemoRequestModal open={showDemoRequest} onClose={() => setShowDemoRequest(false)} />
               <ProfileModal
                 open={showProfile}
                 onClose={() => { setShowProfile(false); setProfileInitialTab(0); }}
@@ -418,7 +436,7 @@ function App() {
               />
               <QRCodeShareModal open={showQRShare} onClose={() => setShowQRShare(false)} />
               <ContactModal open={showContact} onClose={() => setShowContact(false)} />
-              {!isHome && (user ? (
+              {!isHome && (showAuthenticatedAppChrome ? (
                 <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>
               ) : (
                 <Footer />

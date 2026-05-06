@@ -54,6 +54,8 @@ const getNotificationIcon = (type: AppNotification['type']) => {
       return <EventIcon />;
     case 'feedback':
       return <FeedbackIcon />;
+    case 'demo_request':
+      return <SupportAgentIcon />;
     case 'new_user_registration':
     case 'registration_request':
     case 'registration_request_approved':
@@ -89,6 +91,8 @@ const getNotificationColor = (type: AppNotification['type']) => {
       return '#c62828';
     case 'feedback':
       return '#7b5ea7';
+    case 'demo_request':
+      return '#0288d1';
     case 'new_user_registration':
       return '#455a64';
     case 'registration_request':
@@ -120,6 +124,7 @@ const getNotificationLabel = (type: AppNotification['type']) => {
     case 'event_updated': return 'Termin aktualisiert';
     case 'event_deleted': return 'Termin abgesagt';
     case 'feedback': return 'Feedback-Antwort';
+    case 'demo_request': return 'Demo-Anfrage';
     case 'new_user_registration': return 'Neue Registrierung';
     case 'registration_request': return 'Zuordnungsantrag';
     case 'registration_request_approved': return 'Zuordnungsantrag';
@@ -244,7 +249,7 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
 };
 
 // Keys that should be hidden (internal IDs etc.)
-const HIDDEN_KEYS = new Set(['eventId', 'id', 'rideId', 'userId', 'conversationId', 'surveyId', 'reminderKey']);
+const HIDDEN_KEYS = new Set(['eventId', 'id', 'rideId', 'userId', 'conversationId', 'surveyId', 'reminderKey', 'requestId']);
 
 // Keys that represent a title — shown as text without label
 const TITLE_KEYS = new Set(['eventTitle', 'title', 'eventName', 'name']);
@@ -361,6 +366,21 @@ const renderNotificationData = (type: AppNotification['type'], data: any, onNavi
               <strong>Von:</strong> {data.deletedBy}
             </Typography>
           )}
+        </Box>
+      );
+
+    case 'demo_request':
+      return (
+        <Box>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<OpenInNewIcon />}
+            onClick={() => onNavigate(data.url ?? '/admin/user-relations?tab=demo-requests')}
+            sx={{ mt: 0.5 }}
+          >
+            Anfrage öffnen
+          </Button>
         </Box>
       );
 

@@ -32,3 +32,21 @@ export interface SupporterRequestRow {
 }
 
 export type RequestCounts = { pending: number; approved: number; rejected: number };
+
+export interface DemoRequestRow {
+  id: number;
+  name: string;
+  email: string;
+  clubName?: string | null;
+  league?: string | null;
+  ageGroup?: string | null;
+  phone?: string | null;
+  message?: string | null;
+  status: 'pending' | 'demo_sent' | 'contacted' | 'rejected';
+  adminNote?: string | null;
+  createdAt: string;
+  processedAt?: string | null;
+  processedBy?: { id: number; name: string } | null;
+}
+
+export type DemoRequestCounts = { pending: number; demo_sent: number; contacted: number; rejected: number };
