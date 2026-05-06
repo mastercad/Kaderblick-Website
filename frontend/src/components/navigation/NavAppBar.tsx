@@ -93,7 +93,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
           onClick={() => navigate('/')}
           title="Zur Startseite"
           style={{
-            fontFamily: 'Impact, "Arial Black", sans-serif',
+            fontFamily: "'ImpactWeb', Impact, 'Arial Black', sans-serif",
             fontSize: showHomeMarketingHeader ? (isMobile ? '1.2rem' : '1.6rem') : (isScrolled ? '1.1rem' : '2rem'),
             letterSpacing: showHomeMarketingHeader ? '-0.03em' : undefined,
             transition: 'font-size 0.25s ease',
@@ -101,8 +101,8 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
         >
           {showHomeMarketingHeader ? (
             <>
-              <span style={{ fontFamily: 'Impact', color: '#34b74a' }}>K</span>
-              <span style={{ fontFamily: 'Impact', color: '#ffffff' }}>ADERBLICK</span>
+              <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#34b74a' }}>K</span>
+              <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#ffffff' }}>ADERBLICK</span>
             </>
           ) : (
             <>
