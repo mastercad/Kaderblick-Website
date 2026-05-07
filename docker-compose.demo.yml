@@ -1,12 +1,18 @@
 # Demo-spezifische Overrides
-# Verwendung: docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo up
+# Verwendung (shared Demo-Instanz): docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo up
+# Verwendung (dynamische Instanz):  docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo-<token> up
 #
 # Zweck:
 #   - Frontend-Image mit demo-spezifischer VITE_BACKEND_URL (demo-api.kaderblick.de)
+#   - RUNTIME_API_URL erlaubt zur Laufzeit eine abweichende API-URL für dynamische Instanzen.
+#     Der entrypoint.sh ersetzt die eingebettete URL in den JS-Assets beim Container-Start.
 #   - var/ liegt wie bei Production auf dem Container-Filesystem → bei --force-recreate
 #     immer sauber, keine korrupten Zwischendateien aus fehlgeschlagenen Deployments.
 
 services:
   frontend:
-    # Demo-Image hat VITE_BACKEND_URL=https://demo-api.kaderblick.de eingebettet
+    # Demo-Image hat VITE_BACKEND_URL=https://demo-api.kaderblick.de eingebettet.
+    # Für dynamische Instanzen: DEMO_API_URL=https://demo-<token>-api.kaderblick.de setzen.
     image: ghcr.io/mastercad/kaderblick/frontend-demo:${IMAGE_TAG:-latest}
+    environment:
+      RUNTIME_API_URL: ${DEMO_API_URL:-}

@@ -1,0 +1,565 @@
+name: Provision Demo Instance
+
+# Wird vom Backend via GitHub API (workflow_dispatch) ausgelöst, wenn ein Admin
+# eine Demo-Anfrage genehmigt.
+#
+# Ablauf:
+#   1. Datenbank + DB-User auf kaderblick-db anlegen
+#   2. Release-Verzeichnis anlegen (analog zu prod/staging/demo in deploy.yml)
+#   3. .env und Symlinks schreiben
+#   4. Docker-Stack hochfahren (docker-compose -p demo-<token>)
+#   5. symfony-app-setup (Migrations, Cache, JWT)
+#   6. Fixtures laden (--group=demo)
+#   7. Plesk: Subdomains anlegen + Nginx rekonfigurieren
+#   8. HMAC-signierten Webhook ans Backend senden → E-Mail an Interessenten
+
+on:
+  workflow_dispatch:
+    inputs:
+      demo_token:
+        description: 'Eindeutiger Demo-Token (z.B. abc123)'
+        type: string
+        required: true
+      request_id:
+        description: 'ID des DemoRequest-Eintrags im Backend'
+        type: string
+        required: true
+      image_tag:
+        description: 'Docker image tag (default: latest)'
+        type: string
+        default: 'latest'
+      deploy_alfahosting:
+        description: 'Auf Alfahosting deployen'
+        type: boolean
+        default: true
+      deploy_hetzner:
+        description: 'Auf Hetzner deployen'
+        type: boolean
+        default: false
+
+concurrency:
+  group: demo-provision-${{ inputs.demo_token }}
+  cancel-in-progress: false
+
+jobs:
+  # ============================================================
+  # ALFAHOSTING
+  # ============================================================
+  provision-alfahosting:
+    if: inputs.deploy_alfahosting == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      HOST_UID: 10000
+      HOST_GID: 1003
+      TOKEN: ${{ inputs.demo_token }}
+      DB_NAME: kaderblick_demo_${{ inputs.demo_token }}
+      DB_USER: demo_${{ inputs.demo_token }}
+      COMPOSE_PROJECT: demo-${{ inputs.demo_token }}
+      FRONTEND_URL: https://demo-${{ inputs.demo_token }}.kaderblick.de
+      API_URL: https://demo-${{ inputs.demo_token }}-api.kaderblick.de
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare release files locally
+        run: |
+          mkdir -p build/api/config build/frontend
+          cp docker-compose.yml docker-compose.demo.yml docker-compose.db.yml docker-compose.maintenance.yml build/
+          cp -r .docker build/
+          cp api/.env.dist build/api/
+          cp -r api/config/packages api/config/routes api/config/routes.yaml \
+                api/config/services.yaml api/config/bundles.php build/api/config/ 2>/dev/null || true
+          cp -r api/config/secrets build/api/config/ 2>/dev/null || true
+
+      - name: Create release directory on server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            mkdir -p "$RELEASE_DIR"
+            chmod 755 "$RELEASE_DIR"
+            chown -R ${{ secrets.PLESK_USERNAME }}:psacln "$RELEASE_DIR"
+            echo "$RELEASE_DIR"
+
+      - name: Copy release files to server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.PLESK_USERNAME }}
+          password: ${{ secrets.PLESK_PASSWORD }}
+          source: "build/*"
+          target: "${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+          strip_components: 1
+
+      - name: Setup files, database and environment
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+
+            # --- JWT-Keys ---
+            ROOT_DIR="${{ secrets.MAIN_PROJECT_PATH }}"
+            mkdir -p "$RELEASE_DIR/api/config/jwt"
+            if [ -d "$ROOT_DIR/api/config/jwt" ]; then
+              cp -r "$ROOT_DIR/api/config/jwt/"* "$RELEASE_DIR/api/config/jwt/" 2>/dev/null || true
+            fi
+
+            # --- Datenbank + User anlegen ---
+            DB_PASS=$(openssl rand -hex 16)
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "CREATE DATABASE IF NOT EXISTS ${{ env.DB_NAME }} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "CREATE USER IF NOT EXISTS '${{ env.DB_USER }}'@'%' IDENTIFIED BY '${DB_PASS}';"
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER ON ${{ env.DB_NAME }}.* TO '${{ env.DB_USER }}'@'%'; FLUSH PRIVILEGES;"
+            DB_URL="mysql://${{ env.DB_USER }}:${DB_PASS}@db:3306/${{ env.DB_NAME }}"
+
+            # --- uploads-Verzeichnis (instanz-isoliert, persistent) ---
+            UPLOADS_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_uploads/${{ env.TOKEN }}"
+            mkdir -p "$UPLOADS_DIR"
+            chmod 775 "$UPLOADS_DIR"
+            chown -R www-data:www-data "$UPLOADS_DIR"
+
+            # --- .env schreiben ---
+            cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$RELEASE_DIR/api/.env"
+            sed -i "s|^GOOGLE_REDIRECT_URI=.*\$|GOOGLE_REDIRECT_URI=${{ env.FRONTEND_URL }}/oauth2callback|" "$RELEASE_DIR/api/.env"
+            sed -i "s|^FRONTEND_URL=.*\$|FRONTEND_URL=${{ env.FRONTEND_URL }}|" "$RELEASE_DIR/api/.env"
+            sed -i "s|^DEMO_URL=.*\$|DEMO_URL=${{ env.FRONTEND_URL }}|" "$RELEASE_DIR/api/.env"
+            echo "APP_DEBUG=0"                                        >> "$RELEASE_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"               >> "$RELEASE_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$RELEASE_DIR/api/.env"
+            echo "DEMO_WEBHOOK_SECRET=${{ secrets.DEMO_WEBHOOK_SECRET }}" >> "$RELEASE_DIR/api/.env"
+
+            # --- Secrets decrypt key ---
+            mkdir -p "$RELEASE_DIR/api/config/secrets/prod"
+            echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
+              > "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 655 "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+
+            # --- Port-Berechnung: Demo-Instanzen nutzen 30000er-Bereich ---
+            # Token-Hash → deterministische Ports (kollisionsfrei über Tokenbereich)
+            TOKEN_HASH=$(echo -n "${{ env.TOKEN }}" | sha256sum | cut -c1-4)
+            PORT_OFFSET=$((16#$TOKEN_HASH % 1000))
+            API_PORT=$((30081 + PORT_OFFSET * 3))
+            REACT_PORT=$((30080 + PORT_OFFSET * 3))
+
+            # --- docker-compose.demo-instance.env schreiben ---
+            cat > "$RELEASE_DIR/.env" <<EOF
+            IMAGE_TAG=${{ inputs.image_tag }}
+            API_IMAGE_TAG=${{ inputs.image_tag }}
+            DATABASE_URL=${DB_URL}
+            UPLOADS_DIR=${UPLOADS_DIR}
+            DEMO_API_URL=${{ env.API_URL }}
+            API_PORT=${API_PORT}
+            REACT_PORT=${REACT_PORT}
+            HOST_UID=${{ env.HOST_UID }}
+            HOST_GID=${{ env.HOST_GID }}
+            XDEBUG_MODE=off
+            EOF
+
+            # Port-Info für spätere Nginx-Konfiguration sichern
+            echo "$API_PORT"  > "$RELEASE_DIR/.api_port"
+            echo "$REACT_PORT" > "$RELEASE_DIR/.react_port"
+            echo "${DB_PASS}" > "$RELEASE_DIR/.db_pass"
+            chmod 600 "$RELEASE_DIR/.db_pass"
+
+      - name: Deploy demo instance containers
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          command_timeout: 30m
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            cd "$RELEASE_DIR"
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag }}
+
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              up -d --no-build --force-recreate api frontend worker
+
+      - name: Setup demo instance (secrets / cache / migrations / JWT)
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          env: prod
+          compose_project: ${{ env.COMPOSE_PROJECT }}
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ inputs.demo_token }}
+          main_project_path: ${{ secrets.MAIN_PROJECT_PATH }}
+
+      - name: Load demo fixtures
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          env: prod
+          compose_project: ${{ env.COMPOSE_PROJECT }}
+          compose_files: "-f docker-compose.yml -f docker-compose.demo.yml"
+          work_dir: ${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ inputs.demo_token }}
+
+      - name: Configure Plesk subdomains and nginx
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            API_PORT=$(cat "$RELEASE_DIR/.api_port")
+            REACT_PORT=$(cat "$RELEASE_DIR/.react_port")
+            FRONTEND_SUBDOMAIN="demo-${{ env.TOKEN }}.kaderblick.de"
+            API_SUBDOMAIN="demo-${{ env.TOKEN }}-api.kaderblick.de"
+
+            # Subdomains in Plesk anlegen
+            plesk bin subdomain --create "demo-${{ env.TOKEN }}" \
+              -domain kaderblick.de -www-root /var/www/vhosts/kaderblick.de/httpdocs 2>/dev/null || true
+            plesk bin subdomain --create "demo-${{ env.TOKEN }}-api" \
+              -domain kaderblick.de -www-root /var/www/vhosts/kaderblick.de/httpdocs 2>/dev/null || true
+
+            # Nginx-vhost-Config für Frontend-Subdomain schreiben
+            FRONTEND_CONF_DIR="/var/www/vhosts/system/${FRONTEND_SUBDOMAIN}/conf"
+            mkdir -p "$FRONTEND_CONF_DIR"
+            cat > "$FRONTEND_CONF_DIR/vhost_nginx.conf" <<NGINXEOF
+            location / {
+                proxy_pass http://127.0.0.1:${REACT_PORT};
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+            }
+            NGINXEOF
+
+            # Nginx-vhost-Config für API-Subdomain schreiben
+            API_CONF_DIR="/var/www/vhosts/system/${API_SUBDOMAIN}/conf"
+            mkdir -p "$API_CONF_DIR"
+            cat > "$API_CONF_DIR/vhost_nginx.conf" <<NGINXEOF
+            location ~ ^/.* {
+                client_max_body_size 55M;
+                proxy_pass http://127.0.0.1:${API_PORT};
+                proxy_set_header Host \$host;
+                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto \$scheme;
+            }
+            NGINXEOF
+
+            # Nginx für beide Subdomains neu konfigurieren und laden
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain "${FRONTEND_SUBDOMAIN}"
+            /usr/local/psa/admin/sbin/httpdmng --reconfigure-domain "${API_SUBDOMAIN}"
+
+      - name: Notify backend via webhook
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            API_PORT=$(cat "$RELEASE_DIR/.api_port")
+            DB_PASS=$(cat "$RELEASE_DIR/.db_pass")
+
+            PAYLOAD=$(cat <<EOF
+            {
+              "request_id": "${{ inputs.request_id }}",
+              "demo_token": "${{ env.TOKEN }}",
+              "frontend_url": "${{ env.FRONTEND_URL }}",
+              "api_url": "${{ env.API_URL }}",
+              "db_name": "${{ env.DB_NAME }}",
+              "db_user": "${{ env.DB_USER }}",
+              "db_password": "${DB_PASS}",
+              "status": "active"
+            }
+            EOF
+            )
+
+            SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.DEMO_WEBHOOK_SECRET }}" | awk '{print $2}')
+
+            curl -fsS \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -H "X-Demo-Signature: sha256=${SIGNATURE}" \
+              -d "$PAYLOAD" \
+              https://api.kaderblick.de/internal/demo-webhook
+
+      - name: Teardown on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.PLESK_HOST }}
+          username: ${{ secrets.ROOT_USER }}
+          password: ${{ secrets.ROOT_PASSWORD }}
+          script: |
+            TOKEN="${{ env.TOKEN }}"
+            RELEASE_DIR="${{ secrets.MAIN_PROJECT_PATH }}/demo_instances/${TOKEN}"
+
+            docker compose -f "$RELEASE_DIR/docker-compose.yml" -f "$RELEASE_DIR/docker-compose.demo.yml" \
+              -p demo-${TOKEN} down -v 2>/dev/null || true
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "DROP DATABASE IF EXISTS kaderblick_demo_${TOKEN};" 2>/dev/null || true
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "DROP USER IF EXISTS 'demo_${TOKEN}'@'%'; FLUSH PRIVILEGES;" 2>/dev/null || true
+            rm -rf "$RELEASE_DIR"
+            rm -rf "${{ secrets.MAIN_PROJECT_PATH }}/demo_uploads/${TOKEN}"
+
+            # Fehler ans Backend melden
+            PAYLOAD="{\"request_id\": \"${{ inputs.request_id }}\", \"demo_token\": \"${TOKEN}\", \"status\": \"failed\"}"
+            SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.DEMO_WEBHOOK_SECRET }}" | awk '{print $2}')
+            curl -fsS -X POST -H "Content-Type: application/json" \
+              -H "X-Demo-Signature: sha256=${SIGNATURE}" \
+              -d "$PAYLOAD" \
+              https://api.kaderblick.de/internal/demo-webhook || true
+
+  # ============================================================
+  # HETZNER (analog, bei Bedarf)
+  # ============================================================
+  provision-hetzner:
+    if: inputs.deploy_hetzner == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      HOST_UID: 1001
+      HOST_GID: 1001
+      TOKEN: ${{ inputs.demo_token }}
+      DB_NAME: kaderblick_demo_${{ inputs.demo_token }}
+      DB_USER: demo_${{ inputs.demo_token }}
+      COMPOSE_PROJECT: demo-${{ inputs.demo_token }}
+      FRONTEND_URL: https://demo-${{ inputs.demo_token }}.kaderblick.de
+      API_URL: https://demo-${{ inputs.demo_token }}-api.kaderblick.de
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare release files locally
+        run: |
+          mkdir -p build/api/config build/frontend
+          cp docker-compose.yml docker-compose.demo.yml docker-compose.db.yml build/
+          cp -r .docker build/
+          cp api/.env.dist build/api/
+          cp -r api/config/packages api/config/routes api/config/routes.yaml \
+                api/config/services.yaml api/config/bundles.php build/api/config/ 2>/dev/null || true
+          cp -r api/config/secrets build/api/config/ 2>/dev/null || true
+
+      - name: Create release directory on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            mkdir -p "${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+
+      - name: Copy release files to Hetzner
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "build/*"
+          target: "${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+          strip_components: 1
+
+      - name: Setup files, database and environment on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+
+            ROOT_DIR="${{ secrets.HETZNER_PROJECT_PATH }}"
+            mkdir -p "$RELEASE_DIR/api/config/jwt"
+            if [ -d "$ROOT_DIR/api/config/jwt" ]; then
+              cp -r "$ROOT_DIR/api/config/jwt/"* "$RELEASE_DIR/api/config/jwt/" 2>/dev/null || true
+            fi
+
+            DB_PASS=$(openssl rand -hex 16)
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "CREATE DATABASE IF NOT EXISTS ${{ env.DB_NAME }} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "CREATE USER IF NOT EXISTS '${{ env.DB_USER }}'@'%' IDENTIFIED BY '${DB_PASS}';"
+            docker exec kaderblick-db mysql -uroot -proot -e \
+              "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER ON ${{ env.DB_NAME }}.* TO '${{ env.DB_USER }}'@'%'; FLUSH PRIVILEGES;"
+            DB_URL="mysql://${{ env.DB_USER }}:${DB_PASS}@db:3306/${{ env.DB_NAME }}"
+
+            UPLOADS_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/demo_uploads/${{ env.TOKEN }}"
+            mkdir -p "$UPLOADS_DIR"
+            chmod 775 "$UPLOADS_DIR"
+
+            cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'  "$RELEASE_DIR/api/.env"
+            sed -i "s|^FRONTEND_URL=.*\$|FRONTEND_URL=${{ env.FRONTEND_URL }}|" "$RELEASE_DIR/api/.env"
+            sed -i "s|^DEMO_URL=.*\$|DEMO_URL=${{ env.FRONTEND_URL }}|" "$RELEASE_DIR/api/.env"
+            echo "APP_DEBUG=0"                                        >> "$RELEASE_DIR/api/.env"
+            echo "APP_SECRET=${{ secrets.APP_SECRET }}"               >> "$RELEASE_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ secrets.ADMIN_ALERT_EMAIL }}" >> "$RELEASE_DIR/api/.env"
+            echo "DEMO_WEBHOOK_SECRET=${{ secrets.DEMO_WEBHOOK_SECRET }}" >> "$RELEASE_DIR/api/.env"
+
+            mkdir -p "$RELEASE_DIR/api/config/secrets/prod"
+            echo '${{ secrets.PROD_DECRYPT_KEY }}' | base64 -d \
+              > "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 655 "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+
+            TOKEN_HASH=$(echo -n "${{ env.TOKEN }}" | sha256sum | cut -c1-4)
+            PORT_OFFSET=$((16#$TOKEN_HASH % 1000))
+            API_PORT=$((30081 + PORT_OFFSET * 3))
+            REACT_PORT=$((30080 + PORT_OFFSET * 3))
+
+            cat > "$RELEASE_DIR/.env" <<EOF
+            IMAGE_TAG=${{ inputs.image_tag }}
+            API_IMAGE_TAG=${{ inputs.image_tag }}
+            DATABASE_URL=${DB_URL}
+            UPLOADS_DIR=${UPLOADS_DIR}
+            DEMO_API_URL=${{ env.API_URL }}
+            API_PORT=${API_PORT}
+            REACT_PORT=${REACT_PORT}
+            HOST_UID=${{ env.HOST_UID }}
+            HOST_GID=${{ env.HOST_GID }}
+            XDEBUG_MODE=off
+            EOF
+
+            echo "$API_PORT"  > "$RELEASE_DIR/.api_port"
+            echo "$REACT_PORT" > "$RELEASE_DIR/.react_port"
+            echo "${DB_PASS}" > "$RELEASE_DIR/.db_pass"
+            chmod 600 "$RELEASE_DIR/.db_pass"
+
+      - name: Deploy and setup Hetzner demo containers
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            cd "$RELEASE_DIR"
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag }}
+
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              up -d --no-build --force-recreate api frontend worker
+
+            # Migrations + Cache
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              exec -T --user www-data api bin/console doctrine:migrations:migrate --no-interaction --env=prod
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              exec -T --user www-data api bin/console cache:warmup --env=prod
+
+            # Fixtures
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              exec -T --user www-data api bin/console doctrine:fixtures:load \
+              --env=prod --no-interaction --group=master --group=demo
+
+      - name: Write nginx vhost configs and reload (Hetzner)
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            API_PORT=$(cat "$RELEASE_DIR/.api_port")
+            REACT_PORT=$(cat "$RELEASE_DIR/.react_port")
+            FRONTEND_SUBDOMAIN="demo-${{ env.TOKEN }}.kaderblick.de"
+            API_SUBDOMAIN="demo-${{ env.TOKEN }}-api.kaderblick.de"
+
+            cat > "/etc/nginx/conf.d/${FRONTEND_SUBDOMAIN}.conf" <<NGINXEOF
+            server {
+                listen 80;
+                server_name ${FRONTEND_SUBDOMAIN};
+
+                location / {
+                    proxy_pass http://127.0.0.1:${REACT_PORT};
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            NGINXEOF
+
+            cat > "/etc/nginx/conf.d/${API_SUBDOMAIN}.conf" <<NGINXEOF
+            server {
+                listen 80;
+                server_name ${API_SUBDOMAIN};
+
+                location ~ ^/.* {
+                    client_max_body_size 55M;
+                    proxy_pass http://127.0.0.1:${API_PORT};
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            NGINXEOF
+
+            nginx -t && systemctl reload nginx
+
+      - name: Notify backend via webhook (Hetzner)
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            DB_PASS=$(cat "$RELEASE_DIR/.db_pass")
+
+            PAYLOAD=$(cat <<EOF
+            {
+              "request_id": "${{ inputs.request_id }}",
+              "demo_token": "${{ env.TOKEN }}",
+              "frontend_url": "${{ env.FRONTEND_URL }}",
+              "api_url": "${{ env.API_URL }}",
+              "db_name": "${{ env.DB_NAME }}",
+              "db_user": "${{ env.DB_USER }}",
+              "db_password": "${DB_PASS}",
+              "status": "active"
+            }
+            EOF
+            )
+
+            SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.DEMO_WEBHOOK_SECRET }}" | awk '{print $2}')
+
+            curl -fsS \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -H "X-Demo-Signature: sha256=${SIGNATURE}" \
+              -d "$PAYLOAD" \
+              https://api.kaderblick.de/internal/demo-webhook
