@@ -16,7 +16,9 @@ services:
       - ./api/.env:/var/www/symfony/.env
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
-      - ./public/uploads:/var/www/symfony/public/uploads
+      # UPLOADS_DIR: für dynamische Demo-Instanzen auf das instanz-spezifische Verzeichnis
+      # gesetzt. Prod/Staging/shared-Demo nutzen den Standardwert ./public/uploads (Symlink).
+      - ${UPLOADS_DIR:-./public/uploads}:/var/www/symfony/public/uploads
       # Persistentes Backup-Verzeichnis: bleibt über Container-Restarts und Deployments hinweg
       # erhalten. Auf dem Server verweist ./backups auf ein umgebungsspezifisches shared-Dir
       # (production_current/backups → $MAIN_PROJECT_PATH/backups etc.).
@@ -43,7 +45,7 @@ services:
     ports:
       - "${REACT_PORT:-8080}:80"
     volumes:
-      - ./public/uploads:/usr/share/nginx/html/uploads
+      - ${UPLOADS_DIR:-./public/uploads}:/usr/share/nginx/html/uploads
     depends_on:
       - api
     healthcheck:
@@ -63,7 +65,7 @@ services:
       - ./api/.env:/var/www/symfony/.env
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
-      - ./public/uploads:/var/www/symfony/public/uploads
+      - ${UPLOADS_DIR:-./public/uploads}:/var/www/symfony/public/uploads
     environment:
       DATABASE_URL: ${DATABASE_URL:-mysql://kaderblick:kaderblick@db:3306/kaderblick}
       XDEBUG_MODE: off

@@ -2,8 +2,10 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\DemoInstance;
 use App\Entity\DemoRequest;
 use App\Entity\User;
+use App\Repository\DemoInstanceRepository;
 use App\Repository\DemoRequestRepository;
 use App\Service\DemoProvisioningService;
 use DateTime;
@@ -11,7 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
@@ -22,7 +24,11 @@ class DemoRequestAdminController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DemoRequestRepository $demoRequestRepository,
+        private readonly DemoInstanceRepository $demoInstanceRepository,
         private readonly DemoProvisioningService $demoProvisioningService,
+        private readonly string $githubToken,
+        private readonly string $githubRepoOwner,
+        private readonly string $githubRepoName,
     ) {
     }
 
@@ -94,14 +100,72 @@ class DemoRequestAdminController extends AbstractController
             return $this->json(['error' => 'Demo-Zugangsdaten konnten nicht gesendet werden. Bitte versuche es erneut.'], 500);
         }
 
-        $demoRequest->setStatus(DemoRequest::STATUS_DEMO_SENT)
+        $demoRequest->setStatus(DemoRequest::STATUS_PROVISIONING)
             ->setProcessedAt(new DateTime())
             ->setProcessedBy($admin)
             ->setAdminNote($note ?: null);
 
         $this->em->flush();
 
-        return $this->json(['success' => true, 'message' => 'Demo-Zugangsdaten wurden erfolgreich an ' . $demoRequest->getEmail() . ' gesendet.']);
+        return $this->json(['success' => true, 'message' => 'Demo-Instanz wird provisioniert. Der Anfragende erhält eine E-Mail, sobald die Instanz bereit ist.']);
+    }
+
+    #[Route('/{id}/revoke', name: 'revoke', methods: ['POST'])]
+    public function revoke(DemoRequest $demoRequest): JsonResponse
+    {
+        $instance = $this->demoInstanceRepository->findOneBy(['demoRequest' => $demoRequest]);
+
+        if (!$instance instanceof DemoInstance || !$instance->isActive()) {
+            return $this->json(['error' => 'Keine aktive Demo-Instanz für diese Anfrage vorhanden.'], 409);
+        }
+
+        try {
+            $this->dispatchTeardownWorkflow($instance->getDemoToken(), (string) $demoRequest->getId());
+        } catch (Throwable $e) {
+            return $this->json(['error' => 'Teardown-Workflow konnte nicht ausgelöst werden. Bitte versuche es erneut.'], 500);
+        }
+
+        $demoRequest->setStatus(DemoRequest::STATUS_REVOKING);
+        $instance->setStatus(DemoInstance::STATUS_REVOKED);
+        $this->em->flush();
+
+        return $this->json(['success' => true, 'message' => 'Demo-Instanz wird abgebaut.']);
+    }
+
+    private function dispatchTeardownWorkflow(string $demoToken, string $requestId): void
+    {
+        $url = sprintf(
+            'https://api.github.com/repos/%s/%s/actions/workflows/teardown-demo-instance.yml/dispatches',
+            $this->githubRepoOwner,
+            $this->githubRepoName
+        );
+
+        $payload = json_encode([
+            'ref' => 'main',
+            'inputs' => [
+                'demo_token' => $demoToken,
+                'request_id' => $requestId,
+                'teardown_alfahosting' => 'true',
+                'teardown_hetzner' => 'false',
+            ],
+        ]);
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", [
+                    'Authorization: Bearer ' . $this->githubToken,
+                    'Accept: application/vnd.github+json',
+                    'X-GitHub-Api-Version: 2022-11-28',
+                    'Content-Type: application/json',
+                    'User-Agent: kaderblick-backend',
+                ]),
+                'content' => $payload,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        file_get_contents($url, false, $context);
     }
 
     #[Route('/{id}/reject', name: 'reject', methods: ['POST'])]
