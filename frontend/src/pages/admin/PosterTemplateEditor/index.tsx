@@ -228,6 +228,7 @@ export default function PosterTemplateEditor() {
             }}
             background={template.background}
             onBgChange={bg => update({ background: bg })}
+            posterType={template.posterType}
           />
         </Box>
 

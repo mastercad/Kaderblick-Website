@@ -15,6 +15,7 @@ export interface ToolboxProps {
   onAddCustomText: () => void;
   background: PosterTemplateDefinition['background'];
   onBgChange: (bg: PosterTemplateDefinition['background']) => void;
+  posterType: PosterType;
 }
 
 export interface PropertiesPanelProps {

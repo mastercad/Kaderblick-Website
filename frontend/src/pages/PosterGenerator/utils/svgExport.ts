@@ -27,8 +27,21 @@ const dataUriCache = new Map<string, string>();
 async function fetchAsDataUri(url: string): Promise<string | null> {
   if (dataUriCache.has(url)) return dataUriCache.get(url)!;
 
+  // Absolute URLs von einem anderen Origin (z. B. http://localhost:8881/uploads/...)
+  // in relative Pfade umwandeln, damit der Vite-Dev-Proxy (oder Same-Origin-Serving
+  // in Produktion) sie ohne CORS-Probleme ausliefern kann.
+  let fetchUrl = url;
+  if (!url.startsWith('data:')) {
+    try {
+      const parsed = new URL(url, window.location.href);
+      if (parsed.origin !== window.location.origin) {
+        fetchUrl = parsed.pathname + parsed.search + parsed.hash;
+      }
+    } catch { /* ungültige URL – unveränderter Fallback */ }
+  }
+
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(fetchUrl);
     if (!resp.ok) return null;
     const blob = await resp.blob();
     return new Promise<string | null>(resolve => {

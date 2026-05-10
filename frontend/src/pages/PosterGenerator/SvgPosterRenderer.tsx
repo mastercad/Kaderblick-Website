@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useReducer, useEffect } from 'react';
 import type {
   PosterTemplateDefinition,
   PosterFormat,
@@ -7,7 +7,7 @@ import type {
 } from './types/posterTemplate';
 import { FORMAT_DIMS, AVAILABLE_FONTS } from './types/posterTemplate';
 import type { PosterPayload } from './types/poster';
-import { resolveTextStyle, estimateBackgroundLuminance } from './utils/resolveTextStyle';
+import { resolveTextStyle } from './utils/resolveTextStyle';
 import type { ClubColors } from './utils/parseClubColors';
 import { computeFitText, applyTextTransform } from './utils/fitText';
 
@@ -62,16 +62,17 @@ function resolvePlaceholder(key: PlaceholderKey, payload: PosterPayload, clubNam
     }
     case 'game-result': {
       const { gameWithScore } = payload.data;
-      const kickoff = gameWithScore.calendarEvent?.startDate;
+      const { game } = gameWithScore;
+      const kickoff = game.calendarEvent?.startDate;
       const homeScore = gameWithScore.homeScore ?? 0;
       const awayScore = gameWithScore.awayScore ?? 0;
       switch (key) {
-        case 'homeTeam':  return gameWithScore.homeTeam?.name ?? '';
-        case 'awayTeam':  return gameWithScore.awayTeam?.name ?? '';
+        case 'homeTeam':  return game.homeTeam?.name ?? '';
+        case 'awayTeam':  return game.awayTeam?.name ?? '';
         case 'score':     return `${homeScore} : ${awayScore}`;
         case 'date':      return formatDate(kickoff);
         case 'time':      return formatTime(kickoff);
-        case 'location':  return gameWithScore.location?.name ?? '';
+        case 'location':  return game.location?.name ?? '';
         case 'clubName':  return clubName;
         default:          return `[${key}]`;
       }
@@ -127,88 +128,21 @@ function angleToObbCoords(angleDeg: number) {
   };
 }
 
-// ─── CSS textShadow → SVG-Schattenparameter ───────────────────────────────────
+// ─── CSS textShadow → CSS filter: drop-shadow() ──────────────────────────────
+// Exakt äquivalent zu text-shadow, verarbeitet durch die CSS-Engine des Browsers.
 
-interface ShadowParam {
-  dx: number;
-  dy: number;
-  blur: number;
-  hexColor: string;
-  opacity: number;
-}
-
-function parseCssShadows(css: string): ShadowParam[] {
-  // Split comma-separated shadows while ignoring commas inside rgba(...)
+function textShadowToCssFilter(shadow: string): string {
+  if (!shadow || shadow === 'none') return '';
   const parts: string[] = [];
-  let depth = 0;
-  let current = '';
-  for (const ch of css) {
+  let depth = 0, current = '';
+  for (const ch of shadow) {
     if (ch === '(') depth++;
     else if (ch === ')') depth--;
     if (ch === ',' && depth === 0) { parts.push(current.trim()); current = ''; }
     else current += ch;
   }
   if (current.trim()) parts.push(current.trim());
-
-  return parts.map(part => {
-    // Extract rgba/rgb/hex color at the end
-    const rgbaMatch = part.match(/rgba?\(\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\s*\)/);
-    let hexColor = '#000000';
-    let opacity = 1;
-    let remaining = part;
-    if (rgbaMatch) {
-      const r = Math.round(parseFloat(rgbaMatch[1]));
-      const g = Math.round(parseFloat(rgbaMatch[2]));
-      const b = Math.round(parseFloat(rgbaMatch[3]));
-      opacity = parseFloat(rgbaMatch[4] ?? '1');
-      hexColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-      remaining = part.replace(rgbaMatch[0], '').trim();
-    } else {
-      const hexMatch = part.match(/#[0-9a-fA-F]{3,8}/);
-      if (hexMatch) {
-        hexColor = hexMatch[0];
-        remaining = part.replace(hexMatch[0], '').trim();
-      }
-    }
-    const nums = remaining.split(/\s+/).map(n => parseFloat(n) || 0);
-    return { dx: nums[0] ?? 0, dy: nums[1] ?? 0, blur: nums[2] ?? 0, hexColor, opacity };
-  });
-}
-
-// ─── SVG-Filter-Renderer (Schatten) ──────────────────────────────────────────
-
-function renderShadowFilter(id: string, shadows: ShadowParam[]): React.ReactElement | null {
-  if (shadows.length === 0) return null;
-
-  if (shadows.length === 1) {
-    const s = shadows[0];
-    return (
-      <filter key={id} id={id} x="-50%" y="-50%" width="200%" height="200%">
-        <feDropShadow
-          dx={s.dx}
-          dy={s.dy}
-          stdDeviation={s.blur / 2}
-          floodColor={s.hexColor}
-          floodOpacity={s.opacity}
-        />
-      </filter>
-    );
-  }
-
-  return (
-    <filter key={id} id={id} x="-50%" y="-50%" width="200%" height="200%">
-      {shadows.flatMap((s, i) => [
-        <feGaussianBlur key={`b${i}`} in="SourceAlpha" stdDeviation={s.blur / 2} result={`b${i}`} />,
-        <feOffset key={`o${i}`} dx={s.dx} dy={s.dy} in={`b${i}`} result={`ofs${i}`} />,
-        <feFlood key={`f${i}`} floodColor={s.hexColor} floodOpacity={s.opacity} result={`col${i}`} />,
-        <feComposite key={`c${i}`} in={`col${i}`} in2={`ofs${i}`} operator="in" result={`sh${i}`} />,
-      ])}
-      <feMerge>
-        {shadows.map((_, i) => <feMergeNode key={i} in={`sh${i}`} />)}
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  );
+  return parts.map(p => `drop-shadow(${p})`).join(' ');
 }
 
 // ─── SVG-Text-Gradient ────────────────────────────────────────────────────────
@@ -307,16 +241,19 @@ function renderEdgeFadeDefs(
 
 export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRendererProps>(
   function SvgPosterRenderer({ template, payload, format, clubName, clubLogoUrl, clubColors }, svgRef) {
+    // Stellt sicher, dass computeFitText erst NACH dem Laden aller Web-Fonts läuft.
+    // Ohne diesen Re-Render nutzt measureText ggf. System-Fallback-Fonts mit anderen
+    // Metriken → berechnete Font-Size zu groß → Text überläuft ClipPath-Grenze.
+    const [, fontsReady] = useReducer((n: number) => n + 1, 0);
+    useEffect(() => {
+      if (document.fonts.status !== 'loaded') {
+        void document.fonts.ready.then(fontsReady);
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const { width: w, height: h } = FORMAT_DIMS[format] ?? FORMAT_DIMS['1:1'];
     const s = w / 1080;
     const bg = template.background;
-
-    // Lesbarkeits-Stroke: dark outline behind text (SVG-Äquivalent zu CSS text-shadow)
-    const bgLum = estimateBackgroundLuminance(bg);
-    const outlineOpacity = bg.type === 'image' ? 0.55
-      : bgLum < 0.35 ? 0.45
-      : bgLum < 0.60 ? 0.20
-      : 0.08;
 
     // Hintergrund-Gradient
     const bgGradColors = bg.gradientColors ?? [];
@@ -385,19 +322,12 @@ export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRender
             const resolvedText = el.type === 'placeholder' && el.placeholder
               ? resolvePlaceholder(el.placeholder, payload, clubName)
               : (el.customText ?? '');
-            const { textShadow } = resolveTextStyle(el, bg, clubColors);
-            const shadows = parseCssShadows(textShadow);
-
             return (
               <React.Fragment key={el.id}>
                 {/* ClipPath */}
                 <clipPath id={`clip-${el.id}`}>
                   <rect x={elLeft} y={elTop} width={elWidth} height={elHeight} />
                 </clipPath>
-
-                {/* Schatten-Filter */}
-                {/* Schatten für Gradient-Elemente nicht rendern (wie im Editor) */}
-                {resolvedText && !el.textGradient && renderShadowFilter(`shadow-${el.id}`, shadows)}
 
                 {/* Text-Gradient */}
                 {el.textGradient && resolvedText &&
@@ -508,26 +438,24 @@ export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRender
           // Fill-Farbe (Gradient oder Einfarbig)
           const fill = el.textGradient ? `url(#tgrad-${el.id})` : textColor;
 
-          // Maske und Filter-Attribute (undefined behandeln wie 'none', analog zu CanvasElement)
+          // CSS filter: drop-shadow() – direkt äquivalent zu CSS text-shadow,
+          // wird vom Browser-CSS-Engine prozessiert (nicht SVG filter pipeline).
+          const { textShadow } = resolveTextStyle(el, bg, clubColors);
+          const cssFilter = !el.textGradient ? textShadowToCssFilter(textShadow) : undefined;
+
           const hasMask = (el.edgeFade ?? 'none') !== 'none';
-          // Schatten für Gradient-Elemente unterdrücken (wie im Editor)
-          const hasShadow = !el.textGradient;
+
 
           // Rotations-Transform
           const transform = el.rotation
             ? `rotate(${el.rotation}, ${elCenterX}, ${elCenterY})`
             : undefined;
 
-          // Rendering-Reihenfolge: clipPath + mask ZUERST (innere Gruppe),
-          // dann filter auf äußere Gruppe. So wird der Schatten aus dem
-          // bereits geclippten Text berechnet, statt nachträglich
-          // abgeschnitten zu werden (verhindert den "Fake-Fade-Effekt").
           return (
             <g
               key={el.id}
               transform={transform}
               opacity={el.opacity}
-              filter={hasShadow ? `url(#shadow-${el.id})` : undefined}
             >
               <g
                 clipPath={`url(#clip-${el.id})`}
@@ -540,10 +468,7 @@ export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRender
                   letterSpacing={`${el.letterSpacing}em`}
                   textAnchor={textAnchor}
                   fill={fill}
-                  stroke="#000000"
-                  strokeOpacity={outlineOpacity}
-                  strokeWidth={Math.max(0.8, finalFontSize * 0.038)}
-                  paintOrder="stroke fill"
+                  style={cssFilter ? { filter: cssFilter } : undefined}
                 >
                   {displayLines.map((line, i) => (
                     <tspan

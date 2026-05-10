@@ -60,6 +60,14 @@ export default defineConfig({
   ],
   /* Wahrscheinlich sinnfrei, bleibt aber erstmal drin, der login modal für google sso jetzt erstmal so funktioniert */
   server: {
+    proxy: {
+      // Proxy /uploads/ zum API-Container damit fetchAsDataUri() ohne CORS-Probleme
+      // auf Hintergrundbilder von Poster-Vorlagen zugreifen kann.
+      '/uploads': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8881',
+        changeOrigin: true,
+      },
+    },
     middlewareMode: false,
     setupMiddlewares(middlewares) {
       middlewares.use((req, res, next) => {

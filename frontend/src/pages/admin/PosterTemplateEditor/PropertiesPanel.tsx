@@ -102,10 +102,7 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           <Select
             value={element.fontFamily}
             onChange={e => {
-              const newFont = AVAILABLE_FONTS.find(f => f.id === e.target.value);
-              const hasWeights = (newFont?.weights?.length ?? 0) > 0;
-              // Bei Single-Weight-Font: fontWeight auf 'normal' zurücksetzen
-              u({ fontFamily: e.target.value, ...(!hasWeights ? { fontWeight: 'normal' } : {}) });
+              u({ fontFamily: e.target.value });
             }}
           >
             {AVAILABLE_FONTS.map(f => (
@@ -134,18 +131,20 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
                   size="small" color="primary"
                 />
               </Box>
-              <FormControl size="small" sx={{ width: 120 }} disabled={!isMultiWeight}>
+              <FormControl size="small" sx={{ width: 120 }}>
                 <Select
-                  value={isMultiWeight ? element.fontWeight : 'normal'}
+                  value={element.fontWeight}
                   onChange={e => u({ fontWeight: e.target.value })}
                   sx={{ fontSize: 12 }}
-                  title={!isMultiWeight ? 'Diese Schrift hat nur eine Gewichtsstufe' : undefined}
                 >
                   {isMultiWeight
                     ? fontWeights.map(w => (
                         <MenuItem key={w} value={w} sx={{ fontSize: 12 }}>{weightLabels[w] ?? w}</MenuItem>
                       ))
-                    : <MenuItem value="normal" sx={{ fontSize: 12 }}>Normal (Einzel-Schnitt)</MenuItem>
+                    : [
+                        <MenuItem key="normal" value="normal" sx={{ fontSize: 12 }}>400 (Normal)</MenuItem>,
+                        <MenuItem key="bold" value="bold" sx={{ fontSize: 12 }}>700 (Bold)</MenuItem>,
+                      ]
                   }
                 </Select>
               </FormControl>

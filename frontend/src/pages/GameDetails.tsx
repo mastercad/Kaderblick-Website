@@ -281,7 +281,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
       </Box>
 
       {/* ── Share poster button ──────────────────────────────────────────── */}
-      {!hook.isGameRunning() && (
+      {!hook.isGameRunning() && (hook.isFinished || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
           <SharePosterButton
             payload={

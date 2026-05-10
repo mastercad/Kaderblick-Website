@@ -12,6 +12,10 @@ jest.mock('../SharePosterDialog', () => ({
     open ? <div data-testid="share-dialog"><button onClick={onClose}>Schließen</button></div> : null,
 }));
 
+jest.mock('../../hooks/useHasTemplates', () => ({
+  useHasTemplates: () => ({ hasTemplates: true, loading: false }),
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const theme = createTheme();

@@ -75,9 +75,6 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
     const posterType = PAYLOAD_TYPE_MAP[payload.templateId];
     try {
       let data = await fetchPosterTemplates(posterType);
-      if (data.length === 0) {
-        data = await fetchPosterTemplates();
-      }
       setTemplates(data);
       if (data.length > 0 && selectedTemplateId === null) {
         setSelectedTemplateId(data[0].id);

@@ -47,9 +47,8 @@ export function measureLineWidth(
     return fontSize * text.length * 0.6;
   }
   ctx.font = `${fontWeight} ${fontSize}px ${cssFontFamily}`;
+
   const metrics = ctx.measureText(text);
-  // actualBoundingBoxLeft + actualBoundingBoxRight erfasst die tatsächliche visuelle Breite,
-  // nicht nur die Advance-Width. Wichtig für Handschrift-/Swash-Fonts wie "Permanent Marker".
   const visualWidth = (metrics.actualBoundingBoxLeft ?? 0) + (metrics.actualBoundingBoxRight ?? metrics.width);
   const advanceWidth = metrics.width + text.length * letterSpacingEm * fontSize;
   return Math.max(visualWidth, advanceWidth);
@@ -155,8 +154,10 @@ export function computeFitText(
   textTransform: 'none' | 'uppercase' | 'lowercase',
   lineHeight: number,
 ): FitTextResult {
-  // Horizontales Padding abziehen (je Seite 1 % der Containerbreite)
-  const PADDING = Math.max(4, containerW * 0.01);
+  // Horizontales Padding abziehen (je Seite 3 % der Containerbreite, min. 6 px).
+  // Fängt Metriken-Unterschiede zwischen DOM-SVG-Rendering und SVG-als-Blob
+  // (PNG-Export) auf – Browser rendern SVG-Blobs minimal breiter als canvas.measureText misst.
+  const PADDING = Math.max(6, containerW * 0.03);
   const availW = Math.max(1, containerW - PADDING * 2);
 
   const transformed = applyTextTransform(text, textTransform);

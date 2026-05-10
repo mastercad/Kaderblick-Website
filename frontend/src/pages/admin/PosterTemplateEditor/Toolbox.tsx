@@ -30,12 +30,21 @@ import UploadIcon from '@mui/icons-material/Upload';
 import { listPosterImages, uploadPosterImage, deletePosterImage } from '../../../services/posterTemplateService';
 import { ApiError } from '../../../utils/api';
 import { PLACEHOLDER_LABELS } from '../../PosterGenerator/types/posterTemplate';
-import type { PlaceholderKey } from '../../PosterGenerator/types/posterTemplate';
+import type { PlaceholderKey, PosterType } from '../../PosterGenerator/types/posterTemplate';
 import DebouncedColorInput from './DebouncedColorInput';
 import type { ToolboxProps } from './types';
 
-export default function Toolbox({ onAddPlaceholder, onAddCustomText, background, onBgChange }: ToolboxProps) {
-  const placeholders = Object.entries(PLACEHOLDER_LABELS) as [PlaceholderKey, string][];
+const PLACEHOLDERS_BY_TYPE: Record<PosterType, PlaceholderKey[]> = {
+  game_announcement: ['homeTeam', 'awayTeam', 'date', 'time', 'location', 'clubName'],
+  game_result:       ['homeTeam', 'awayTeam', 'score', 'date', 'time', 'location', 'clubName'],
+  event_announcement:['eventTitle', 'date', 'time', 'location', 'clubName'],
+  player_highlight:  ['playerFirstName', 'playerLastName', 'playerName', 'clubName'],
+  universal:         ['homeTeam', 'awayTeam', 'date', 'time', 'location', 'score', 'eventTitle', 'playerFirstName', 'playerLastName', 'playerName', 'clubName'],
+};
+
+export default function Toolbox({ onAddPlaceholder, onAddCustomText, background, onBgChange, posterType }: ToolboxProps) {
+  const allowedKeys = PLACEHOLDERS_BY_TYPE[posterType] ?? (Object.keys(PLACEHOLDER_LABELS) as PlaceholderKey[]);
+  const placeholders = allowedKeys.map(key => [key, PLACEHOLDER_LABELS[key]] as [PlaceholderKey, string]);
   const [posterImages, setPosterImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [imageEnabled, setImageEnabled] = useState(Boolean(background.imageUrl));

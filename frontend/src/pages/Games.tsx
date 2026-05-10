@@ -425,7 +425,7 @@ export default function Games() {
         )}
 
         {/* Share poster button — only for upcoming and finished games */}
-        {!isRunning && (
+        {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
           <Box sx={{ px: { xs: 1.5, sm: 2.5 }, pb: { xs: 1, sm: 1.5 }, display: 'flex', justifyContent: 'flex-end' }}>
             <SharePosterButton
               payload={

@@ -83,13 +83,15 @@ const gameAnnouncementPayload: PosterPayload = {
 };
 
 const gameWithScore = {
-  id: 2,
-  homeTeam: { id: 1, name: 'FC Home' },
-  awayTeam: { id: 2, name: 'FC Away' },
+  game: {
+    id: 2,
+    homeTeam: { id: 1, name: 'FC Home' },
+    awayTeam: { id: 2, name: 'FC Away' },
+    calendarEvent: { id: 11, startDate: '2026-04-20T15:30:00' },
+    location: { id: 5, name: 'Stadion Nord' },
+  },
   homeScore: 3,
   awayScore: 1,
-  calendarEvent: { id: 11, startDate: '2026-04-20T15:30:00' },
-  location: { id: 5, name: 'Stadion Nord' },
 } as unknown as GameWithScore;
 
 const gameResultPayload: PosterPayload = {

@@ -69,36 +69,38 @@ async function openSelect(combobox: HTMLElement) {
 // ── Single-Weight-Font ────────────────────────────────────────────────────────
 
 describe('PropertiesPanel – Weight-Select bei Single-Weight-Fonts', () => {
-  // MUI Select rendert ein <div role="combobox" aria-disabled="true"> statt eines native disabled
+  // Single-Weight-Fonts sind NICHT deaktiviert – sie zeigen normal+bold via font-synthesis
   function getWeightSelect() {
     const selects = screen.getAllByRole('combobox');
-    // Zweites combobox ist das Gewicht-Select (nach Font-Family)
     return selects[1];
   }
 
-  it('ist deaktiviert wenn die aktive Font Single-Weight ist (Anton)', () => {
+  it('ist aktiv (nicht deaktiviert) wenn die aktive Font Single-Weight ist (Anton)', () => {
     renderPanel(makeElement({ fontFamily: 'Anton' }));
-    expect(getWeightSelect()).toHaveAttribute('aria-disabled', 'true');
+    expect(getWeightSelect()).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('zeigt "Normal (Einzel-Schnitt)" für Single-Weight-Fonts', () => {
-    renderPanel(makeElement({ fontFamily: 'Bebas Neue' }));
-    expect(screen.getByText('Normal (Einzel-Schnitt)')).toBeInTheDocument();
+  it('zeigt "400 (Normal)" und "700 (Bold)" für Single-Weight-Fonts', () => {
+    renderPanel(makeElement({ fontFamily: 'Bebas Neue', fontWeight: 'normal' }));
+    fireEvent.mouseDown(getWeightSelect());
+    const optionTexts = screen.getAllByRole('option').map(o => o.textContent);
+    expect(optionTexts).toContain('400 (Normal)');
+    expect(optionTexts).toContain('700 (Bold)');
   });
 
-  it('ist deaktiviert für Brush-Fonts (Grindy Brush)', () => {
+  it('ist aktiv für Brush-Fonts (Grindy Brush)', () => {
     renderPanel(makeElement({ fontFamily: 'Grindy Brush' }));
-    expect(getWeightSelect()).toHaveAttribute('aria-disabled', 'true');
+    expect(getWeightSelect()).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('ist deaktiviert für RetroBrush', () => {
+  it('ist aktiv für RetroBrush', () => {
     renderPanel(makeElement({ fontFamily: 'RetroBrush' }));
-    expect(getWeightSelect()).toHaveAttribute('aria-disabled', 'true');
+    expect(getWeightSelect()).not.toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('ist deaktiviert für ImpactWeb', () => {
+  it('ist aktiv für ImpactWeb', () => {
     renderPanel(makeElement({ fontFamily: 'ImpactWeb' }));
-    expect(getWeightSelect()).toHaveAttribute('aria-disabled', 'true');
+    expect(getWeightSelect()).not.toHaveAttribute('aria-disabled', 'true');
   });
 });
 
@@ -172,7 +174,7 @@ describe('PropertiesPanel – Weight-Select bei Multi-Weight-Fonts', () => {
 // ── Font-Wechsel ──────────────────────────────────────────────────────────────
 
 describe('PropertiesPanel – Font-Wechsel setzt fontWeight zurück', () => {
-  it('setzt fontWeight auf "normal" wenn von Multi- zu Single-Weight gewechselt wird', async () => {
+  it('behält fontWeight beim Wechsel von Multi- zu Single-Weight (kein Auto-Reset)', async () => {
     const onChange = jest.fn();
     // Startet mit Inter+bold
     const element = makeElement({ fontFamily: 'Inter', fontWeight: 'bold' });
@@ -188,7 +190,7 @@ describe('PropertiesPanel – Font-Wechsel setzt fontWeight zurück', () => {
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         fontFamily: 'Anton',
-        fontWeight: 'normal',
+        fontWeight: 'bold', // bleibt erhalten – kein Reset mehr
       }),
     );
   });
