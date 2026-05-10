@@ -21,12 +21,12 @@ const HANDLE_BASE: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-export default function CanvasElement({ el, selected, canvasW, canvasH, background, onClick, onChange }: CanvasElementProps) {
+const CanvasElement = React.memo(function CanvasElement({ el, selected, canvasW, canvasH, background, onSelect, onChange, fontWeight, fontSize, opacity }: CanvasElementProps) {
   const outerRef = useRef<HTMLDivElement>(null);
 
   const handleMoveMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onClick();
+    onSelect(el.id);
     let hasDragged = false;
     const startX = e.clientX, startY = e.clientY;
     const origX = el.x, origY = el.y;
@@ -169,13 +169,13 @@ export default function CanvasElement({ el, selected, canvasW, canvasH, backgrou
           display: 'flex', alignItems: 'center',
           justifyContent: el.textAlign === 'left' ? 'flex-start' : el.textAlign === 'right' ? 'flex-end' : 'center',
           fontFamily: `"${el.fontFamily}", sans-serif`,
-          fontSize: `${el.fontSize * s}px`,
-          fontWeight: el.fontWeight,
+          fontSize: `${fontSize * s}px`,
+          fontWeight: fontWeight,
           color: el.color,
           textShadow: effectiveTextShadow,
           textAlign: el.textAlign,
           textTransform: el.textTransform as React.CSSProperties['textTransform'],
-          opacity: el.opacity,
+          opacity: opacity,
           overflow: 'hidden',
           wordBreak: 'break-word',
           letterSpacing: `${el.letterSpacing}em`,
@@ -183,6 +183,8 @@ export default function CanvasElement({ el, selected, canvasW, canvasH, backgrou
           boxSizing: 'border-box',
           padding: '0 1%',
           pointerEvents: 'none',
+          fontSynthesis: 'weight',
+          fontSynthesisWeight: 'auto',
         }}
       >
         {(() => {
@@ -232,4 +234,6 @@ export default function CanvasElement({ el, selected, canvasW, canvasH, backgrou
       )}
     </div>
   );
-}
+});
+
+export default CanvasElement;

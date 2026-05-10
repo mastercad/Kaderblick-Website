@@ -2,9 +2,9 @@
  * Tests für CanvasElement
  *
  * Kern-Verhalten:
- *  - Ein einfacher Klick auf ein Element ruft onClick() auf und selektiert es
+ *  - Ein einfacher Klick auf ein Element ruft onSelect() auf und selektiert es
  *  - Der Click-Event bubbled NICHT zum Eltern-Element (kein Deselektieren)
- *  - mousedown ruft onClick() auf
+ *  - mousedown ruft onSelect() auf
  *  - Drag (mousemove > Schwelle) ruft onChange() mit neuen Koordinaten auf
  *  - Drag unterhalb der Schwelle ruft onChange() NICHT auf
  */
@@ -44,7 +44,7 @@ describe('CanvasElement', () => {
     canvasW: 540,
     canvasH: 540,
     background: { type: 'solid' as const, color: '#000000' },
-    onClick: jest.fn(),
+    onSelect: jest.fn(),
     onChange: jest.fn(),
   };
 
@@ -53,15 +53,15 @@ describe('CanvasElement', () => {
   });
 
   describe('Klick-Selektion', () => {
-    it('ruft onClick beim mousedown auf', () => {
-      const onClick = jest.fn();
-      const { container } = render(<CanvasElement {...defaultProps} onClick={onClick} />);
+    it('ruft onSelect beim mousedown auf', () => {
+      const onSelect = jest.fn();
+      const { container } = render(<CanvasElement {...defaultProps} onSelect={onSelect} />);
       const el = container.firstChild as HTMLElement;
 
       fireEvent.mouseDown(el, { clientX: 100, clientY: 100 });
       fireEvent.mouseUp(window, { clientX: 100, clientY: 100 });
 
-      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(onSelect).toHaveBeenCalledWith('el-1');
     });
 
     it('stoppt den Click-Event – er bubbled nicht zum Elternelement', () => {

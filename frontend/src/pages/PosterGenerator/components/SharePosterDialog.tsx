@@ -58,7 +58,7 @@ export interface SharePosterDialogProps {
  * Lädt Vorlagen aus der API und rendert sie mit echten Spieler-/Spieldaten.
  */
 export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogProps) {
-  const posterRef = useRef<HTMLDivElement>(null);
+  const posterRef = useRef<SVGSVGElement>(null);
   const { club, loading: clubLoading } = usePosterClub();
 
   const [templates, setTemplates]     = useState<PosterTemplateDefinition[]>([]);
@@ -195,7 +195,6 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
             </Box>
           ) : (
             <Box
-              ref={posterRef}
               sx={{
                 position: 'absolute',
                 top: 0,
@@ -207,6 +206,7 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
               }}
             >
               <DynamicPosterRenderer
+                ref={posterRef}
                 template={selectedTemplate}
                 payload={payload}
                 format={format}
@@ -221,7 +221,7 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <ExportActions posterRef={posterRef as React.RefObject<HTMLElement>} />
+        <ExportActions posterRef={posterRef} />
       </DialogActions>
     </Dialog>
   );

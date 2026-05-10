@@ -49,10 +49,16 @@ export interface FontOption {
   id: string;
   label: string;
   cssFamily: string;
+  /**
+   * Unterstützte Schriftdicken. Fehlt dieses Feld (oder ist leer),
+   * hat die Font nur eine Gewichtsstufe → Weight-Auswahl wird deaktiviert.
+   * Werte entsprechen CSS font-weight-Werten ('normal','bold','500' etc.)
+   */
+  weights?: string[];
 }
 
 export const AVAILABLE_FONTS: FontOption[] = [
-  // ── Plakat / Fett ──────────────────────────────────────────────────────────
+  // ── Plakat / Fett ─ Einzelgewicht ─────────────────────────────────────────
   { id: 'Anton',           label: 'Anton',             cssFamily: '"Anton", sans-serif' },
   { id: 'Bebas Neue',      label: 'Bebas Neue',         cssFamily: '"Bebas Neue", sans-serif' },
   { id: 'Bangers',         label: 'Bangers',            cssFamily: '"Bangers", cursive' },
@@ -65,27 +71,31 @@ export const AVAILABLE_FONTS: FontOption[] = [
   { id: 'Bambe',           label: 'Bambe',              cssFamily: '"Bambe", sans-serif' },
   { id: 'Bambe Swash',     label: 'Bambe Swash',        cssFamily: '"Bambe Swash", sans-serif' },
   { id: 'Larthez',         label: 'Larthez',            cssFamily: '"Larthez", sans-serif' },
-  // ── Dry Brush / Rau / Textur ──────────────────────────────────────────────
+  // ── Dry Brush / Rau / Textur ─ Einzelgewicht ──────────────────────────────
   { id: 'Rubik Dirt',      label: 'Rubik Dirt (Dry Brush)',   cssFamily: '"Rubik Dirt", sans-serif' },
   { id: 'Rock Salt',       label: 'Rock Salt (Dry Brush)',    cssFamily: '"Rock Salt", cursive' },
   { id: 'Caveat Brush',    label: 'Caveat Brush (Dry Brush)', cssFamily: '"Caveat Brush", cursive' },
   { id: 'Rye',             label: 'Rye (Dry Brush)',          cssFamily: '"Rye", cursive' },
   { id: 'Grindy Brush',    label: 'Grindy Brush',             cssFamily: '"Grindy Brush", cursive' },
   { id: 'Storm Gust',      label: 'Storm Gust',               cssFamily: '"Storm Gust", cursive' },
-  // ── Pinsel / Handschrift ───────────────────────────────────────────────────
+  // ── Pinsel / Handschrift ─ Einzelgewicht ──────────────────────────────────
   { id: 'Pacifico',        label: 'Pacifico (Pinsel)',  cssFamily: '"Pacifico", cursive' },
   { id: 'Lobster',         label: 'Lobster',            cssFamily: '"Lobster", cursive' },
   { id: 'Permanent Marker',label: 'Permanent Marker',  cssFamily: '"Permanent Marker", cursive' },
   { id: 'RetroBrush',      label: 'Retro Brush',        cssFamily: '"RetroBrush", cursive' },
-  // ── Kondensiert / Sport ────────────────────────────────────────────────────
-  { id: 'Oswald',          label: 'Oswald',             cssFamily: '"Oswald", sans-serif' },
+  // ── Kondensiert / Sport ─ Einzelgewicht ───────────────────────────────────
   { id: 'Russo One',       label: 'Russo One',          cssFamily: '"Russo One", sans-serif' },
-  { id: 'Barlow Condensed',label: 'Barlow Condensed',  cssFamily: '"Barlow Condensed", sans-serif' },
-  { id: 'Exo 2',           label: 'Exo 2',              cssFamily: '"Exo 2", sans-serif' },
   { id: 'Archivo Black',   label: 'Archivo Black',      cssFamily: '"Archivo Black", sans-serif' },
   { id: 'Black Han Sans',  label: 'Black Han Sans',     cssFamily: '"Black Han Sans", sans-serif' },
-  // ── Standard ──────────────────────────────────────────────────────────────
-  { id: 'Inter',           label: 'Inter (Standard)',   cssFamily: '"Inter", sans-serif' },
+  // ── Mehrgewicht (echte Bold-Varianten vorhanden) ──────────────────────────
+  { id: 'Inter',            label: 'Inter (Standard)',   cssFamily: '"Inter", sans-serif',
+    weights: ['normal', '500', '600', 'bold', '800', '900'] },
+  { id: 'Oswald',           label: 'Oswald',             cssFamily: '"Oswald", sans-serif',
+    weights: ['300', 'normal', '500', '600', 'bold'] },
+  { id: 'Barlow Condensed', label: 'Barlow Condensed',  cssFamily: '"Barlow Condensed", sans-serif',
+    weights: ['normal', '500', '600', 'bold', '800', '900'] },
+  { id: 'Exo 2',            label: 'Exo 2',              cssFamily: '"Exo 2", sans-serif',
+    weights: ['normal', '500', '600', 'bold', '800', '900'] },
 ];
 
 // ─── Text-Verlauf ─────────────────────────────────────────────────────────────

@@ -99,7 +99,15 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         <Divider sx={{ mb: 1.5 }} />
 
         <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-          <Select value={element.fontFamily} onChange={e => u({ fontFamily: e.target.value })}>
+          <Select
+            value={element.fontFamily}
+            onChange={e => {
+              const newFont = AVAILABLE_FONTS.find(f => f.id === e.target.value);
+              const hasWeights = (newFont?.weights?.length ?? 0) > 0;
+              // Bei Single-Weight-Font: fontWeight auf 'normal' zurücksetzen
+              u({ fontFamily: e.target.value, ...(!hasWeights ? { fontWeight: 'normal' } : {}) });
+            }}
+          >
             {AVAILABLE_FONTS.map(f => (
               <MenuItem key={f.id} value={f.id} style={{ fontFamily: f.cssFamily, fontSize: 14 }}>
                 {f.label}
@@ -108,23 +116,42 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           </Select>
         </FormControl>
 
-        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">Größe: {element.fontSize}px</Typography>
-            <Slider
-              min={12} max={300} value={element.fontSize}
-              onChange={(_, v) => u({ fontSize: v as number })}
-              size="small" color="primary"
-            />
-          </Box>
-          <FormControl size="small" sx={{ width: 90 }}>
-            <Select value={element.fontWeight} onChange={e => u({ fontWeight: e.target.value })} sx={{ fontSize: 12 }}>
-              <MenuItem value="normal">Normal</MenuItem>
-              <MenuItem value="bold">Bold</MenuItem>
-              <MenuItem value="900">900</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
+        {(() => {
+          const currentFont = AVAILABLE_FONTS.find(f => f.id === element.fontFamily);
+          const fontWeights = currentFont?.weights ?? [];
+          const isMultiWeight = fontWeights.length > 0;
+          const weightLabels: Record<string, string> = {
+            '300': '300 (Light)', 'normal': '400 (Normal)', '500': '500 (Medium)',
+            '600': '600 (SemiBold)', 'bold': '700 (Bold)', '800': '800 (ExtraBold)', '900': '900 (Black)',
+          };
+          return (
+            <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" color="text.secondary">Größe: {element.fontSize}px</Typography>
+                <Slider
+                  min={12} max={300} value={element.fontSize}
+                  onChange={(_, v) => u({ fontSize: v as number })}
+                  size="small" color="primary"
+                />
+              </Box>
+              <FormControl size="small" sx={{ width: 120 }} disabled={!isMultiWeight}>
+                <Select
+                  value={isMultiWeight ? element.fontWeight : 'normal'}
+                  onChange={e => u({ fontWeight: e.target.value })}
+                  sx={{ fontSize: 12 }}
+                  title={!isMultiWeight ? 'Diese Schrift hat nur eine Gewichtsstufe' : undefined}
+                >
+                  {isMultiWeight
+                    ? fontWeights.map(w => (
+                        <MenuItem key={w} value={w} sx={{ fontSize: 12 }}>{weightLabels[w] ?? w}</MenuItem>
+                      ))
+                    : <MenuItem value="normal" sx={{ fontSize: 12 }}>Normal (Einzel-Schnitt)</MenuItem>
+                  }
+                </Select>
+              </FormControl>
+            </Stack>
+          );
+        })()}
 
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
           <ButtonGroup size="small" variant="outlined">

@@ -29,8 +29,12 @@ export interface CanvasElementProps {
   canvasW: number;
   canvasH: number;
   background: PosterBackground;
-  onClick: () => void;
+  onSelect: (id: string) => void;
   onChange: (el: PosterElement) => void;
+  // Explizite Style-Props damit React.memo bei Änderungen sicher re-rendert
+  fontWeight: string;
+  fontSize: number;
+  opacity: number;
 }
 
 export interface EditorTopBarProps {

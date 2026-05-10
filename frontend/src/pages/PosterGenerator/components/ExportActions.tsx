@@ -11,8 +11,8 @@ import { FaXTwitter } from 'react-icons/fa6';
 import { posterToBlob } from '../utils/exportPoster';
 
 interface Props {
-  /** Ref to the DOM element that is rendered as poster content */
-  posterRef: React.RefObject<HTMLElement>;
+  /** Ref to the SVGSVGElement rendered by DynamicPosterRenderer */
+  posterRef: React.RefObject<SVGSVGElement>;
   filename?: string;
 }
 

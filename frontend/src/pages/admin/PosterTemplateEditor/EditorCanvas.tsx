@@ -72,8 +72,11 @@ export default function EditorCanvas({
             canvasW={CANVAS_DISPLAY_WIDTH}
             canvasH={canvasH}
             background={template.background}
-            onClick={() => onElementClick(el.id)}
+            onSelect={onElementClick}
             onChange={onElementChange}
+            fontWeight={el.fontWeight}
+            fontSize={el.fontSize}
+            opacity={el.opacity}
           />
         ))}
 
