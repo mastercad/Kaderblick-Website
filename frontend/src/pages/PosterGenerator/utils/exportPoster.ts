@@ -1,20 +1,19 @@
-import { svgToPngBlob } from './svgExport';
+import { htmlToPngBlob } from './svgExport';
 
 export interface ExportOptions {
   filename?: string;
 }
 
 /**
- * Exportiert das SVG-Poster als PNG-Download.
- * Alle Fonts und Bilder werden vor dem Export als Base64 eingebettet.
+ * Exportiert das HTML-Poster als PNG-Download.
  */
 export async function exportPosterAsPng(
-  element: SVGSVGElement,
+  element: HTMLElement,
   options: ExportOptions = {},
 ): Promise<void> {
   const { filename = 'poster.png' } = options;
 
-  const blob = await svgToPngBlob(element);
+  const blob = await htmlToPngBlob(element);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.download = filename;
@@ -24,10 +23,10 @@ export async function exportPosterAsPng(
 }
 
 /**
- * Rendert das SVG-Poster als PNG-Blob (für die Web Share API).
+ * Rendert das HTML-Poster als PNG-Blob (für die Web Share API).
  */
 export async function posterToBlob(
-  element: SVGSVGElement,
+  element: HTMLElement,
 ): Promise<Blob> {
-  return svgToPngBlob(element);
+  return htmlToPngBlob(element);
 }

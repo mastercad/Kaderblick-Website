@@ -58,7 +58,7 @@ export interface SharePosterDialogProps {
  * Lädt Vorlagen aus der API und rendert sie mit echten Spieler-/Spieldaten.
  */
 export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogProps) {
-  const posterRef = useRef<SVGSVGElement>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
   const { club, loading: clubLoading } = usePosterClub();
 
   const [templates, setTemplates]     = useState<PosterTemplateDefinition[]>([]);

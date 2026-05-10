@@ -1,64 +1,40 @@
 /**
- * Tests für utils/svgExport.ts
+ * Tests für utils/svgExport.ts (html2canvas-Pipeline)
  *
  * Deckt ab:
- * - parseFontFaceBlocks: leerer String, ein Block, mehrere Blöcke, verschachtelte Blöcke
- * - getGoogleFontsUrl: kein Link, passender Link, Link ohne /css
- * - buildInlineFontCss: Cache-Verhalten (zweiter Aufruf gibt gecachten Wert zurück)
- * - svgToPngBlob: erfolgreich → liefert Blob mit type image/png
- * - svgToPngBlob: fügt xmlns ein wenn fehlt
- * - svgToPngBlob: inlint Font-CSS in vorhandenes <style>-Tag
- * - svgToPngBlob: fügt neues <style>-Tag in <defs> ein wenn kein <style> vorhanden
- * - svgToPngBlob: ersetzt image href durch data-URI
- * - svgToPngBlob: überspringt bereits data:-URIs bei image-inline
- * - svgToPngBlob: Canvas toBlob → null wirft Fehler
- * - svgToPngBlob: Canvas ctx nicht verfügbar wirft Fehler
- * - fetchAsDataUri: gibt null bei fetch-Fehler zurück
- * - fetchAsDataUri: nutzt Cache beim zweiten Aufruf
+ * - htmlToPngBlob: Erfolgsfall → Blob mit type image/png
+ * - htmlToPngBlob: toBlob → null wirft Fehler
+ * - htmlToPngBlob: data:-URI-Passthrough (kein fetch)
+ * - htmlToPngBlob: Cross-Origin-URL wird zu relativem Pfad umgeschrieben
+ * - htmlToPngBlob: Inlinen von CSS background-image
+ * - htmlToPngBlob: Klon wird nach dem Rendern aus dem DOM entfernt (cleanup)
  */
 
-// ─── Modulnamen des Moduls (wir testen die exportierten Funktionen) ───────────
-// Da parseFontFaceBlocks, getGoogleFontsUrl und buildLocalFontCss private sind,
-// testen wir sie indirekt über buildInlineFontCss und svgToPngBlob.
-// Für direkte Tests exportieren wir die Hilfsfunktionen via __test__-Zugang nicht –
-// stattdessen testen wir das Verhalten des gesamten Moduls end-to-end.
+import html2canvas from 'html2canvas';
+import { htmlToPngBlob } from '../utils/svgExport';
 
-import { svgToPngBlob, buildInlineFontCss } from '../utils/svgExport';
+jest.mock('html2canvas');
 
-// ─── Globale Mocks ────────────────────────────────────────────────────────────
+const mockHtml2canvas = html2canvas as jest.MockedFunction<typeof html2canvas>;
 
-// Realer SVGSVGElement existiert in jsdom nur eingeschränkt – wir bauen einen
-// einfachen Fake der die relevanten Eigenschaften hat.
-function makeFakeSvgElement(overrides: Partial<SVGSVGElement> = {}): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
-  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svg.setAttribute('viewBox', '0 0 1080 1080');
-  svg.setAttribute('width', '1080');
-  svg.setAttribute('height', '1080');
+// ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 
-  // jsdom's SVGAnimatedLength stubs für width/height
-  Object.defineProperty(svg, 'viewBox', {
-    value: { baseVal: { x: 0, y: 0, width: 1080, height: 1080 } },
-    writable: true,
-    configurable: true,
-  });
-
-  return Object.assign(svg, overrides);
+function makeHtmlElement(): HTMLDivElement {
+  const el = document.createElement('div');
+  el.style.width = '1080px';
+  el.style.height = '1080px';
+  return el;
 }
 
-// Mock für fetch – global überschreiben
-let mockFetchImpl: jest.Mock;
+// ─── Setup / Teardown ─────────────────────────────────────────────────────────
+
+let mockFetch: jest.Mock;
 
 beforeEach(() => {
-  // ── fetch mock ─────────────────────────────────────────────────────────────
-  mockFetchImpl = jest.fn();
-  global.fetch = mockFetchImpl;
+  mockFetch = jest.fn();
+  global.fetch = mockFetch;
 
-  // ── URL.createObjectURL / revokeObjectURL ──────────────────────────────────
-  global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
-  global.URL.revokeObjectURL = jest.fn();
-
-  // ── FileReader mock: liest Blob als "data:mock/type;base64,AAAA" ───────────
+  // FileReader mock: blob → data:image/png;base64,AAAA
   (global as any).FileReader = class {
     result: string | null = null;
     onload: (() => void) | null = null;
@@ -69,312 +45,132 @@ beforeEach(() => {
     }
   };
 
-  // ── HTMLImageElement.onload sofort auslösen ────────────────────────────────
-  Object.defineProperty(global.Image.prototype, 'src', {
-    set(src: string) {
-      // Setze src und triggere onload asynchron
-      setTimeout(() => (this as any).onload?.(), 0);
-    },
-    configurable: true,
+  // html2canvas gibt einen Canvas zurück der per toBlob ein PNG liefert
+  const mockCanvas = document.createElement('canvas');
+  jest.spyOn(mockCanvas, 'toBlob').mockImplementation((cb, type) => {
+    cb(new Blob(['PNG'], { type: type ?? 'image/png' }));
   });
-
-  // ── Canvas mock ────────────────────────────────────────────────────────────
-  const mockCtx = {
-    drawImage: jest.fn(),
-  };
-  jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx as any);
-  jest.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function(cb, type) {
-    cb(new Blob(['PNG-DATA'], { type: type ?? 'image/png' }));
-  });
+  mockHtml2canvas.mockResolvedValue(mockCanvas);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
-  // svgExport cacht buildInlineFontCss – Reset via Modul-Re-Import ist zu aufwändig;
-  // wir testen den Cache-Effekt separat.
 });
 
-// ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
-function mockSuccessfulFetch(text?: string): void {
-  mockFetchImpl.mockResolvedValue({
-    ok: true,
-    blob: () => Promise.resolve(new Blob(['font-data'], { type: 'font/woff2' })),
-    text: () => Promise.resolve(text ?? ''),
-  });
-}
-
-function mockFailedFetch(): void {
-  mockFetchImpl.mockResolvedValue({ ok: false });
-}
-
-// ─── Tests: svgToPngBlob ──────────────────────────────────────────────────────
-
-describe('svgToPngBlob', () => {
+describe('htmlToPngBlob', () => {
 
   it('returns a Blob with type image/png on success', async () => {
-    mockSuccessfulFetch();
-    const svg = makeFakeSvgElement();
-    const blob = await svgToPngBlob(svg);
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+    const blob = await htmlToPngBlob(el);
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe('image/png');
+    document.body.removeChild(el);
   });
 
-  it('adds xmlns attribute when missing from SVG string', async () => {
-    mockSuccessfulFetch();
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg') as SVGSVGElement;
-    // Remove xmlns from serialized output – XMLSerializer may add it automatically,
-    // but we test the branch by intercepting XMLSerializer.
-    const origSerializer = global.XMLSerializer;
-    (global as any).XMLSerializer = class {
-      serializeToString() {
-        return '<svg viewBox="0 0 1080 1080"><defs></defs></svg>';
-      }
-    };
-    Object.defineProperty(svg, 'viewBox', {
-      value: { baseVal: { width: 1080, height: 1080 } },
-      configurable: true,
-    });
+  it('rejects when html2canvas toBlob produces null', async () => {
+    const mockCanvas = document.createElement('canvas');
+    jest.spyOn(mockCanvas, 'toBlob').mockImplementation((cb) => { cb(null); });
+    mockHtml2canvas.mockResolvedValue(mockCanvas);
 
-    const blob = await svgToPngBlob(svg);
-    expect(blob).toBeInstanceOf(Blob);
-
-    (global as any).XMLSerializer = origSerializer;
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+    await expect(htmlToPngBlob(el)).rejects.toThrow('html2canvas toBlob lieferte null');
+    document.body.removeChild(el);
   });
 
-  it('succeeds when SVG has existing <style> tag in <defs>', async () => {
-    // Fetch mock returns a woff2 font blob for local fonts
-    mockFetchImpl.mockResolvedValue({
+  it('passes data: URIs through without fetching', async () => {
+    const el = makeHtmlElement();
+    const img = document.createElement('img');
+    img.src = 'data:image/png;base64,EXISTING==';
+    el.appendChild(img);
+    document.body.appendChild(el);
+
+    await htmlToPngBlob(el);
+
+    // fetch darf für data:-URIs nicht aufgerufen werden
+    expect(mockFetch).not.toHaveBeenCalledWith(expect.stringContaining('data:'));
+    document.body.removeChild(el);
+  });
+
+  it('rewrites absolute cross-origin URLs to relative paths', async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      blob: () => Promise.resolve(new Blob(['font'], { type: 'font/woff2' })),
-      text: () => Promise.resolve(''),
+      blob: () => Promise.resolve(new Blob(['img'], { type: 'image/png' })),
     });
 
-    const origSerializer = global.XMLSerializer;
-    (global as any).XMLSerializer = class {
-      serializeToString() {
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080"><defs><style>/* existing */</style></defs></svg>';
-      }
-    };
+    const el = makeHtmlElement();
+    const img = document.createElement('img');
+    // Eine externe URL die nicht mit window.location.origin übereinstimmt
+    img.src = 'http://other-server.example.com/uploads/photo.jpg';
+    el.appendChild(img);
+    document.body.appendChild(el);
 
-    const svg = makeFakeSvgElement();
-    Object.defineProperty(svg, 'viewBox', {
-      value: { baseVal: { width: 1080, height: 1080 } }, configurable: true,
-    });
+    await htmlToPngBlob(el);
 
-    const blob = await svgToPngBlob(svg);
-    expect(blob).toBeInstanceOf(Blob);
-    expect(blob.type).toBe('image/png');
-
-    (global as any).XMLSerializer = origSerializer;
+    // fetch muss mit dem relativen Pfad aufgerufen worden sein
+    expect(mockFetch).toHaveBeenCalledWith('/uploads/photo.jpg');
+    document.body.removeChild(el);
   });
 
-  it('creates an <a> link and triggers click in exportPosterAsPng', async () => {
-    // tested separately in exportPoster.test.ts
-    expect(true).toBe(true);
-  });
-
-  it('rejects when Canvas toBlob produces null', async () => {
-    mockSuccessfulFetch();
-    jest.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => {
-      cb(null);
-    });
-
-    const svg = makeFakeSvgElement();
-    await expect(svgToPngBlob(svg)).rejects.toThrow('Canvas toBlob produced null');
-  });
-
-  it('rejects when Canvas 2D context is not available', async () => {
-    mockSuccessfulFetch();
-    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
-
-    const svg = makeFakeSvgElement();
-    await expect(svgToPngBlob(svg)).rejects.toThrow('Canvas 2D context not available');
-  });
-
-  it('calls URL.revokeObjectURL after rendering (cleanup)', async () => {
-    mockSuccessfulFetch();
-    const svg = makeFakeSvgElement();
-    await svgToPngBlob(svg);
-    expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
-  });
-
-  it('succeeds when SVG contains an external image href (image inlining)', async () => {
-    // Fetch should be called for the external image URL
-    mockFetchImpl.mockResolvedValue({
+  it('inlines CSS background-image URL as data URI', async () => {
+    mockFetch.mockResolvedValue({
       ok: true,
-      blob: () => Promise.resolve(new Blob(['img-data'], { type: 'image/png' })),
-      text: () => Promise.resolve(''),
+      blob: () => Promise.resolve(new Blob(['bg'], { type: 'image/jpeg' })),
     });
 
-    const origSerializer = global.XMLSerializer;
-    (global as any).XMLSerializer = class {
-      serializeToString() {
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080"><defs></defs><image href="/images/logo.svg" /></svg>';
-      }
-    };
+    const el = makeHtmlElement();
+    const bgDiv = document.createElement('div');
+    bgDiv.style.backgroundImage = "url('/uploads/background.jpg')";
+    el.appendChild(bgDiv);
+    document.body.appendChild(el);
 
-    const svg = makeFakeSvgElement();
-    Object.defineProperty(svg, 'viewBox', {
-      value: { baseVal: { width: 1080, height: 1080 } }, configurable: true,
-    });
+    await htmlToPngBlob(el);
 
-    const blob = await svgToPngBlob(svg);
-    expect(blob).toBeInstanceOf(Blob);
-    (global as any).XMLSerializer = origSerializer;
+    // Das background-image des Klons sollte nach dem Preprocessing eine data:-URI enthalten
+    // (wir prüfen dass fetch mit dem relativen Pfad aufgerufen wurde)
+    expect(mockFetch).toHaveBeenCalledWith('/uploads/background.jpg');
+    document.body.removeChild(el);
   });
 
-  it('succeeds when SVG image href is already a data: URI (no fetch)', async () => {
-    // fetch should not be called for an already-inlined image
-    mockFetchImpl.mockResolvedValue({
-      ok: true,
-      blob: () => Promise.resolve(new Blob(['font'], { type: 'font/woff2' })),
-      text: () => Promise.resolve(''),
-    });
+  it('does not fetch CSS background gradients', async () => {
+    const el = makeHtmlElement();
+    const gradDiv = document.createElement('div');
+    gradDiv.style.backgroundImage = 'linear-gradient(90deg, #fff 0%, #000 100%)';
+    el.appendChild(gradDiv);
+    document.body.appendChild(el);
 
-    const origSerializer = global.XMLSerializer;
-    const dataHref = 'data:image/png;base64,EXISTING==';
-    (global as any).XMLSerializer = class {
-      serializeToString() {
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080"><defs></defs><image href="${dataHref}" /></svg>`;
-      }
-    };
+    await htmlToPngBlob(el);
 
-    const svg = makeFakeSvgElement();
-    Object.defineProperty(svg, 'viewBox', {
-      value: { baseVal: { width: 1080, height: 1080 } }, configurable: true,
-    });
+    // fetch darf für Gradienten nicht aufgerufen werden
+    expect(mockFetch).not.toHaveBeenCalled();
+    document.body.removeChild(el);
+  });
 
-    const blob = await svgToPngBlob(svg);
-    expect(blob).toBeInstanceOf(Blob);
-    // fetch should NOT have been called for the data: URI image
-    const imageFetchCalls = (mockFetchImpl.mock.calls as string[][]).filter(
-      ([url]) => url === dataHref,
+  it('removes the cloned element from document.body after rendering', async () => {
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+    const childCountBefore = document.body.children.length;
+
+    await htmlToPngBlob(el);
+
+    // Nach dem Rendern darf kein zusätzlicher Klon mehr im body hängen
+    expect(document.body.children.length).toBe(childCountBefore);
+    document.body.removeChild(el);
+  });
+
+  it('calls html2canvas with scale:1 and backgroundColor:null', async () => {
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+
+    await htmlToPngBlob(el);
+
+    expect(mockHtml2canvas).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ scale: 1, backgroundColor: null }),
     );
-    expect(imageFetchCalls.length).toBe(0);
-    (global as any).XMLSerializer = origSerializer;
-  });
-
-  it('uses viewBox.width/height for canvas dimensions', async () => {
-    mockSuccessfulFetch();
-    const svg = makeFakeSvgElement();
-    Object.defineProperty(svg, 'viewBox', {
-      value: { baseVal: { width: 1920, height: 1080 } }, configurable: true,
-    });
-
-    let capturedWidth = 0, capturedHeight = 0;
-    const origCreate = document.createElement.bind(document);
-    jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      const el = origCreate(tag);
-      if (tag === 'canvas') {
-        Object.defineProperty(el, 'width', {
-          set(v) { capturedWidth = v; },
-          get() { return capturedWidth; },
-          configurable: true,
-        });
-        Object.defineProperty(el, 'height', {
-          set(v) { capturedHeight = v; },
-          get() { return capturedHeight; },
-          configurable: true,
-        });
-      }
-      return el;
-    });
-
-    await svgToPngBlob(svg);
-    expect(capturedWidth).toBe(1920);
-    expect(capturedHeight).toBe(1080);
-  });
-});
-
-// ─── Tests: buildInlineFontCss ────────────────────────────────────────────────
-
-describe('buildInlineFontCss', () => {
-
-  it('returns empty string when all font fetches fail', async () => {
-    mockFailedFetch();
-    // Reset module cache by clearing the cached variable via Jest module isolation
-    // We can't directly reset the module-level variable without jest.resetModules(),
-    // so we test that the function at least returns a string.
-    const result = await buildInlineFontCss();
-    expect(typeof result).toBe('string');
-  });
-
-  it('includes @font-face rules for successfully fetched local fonts', async () => {
-    mockFetchImpl.mockImplementation((url: string) => {
-      if (typeof url === 'string' && !url.includes('google')) {
-        return Promise.resolve({
-          ok: true,
-          blob: () => Promise.resolve(new Blob(['font'], { type: 'font/woff2' })),
-          text: () => Promise.resolve(''),
-        });
-      }
-      return Promise.resolve({ ok: false });
-    });
-
-    // Re-import module to get a fresh cache-free instance
-    jest.resetModules();
-    const { buildInlineFontCss: freshBuild } = await import('../utils/svgExport');
-
-    const css = await freshBuild();
-    // Either we get @font-face rules or an empty string (depending on fetch mock timing)
-    expect(typeof css).toBe('string');
-  });
-});
-
-// ─── Tests: Google Fonts URL Detection ───────────────────────────────────────
-
-describe('Google Fonts URL detection (via buildInlineFontCss)', () => {
-
-  it('detects a Google Fonts link in document head', async () => {
-    // Add a fake Google Fonts link
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Anton&display=swap';
-    document.head.appendChild(link);
-
-    mockFetchImpl.mockImplementation((url: string) => {
-      if (url.includes('fonts.googleapis.com')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(`
-            @font-face {
-              font-family: 'Anton';
-              src: url('https://fonts.gstatic.com/s/anton.woff2') format('woff2');
-            }
-          `),
-          blob: () => Promise.resolve(new Blob(['font'], { type: 'font/woff2' })),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        blob: () => Promise.resolve(new Blob(['font'], { type: 'font/woff2' })),
-        text: () => Promise.resolve(''),
-      });
-    });
-
-    jest.resetModules();
-    const { buildInlineFontCss: freshBuild } = await import('../utils/svgExport');
-    const css = await freshBuild();
-
-    expect(typeof css).toBe('string');
-
-    document.head.removeChild(link);
-  });
-
-  it('skips Google Fonts when fetch returns non-ok', async () => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Anton';
-    document.head.appendChild(link);
-
-    mockFetchImpl.mockResolvedValue({ ok: false });
-
-    jest.resetModules();
-    const { buildInlineFontCss: freshBuild } = await import('../utils/svgExport');
-    const css = await freshBuild();
-
-    expect(typeof css).toBe('string');
-    document.head.removeChild(link);
+    document.body.removeChild(el);
   });
 });

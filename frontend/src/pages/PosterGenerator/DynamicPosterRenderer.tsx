@@ -2,7 +2,7 @@ import React from 'react';
 import type { PosterTemplateDefinition, PosterFormat } from './types/posterTemplate';
 import type { PosterPayload } from './types/poster';
 import type { ClubColors } from './utils/parseClubColors';
-import { SvgPosterRenderer } from './SvgPosterRenderer';
+import { HtmlPosterRenderer } from './HtmlPosterRenderer';
 
 // ─── Props-Interface (öffentlich, unverändert) ────────────────────────────────────────────
 
@@ -16,11 +16,11 @@ export interface DynamicPosterRendererProps {
 }
 
 /**
- * Rendert eine Poster-Vorlage als SVG.
- * forwardRef gibt den SVGSVGElement-Knoten zurück (für PNG-Export).
+ * Rendert eine Poster-Vorlage als HTML/CSS-Div.
+ * forwardRef gibt den HTMLDivElement-Knoten zurück (für PNG-Export via html2canvas).
  */
-export const DynamicPosterRenderer = React.forwardRef<SVGSVGElement, DynamicPosterRendererProps>(
+export const DynamicPosterRenderer = React.forwardRef<HTMLDivElement, DynamicPosterRendererProps>(
   function DynamicPosterRenderer(props, ref) {
-    return <SvgPosterRenderer {...props} ref={ref} />;
+    return <HtmlPosterRenderer {...props} ref={ref} />;
   },
 );
