@@ -5,6 +5,49 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Bambe';
+  src: url('/fonts/Bambe.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Bambe Swash';
+  src: url('/fonts/Bambe Swash.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Grindy Brush';
+  src: url('/fonts/Grindy Brush.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Larthez';
+  src: url('/fonts/Larthez.otf') format('opentype'),
+       url('/fonts/Larthez.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'RetroBrush';
+  src: url('/fonts/RetroBrushPersonalUseOnly-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Storm Gust';
+  src: url('/fonts/Storm Gust.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --app-header-height: 56px;
   --app-header-height-transition: height 0.25s ease;

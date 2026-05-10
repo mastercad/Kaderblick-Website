@@ -3,6 +3,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import { SharePosterButton } from './PosterGenerator/components/SharePosterButton';
 import { Typography, FormControl, InputLabel, Select, MenuItem, Chip, Stack, IconButton, Tooltip } from '@mui/material';
 import { apiJson, apiRequest } from '../utils/api';
 import { AdminPageLayout, AdminEmptyState, AdminTable, AdminActions, AdminSnackbar, AdminTableColumn } from '../components/AdminPageLayout';
@@ -258,6 +259,10 @@ const Players = () => {
           onRowClick={p => { setPlayerId(p.id); setPlayerDetailsModalOpen(true); }}
           renderActions={p => (
             <Stack direction="row" alignItems="center" spacing={0}>
+              <SharePosterButton
+                payload={{ templateId: 'player-highlight', data: { player: p } }}
+                label="Spieler-Highlight teilen"
+              />
               <Tooltip title={watchedPlayerIds.has(p.id) ? 'Beobachtung beenden' : 'Beobachten'}>
                 <IconButton
                   size="small"

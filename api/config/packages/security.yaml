@@ -87,6 +87,7 @@ security:
     - { path: ^/api/players,  roles: ROLE_USER }
     - { path: ^/api/notifications, roles: ROLE_USER }
     - { path: ^/api/push,     roles: ROLE_USER }
+    - { path: ^/api/poster/share, roles: ROLE_USER }
     - { path: ^/api/about-me,  roles: PUBLIC_ACCESS }
     - { path: ^/api/health,   roles: PUBLIC_ACCESS }
     - { path: ^/api/register, roles: PUBLIC_ACCESS }

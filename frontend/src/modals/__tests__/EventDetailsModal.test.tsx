@@ -16,6 +16,14 @@ jest.mock('../BaseModal', () => ({
   ) : null,
 }));
 
+jest.mock('../../pages/PosterGenerator/components/SharePosterButton', () => ({
+  SharePosterButton: ({ label, payload }: any) => (
+    <button data-testid="share-poster-btn" data-template={payload?.templateId}>
+      {label ?? 'Poster teilen'}
+    </button>
+  ),
+}));
+
 // Mock sub-modals that also use BaseModal to avoid extra Dialog elements
 jest.mock('../WeatherModal', () => (props: any) => props.open ? React.createElement('div', { 'data-testid': 'WeatherModal' }, React.createElement('button', { 'data-testid': 'close-weather', onClick: props.onClose }, 'Close')) : null);
 jest.mock('../TeamRideDetailsModal', () => (props: any) => props.open ? React.createElement('div', { 'data-testid': 'TeamRideDetailsModal' }, React.createElement('button', { 'data-testid': 'close-rides', onClick: props.onClose }, 'Close')) : null);
@@ -1038,6 +1046,47 @@ describe('EventDetailsModal', () => {
       expect.stringContaining('/respond'),
       expect.any(Object),
     );
+  });
+
+  // ── SharePosterButton ──────────────────────────────────────────────────────
+
+  it('shows share button for a future event', async () => {
+    const futureEvent = {
+      ...baseEvent,
+      start: new Date(Date.now() + 86_400_000).toISOString(), // tomorrow
+      cancelled: false,
+    };
+    await act(async () => {
+      render(<EventDetailsModal {...defaultProps} event={futureEvent} />);
+    });
+    expect(screen.getByTestId('share-poster-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('share-poster-btn')).toHaveAttribute('data-template', 'event-announcement');
+  });
+
+  it('does NOT show share button for a past event', async () => {
+    const pastEvent = {
+      ...baseEvent,
+      start: new Date(Date.now() - 86_400_000).toISOString(), // yesterday
+      end: new Date(Date.now() - 82_800_000).toISOString(),
+      cancelled: false,
+    };
+    await act(async () => {
+      render(<EventDetailsModal {...defaultProps} event={pastEvent} />);
+    });
+    expect(screen.queryByTestId('share-poster-btn')).not.toBeInTheDocument();
+  });
+
+  it('does NOT show share button for a cancelled event', async () => {
+    const cancelledFutureEvent = {
+      ...baseEvent,
+      start: new Date(Date.now() + 86_400_000).toISOString(),
+      cancelled: true,
+      permissions: { ...baseEvent.permissions as any, canCancel: true },
+    };
+    await act(async () => {
+      render(<EventDetailsModal {...defaultProps} event={cancelledFutureEvent} />);
+    });
+    expect(screen.queryByTestId('share-poster-btn')).not.toBeInTheDocument();
   });
 
 });

@@ -30,6 +30,7 @@ import GameEventsSection from './game-details/components/GameEventsSection';
 import VideosSection from './game-details/components/VideosSection';
 import TimingSection from './game-details/components/TimingSection';
 import GameDetailsModals from './game-details/components/GameDetailsModals';
+import { SharePosterButton } from './PosterGenerator/components/SharePosterButton';
 
 function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const theme = useTheme();
@@ -278,6 +279,21 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onFinishGame={() => hook.setConfirmFinishOpen(true)}
         />
       </Box>
+
+      {/* ── Share poster button ──────────────────────────────────────────── */}
+      {!hook.isGameRunning() && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <SharePosterButton
+            payload={
+              hook.isFinished
+                ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: hook.homeScore, awayScore: hook.awayScore } } }
+                : { templateId: 'game-announcement', data: { game } }
+            }
+            label={hook.isFinished ? 'Ergebnis teilen' : 'Ankündigung teilen'}
+            size="medium"
+          />
+        </Box>
+      )}
 
       {/* ── Match Plan ──────────────────────────────────────────────────── */}
       {(game.permissions?.can_manage_match_plan || game.permissions?.can_view_match_plan) && (

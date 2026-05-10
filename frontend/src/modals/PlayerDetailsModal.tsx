@@ -10,6 +10,7 @@ import { Player } from '../types/player';
 import PlayerDeleteConfirmationModal from './PlayerDeleteConfirmationModal';
 import PlayerEditModal from './PlayerEditModal';
 import BaseModal from './BaseModal';
+import { SharePosterButton } from '../pages/PosterGenerator/components/SharePosterButton';
 
 interface PlayerDetailsResponse {
     player: Player;
@@ -76,6 +77,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({ open, playerId,
                 actions={
                     player?.permissions?.canView ? (
                         <>
+                            <SharePosterButton
+                              payload={{ templateId: 'player-highlight', data: { player } }}
+                              label="Highlight teilen"
+                              size="small"
+                              stopPropagation={false}
+                            />
                             {player.permissions?.canEdit && (
                                 <Button variant="contained" color="warning" startIcon={<EditIcon />} size="small" onClick={() => setPlayerEditModalOpen(true)}>
                                     Bearbeiten

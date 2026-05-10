@@ -77,6 +77,12 @@ export function isAuthenticationError(error: unknown): boolean {
  */
 export async function apiJson<T = any>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
   const response = await apiRequest(endpoint, options);
+
+  // 204 No Content: Symfony lässt den Body leer – JSON-Parse würde werfen
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+
   let data;
   try {
     data = await response.json();

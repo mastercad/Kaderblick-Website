@@ -47,6 +47,7 @@
     "react": "^19.1.1",
     "react-big-calendar": "^1.19.4",
     "react-chartjs-2": "^5.3.0",
+    "react-colorful": "^5.7.0",
     "react-dom": "^19.1.1",
     "react-easy-crop": "^5.5.3",
     "react-helmet-async": "^3.0.0",
@@ -89,7 +90,8 @@
       "<rootDir>/src/test-setup-jest-dom.ts"
     ],
     "moduleNameMapper": {
-      "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js"
+      "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js",
+      "@fontsource/.*": "<rootDir>/src/__mocks__/styleMock.js"
     }
   }
 }
