@@ -1,14 +1,14 @@
 /**
- * Tests für DynamicPosterRenderer (SVG-basiert)
+ * Tests für DynamicPosterRenderer (HTML/CSS-basiert via HtmlPosterRenderer)
  *
- * DynamicPosterRenderer ist ein forwardRef-Wrapper um SvgPosterRenderer.
+ * DynamicPosterRenderer ist ein forwardRef-Wrapper um HtmlPosterRenderer.
  * Diese Tests prüfen:
- * - Dass das Root-Element ein <svg> mit data-testid="dynamic-poster" ist
+ * - Dass das Root-Element ein <div> mit data-testid="dynamic-poster" ist
  * - Prop-Durchleitung: Texte, Platzhalter, Formate, clubName, clubLogoUrl
- * - forwardRef: ref zeigt auf das SVG-Element
- * - Gradient-Hintergrund erzeugt <linearGradient> in <defs>
- * - Rotation erzeugt SVG-transform-Attribut (kein CSS-style.transform)
- * - Club-Logo wird als SVG <image>-Element gerendert (kein <img>)
+ * - forwardRef: ref zeigt auf das div-Element
+ * - Gradient-Hintergrund erzeugt CSS linear-gradient
+ * - Rotation erzeugt CSS transform-Stil
+ * - Club-Logo wird als <img>-Element gerendert
  * - Mehrere Elemente werden gerendert
  */
 
@@ -16,7 +16,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 // Mock canvas getContext because jsdom does not implement Canvas 2D API.
-// SvgPosterRenderer → computeFitText uses it for text measurement.
+// HtmlPosterRenderer → computeFitText uses it for text measurement.
 beforeAll(() => {
   HTMLCanvasElement.prototype.getContext = jest.fn().mockReturnValue({
     measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
@@ -27,7 +27,7 @@ beforeAll(() => {
 import { DynamicPosterRenderer } from '../DynamicPosterRenderer';
 import type { PosterTemplateDefinition } from '../types/posterTemplate';
 import type { PosterPayload } from '../types/poster';
-import type { Game } from '../../../../types/games';
+import type { Game } from '../../../types/games';
 
 // ─── Testdaten ────────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ function baseElement(overrides: Partial<PosterTemplateDefinition['elements'][num
 
 describe('DynamicPosterRenderer', () => {
 
-  it('renders an <svg> element with data-testid="dynamic-poster"', () => {
+  it('renders a <div> element with data-testid="dynamic-poster"', () => {
     render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -94,10 +94,10 @@ describe('DynamicPosterRenderer', () => {
     );
     const poster = screen.getByTestId('dynamic-poster');
     expect(poster).toBeInTheDocument();
-    expect(poster.tagName.toLowerCase()).toBe('svg');
+    expect(poster.tagName.toLowerCase()).toBe('div');
   });
 
-  it('sets viewBox to 1080x1080 for format 1:1', () => {
+  it('sets CSS width=1080 and height=1080 for format 1:1', () => {
     render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -106,11 +106,12 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    const svg = screen.getByTestId('dynamic-poster');
-    expect(svg.getAttribute('viewBox')).toBe('0 0 1080 1080');
+    const div = screen.getByTestId('dynamic-poster') as HTMLDivElement;
+    expect(div.style.width).toBe('1080px');
+    expect(div.style.height).toBe('1080px');
   });
 
-  it('sets viewBox to 1080x1920 for format 9:16', () => {
+  it('sets CSS width=1080 and height=1920 for format 9:16', () => {
     render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -119,11 +120,12 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    const svg = screen.getByTestId('dynamic-poster');
-    expect(svg.getAttribute('viewBox')).toBe('0 0 1080 1920');
+    const div = screen.getByTestId('dynamic-poster') as HTMLDivElement;
+    expect(div.style.width).toBe('1080px');
+    expect(div.style.height).toBe('1920px');
   });
 
-  it('sets viewBox to 1920x1080 for format 16:9', () => {
+  it('sets CSS width=1920 and height=1080 for format 16:9', () => {
     render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -132,12 +134,13 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    const svg = screen.getByTestId('dynamic-poster');
-    expect(svg.getAttribute('viewBox')).toBe('0 0 1920 1080');
+    const div = screen.getByTestId('dynamic-poster') as HTMLDivElement;
+    expect(div.style.width).toBe('1920px');
+    expect(div.style.height).toBe('1080px');
   });
 
-  it('forwards ref to the SVGSVGElement', () => {
-    const ref = React.createRef<SVGSVGElement>();
+  it('forwards ref to the HTMLDivElement', () => {
+    const ref = React.createRef<HTMLDivElement>();
     render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -148,11 +151,11 @@ describe('DynamicPosterRenderer', () => {
       />
     );
     expect(ref.current).not.toBeNull();
-    expect(ref.current!.tagName.toLowerCase()).toBe('svg');
+    expect(ref.current!.tagName.toLowerCase()).toBe('div');
     expect(ref.current).toBe(screen.getByTestId('dynamic-poster'));
   });
 
-  it('renders custom text element in a <text> node', () => {
+  it('renders custom text element as visible text', () => {
     const template = makeTemplate([baseElement({ customText: 'Mein Text' })]);
     const { container } = render(
       <DynamicPosterRenderer
@@ -162,9 +165,7 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    const textEl = container.querySelector('text, tspan');
     expect(container.textContent).toContain('Mein Text');
-    expect(textEl).not.toBeNull();
   });
 
   it('resolves homeTeam placeholder', () => {
@@ -212,10 +213,10 @@ describe('DynamicPosterRenderer', () => {
     expect(container.textContent).toContain('FC Test');
   });
 
-  it('renders gradient background as <linearGradient> in <defs>', () => {
+  it('renders gradient background as CSS linear-gradient', () => {
     const template = makeTemplate();
     template.background = { type: 'gradient', gradientColors: ['#000000', '#ffffff'], gradientAngle: 90 };
-    const { container } = render(
+    render(
       <DynamicPosterRenderer
         template={template}
         payload={gamePayload}
@@ -223,11 +224,8 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    const linearGradient = container.querySelector('linearGradient');
-    expect(linearGradient).toBeInTheDocument();
-    // The gradient should have the two stops
-    const stops = linearGradient!.querySelectorAll('stop');
-    expect(stops.length).toBeGreaterThanOrEqual(2);
+    const div = screen.getByTestId('dynamic-poster') as HTMLDivElement;
+    expect(div.style.background).toContain('linear-gradient');
   });
 
   it('renders multiple text elements', () => {
@@ -247,7 +245,7 @@ describe('DynamicPosterRenderer', () => {
     expect(container.textContent).toContain('Text 2');
   });
 
-  it('applies rotation via SVG transform attribute, not CSS style', () => {
+  it('applies rotation via CSS transform style', () => {
     const template = makeTemplate([
       baseElement({ id: 'r1', customText: 'Gedreht', rotation: 45 }),
     ]);
@@ -259,13 +257,14 @@ describe('DynamicPosterRenderer', () => {
         clubName="FC Test"
       />
     );
-    // Rotation is applied via a <g transform="rotate(...)"> wrapper in SVG
-    const rotatedGroup = container.querySelector('g[transform*="rotate"]');
-    expect(rotatedGroup).not.toBeNull();
-    expect(rotatedGroup!.getAttribute('transform')).toContain('rotate(45');
+    // Rotation is applied as CSS transform on the element wrapper div
+    const rotatedEl = Array.from(container.querySelectorAll<HTMLElement>('div')).find(
+      el => el.style.transform && el.style.transform.includes('rotate(45deg)'),
+    );
+    expect(rotatedEl).toBeDefined();
   });
 
-  it('renders club logo as SVG <image> element (not <img>)', () => {
+  it('renders club logo as <img> element', () => {
     const { container } = render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -275,18 +274,11 @@ describe('DynamicPosterRenderer', () => {
         clubLogoUrl="https://example.com/logo.png"
       />
     );
-    // In SVG, images are <image> not <img>
-    const svgImages = container.querySelectorAll('image');
-    const logoImage = Array.from(svgImages).find(
-      el => el.getAttribute('href') === 'https://example.com/logo.png'
-        || el.getAttribute('xlink:href') === 'https://example.com/logo.png',
-    );
-    expect(logoImage).not.toBeUndefined();
-    // No <img> HTML elements should be present (only SVG <image>)
-    expect(container.querySelector('img')).toBeNull();
+    const logoImg = container.querySelector<HTMLImageElement>('img[src="https://example.com/logo.png"]');
+    expect(logoImg).not.toBeNull();
   });
 
-  it('does not render club logo element when clubLogoUrl is not provided', () => {
+  it('does not render club logo img when clubLogoUrl is not provided', () => {
     const { container } = render(
       <DynamicPosterRenderer
         template={makeTemplate()}
@@ -296,8 +288,9 @@ describe('DynamicPosterRenderer', () => {
         clubLogoUrl={null}
       />
     );
-    // Without logo, there should be no SVG <image> elements in the main content
-    // (branding may add text but no images)
-    expect(container.querySelector('img')).toBeNull();
+    // No club logo img; branding img (kaderblick icon) may still be present
+    const logoImg = container.querySelector<HTMLImageElement>('img[src="https://example.com/logo.png"]');
+    expect(logoImg).toBeNull();
   });
 });
+

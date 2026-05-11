@@ -15,7 +15,7 @@ import { render } from '@testing-library/react';
 import { HtmlPosterRenderer } from '../HtmlPosterRenderer';
 import type { PosterTemplateDefinition } from '../types/posterTemplate';
 import type { PosterPayload } from '../types/poster';
-import type { Game } from '../../../../types/games';
+import type { Game } from '../../../types/games';
 
 // Canvas mock: jsdom implementiert Canvas 2D API nicht
 beforeAll(() => {

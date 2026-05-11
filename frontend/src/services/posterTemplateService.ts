@@ -1,6 +1,6 @@
 import { apiJson } from '../utils/api';
 import { BACKEND_URL } from '../../config';
-import type { PosterTemplateDefinition, PosterType } from '../PosterGenerator/types/posterTemplate';
+import type { PosterTemplateDefinition, PosterType } from '../pages/PosterGenerator/types/posterTemplate';
 
 function absoluteUrl(path: string): string {
   return path.startsWith('http') ? path : `${BACKEND_URL}${path}`;

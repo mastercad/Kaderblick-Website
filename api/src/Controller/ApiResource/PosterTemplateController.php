@@ -146,6 +146,7 @@ class PosterTemplateController extends AbstractController
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /** @return array<string, mixed>|null */
     private function parseBody(Request $request): ?array
     {
         $content = $request->getContent();
@@ -157,6 +158,7 @@ class PosterTemplateController extends AbstractController
         return is_array($data) ? $data : null;
     }
 
+    /** @param array<string, mixed> $body */
     private function validateBody(array $body): ?string
     {
         if (empty($body['name']) || !is_string($body['name'])) {
@@ -179,6 +181,7 @@ class PosterTemplateController extends AbstractController
         return null;
     }
 
+    /** @param array<string, mixed> $body */
     private function applyBody(PosterTemplate $template, array $body): void
     {
         $template->setName(trim((string) $body['name']));

@@ -12,7 +12,7 @@ const club1: Club = {
   id: 1, name: 'FC Test', address: '', city: '', shortName: 'FCT',
   stadiumName: '', website: '', logoUrl: '', clubColors: 'Blau/Weiß',
   active: true, phone: '', abbreviation: '', email: '',
-  location: { id: 1, city: '', latitude: 0, longitude: 0 },
+  location: { id: 1, name: '', city: '', latitude: 0, longitude: 0, surfaceTypeId: 0, permissions: { canCreate: false, canEdit: false, canView: true, canDelete: false } },
   permissions: { canCreate: false, canEdit: false, canView: true, canDelete: false },
 };
 

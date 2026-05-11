@@ -136,8 +136,8 @@ const makeGame = (overrides: Record<string, unknown> = {}) => ({
   gameType: { id: 1, name: 'Testspiel' },
   calendarEvent: {
     id: 10,
-    startDate: '2025-05-01T15:00:00Z',
-    endDate: '2025-05-01T17:00:00Z',
+    startDate: '2099-12-31T15:00:00Z',
+    endDate: '2099-12-31T17:00:00Z',
   },
   isFinished: false,
   halfDuration: 45,

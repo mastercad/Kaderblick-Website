@@ -58,7 +58,7 @@ class PosterImageUploadController extends AbstractController
 
         $files = glob($uploadDir . '/*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE) ?: [];
         $urls = array_values(array_map(
-            static fn(string $f): string => '/uploads/poster/' . basename($f),
+            static fn (string $f): string => '/uploads/poster/' . basename($f),
             $files
         ));
 
@@ -71,12 +71,12 @@ class PosterImageUploadController extends AbstractController
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         // Path-Traversal verhindern
-        if ($filename === '' || str_contains($filename, '/') || str_contains($filename, '\\') || str_starts_with($filename, '.')) {
+        if ('' === $filename || str_contains($filename, '/') || str_contains($filename, '\\') || str_starts_with($filename, '.')) {
             return new JsonResponse(['error' => 'Ungültiger Dateiname'], 400);
         }
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/poster';
-        $filePath  = $uploadDir . '/' . $filename;
+        $filePath = $uploadDir . '/' . $filename;
 
         if (!is_file($filePath)) {
             return new JsonResponse(['error' => 'Datei nicht gefunden'], 404);
@@ -85,7 +85,7 @@ class PosterImageUploadController extends AbstractController
         $usedIn = $repository->findTemplatesUsingImageFilename($filename);
         if (count($usedIn) > 0) {
             return new JsonResponse([
-                'error'     => 'Das Bild wird noch in Vorlagen verwendet.',
+                'error' => 'Das Bild wird noch in Vorlagen verwendet.',
                 'templates' => array_map(static fn ($t) => $t->getName(), $usedIn),
             ], 409);
         }

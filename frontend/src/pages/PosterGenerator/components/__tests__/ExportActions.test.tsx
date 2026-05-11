@@ -16,7 +16,7 @@ const mockBlob = posterToBlob as jest.Mock;
 
 const theme     = createTheme();
 const el        = document.createElement('div');
-const posterRef = { current: el } as React.RefObject<HTMLElement>;
+const posterRef = { current: el } as React.RefObject<HTMLDivElement | null>;
 
 const wrap = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);

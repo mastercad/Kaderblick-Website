@@ -67,7 +67,7 @@ class PosterTemplateRepositoryTest extends TestCase
         $t = new PosterTemplate();
         $t->setName($name);
         $bg = ['type' => 'solid', 'color' => '#000'];
-        if ($imageUrl !== null) {
+        if (null !== $imageUrl) {
             $bg['imageUrl'] = $imageUrl;
         }
         $t->setBackground($bg);
@@ -110,7 +110,7 @@ class PosterTemplateRepositoryTest extends TestCase
         $filename = 'shared.jpg';
         $this->stubbedTemplates = [
             $this->makeTemplate('Alpha', "/uploads/poster/$filename"),
-            $this->makeTemplate('Beta',  "/uploads/poster/$filename"),
+            $this->makeTemplate('Beta', "/uploads/poster/$filename"),
             $this->makeTemplate('Gamma', '/uploads/poster/other.jpg'),
         ];
 

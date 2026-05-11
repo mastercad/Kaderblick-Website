@@ -46,6 +46,9 @@ describe('CanvasElement', () => {
     background: { type: 'solid' as const, color: '#000000' },
     onSelect: jest.fn(),
     onChange: jest.fn(),
+    fontWeight: 'normal',
+    fontSize: 40,
+    opacity: 1,
   };
 
   beforeEach(() => {

@@ -361,19 +361,19 @@ class ProfileController extends AbstractController
         $result = [];
         foreach ($user->getUserRelations() as $relation) {
             $player = $relation->getPlayer();
-            $coach  = $relation->getCoach();
+            $coach = $relation->getCoach();
 
             $playerData = null;
-            if ($player !== null) {
+            if (null !== $player) {
                 $playerData = [
                     'clubAssignments' => array_values(array_map(
                         static fn ($a) => [
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
-                            'endDate'   => $a->getEndDate()?->format('Y-m-d'),
-                            'club'      => [
-                                'id'         => $a->getClub()?->getId(),
-                                'name'       => $a->getClub()?->getName(),
-                                'logoUrl'    => $a->getClub()?->getLogoUrl(),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                            'club' => [
+                                'id' => $a->getClub()?->getId(),
+                                'name' => $a->getClub()?->getName(),
+                                'logoUrl' => $a->getClub()?->getLogoUrl(),
                                 'clubColors' => $a->getClub()?->getClubColors(),
                             ],
                         ],
@@ -383,16 +383,16 @@ class ProfileController extends AbstractController
             }
 
             $coachData = null;
-            if ($coach !== null) {
+            if (null !== $coach) {
                 $coachData = [
                     'clubAssignments' => array_values(array_map(
                         static fn ($a) => [
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
-                            'endDate'   => $a->getEndDate()?->format('Y-m-d'),
-                            'club'      => [
-                                'id'         => $a->getClub()?->getId(),
-                                'name'       => $a->getClub()?->getName(),
-                                'logoUrl'    => $a->getClub()?->getLogoUrl(),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                            'club' => [
+                                'id' => $a->getClub()?->getId(),
+                                'name' => $a->getClub()?->getName(),
+                                'logoUrl' => $a->getClub()?->getLogoUrl(),
                                 'clubColors' => $a->getClub()?->getClubColors(),
                             ],
                         ],
@@ -406,7 +406,7 @@ class ProfileController extends AbstractController
                     'identifier' => $relation->getRelationType()->getIdentifier(),
                 ],
                 'player' => $playerData,
-                'coach'  => $coachData,
+                'coach' => $coachData,
             ];
         }
 

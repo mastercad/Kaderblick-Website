@@ -102,8 +102,9 @@ const gameResultPayload: PosterPayload = {
 const mockEvent = {
   id: 3,
   title: 'Jahreshauptversammlung',
-  startDate: '2026-06-01T18:00:00',
-  locationName: 'Vereinsheim',
+  start: '2026-06-01T18:00:00',
+  end: '2026-06-01T20:00:00',
+  location: { name: 'Vereinsheim' },
 } as unknown as CalendarEvent;
 
 const eventPayload: PosterPayload = {
@@ -131,6 +132,11 @@ beforeAll(() => {
     measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
     font: '',
   }) as any;
+  // Mock document.fonts — not available in jsdom
+  Object.defineProperty(document, 'fonts', {
+    value: { status: 'loaded', ready: Promise.resolve() },
+    configurable: true,
+  });
 });
 
 describe('SvgPosterRenderer', () => {
@@ -158,7 +164,7 @@ describe('SvgPosterRenderer', () => {
         clubName="FC Test"
       />,
     );
-    const svg = screen.getByTestId('dynamic-poster') as SVGSVGElement;
+    const svg = screen.getByTestId('dynamic-poster') as unknown as SVGSVGElement;
     expect(svg.getAttribute('viewBox')).toBe('0 0 1080 1080');
     expect(svg.getAttribute('width')).toBe('1080');
     expect(svg.getAttribute('height')).toBe('1080');
@@ -173,7 +179,7 @@ describe('SvgPosterRenderer', () => {
         clubName="FC Test"
       />,
     );
-    const svg = screen.getByTestId('dynamic-poster') as SVGSVGElement;
+    const svg = screen.getByTestId('dynamic-poster') as unknown as SVGSVGElement;
     expect(svg.getAttribute('viewBox')).toBe('0 0 1080 1920');
     expect(svg.getAttribute('width')).toBe('1080');
     expect(svg.getAttribute('height')).toBe('1920');
@@ -188,7 +194,7 @@ describe('SvgPosterRenderer', () => {
         clubName="FC Test"
       />,
     );
-    const svg = screen.getByTestId('dynamic-poster') as SVGSVGElement;
+    const svg = screen.getByTestId('dynamic-poster') as unknown as SVGSVGElement;
     expect(svg.getAttribute('viewBox')).toBe('0 0 1920 1080');
   });
 

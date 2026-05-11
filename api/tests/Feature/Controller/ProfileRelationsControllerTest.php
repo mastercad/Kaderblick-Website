@@ -181,7 +181,7 @@ class ProfileRelationsControllerTest extends ApiWebTestCase
 
         $endedAssignment = null;
         foreach ($coachData['clubAssignments'] as $ca) {
-            if ($ca['endDate'] !== null) {
+            if (null !== $ca['endDate']) {
                 $endedAssignment = $ca;
                 break;
             }

@@ -1,7 +1,7 @@
-import type { ClubColors } from './utils/parseClubColors';
-import type { GameWithScore, Game } from '../../types/games';
-import type { CalendarEvent } from '../../types/calendar';
-import type { Player } from '../../types/player';
+import type { ClubColors } from '../utils/parseClubColors';
+import type { GameWithScore, Game } from '../../../types/games';
+import type { CalendarEvent } from '../../../types/calendar';
+import type { Player } from '../../../types/player';
 
 export type PosterFormat = '1:1' | '9:16' | '16:9';
 

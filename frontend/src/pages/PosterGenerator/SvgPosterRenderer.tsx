@@ -81,9 +81,9 @@ function resolvePlaceholder(key: PlaceholderKey, payload: PosterPayload, clubNam
       const { event } = payload.data;
       switch (key) {
         case 'eventTitle': return event.title ?? '';
-        case 'date':       return formatDate(event.startDate);
-        case 'time':       return formatTime(event.startDate);
-        case 'location':   return event.locationName ?? event.location?.name ?? '';
+        case 'date':       return formatDate(typeof event.start === 'string' ? event.start : event.start.toISOString());
+        case 'time':       return formatTime(typeof event.start === 'string' ? event.start : event.start.toISOString());
+        case 'location':   return event.location?.name ?? '';
         case 'clubName':   return clubName;
         default:           return `[${key}]`;
       }
@@ -419,7 +419,7 @@ export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRender
             : lines;
 
           // Text-Anchor
-          const textAnchor: string =
+          const textAnchor: 'start' | 'middle' | 'end' =
             el.textAlign === 'left' ? 'start'
             : el.textAlign === 'right' ? 'end'
             : 'middle';

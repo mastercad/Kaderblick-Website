@@ -63,7 +63,7 @@ jest.mock('react-colorful', () => ({
 // ── Komponente ────────────────────────────────────────────────────────────────
 
 import Toolbox from '../Toolbox';
-import type { PosterTemplateDefinition } from '../../../../PosterGenerator/types/posterTemplate';
+import type { PosterTemplateDefinition } from '../../../PosterGenerator/types/posterTemplate';
 
 type BG = PosterTemplateDefinition['background'];
 
@@ -76,6 +76,7 @@ function renderToolbox(bg: BG = defaultBg, onBgChange = jest.fn()) {
       onAddCustomText={jest.fn()}
       background={bg}
       onBgChange={onBgChange}
+      posterType="game_announcement"
     />,
   );
 }

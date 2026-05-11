@@ -61,5 +61,5 @@ export interface EditorCanvasProps {
   onClickBackground: () => void;
   onElementClick: (id: string) => void;
   onElementChange: (el: PosterElement) => void;
-  canvasRef: RefObject<HTMLDivElement>;
+  canvasRef: RefObject<HTMLDivElement | null>;
 }

@@ -17,7 +17,7 @@ export default function DebouncedColorInput({ value, onChange }: Props) {
   const [local, setLocal] = useState(() => toValidHex(value));
   const [hexInput, setHexInput] = useState(toValidHex(value));
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const hex = toValidHex(value);

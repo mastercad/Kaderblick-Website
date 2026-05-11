@@ -12,7 +12,7 @@ import { posterToBlob } from '../utils/exportPoster';
 
 interface Props {
   /** Ref to the HTMLDivElement rendered by DynamicPosterRenderer */
-  posterRef: React.RefObject<HTMLDivElement>;
+  posterRef: React.RefObject<HTMLDivElement | null>;
   filename?: string;
 }
 

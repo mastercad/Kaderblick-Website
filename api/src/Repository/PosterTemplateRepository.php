@@ -57,7 +57,7 @@ class PosterTemplateRepository extends ServiceEntityRepository
         return array_values(array_filter($all, static function (PosterTemplate $t) use ($filename): bool {
             $imageUrl = $t->getBackground()['imageUrl'] ?? null;
 
-            return $imageUrl !== null && basename((string) $imageUrl) === $filename;
+            return null !== $imageUrl && basename((string) $imageUrl) === $filename;
         }));
     }
 }

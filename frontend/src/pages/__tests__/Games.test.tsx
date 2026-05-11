@@ -383,8 +383,8 @@ const makeGame = (id: number, extra: Record<string, any> = {}) => ({
   gameType: { id: 1, name: 'Testspiel' },
   calendarEvent: {
     id: 100 + id,
-    startDate: '2025-03-15T14:00:00',
-    endDate: '2025-03-15T16:00:00',
+    startDate: '2099-12-31T14:00:00',
+    endDate: '2099-12-31T16:00:00',
     calendarEventType: { id: 1, name: 'Spiel' },
   },
   location: { id: 1, name: 'Stadion', address: 'Hauptstraße 1' },
@@ -411,8 +411,8 @@ const makeTournament = (
   teamIds: [10],
   calendarEvent: {
     id: 200 + id,
-    startDate: '2025-04-01T09:00:00',
-    endDate: '2025-04-01T18:00:00',
+    startDate: '2099-12-31T09:00:00',
+    endDate: '2099-12-31T18:00:00',
     weatherData: { weatherCode: [800] },
   },
   location: { id: 10, name: 'Platz A', address: 'Sportweg 1' },

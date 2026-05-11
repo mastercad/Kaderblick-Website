@@ -10,6 +10,7 @@ use App\Repository\PosterTemplateRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -33,7 +34,7 @@ class PosterImageUploadControllerTest extends TestCase
         $this->repository = $this->createMock(PosterTemplateRepository::class);
 
         $this->projectDir = sys_get_temp_dir() . '/poster_ctrl_test_' . uniqid('', true);
-        $this->uploadDir  = $this->projectDir . '/public/uploads/poster';
+        $this->uploadDir = $this->projectDir . '/public/uploads/poster';
         mkdir($this->uploadDir, 0777, true);
 
         $this->controller = new PosterImageUploadController();
@@ -45,13 +46,15 @@ class PosterImageUploadControllerTest extends TestCase
         // AbstractController::getParameter() holt sich 'parameter_bag' aus dem Container
         $projectDir = $this->projectDir;
         $container->set('parameter_bag', new class ($projectDir) {
-            public function __construct(private readonly string $projectDir) {}
+            public function __construct(private readonly string $projectDir)
+            {
+            }
 
             public function get(string $name): mixed
             {
                 return match ($name) {
                     'kernel.project_dir' => $this->projectDir,
-                    default              => throw new \RuntimeException("Unbekannter Parameter: $name"),
+                    default => throw new RuntimeException("Unbekannter Parameter: $name"),
                 };
             }
         });
