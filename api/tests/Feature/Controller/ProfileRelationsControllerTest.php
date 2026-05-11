@@ -22,7 +22,6 @@ use Tests\Feature\ApiWebTestCase;
  * automatisch für die Poster-Vorschau zu ermitteln.
  *
  * Fixture-Voraussetzungen (--group=master --group=test):
- *   - user5@example.com  : hat UserRelation mit coach_7 (der eine CoachClubAssignment hat)
  *   - user6@example.com  : Elternteil von player_1_1 (der eine PlayerClubAssignment hat)
  *   - user9@example.com  : ROLE_USER, keine UserRelations
  *   - user10@example.com : ROLE_USER, keine UserRelations (für minimale Neu-Anlage)
@@ -63,8 +62,9 @@ class ProfileRelationsControllerTest extends ApiWebTestCase
 
     public function testReturnsEmptyArrayWhenUserHasNoRelations(): void
     {
-        // user9 (ROLE_USER) hat laut UserRelationFixtures keine UserRelations.
-        $this->authenticateUser($this->client, 'user9@example.com');
+        // user10 (ROLE_USER) hat laut UserRelationFixtures keine UserRelations.
+        // (user9 hat eine self_player-Relation zu player_5_1.)
+        $this->authenticateUser($this->client, 'user10@example.com');
         $this->client->request('GET', self::ENDPOINT);
 
         $this->assertResponseIsSuccessful();
@@ -111,9 +111,29 @@ class ProfileRelationsControllerTest extends ApiWebTestCase
 
     public function testReturnsCoachRelationWithClubAssignment(): void
     {
-        // user5 hat laut UserRelationFixtures eine Relation die coach_7 enthält.
         // coach_7 hat laut CoachClubAssignmentFixtures eine CoachClubAssignment zu club2.
-        $this->authenticateUser($this->client, 'user5@example.com');
+        // user5 ist ROLE_GUEST und kann den Endpoint nicht nutzen → minimale Neuanlage
+        // einer UserRelation für user10 (ROLE_USER, keine Fixture-Relation).
+        $coach = $this->em->getRepository(Coach::class)
+            ->findOneBy(['firstName' => 'Coach', 'lastName' => '7']);
+        self::assertNotNull($coach, 'Fixture-Coach "Coach 7" nicht gefunden.');
+
+        $user = $this->em->getRepository(User::class)
+            ->findOneBy(['email' => 'user10@example.com']);
+        self::assertNotNull($user, 'Fixture-User "user10@example.com" nicht gefunden.');
+
+        $rt = $this->em->getRepository(RelationType::class)
+            ->findOneBy(['identifier' => 'parent']);
+        self::assertNotNull($rt, 'RelationType "parent" nicht gefunden.');
+
+        $relation = new UserRelation();
+        $relation->setUser($user);
+        $relation->setCoach($coach);
+        $relation->setRelationType($rt);
+        $this->em->persist($relation);
+        $this->em->flush();
+
+        $this->authenticateUser($this->client, 'user10@example.com');
         $this->client->request('GET', self::ENDPOINT);
 
         $this->assertResponseIsSuccessful();
