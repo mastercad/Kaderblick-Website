@@ -348,6 +348,71 @@ class ProfileController extends AbstractController
         ]);
     }
 
+    #[Route('/profile/relations', name: 'api_profile_relations', methods: ['GET'])]
+    public function getProfileRelations(): JsonResponse
+    {
+        /** @var ?User $user */
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json(['message' => 'Not logged in'], 401);
+        }
+
+        $result = [];
+        foreach ($user->getUserRelations() as $relation) {
+            $player = $relation->getPlayer();
+            $coach = $relation->getCoach();
+
+            $playerData = null;
+            if (null !== $player) {
+                $playerData = [
+                    'clubAssignments' => array_values(array_map(
+                        static fn ($a) => [
+                            'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                            'club' => [
+                                'id' => $a->getClub()?->getId(),
+                                'name' => $a->getClub()?->getName(),
+                                'logoUrl' => $a->getClub()?->getLogoUrl(),
+                                'clubColors' => $a->getClub()?->getClubColors(),
+                            ],
+                        ],
+                        $player->getPlayerClubAssignments()->toArray()
+                    )),
+                ];
+            }
+
+            $coachData = null;
+            if (null !== $coach) {
+                $coachData = [
+                    'clubAssignments' => array_values(array_map(
+                        static fn ($a) => [
+                            'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                            'club' => [
+                                'id' => $a->getClub()?->getId(),
+                                'name' => $a->getClub()?->getName(),
+                                'logoUrl' => $a->getClub()?->getLogoUrl(),
+                                'clubColors' => $a->getClub()?->getClubColors(),
+                            ],
+                        ],
+                        $coach->getCoachClubAssignments()->toArray()
+                    )),
+                ];
+            }
+
+            $result[] = [
+                'relationType' => [
+                    'identifier' => $relation->getRelationType()->getIdentifier(),
+                ],
+                'player' => $playerData,
+                'coach' => $coachData,
+            ];
+        }
+
+        return $this->json($result);
+    }
+
     #[Route('/profile/api-token', name: 'api_profile_api_token_get', methods: ['GET'])]
     public function getApiToken(): JsonResponse
     {

@@ -118,6 +118,14 @@ jest.mock('../../utils/formatter', () => ({
 }));
 jest.mock('../../utils/avatarFrame', () => ({ getAvatarFrameUrl: () => '' }));
 
+jest.mock('../PosterGenerator/components/SharePosterButton', () => ({
+  SharePosterButton: ({ label, payload }: any) => (
+    <button data-testid="share-poster-btn" data-template={payload?.templateId}>
+      {label ?? 'Poster teilen'}
+    </button>
+  ),
+}));
+
 import GameDetails from '../GameDetails';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -128,8 +136,8 @@ const makeGame = (overrides: Record<string, unknown> = {}) => ({
   gameType: { id: 1, name: 'Testspiel' },
   calendarEvent: {
     id: 10,
-    startDate: '2025-05-01T15:00:00Z',
-    endDate: '2025-05-01T17:00:00Z',
+    startDate: '2099-12-31T15:00:00Z',
+    endDate: '2099-12-31T17:00:00Z',
   },
   isFinished: false,
   halfDuration: 45,
@@ -421,5 +429,45 @@ describe('GameDetails – ScoreboardHeroCard competition chips', () => {
     await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
     expect(screen.getByText('Kreispokal')).toBeInTheDocument();
     expect(screen.queryByText('Pokalspiel')).not.toBeInTheDocument();
+  });
+});
+
+// ── SharePosterButton in GameDetails ──────────────────────────────────────
+
+describe('GameDetails — SharePosterButton', () => {
+  it('shows share button with game-announcement template for upcoming game', async () => {
+    mockFetchGameDetails.mockResolvedValue(defaultResponse({ isFinished: false }));
+    renderGame({ gameId: 42 });
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
+    const btn = screen.getByTestId('share-poster-btn');
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute('data-template', 'game-announcement');
+  });
+
+  it('shows label “Ankündigung teilen” for upcoming game', async () => {
+    mockFetchGameDetails.mockResolvedValue(defaultResponse({ isFinished: false }));
+    renderGame({ gameId: 42 });
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
+    expect(screen.getByText('Ankündigung teilen')).toBeInTheDocument();
+  });
+
+  it('shows share button with game-result template for finished game', async () => {
+    mockFetchGameDetails.mockResolvedValue(
+      defaultResponse({ isFinished: true }, { homeScore: 2, awayScore: 1 })
+    );
+    renderGame({ gameId: 42 });
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
+    const btn = screen.getByTestId('share-poster-btn');
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute('data-template', 'game-result');
+  });
+
+  it('shows label “Ergebnis teilen” for finished game', async () => {
+    mockFetchGameDetails.mockResolvedValue(
+      defaultResponse({ isFinished: true }, { homeScore: 3, awayScore: 0 })
+    );
+    renderGame({ gameId: 42 });
+    await waitFor(() => expect(screen.getAllByText('FC Home')[0]).toBeInTheDocument());
+    expect(screen.getByText('Ergebnis teilen')).toBeInTheDocument();
   });
 });

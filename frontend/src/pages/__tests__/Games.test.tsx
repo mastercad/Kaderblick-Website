@@ -122,6 +122,14 @@ jest.mock('../../components/EmptyStateHint', () => (props: any) => (
   <div data-testid="EmptyStateHint">{props.title}</div>
 ));
 
+jest.mock('../PosterGenerator/components/SharePosterButton', () => ({
+  SharePosterButton: ({ label, payload }: any) => (
+    <button data-testid="share-poster-btn" data-template={payload?.templateId}>
+      {label ?? 'Poster teilen'}
+    </button>
+  ),
+}));
+
 // ── Utility mocks ──────────────────────────────────────────────────────────────
 
 jest.mock('../../utils/formatter', () => ({
@@ -375,8 +383,8 @@ const makeGame = (id: number, extra: Record<string, any> = {}) => ({
   gameType: { id: 1, name: 'Testspiel' },
   calendarEvent: {
     id: 100 + id,
-    startDate: '2025-03-15T14:00:00',
-    endDate: '2025-03-15T16:00:00',
+    startDate: '2099-12-31T14:00:00',
+    endDate: '2099-12-31T16:00:00',
     calendarEventType: { id: 1, name: 'Spiel' },
   },
   location: { id: 1, name: 'Stadion', address: 'Hauptstraße 1' },
@@ -403,8 +411,8 @@ const makeTournament = (
   teamIds: [10],
   calendarEvent: {
     id: 200 + id,
-    startDate: '2025-04-01T09:00:00',
-    endDate: '2025-04-01T18:00:00',
+    startDate: '2099-12-31T09:00:00',
+    endDate: '2099-12-31T18:00:00',
     weatherData: { weatherCode: [800] },
   },
   location: { id: 10, name: 'Platz A', address: 'Sportweg 1' },
@@ -908,6 +916,64 @@ describe('Games — GameCard competition chips', () => {
     render(<Games />);
     await waitFor(() => expect(screen.getByText(/Abgeschlossene Spiele/i)).toBeInTheDocument());
     expect(screen.getByText('Stadtpokal')).toBeInTheDocument();
+  });
+});
+
+// ── Share poster button ──────────────────────────────────────────────────
+
+describe('Games — SharePosterButton in GameCard', () => {
+  test('upcoming game shows share button with game-announcement template', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(50)],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    const btn = screen.getByTestId('share-poster-btn');
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute('data-template', 'game-announcement');
+  });
+
+  test('upcoming game share button has label “Ankündigung teilen”', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      upcoming_games: [makeGame(51)],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('FC Home')).toBeInTheDocument());
+    expect(screen.getByText('Ankündigung teilen')).toBeInTheDocument();
+  });
+
+  test('finished game shows share button with game-result template', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      finished_games: [makeGameWithScore(52, 2, 1)],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText(/Abgeschlossene Spiele/i)).toBeInTheDocument());
+    const btn = screen.getByTestId('share-poster-btn');
+    expect(btn).toBeInTheDocument();
+    expect(btn).toHaveAttribute('data-template', 'game-result');
+  });
+
+  test('finished game share button has label “Ergebnis teilen”', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      finished_games: [makeGameWithScore(53, 3, 0)],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText(/Abgeschlossene Spiele/i)).toBeInTheDocument());
+    expect(screen.getByText('Ergebnis teilen')).toBeInTheDocument();
+  });
+
+  test('running game does NOT show share button', async () => {
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      running_games: [makeGame(54)],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText('Live')).toBeInTheDocument());
+    expect(screen.queryByTestId('share-poster-btn')).not.toBeInTheDocument();
   });
 });
 

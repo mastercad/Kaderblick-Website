@@ -6,7 +6,7 @@ export type CalendarEvent = {
   start: Date | string;
   end: Date | string;
   description?: string;
-  eventType?: { id: number; name?: string; color?: string };
+  eventType?: { id?: number; name?: string; color?: string };
   location?: { id?: number; name?: string };
   gameType?: { id?: number; name?: string };
   weatherData?: { weatherCode?: number };

@@ -36,4 +36,11 @@ export default defineConfig([
       },
     },
   },
+  // Node.js config files that run in the build toolchain
+  {
+    files: ['vite.config.js', 'vite.config.ts', 'scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

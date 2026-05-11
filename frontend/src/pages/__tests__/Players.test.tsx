@@ -67,6 +67,14 @@ jest.mock('../../modals/PlayerEditModal', () => (props: any) => (
   props.openPlayerEditModal ? <div data-testid="PlayerEditModal">Edit</div> : null
 ));
 
+jest.mock('../PosterGenerator/components/SharePosterButton', () => ({
+  SharePosterButton: ({ label, payload }: any) => (
+    <button data-testid="share-poster-btn" data-template={payload?.templateId}>
+      {label ?? 'Poster teilen'}
+    </button>
+  ),
+}));
+
 // Mock API
 const mockApiJson = jest.fn();
 const mockApiRequest = jest.fn();
@@ -465,6 +473,34 @@ describe('Players – Season filter', () => {
       const playerCalls = mockApiJson.mock.calls.filter((c: any[]) => c[0].includes('/api/players'));
       expect(playerCalls.length).toBeGreaterThan(0);
       expect(playerCalls[playerCalls.length - 1][0]).toContain('season=');
+    });
+  });
+});
+
+// ── SharePosterButton in player rows ──────────────────────────────────────────
+
+describe('Players – SharePosterButton', () => {
+  it('renders a share-poster-btn for each player row', async () => {
+    await act(async () => { render(<Players />); });
+    await waitFor(() => {
+      const btns = screen.getAllByTestId('share-poster-btn');
+      // 2 players in fixture → 2 share buttons
+      expect(btns.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('share button uses player-highlight template', async () => {
+    await act(async () => { render(<Players />); });
+    await waitFor(() => {
+      const btn = screen.getAllByTestId('share-poster-btn')[0];
+      expect(btn).toHaveAttribute('data-template', 'player-highlight');
+    });
+  });
+
+  it('share button label is "Spieler-Highlight teilen"', async () => {
+    await act(async () => { render(<Players />); });
+    await waitFor(() => {
+      expect(screen.getAllByText('Spieler-Highlight teilen').length).toBeGreaterThanOrEqual(1);
     });
   });
 });

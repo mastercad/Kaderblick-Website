@@ -38,6 +38,7 @@ import { ParticipationList } from './components/ParticipationList';
 import { PlayerOverviewModal } from './components/PlayerOverviewModal';
 import { NoteDialog } from './dialogs/NoteDialog';
 import { CancelDialog } from './dialogs/CancelDialog';
+import { SharePosterButton } from '../../pages/PosterGenerator/components/SharePosterButton';
 
 import type { EventDetailsModalProps } from './types';
 
@@ -148,6 +149,26 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   if (!event) return null;
 
   // ── Date/time helpers ──────────────────────────────────────────────────────
+  const isUpcomingEvent = !event.cancelled && new Date(event.start) > new Date();
+
+  /** Constructs the event-announcement poster payload from this modal’s event */
+  const posterPayload = isUpcomingEvent
+    ? {
+        templateId: 'event-announcement' as const,
+        data: {
+          event: {
+            id:          event.id,
+            title:       event.title,
+            start:       event.start,
+            end:         event.end,
+            description: event.description,
+            // Map modal’s `type` to poster’s `eventType`
+            eventType:   event.type ? { name: event.type.name, color: event.type.color } : undefined,
+            location:    event.location ? { name: event.location.name } : undefined,
+          },
+        },
+      }
+    : null;
   const startDate = new Date(event.start);
   const endDate = new Date(event.end);
   const isSameDay = startDate.toDateString() === endDate.toDateString();
@@ -276,6 +297,16 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
             {/* Flexibler Abstand */}
             <Box sx={{ flex: 1 }} />
+
+            {/* Share poster — only for upcoming events */}
+            {posterPayload && (
+              <SharePosterButton
+                payload={posterPayload}
+                label="Event-Poster teilen"
+                size="small"
+                stopPropagation={false}
+              />
+            )}
 
             {/* Schließen – rechts/primär */}
             <Button

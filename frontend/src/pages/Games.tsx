@@ -41,6 +41,7 @@ import { WeatherDisplay } from '../components/WeatherIcons';
 import WeatherModal from '../modals/WeatherModal';
 import EmptyStateHint from '../components/EmptyStateHint';
 import { formatDateTime, formatTime } from '../utils/formatter';
+import { SharePosterButton } from './PosterGenerator/components/SharePosterButton';
 
 /** Helper: format date string to "Sa, 15. Mär" style */
 const formatDateShort = (dateString: string) => {
@@ -420,6 +421,20 @@ export default function Games() {
             >
               Spielereignis erfassen
             </Button>
+          </Box>
+        )}
+
+        {/* Share poster button — only for upcoming and finished games */}
+        {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
+          <Box sx={{ px: { xs: 1.5, sm: 2.5 }, pb: { xs: 1, sm: 1.5 }, display: 'flex', justifyContent: 'flex-end' }}>
+            <SharePosterButton
+              payload={
+                hasScore
+                  ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: score!.homeScore, awayScore: score!.awayScore } } }
+                  : { templateId: 'game-announcement', data: { game } }
+              }
+              label={hasScore ? 'Ergebnis teilen' : 'Ankündigung teilen'}
+            />
           </Box>
         )}
       </Card>

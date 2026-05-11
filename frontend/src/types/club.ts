@@ -9,6 +9,7 @@ export type Club = {
   stadiumName: string;
   website: string;
   logoUrl: string;
+  clubColors?: string | null;
   active: boolean;
   phone: string;
   abbreviation: string;

@@ -163,6 +163,7 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
         { label: 'Titel & XP Übersicht',   page: 'admin/title-xp-overview', icon: <EmojiEventsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
         ...(isSuperAdmin ? [{ label: 'XP-Konfiguration',     page: 'admin/xp-config',       icon: <EmojiEventsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'Karten-Regeln',         page: 'admin/karten-regeln',   icon: <StyleIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
+        ...(isSuperAdmin ? [{ label: 'Poster-Vorlagen',       page: 'admin/poster-vorlagen',  icon: <CameraAltIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'Nutzeraktivität',      page: 'admin/activity',        icon: <BarChartIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'System-Einstellungen', page: 'admin/system-settings', icon: <SettingsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'System-Wartung',       page: 'admin/system-maintenance', icon: <BuildIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
