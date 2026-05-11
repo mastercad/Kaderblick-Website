@@ -140,7 +140,7 @@ export default function Home() {
             '@type': 'Organization',
             name: 'Kaderblick',
             url: 'https://kaderblick.de/',
-            logo: 'https://kaderblick.de/images/icon-512.png',
+            logo: 'https://kaderblick.de/images/kaderblick_website_appicon.png',
           },
           {
             '@context': 'https://schema.org',

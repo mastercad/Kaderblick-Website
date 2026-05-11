@@ -99,6 +99,12 @@
   background: #33b448;
 }
 
+.public-home-logo-icon {
+  height: 1.85rem;
+  width: auto;
+  display: block;
+}
+
 .public-home-logo-text {
   display: inline-flex;
   align-items: baseline;
@@ -635,6 +641,10 @@
     gap: 1rem;
   }
 
+  .public-home-logo-icon {
+    height: 1.62rem;
+  }
+
   .public-home-logo-text {
     font-size: 1.62rem !important;
   }
@@ -689,6 +699,10 @@
 
   .public-home-header {
     grid-template-columns: auto 1fr auto;
+  }
+
+  .public-home-logo-icon {
+    height: 1.6rem;
   }
 
   .public-home-logo-text {
@@ -783,6 +797,10 @@
   .public-home-demo-button,
   .public-home-more-button {
     width: 100%;
+  }
+
+  .public-home-logo-icon {
+    height: 1.35rem;
   }
 
   .public-home-logo-text {

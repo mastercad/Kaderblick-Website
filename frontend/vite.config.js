@@ -38,13 +38,8 @@ export default defineConfig({
         description: 'Die Vereinsapp für Mitglieder, Teams und Fans.',
         icons: [
           {
-            src: '/images/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/images/icon-512.png',
-            sizes: '512x512',
+            src: '/images/kaderblick_website_appicon.png',
+            sizes: 'any',
             type: 'image/png'
           }
         ]

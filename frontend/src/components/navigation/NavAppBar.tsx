@@ -81,35 +81,42 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
           gap: 2,
         }}
       >
-        <Typography
-          variant="h6"
-          component="div"
+        <Box
           sx={{
             flexGrow: showHomeMarketingHeader ? 0 : 1,
             cursor: 'pointer',
             userSelect: 'none',
             minWidth: 0,
-          }}
-          onClick={() => navigate('/')}
-          title="Zur Startseite"
-          style={{
             fontFamily: "'ImpactWeb', Impact, 'Arial Black', sans-serif",
             fontSize: showHomeMarketingHeader ? (isMobile ? '1.2rem' : '1.6rem') : (isScrolled ? '1.1rem' : '2rem'),
             letterSpacing: showHomeMarketingHeader ? '-0.03em' : undefined,
+            lineHeight: 1,
             transition: 'font-size 0.25s ease',
           }}
+          onClick={() => navigate('/')}
+          title="Zur Startseite"
         >
-          {showHomeMarketingHeader ? (
-            <>
-              <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#34b74a' }}>K</span>
-              <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#ffffff' }}>ADERBLICK</span>
-            </>
-          ) : (
-            <>
-              <span style={{ color: '#018606', textShadow: '0 1px 6px #fff, 0 0px 2px #fff' }}>K</span>ADERBLICK
-            </>
-          )}
-        </Typography>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <img
+              src="/images/kaderblick_website_appicon.svg"
+              alt=""
+              aria-hidden="true"
+              style={{ height: '1em', width: 'auto', display: 'block', flexShrink: 0 }}
+            />
+            <span style={{ display: 'block' }}>
+              {showHomeMarketingHeader ? (
+                <>
+                  <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#34b74a' }}>K</span>
+                  <span style={{ fontFamily: "'ImpactWeb', Impact", color: '#ffffff' }}>ADERBLICK</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ color: '#018606', textShadow: '0 1px 6px #fff, 0 0px 2px #fff' }}>K</span>ADERBLICK
+                </>
+              )}
+            </span>
+          </span>
+        </Box>
 
         {isAuthenticated ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

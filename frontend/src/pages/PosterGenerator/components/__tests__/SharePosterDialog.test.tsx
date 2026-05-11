@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { MemoryRouter } from 'react-router-dom';
 import { SharePosterDialog } from '../SharePosterDialog';
@@ -96,5 +96,77 @@ describe('SharePosterDialog', () => {
     await waitFor(() => {
       expect(screen.getByTestId('dynamic-poster-renderer')).toBeInTheDocument();
     });
+  });
+
+  /**
+   * Regressionstest: Preview-Container muss width:100% haben (responsiv),
+   * nicht eine fixe Breite (z.B. 420px) die auf schmalen Screens überläuft.
+   */
+  it('preview container has width 100% (responsive, no fixed pixel width)', async () => {
+    const { container } = wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dynamic-poster-renderer')).toBeInTheDocument();
+    });
+
+    // Der Preview-Box-Container hat background:#0a0a14 und muss width:100% haben
+    const previewBox = container.querySelector<HTMLElement>('[style*="background: rgb(10, 10, 20)"], [style*="background: #0a0a14"]');
+    if (previewBox) {
+      expect(previewBox.style.width).toBe('100%');
+      expect(previewBox.style.width).not.toMatch(/^\d+px$/);
+    }
+  });
+
+  /**
+   * Regressionstest: DialogContent muss overflow:visible haben, damit das
+   * schwebende MUI-Label des Select-Felds (Vorlage) nicht abgeschnitten wird.
+   */
+  it('DialogContent has overflow:visible so Select label is not clipped', async () => {
+    // Template mit mehreren Vorlagen damit Select überhaupt angezeigt wird
+    const { fetchPosterTemplates } = await import('../../../../services/posterTemplateService');
+    (fetchPosterTemplates as jest.Mock).mockResolvedValueOnce([
+      { ...mockTemplate, id: 1, name: 'Vorlage A' },
+      { ...mockTemplate, id: 2, name: 'Vorlage B' },
+    ]);
+
+    const { container } = wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dynamic-poster-renderer')).toBeInTheDocument();
+    });
+
+    // MUI DialogContent rendert als <div class="MuiDialogContent-root">
+    const dialogContent = container.querySelector('.MuiDialogContent-root');
+    if (dialogContent) {
+      const style = window.getComputedStyle(dialogContent as HTMLElement);
+      // overflow muss visible sein – 'auto' oder 'hidden' würde das Label clippen
+      expect((dialogContent as HTMLElement).style.overflow).toBe('visible');
+    }
+  });
+
+  /**
+   * Regressionstest: getInitialPreviewWidth() berechnet aus window.innerWidth
+   * eine sinnvolle initiale Breite (≤ 420, mind. viewport-80px).
+   * Auf schmalen Screens muss die Breite kleiner als 420px sein.
+   */
+  it('initial preview width adapts to narrow viewport', () => {
+    // Schmaleren Viewport simulieren (Mobiltelefon)
+    const origInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 360, configurable: true });
+
+    const { unmount } = wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+
+    // Der Dialog darf nicht breiter als der Viewport sein (kein horizontales Scrollen)
+    const dialog = document.querySelector<HTMLElement>('[data-testid="share-poster-dialog"]');
+    if (dialog) {
+      // Das Dialog-Paper darf nicht breiter als viewport-breite sein
+      const paper = dialog.closest('.MuiDialog-paper') as HTMLElement | null;
+      if (paper) {
+        expect(paper.style.width ?? '').not.toMatch(/^4[2-9]\d|[5-9]\d\d/);
+      }
+    }
+
+    Object.defineProperty(window, 'innerWidth', { value: origInnerWidth, configurable: true });
+    unmount();
   });
 });

@@ -55,8 +55,8 @@ self.addEventListener('push', (event: PushEvent) => {
   let notificationData = {
     title: 'Kaderblick',
     body: 'Neue Benachrichtigung',
-    icon: '/images/icon-192.png',
-    badge: '/images/icon-192.png',
+    icon: '/images/kaderblick_website_appicon.png',
+    badge: '/images/kaderblick_website_appicon.png',
     data: {} as Record<string, unknown>,
     actions: [] as Array<{ action: string; title: string; icon?: string }>,
     tag: 'kaderblick-' + Date.now(),
@@ -75,10 +75,10 @@ self.addEventListener('push', (event: PushEvent) => {
         body: data.body || data.message || notificationData.body,
         icon: data.icon && !data.icon.includes('example.com')
           ? data.icon
-          : '/images/icon-192.png',
+          : '/images/kaderblick_website_appicon.png',
         badge: data.badge && !data.badge.includes('example.com')
           ? data.badge
-          : '/images/icon-192.png',
+          : '/images/kaderblick_website_appicon.png',
         data: { url, ...(data.data || {}) },
         actions: data.actions || [],
         tag: data.tag || 'kaderblick-' + Date.now(),

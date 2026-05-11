@@ -54,10 +54,13 @@ export default function PublicLoadingScreen({ message = 'Inhalte werden geladen'
             }}
           >
             <Box className="public-home-logo-link" aria-label="Kaderblick lädt Inhalte">
-              <Box className="public-home-logo-mark" aria-hidden="true">
-                <span />
-                <span />
-              </Box>
+              <Box
+                component="img"
+                src="/images/kaderblick_website_appicon.svg"
+                alt=""
+                aria-hidden="true"
+                className="public-home-logo-icon"
+              />
               <Typography className="public-home-logo-text" component="span">
                 <span className="public-home-logo-k">K</span>
                 <span className="public-home-logo-aderblick">ADERBLICK</span>

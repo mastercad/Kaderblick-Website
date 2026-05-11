@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -42,8 +42,13 @@ const PAYLOAD_TYPE_MAP: Record<PosterPayload['templateId'], PosterType> = {
   'player-highlight':   'player_highlight',
 };
 
-/** Vorschau-Breite im Dialog */
-const PREVIEW_WIDTH = 420;
+/** Berechnet die initiale Vorschau-Breite anhand der Viewport-Breite.
+ * MUI Dialog sm = max 600px, 32px margin je Seite → Paper = min(600, vw-64).
+ * DialogContent hat 24px Padding je Seite → Nutzbreite = Paper − 48. */
+function getInitialPreviewWidth(): number {
+  const paper = Math.min(600, window.innerWidth - 64);
+  return Math.max(200, paper - 48);
+}
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
 
@@ -59,6 +64,8 @@ export interface SharePosterDialogProps {
  */
 export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogProps) {
   const posterRef = useRef<HTMLDivElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [previewWidth, setPreviewWidth] = useState(getInitialPreviewWidth);
   const { club, loading: clubLoading } = usePosterClub();
 
   const [templates, setTemplates]     = useState<PosterTemplateDefinition[]>([]);
@@ -100,9 +107,22 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId]);
 
+  useLayoutEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el) return;
+    // Sofort messen, damit scale beim ersten Render korrekt ist
+    const w = el.offsetWidth;
+    if (w > 0) setPreviewWidth(w);
+    const ro = new ResizeObserver(entries => {
+      const rw = entries[0]?.contentRect.width;
+      if (rw && rw > 0) setPreviewWidth(rw);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
+
   const dims = FORMAT_DIMS[format] ?? FORMAT_DIMS['1:1'];
-  const scale = PREVIEW_WIDTH / dims.width;
-  const previewHeight = Math.round(dims.height * scale);
+  const scale = previewWidth / dims.width;
 
   const isLoading = clubLoading || templatesLoading;
 
@@ -121,7 +141,7 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ pb: 0 }}>
+      <DialogContent sx={{ pb: 0, overflow: 'visible', pt: 1.5 }}>
         {templatesError && (
           <Alert severity="error" sx={{ mb: 2 }}>{templatesError}</Alert>
         )}
@@ -169,14 +189,14 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
 
         {/* Poster-Vorschau */}
         <Box
+          ref={previewContainerRef}
           sx={{
             position: 'relative',
             background: '#0a0a14',
             borderRadius: 2,
             overflow: 'hidden',
-            width: PREVIEW_WIDTH,
-            height: previewHeight,
-            mx: 'auto',
+            width: '100%',
+            aspectRatio: `${dims.width} / ${dims.height}`,
           }}
         >
           {isLoading ? (

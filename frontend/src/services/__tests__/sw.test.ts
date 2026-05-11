@@ -61,7 +61,7 @@ describe('Service Worker (sw.ts) push notification handlers', () => {
 
   test('references valid icon paths (not example.com)', () => {
     // Must have real icon paths
-    expect(swSource).toMatch(/icon-192\.png/);
+    expect(swSource).toMatch(/kaderblick_website_appicon\.png/);
     // Must filter out example.com placeholders
     expect(swSource).toMatch(/example\.com/); // The filter is present
   });

@@ -8,6 +8,9 @@
  * - htmlToPngBlob: Cross-Origin-URL wird zu relativem Pfad umgeschrieben
  * - htmlToPngBlob: Inlinen von CSS background-image
  * - htmlToPngBlob: Klon wird nach dem Rendern aus dem DOM entfernt (cleanup)
+ * - htmlToPngBlob: Klon-Wrapper hat position:absolute und top:0 (kein position:fixed)
+ *   → verhindert dass html2canvas die untere Poster-Hälfte abschneidet
+ * - htmlToPngBlob: html2canvas wird mit width/height des Originals aufgerufen
  */
 
 import html2canvas from 'html2canvas';
@@ -171,6 +174,60 @@ describe('htmlToPngBlob', () => {
       expect.any(HTMLElement),
       expect.objectContaining({ scale: 1, backgroundColor: null }),
     );
+    document.body.removeChild(el);
+  });
+
+  it('places clone in a wrapper with position:absolute (not fixed) to avoid bottom-clipping', async () => {
+    const appendedChildren: HTMLElement[] = [];
+    const origAppend = document.body.appendChild.bind(document.body);
+    jest.spyOn(document.body, 'appendChild').mockImplementation((node) => {
+      if (node instanceof HTMLElement) appendedChildren.push(node);
+      return origAppend(node);
+    });
+
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+    await htmlToPngBlob(el);
+
+    // Der Wrapper (nicht das geklonte Element selbst) wird an body gehängt
+    const wrapper = appendedChildren.find(
+      n => n !== el && n.style.position === 'absolute',
+    );
+    expect(wrapper).toBeDefined();
+    expect(wrapper!.style.position).toBe('absolute');
+    expect(wrapper!.style.top).toBe('0px');
+    // Kein position:fixed (das würde html2canvas BoundingRect-Berechnungen fehlleiten)
+    expect(wrapper!.style.position).not.toBe('fixed');
+
+    document.body.removeChild(el);
+  });
+
+  it('does not clip bottom: html2canvas width/height match the original element dimensions', async () => {
+    const el = makeHtmlElement();
+    // offsetWidth/Height sind in jsdom 0, daher style-Werte direkt setzen
+    Object.defineProperty(el, 'offsetWidth',  { get: () => 1080, configurable: true });
+    Object.defineProperty(el, 'offsetHeight', { get: () => 1920, configurable: true });
+    document.body.appendChild(el);
+
+    await htmlToPngBlob(el);
+
+    expect(mockHtml2canvas).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({ width: 1080, height: 1920 }),
+    );
+    document.body.removeChild(el);
+  });
+
+  it('also removes wrapper on error (finally cleanup)', async () => {
+    mockHtml2canvas.mockRejectedValue(new Error('canvas error'));
+
+    const el = makeHtmlElement();
+    document.body.appendChild(el);
+    const childCountBefore = document.body.children.length;
+
+    await expect(htmlToPngBlob(el)).rejects.toThrow('canvas error');
+
+    expect(document.body.children.length).toBe(childCountBefore);
     document.body.removeChild(el);
   });
 });

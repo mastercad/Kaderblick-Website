@@ -42,10 +42,13 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
   return (
     <Box component="header" className="public-home-header">
       <Link component={RouterLink} to="/" underline="none" className="public-home-logo-link">
-        <Box className="public-home-logo-mark" aria-hidden="true">
-          <span />
-          <span />
-        </Box>
+        <Box
+          component="img"
+          src="/images/kaderblick_website_appicon.svg"
+          alt=""
+          aria-hidden="true"
+          className="public-home-logo-icon"
+        />
         <Typography className="public-home-logo-text" component="span">
           <span className="public-home-logo-k">K</span>
           <span className="public-home-logo-aderblick">ADERBLICK</span>
@@ -112,10 +115,13 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
       >
         <Box className="public-home-mobile-drawer-header">
           <Link component={RouterLink} to="/" underline="none" className="public-home-logo-link" onClick={() => setDrawerOpen(false)}>
-            <Box className="public-home-logo-mark" aria-hidden="true">
-              <span />
-              <span />
-            </Box>
+            <Box
+              component="img"
+              src="/images/kaderblick_website_appicon.svg"
+              alt=""
+              aria-hidden="true"
+              className="public-home-logo-icon"
+            />
             <Typography className="public-home-logo-text" component="span">
               <span className="public-home-logo-k">K</span>
               <span className="public-home-logo-aderblick">ADERBLICK</span>
