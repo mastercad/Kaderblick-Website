@@ -107,10 +107,12 @@
 
 .public-home-logo-text {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
+  line-height: 1 !important;
   font-size: 1.85rem !important;
   font-weight: 700 !important;
   letter-spacing: -0.05em;
+  transform: translateY(0.12em);
 }
 
 .public-home-logo-k {
@@ -647,6 +649,7 @@
 
   .public-home-logo-text {
     font-size: 1.62rem !important;
+    line-height: 1 !important;
   }
 
   .public-home-nav-link {
@@ -707,6 +710,7 @@
 
   .public-home-logo-text {
     font-size: 1.6rem !important;
+    line-height: 1 !important;
   }
 
   .public-home-hero-overlay {
@@ -805,6 +809,7 @@
 
   .public-home-logo-text {
     font-size: 1.35rem !important;
+    line-height: 1 !important;
   }
 
   .public-home-hero-title {

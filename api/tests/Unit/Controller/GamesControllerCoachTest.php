@@ -17,6 +17,7 @@ use App\Service\CoachTeamPlayerService;
 use App\Service\GameSchedulePdfService;
 use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
+use App\Service\UserTeamAccessService;
 use App\Service\UserTitleService;
 use App\Service\VideoTimelineService;
 use DateTime;
@@ -52,6 +53,7 @@ class GamesControllerCoachTest extends TestCase
             $this->createMock(CoachTeamPlayerService::class),
             $this->createMock(GoalCountingService::class),
             $this->createMock(GameSchedulePdfService::class),
+            $this->createMock(UserTeamAccessService::class),
         );
 
         $authChecker = $this->createMock(AuthorizationCheckerInterface::class);
@@ -102,6 +104,7 @@ class GamesControllerCoachTest extends TestCase
             $this->createMock(CoachTeamPlayerService::class),
             $goalService,
             $this->createMock(GameSchedulePdfService::class),
+            $this->createMock(UserTeamAccessService::class),
         );
         $controller->setContainer($this->container);
 
@@ -145,6 +148,7 @@ class GamesControllerCoachTest extends TestCase
             $this->createMock(CoachTeamPlayerService::class),
             $goalService,
             $this->createMock(GameSchedulePdfService::class),
+            $this->createMock(UserTeamAccessService::class),
         );
         $controller->setContainer($this->container);
 

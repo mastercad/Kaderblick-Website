@@ -73,6 +73,7 @@ const CardRules = lazy(() => import('./pages/admin/CardRules'));
 const PosterTemplates = lazy(() => import('./pages/admin/PosterTemplates'));
 const PosterTemplateEditor = lazy(() => import('./pages/admin/PosterTemplateEditor/index'));
 const SystemMaintenance = lazy(() => import('./pages/admin/SystemMaintenance'));
+const QuickEventPresets = lazy(() => import('./pages/admin/QuickEventPresets/index'));
 const Locations = lazy(() => import('./pages/Locations'));
 const Clubs = lazy(() => import('./pages/Clubs'));
 const Players = lazy(() => import('./pages/Players'));
@@ -386,6 +387,7 @@ function App() {
                     <Route path="/admin/karten-regeln" element={<ProtectedRoute><CardRules /></ProtectedRoute>} />
                     <Route path="/admin/poster-vorlagen" element={<ProtectedRoute><PosterTemplates /></ProtectedRoute>} />
                     <Route path="/admin/poster-vorlagen/:id" element={<ProtectedRoute><PosterTemplateEditor /></ProtectedRoute>} />
+                    <Route path="/quick-event-konfigurationen" element={<ProtectedRoute><QuickEventPresets /></ProtectedRoute>} />
                     <Route path="/admin/system-settings" element={<ProtectedRoute><SystemSettings /></ProtectedRoute>} />
                     <Route path="/admin/activity" element={<ProtectedRoute><ActivityOverview /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts" element={<Navigate to="/admin/system-maintenance?tab=alerts" replace />} />

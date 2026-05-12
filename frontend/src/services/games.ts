@@ -97,7 +97,7 @@ export async function createGameEvent(gameId: number, eventData: {
   minute: string;
   description?: string;
   reason?: number;
-}): Promise<{ success: boolean }> {
+}): Promise<{ success: boolean; eventId?: number }> {
   return apiJson(`/api/game/${gameId}/event`, {
     method: 'POST',
     body: eventData

@@ -83,7 +83,7 @@ class GameEventsController extends AbstractController
         $event->setGameEventType($eventType);
 
         $coach = !empty($data['coach']) ? $coachRepo->find($data['coach']) : null;
-        $player = null === $coach ? $playerRepo->find($data['player'] ?? null) : null;
+        $player = (null === $coach && !empty($data['player'])) ? $playerRepo->find($data['player']) : null;
         $event->setCoach($coach);
         $event->setPlayer($player);
 
@@ -100,6 +100,8 @@ class GameEventsController extends AbstractController
         }
 
         $team = null;
+        $homeTeamId = $game->getHomeTeam()?->getId();
+        $awayTeamId = $game->getAwayTeam()?->getId();
         if ($player) {
             $assignments = $player->getPlayerTeamAssignments();
             $currentDate = new DateTime();
@@ -107,7 +109,7 @@ class GameEventsController extends AbstractController
                 $ptaTeam = $pta->getTeam();
                 $ptaEnd = $pta->getEndDate();
                 $isActive = (null === $ptaEnd) || ($ptaEnd >= $currentDate);
-                if ($isActive && ($ptaTeam === $game->getHomeTeam() || $ptaTeam === $game->getAwayTeam())) {
+                if ($isActive && ($ptaTeam->getId() === $homeTeamId || $ptaTeam->getId() === $awayTeamId)) {
                     $team = $ptaTeam;
                     break;
                 }
@@ -118,7 +120,7 @@ class GameEventsController extends AbstractController
                 $ctaTeam = $cta->getTeam();
                 $ctaEnd = $cta->getEndDate();
                 $isActive = (null === $ctaEnd) || ($ctaEnd >= $currentDate);
-                if ($isActive && ($ctaTeam === $game->getHomeTeam() || $ctaTeam === $game->getAwayTeam())) {
+                if ($isActive && ($ctaTeam->getId() === $homeTeamId || $ctaTeam->getId() === $awayTeamId)) {
                     $team = $ctaTeam;
                     break;
                 }
@@ -150,7 +152,7 @@ class GameEventsController extends AbstractController
             $dispatcher->dispatch(new GameEventCreatedEvent($currentUser, $event));
         }
 
-        return $this->json(['success' => true]);
+        return $this->json(['success' => true, 'eventId' => $event->getId()]);
     }
 
     #[Route('/api/game/{id}/events', name: 'api_game_event_list', methods: ['GET'])]

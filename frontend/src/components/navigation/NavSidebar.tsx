@@ -26,7 +26,7 @@ interface NavSidebarProps {
 }
 
 export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSidebarProps) {
-  const { navigationItems, trainerMenuItems, adminMenuSections, isAdmin, isCoach } = useNavConfig();
+  const { navigationItems, trainerMenuItems, supporterMenuItems, adminMenuSections, isAdmin, isCoach, isSupporter } = useNavConfig();
   const theme = useTheme();
   const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
@@ -131,6 +131,41 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
               </Typography>
             )}
             {trainerMenuItems.map((item) => {
+              const active = isActive(item.key);
+              const color  = navItemColorMap[item.key];
+              return (
+                <Tooltip key={item.key} title={collapsed ? item.label : ''} placement="right" arrow
+                  disableHoverListener={!collapsed} disableFocusListener={!collapsed} disableTouchListener={!collapsed}
+                >
+                  <ListItemButton selected={active} ref={active ? setActiveRef : undefined} onClick={() => navigate(`/${item.key}`)} sx={itemSx(color)}>
+                    <ListItemIcon sx={iconSx(active, color)}>
+                      {React.cloneElement(item.icon as React.ReactElement<any>, { sx: { fontSize: '1.25rem', color: 'inherit' } })}
+                    </ListItemIcon>
+                    {!collapsed && (
+                      <ListItemText
+                        primary={item.label}
+                        primaryTypographyProps={{ fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' }}
+                      />
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              );
+            })}
+          </>
+        )}
+
+        {/* Supporter-Bereich */}
+        {isSupporter && !isAdmin && (
+          <>
+            <Divider sx={{ my: 1 }} />
+            {!collapsed && (
+              <Typography variant="caption" fontWeight={700} color="text.secondary"
+                sx={{ px: 2, py: 0.5, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem', display: 'block' }}
+              >
+                Supporter
+              </Typography>
+            )}
+            {supporterMenuItems.map((item) => {
               const active = isActive(item.key);
               const color  = navItemColorMap[item.key];
               return (

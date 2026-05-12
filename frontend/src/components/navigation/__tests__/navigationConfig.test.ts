@@ -124,8 +124,8 @@ describe('navigationItems', () => {
 // ── trainerMenuItems ──────────────────────────────────────────────────────────
 
 describe('trainerMenuItems', () => {
-  it('contains 5 items', () => {
-    expect(trainerMenuItems).toHaveLength(5);
+  it('contains 6 items', () => {
+    expect(trainerMenuItems).toHaveLength(6);
   });
 
   it('every item has key, label and icon', () => {
@@ -139,7 +139,7 @@ describe('trainerMenuItems', () => {
   it('contains expected keys', () => {
     const keys = trainerMenuItems.map(i => i.key);
     expect(keys).toEqual(
-      expect.arrayContaining(['team-size-guide', 'formations', 'players', 'teams', 'watchlist']),
+      expect.arrayContaining(['team-size-guide', 'formations', 'players', 'teams', 'watchlist', 'quick-event-konfigurationen']),
     );
   });
 });
@@ -147,7 +147,7 @@ describe('trainerMenuItems', () => {
 // ── navItemIconMap ────────────────────────────────────────────────────────────
 
 describe('navItemIconMap', () => {
-  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'spielbetrieb', 'team', 'wissenspool', 'community'];
+  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'spielbetrieb', 'team', 'wissenspool', 'community', 'quick-event-konfigurationen'];
 
   it('defines an icon for every nav key', () => {
     expectedKeys.forEach(key => {

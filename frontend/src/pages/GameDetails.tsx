@@ -31,6 +31,10 @@ import VideosSection from './game-details/components/VideosSection';
 import TimingSection from './game-details/components/TimingSection';
 import GameDetailsModals from './game-details/components/GameDetailsModals';
 import { SharePosterButton } from './PosterGenerator/components/SharePosterButton';
+import { QuickEventFab } from '../modals/quick-event/components/QuickEventFab';
+import { QuickEventPanel } from '../modals/quick-event/components/QuickEventPanel';
+import { useQuickEventConfig } from '../modals/quick-event/useQuickEventConfig';
+import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
 
 function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const theme = useTheme();
@@ -55,6 +59,8 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const videosSentinelRef    = useRef<HTMLDivElement>(null);
 
   const hook = useGameDetails(propGameId, onBack);
+  const { config: quickEventConfig } = useQuickEventConfig();
+  const [quickEventOpen, setQuickEventOpen] = useState(false);
 
   // ── Sticky header: show compact teams/score when scoreboard scrolls off ──
   useEffect(() => {
@@ -373,6 +379,31 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
       >
         <AddIcon />
       </Fab>
+
+      {/* ── Fernbedienung FAB (nur während laufendem Spiel) ─────────────── */}
+      {hook.isGameRunning() && (
+        <QuickEventFab
+          onClick={() => {
+            if (hook.canCreateEvents()) {
+              setQuickEventOpen(true);
+            } else {
+              hook.setSupporterApplicationOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {/* ── Fernbedienung Panel ─────────────────────────────────────────── */}
+      {hook.isGameRunning() && hook.canCreateEvents() && hook.gameId != null && (
+        <QuickEventPanel
+          open={quickEventOpen}
+          onClose={() => { console.log('[GameDetails] QuickEventPanel onClose aufgerufen'); setQuickEventOpen(false); }}
+          game={game}
+          gameId={hook.gameId}
+          config={quickEventConfig}
+          onEventCreated={hook.loadGameEvents}
+        />
+      )}
 
       {/* ── All Modals ──────────────────────────────────────────────────── */}
       <GameDetailsModals

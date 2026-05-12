@@ -422,6 +422,7 @@ export function useGameDetails(propGameId?: number, onBack?: () => void) {
     sectionsOpen,
     // Handlers
     loadGameDetails,
+    loadGameEvents,
     handleBack,
     handleDeleteEvent,
     handleEventFormSuccess,

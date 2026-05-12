@@ -15,12 +15,7 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 
 import PollIcon from '@mui/icons-material/Poll';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import GroupWorkIcon from '@mui/icons-material/GroupWork';
-import PersonIcon from '@mui/icons-material/Person';
-import GroupsIcon from '@mui/icons-material/Groups';
-import CheckroomIcon from '@mui/icons-material/Checkroom';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import { useNavConfig, isNavItemActive, navItemColorMap } from './navigationConfig';
@@ -43,7 +38,7 @@ const tileBaseSx = (active: boolean, primary: string) => ({
 });
 
 export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMobileDrawerProps) {
-  const { adminMenuSections, isAdmin, isCoach } = useNavConfig();
+  const { trainerMenuItems, adminMenuSections, isAdmin, isCoach } = useNavConfig();
   const theme = useTheme();
   const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
@@ -109,23 +104,21 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
           })}
         </Box>
 
-        {/* Trainer-Bereich */}
+        {/* Trainer-Bereich — driven by trainerMenuItems in navigationConfig.tsx.
+            Adding an item there automatically makes it appear here. */}
         {isCoach && (
           <>
             <SectionHeader title="Trainer" />
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
-              {([
-                { key: 'formations',      label: 'Aufstellungen',    icon: <GroupWorkIcon sx={{ fontSize: 28 }} />,       color: navItemColorMap['formations'] },
-                { key: 'players',         label: 'Spieler',          icon: <PersonIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['players'] },
-                { key: 'teams',           label: 'Teams',            icon: <GroupsIcon sx={{ fontSize: 28 }} />,         color: navItemColorMap['teams'] },
-                { key: 'team-size-guide', label: 'Team Size',        icon: <CheckroomIcon sx={{ fontSize: 28 }} />,      color: navItemColorMap['team-size-guide'] },
-                { key: 'watchlist',       label: 'Beobachtung',      icon: <BookmarkBorderIcon sx={{ fontSize: 28 }} />, color: navItemColorMap['watchlist'] },
-              ] as { key: string; label: string; icon: React.ReactElement; color: string }[]).map((tile) => {
-                const isActive = active(tile.key);
+              {trainerMenuItems.map((item) => {
+                const color = navItemColorMap[item.key] ?? '#90A4AE';
+                const isActive = active(item.key);
                 return (
-                  <ButtonBase key={tile.key} onClick={() => go(`/${tile.key}`)} sx={tileBaseSx(isActive, tile.color)}>
-                    <Box sx={{ color: tile.color, opacity: isActive ? 1 : 0.65, mb: 0.5, lineHeight: 0, transition: 'opacity 0.15s' }}>{tile.icon}</Box>
-                    <TileLabel label={tile.label} isActive={isActive} activeColor={tile.color} />
+                  <ButtonBase key={item.key} onClick={() => go(`/${item.key}`)} sx={tileBaseSx(isActive, color)}>
+                    <Box sx={{ color, opacity: isActive ? 1 : 0.65, mb: 0.5, lineHeight: 0, transition: 'opacity 0.15s' }}>
+                      {React.cloneElement(item.icon as React.ReactElement<{ sx?: object }>, { sx: { fontSize: 28 } })}
+                    </Box>
+                    <TileLabel label={item.label} isActive={isActive} activeColor={color} />
                   </ButtonBase>
                 );
               })}

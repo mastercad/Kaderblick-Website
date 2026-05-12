@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
     Button, Box, Typography, TextField, InputAdornment, CircularProgress, Alert, Divider, Chip, Stack, IconButton
 } from '@mui/material';
@@ -19,6 +19,424 @@ import { PlayerTeamAssignmentType } from '../types/playerTeamAssignmentType';
 import { StrongFeet } from '../types/strongFeet';
 import { Position } from '../types/position';
 import BaseModal from './BaseModal';
+
+// ---------------------------------------------------------------------------
+// Memoized sub-components – prevent sibling rows from re-rendering on input
+// ---------------------------------------------------------------------------
+
+interface ClubAssignmentRowProps {
+    assignment: any;
+    canEditStammdaten: boolean;
+    allClubs: Club[];
+    onChange: (id: number, field: string, value: any) => void;
+    onRemove: (id: number) => void;
+    onOpenNewClubModal: (assignmentId: number) => void;
+}
+const ClubAssignmentRow = React.memo<ClubAssignmentRowProps>(({ assignment, canEditStammdaten, allClubs, onChange, onRemove, onOpenNewClubModal }) => {
+    const options = useMemo(
+        () => canEditStammdaten !== false ? [...allClubs, { id: 'new', name: 'Neuen Verein anlegen...' } as unknown as Club] : allClubs,
+        [allClubs, canEditStammdaten]
+    );
+    return (
+        <Box display="flex" gap={2} alignItems="center" mb={1}
+            sx={canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
+            <Autocomplete
+                options={options}
+                getOptionLabel={(option) => option.name}
+                value={assignment.club || null}
+                onChange={(_, newValue) => {
+                    if (newValue && (newValue as any).id === 'new') {
+                        onOpenNewClubModal(assignment.id);
+                    } else {
+                        onChange(assignment.id, 'club', newValue);
+                    }
+                }}
+                renderOption={(props, option) => {
+                    if ((option as any).id === 'new') {
+                        const { key, ...rest } = props;
+                        return (
+                            <li key={key} {...rest} style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontWeight: 500 }}>
+                                <AddIcon fontSize="small" style={{ marginRight: 8 }} />
+                                Neuen Verein anlegen...
+                            </li>
+                        );
+                    }
+                    const { key, ...rest } = props;
+                    return <li key={key} {...rest}>{option.name}</li>;
+                }}
+                renderInput={(params) => (
+                    <TextField {...params} label="Verein" fullWidth margin="normal" required />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                sx={{ minWidth: 180 }}
+            />
+            <TextField
+                label="Start"
+                type="date"
+                value={assignment.startDate || ''}
+                onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+                required
+            />
+            <TextField
+                label="Ende"
+                type="date"
+                value={assignment.endDate || ''}
+                onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+            />
+            {canEditStammdaten !== false && (
+                <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
+            )}
+        </Box>
+    );
+});
+
+interface TeamAssignmentRowProps {
+    assignment: any;
+    allTeams: Team[];
+    allPlayerTeamAssignmentTypes: PlayerTeamAssignmentType[];
+    onChange: (id: number | null, field: string, value: any) => void;
+    onRemove: (id: number | null) => void;
+}
+const TeamAssignmentRow = React.memo<TeamAssignmentRowProps>(({ assignment, allTeams, allPlayerTeamAssignmentTypes, onChange, onRemove }) => {
+    const ptaEditable = assignment.id === null || assignment.canEdit !== false;
+    return (
+        <Box display="flex" gap={2} alignItems="center" mb={1}
+            sx={!ptaEditable ? { opacity: 0.55, pointerEvents: 'none' } : {}}>
+            <Autocomplete
+                options={allTeams}
+                getOptionLabel={(option) => option.name}
+                value={assignment.team || null}
+                onChange={(_, newValue) => onChange(assignment.id, 'team', newValue)}
+                renderInput={(params) => (
+                    <TextField {...params} label="Team" fullWidth margin="normal" required />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                sx={{ minWidth: 180 }}
+            />
+            <TextField
+                select
+                label="Typ"
+                value={assignment.type ? String(assignment.type) : ''}
+                onChange={e => onChange(assignment.id, 'type', e.target.value)}
+                SelectProps={{ native: true }}
+                sx={{ minWidth: 140 }}
+            >
+                <option value="">Typ wählen...</option>
+                {allPlayerTeamAssignmentTypes.map(assignmentType => (
+                    <option key={assignmentType.id} value={String(assignmentType.id)}>{assignmentType.name}</option>
+                ))}
+            </TextField>
+            <Box flex={1} minWidth={80}>
+                <TextField
+                    label="Trikot Nummer"
+                    name="shirtNumber"
+                    value={assignment.shirtNumber || ''}
+                    onChange={e => onChange(assignment.id, 'shirtNumber', e.target.value)}
+                    fullWidth
+                    InputProps={{ startAdornment: <InputAdornment position="start">#</InputAdornment> }}
+                    required
+                />
+            </Box>
+            <TextField
+                label="Start"
+                type="date"
+                value={assignment.startDate || ''}
+                onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+                required
+            />
+            <TextField
+                label="Ende"
+                type="date"
+                value={assignment.endDate || ''}
+                onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+            />
+            {ptaEditable && (
+                <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
+            )}
+        </Box>
+    );
+});
+
+interface NationalityAssignmentRowProps {
+    assignment: any;
+    canEditStammdaten: boolean;
+    allNationalities: Nationality[];
+    onChange: (id: number, field: string, value: any) => void;
+    onRemove: (id: number) => void;
+    onOpenNewNationalityModal: (assignmentId: number) => void;
+}
+const NationalityAssignmentRow = React.memo<NationalityAssignmentRowProps>(({ assignment, canEditStammdaten, allNationalities, onChange, onRemove, onOpenNewNationalityModal }) => {
+    const options = useMemo(
+        () => canEditStammdaten !== false ? [...allNationalities, { id: 'new', name: 'Neue Nationalität anlegen...' } as unknown as Nationality] : allNationalities,
+        [allNationalities, canEditStammdaten]
+    );
+    return (
+        <Box display="flex" gap={2} alignItems="center" mb={1}
+            sx={canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
+            <Autocomplete
+                options={options}
+                getOptionLabel={(option) => option.name}
+                value={assignment.nationality || null}
+                onChange={(_, newValue) => {
+                    if (newValue && (newValue as any).id === 'new') {
+                        onOpenNewNationalityModal(assignment.id);
+                    } else {
+                        onChange(assignment.id, 'nationality', newValue);
+                    }
+                }}
+                renderOption={(props, option) => {
+                    if ((option as any).id === 'new') {
+                        const { key, ...rest } = props;
+                        return (
+                            <li key={key} {...rest} style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontWeight: 500 }}>
+                                <AddIcon fontSize="small" style={{ marginRight: 8 }} />
+                                Neue Nationalität anlegen...
+                            </li>
+                        );
+                    }
+                    const { key, ...rest } = props;
+                    return <li key={key} {...rest}>{option.name}</li>;
+                }}
+                renderInput={(params) => (
+                    <TextField {...params} label="Nationalität" fullWidth margin="normal" required />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                sx={{ minWidth: 180 }}
+            />
+            <TextField
+                label="Start"
+                type="date"
+                value={assignment.startDate || ''}
+                onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+                required
+            />
+            <TextField
+                label="Ende"
+                type="date"
+                value={assignment.endDate || ''}
+                onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 120 }}
+            />
+            <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small">
+                <DeleteIcon />
+            </IconButton>
+        </Box>
+    );
+});
+
+// ---------------------------------------------------------------------------
+
+// Separate memo for the expensive Autocomplete multiple — skips re-render when
+// typing in other fields (alternativePositions reference stays stable via setFields spread).
+interface AltPositionsFieldProps {
+    options: Position[];
+    value: Position[];
+    onChange: (newValue: Position[]) => void;
+}
+const AltPositionsField = React.memo<AltPositionsFieldProps>(
+    ({ options, value, onChange }) => {
+        const handleChange = useCallback((_: any, newValue: Position[]) => {
+            onChange(newValue);
+        }, [onChange]);
+        return (
+            <Autocomplete
+                multiple
+                options={options}
+                getOptionLabel={option => option.name}
+                value={value}
+                onChange={handleChange}
+                renderTags={(tagValue, getTagProps) =>
+                    tagValue.map((option: Position, index: number) => (
+                        <Chip label={option.name} {...getTagProps({ index })} key={option.id} />
+                    ))
+                }
+                renderInput={params => (
+                    <TextField {...params} label="Alternative Positionen" placeholder="Position(en) wählen..." margin="normal" fullWidth />
+                )}
+                isOptionEqualToValue={(option, val) => option.id === val.id}
+                sx={{ minWidth: 250 }}
+            />
+        );
+    },
+    (prev, next) => prev.value === next.value && prev.options === next.options && prev.onChange === next.onChange
+);
+
+export interface StammdatenSectionHandle {
+    getFields: () => any;
+}
+
+interface StammdatenSectionProps {
+    initialPlayer: any;
+    canEdit: boolean;
+    allStrongFeets: StrongFeet[];
+    allPlayerPositions: Position[];
+}
+
+// forwardRef + memo: typing NEVER triggers a parent re-render.
+// The parent reads current values via ref.getFields() only on submit.
+const StammdatenSection = React.memo(
+    React.forwardRef<StammdatenSectionHandle, StammdatenSectionProps>(
+        ({ initialPlayer, canEdit, allStrongFeets, allPlayerPositions }, ref) => {
+            const [fields, setFields] = useState<any>(() => ({
+                firstName: initialPlayer?.firstName || '',
+                lastName: initialPlayer?.lastName || '',
+                birthdate: initialPlayer?.birthdate || '',
+                email: initialPlayer?.email || '',
+                strongFeet: initialPlayer?.strongFeet || null,
+                mainPosition: initialPlayer?.mainPosition || null,
+                alternativePositions: initialPlayer?.alternativePositions || [],
+            }));
+
+            // Keep a ref always in sync so imperative reads are current without causing re-renders
+            const fieldsRef = useRef(fields);
+            fieldsRef.current = fields;
+
+            useImperativeHandle(ref, () => ({
+                getFields: () => fieldsRef.current,
+            }), []);
+
+            // Re-initialize when a different player is loaded (id changes)
+            const prevIdRef = useRef<any>(initialPlayer?.id);
+            useEffect(() => {
+                if (initialPlayer?.id !== prevIdRef.current) {
+                    prevIdRef.current = initialPlayer?.id;
+                    setFields({
+                        firstName: initialPlayer?.firstName || '',
+                        lastName: initialPlayer?.lastName || '',
+                        birthdate: initialPlayer?.birthdate || '',
+                        email: initialPlayer?.email || '',
+                        strongFeet: initialPlayer?.strongFeet || null,
+                        mainPosition: initialPlayer?.mainPosition || null,
+                        alternativePositions: initialPlayer?.alternativePositions || [],
+                    });
+                }
+            }, [initialPlayer]);
+
+            const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+                const { name, value, type, checked } = e.target;
+                setFields((prev: any) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+            }, []);
+
+            const handleStrongFeetChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+                const id = e.target.value ? parseInt(e.target.value, 10) : 0;
+                const found = id ? allStrongFeets.find(f => f.id === id) || { id } : null;
+                setFields((prev: any) => ({ ...prev, strongFeet: found }));
+            }, [allStrongFeets]);
+
+            const handleMainPositionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+                const id = e.target.value ? parseInt(e.target.value, 10) : 0;
+                const found = id ? allPlayerPositions.find(p => p.id === id) || { id } : null;
+                setFields((prev: any) => ({ ...prev, mainPosition: found }));
+            }, [allPlayerPositions]);
+
+            const handleAltPositionsChange = useCallback((newValue: Position[]) => {
+                setFields((prev: any) => ({ ...prev, alternativePositions: newValue }));
+            }, []);
+
+            return (
+                <>
+                    <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                        Stammdaten
+                        {!canEdit && <Chip label="Nur Ansicht" size="small" sx={{ ml: 1 }} />}
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" gap={2}>
+                        <Box flex={1} minWidth={250}>
+                            <TextField label="Vorname" name="firstName" value={fields.firstName} onChange={handleInputChange} required fullWidth margin="normal" />
+                        </Box>
+                        <Box flex={1} minWidth={250}>
+                            <TextField label="Nachname" name="lastName" value={fields.lastName} onChange={handleInputChange} required fullWidth margin="normal" />
+                        </Box>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" gap={2}>
+                        <Box flex={1} minWidth={250}>
+                            <TextField
+                                label="Geburtsdatum"
+                                name="birthdate"
+                                type="date"
+                                value={fields.birthdate}
+                                onChange={handleInputChange}
+                                fullWidth
+                                margin="normal"
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Box>
+                        <Box flex={1} minWidth={250}>
+                            <TextField label="E-Mail" name="email" value={fields.email} onChange={handleInputChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">✉️</InputAdornment> }} />
+                        </Box>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" gap={2}>
+                        <Box flex={1} minWidth={250}>
+                            <TextField
+                                select
+                                label="Starker Fuß"
+                                value={fields.strongFeet?.id || ''}
+                                onChange={handleStrongFeetChange}
+                                required
+                                fullWidth
+                                margin="normal"
+                                SelectProps={{ native: true }}
+                                InputLabelProps={{ shrink: true }}
+                            >
+                                <option value="">Starken Fuß wählen...</option>
+                                {allStrongFeets.map(sf => (
+                                    <option key={sf.id} value={String(sf.id)}>{sf.name}</option>
+                                ))}
+                            </TextField>
+                        </Box>
+                        <Box flex={1} minWidth={250}>
+                            <TextField
+                                select
+                                label="Hauptposition"
+                                value={fields.mainPosition?.id || ''}
+                                onChange={handleMainPositionChange}
+                                fullWidth
+                                required
+                                margin="normal"
+                                SelectProps={{ native: true }}
+                                InputLabelProps={{ shrink: true }}
+                            >
+                                <option value="">Hauptposition wählen...</option>
+                                {allPlayerPositions.map(position => (
+                                    <option key={position.id} value={String(position.id)}>{position.name}</option>
+                                ))}
+                            </TextField>
+                        </Box>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" gap={2}>
+                        <Box flex={1} minWidth={250}>
+                            <AltPositionsField
+                                options={allPlayerPositions}
+                                value={fields.alternativePositions}
+                                onChange={handleAltPositionsChange}
+                            />
+                        </Box>
+                    </Box>
+                </>
+            );
+        }
+    ),
+    // Only re-render when a different player is opened or lookup data changes.
+    // Never re-render due to parent player-state changes during typing.
+    (prev, next) => (
+        prev.initialPlayer?.id === next.initialPlayer?.id &&
+        prev.canEdit === next.canEdit &&
+        prev.allStrongFeets === next.allStrongFeets &&
+        prev.allPlayerPositions === next.allPlayerPositions
+    )
+);
+
+// ---------------------------------------------------------------------------
 
 interface PlayerEditModalProps {
     openPlayerEditModal: boolean;
@@ -50,6 +468,7 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
     const [playerSearchResults, setPlayerSearchResults] = useState<any[]>([]);
     const [playerSearchLoading, setPlayerSearchLoading] = useState(false);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const stammdatenRef = useRef<StammdatenSectionHandle>(null);
     
     // Multi-Select States
     const [allClubs, setAllClubs] = useState<Club[]>([]);
@@ -160,58 +579,59 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
         }
     }, [openPlayerEditModal, playerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handlePlayerEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePlayerEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
         setPlayer((prev: any) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-    };
+    }, []);
 
-    const handleClubAssignmentChange = (id: number, field: string, value: any) => {
+    const handleClubAssignmentChange = useCallback((id: number, field: string, value: any) => {
         setPlayer((prev: any) => {
             const assignments = (prev.clubAssignments || []).map((a: any) =>
                 a.id === id ? { ...a, [field]: value } : a
             );
             return { ...prev, clubAssignments: assignments };
         });
-    };
+    }, []);
 
-    const handleTeamAssignmentChange = (id: number, field: string, value: any) => {
+    const handleTeamAssignmentChange = useCallback((id: number | null, field: string, value: any) => {
         setPlayer((prev: any) => {
             const assignments = (prev.teamAssignments || []).map((a: any) =>
                 a.id === id ? { ...a, [field]: value } : a
             );
             return { ...prev, teamAssignments: assignments };
         });
-    };
+    }, []);
 
-    const handleAddTeamAssignment = () => {
+    const handleAddTeamAssignment = useCallback(() => {
+        const tempKey = `new-${Date.now()}-${Math.random()}`;
         setPlayer((prev: any) => {
             const base = prev ?? {};
             return {
                 ...base,
                 teamAssignments: [
                     ...(base.teamAssignments || []),
-                    { id: null, team: null, type: '', startDate: undefined, endDate: undefined }
+                    { id: null, _tempKey: tempKey, team: null, type: '', startDate: undefined, endDate: undefined }
                 ]
             };
         });
-    };
+    }, []);
 
-    const handleRemoveTeamAssignment = (id: number) => {
+    const handleRemoveTeamAssignment = useCallback((id: number | null) => {
         setPlayer((prev: any) => {
             const assignments = (prev.teamAssignments || []).filter((a: any) => a.id !== id);
             return { ...prev, teamAssignments: assignments };
         });
-    };
+    }, []);
 
-    const handleRemoveClubAssignment = (id: number) => {
+    const handleRemoveClubAssignment = useCallback((id: number) => {
         setPlayer((prev: any) => {
             const assignments = (prev.clubAssignments || []).filter((a: any) => a.id !== id);
             return { ...prev, clubAssignments: assignments };
         });
-    };
+    }, []);
 
 /*
     const handleLicenseAssignmentChange = (id: number, field: string, value: any) => {
@@ -243,7 +663,7 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
     };
 */
 
-    const handleAddClubAssignment = () => {
+    const handleAddClubAssignment = useCallback(() => {
         setPlayer((prev: any) => {
             const base = prev ?? {};
             return {
@@ -254,18 +674,18 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                 ]
             };
         });
-    };
+    }, []);
 
-    const handleNationalityAssignmentChange = (id: number, field: string, value: any) => {
+    const handleNationalityAssignmentChange = useCallback((id: number, field: string, value: any) => {
         setPlayer((prev: any) => {
             const assignments = (prev.nationalityAssignments || []).map((a: any) =>
                 a.id === id ? { ...a, [field]: value } : a
             );
             return { ...prev, nationalityAssignments: assignments };
         });
-    };
+    }, []);
 
-    const handleAddNationalityAssignment = () => {
+    const handleAddNationalityAssignment = useCallback(() => {
         setPlayer((prev: any) => {
             const base = prev ?? {};
             return {
@@ -276,13 +696,25 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                 ]
             };
         });
-    };
-    const handleRemoveNationalityAssignment = (id: number) => {
+    }, []);
+    const handleRemoveNationalityAssignment = useCallback((id: number) => {
         setPlayer((prev: any) => {
             const assignments = (prev.nationalityAssignments || []).filter((a: any) => a.id !== id);
             return { ...prev, nationalityAssignments: assignments };
         });
-    };
+    }, []);
+
+    const handleOpenNewClubModal = useCallback((assignmentId: number) => {
+        setClubModalId(assignmentId);
+        setOpenClubModal(true);
+    }, []);
+
+    const handleOpenNewNationalityModal = useCallback((assignmentId: number) => {
+        setNationalityModalId(assignmentId);
+        setOpenNationalityModal(true);
+    }, []);
+
+    const canEditStammdaten = player?.permissions?.canEditStammdaten !== false;
 
     const handlePlayerEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -291,9 +723,10 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
         try {
           const url = player.id ? `/api/players/${player.id}` : '/api/players';
           const method = player.id ? 'PUT' : 'POST';
+          const stammdatenFields = stammdatenRef.current?.getFields() ?? {};
           const res = await apiJson(url, {
             method,
-            body: player,
+            body: { ...player, ...stammdatenFields },
             headers: { 'Content-Type': 'application/json' },
           });
 
@@ -396,114 +829,14 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
 
                             {/* Stammdaten zuerst */}
                             <Box mb={4} pb={2} borderBottom={1} borderColor="divider"
-                                sx={player?.permissions?.canEditStammdaten === false ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
-                                    Stammdaten
-                                    {player?.permissions?.canEditStammdaten === false && (
-                                        <Chip label="Nur Ansicht" size="small" sx={{ ml: 1 }} />
-                                    )}
-                                </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Vorname" name="firstName" value={player?.firstName || ''} onChange={handlePlayerEditChange} required fullWidth margin="normal" />
-                                    </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Nachname" name="lastName" value={player?.lastName || ''} onChange={handlePlayerEditChange} required fullWidth margin="normal" />
-                                    </Box>
-                                </Box>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField 
-                                            label="Geburtsdatum"
-                                            name="birthdate"
-                                            type="date"
-                                            value={player?.birthdate || ''}
-                                            onChange={handlePlayerEditChange}
-                                            fullWidth
-                                            margin="normal"
-                                            InputLabelProps={{ shrink: true }}
-                                        />
-                                    </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="E-Mail" name="email" value={player?.email || ''} onChange={handlePlayerEditChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">✉️</InputAdornment> }} />
-                                    </Box>
-                                </Box>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField
-                                            select
-                                            label="Starker Fuß"
-                                            value={player?.strongFeet?.id || ''}
-                                            onChange={e => {
-                                                const id = e.target.value ? parseInt(e.target.value, 10) : '';
-                                                setPlayer((prev: any) => ({
-                                                    ...prev,
-                                                    strongFeet: id ? allStrongFeets.find(f => f.id === id) || { id } : { id: '' }
-                                                }));
-                                            }}
-                                            required
-                                            fullWidth
-                                            margin="normal"
-                                            SelectProps={{ native: true }}
-                                            InputLabelProps={{ shrink: true }}
-                                        >
-                                            <option value="">Starken Fuß wählen...</option>
-                                            {allStrongFeets.map(strongFeet => (
-                                                <option key={strongFeet.id} value={String(strongFeet.id)}>{strongFeet.name}</option>
-                                            ))}
-                                        </TextField>
-                                    </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField
-                                            select
-                                            label="Hauptposition"
-                                            value={player?.mainPosition?.id || ''}
-                                            onChange={e => {
-                                                const id = e.target.value ? parseInt(e.target.value, 10) : '';
-                                                setPlayer((prev: any) => ({
-                                                    ...prev,
-                                                    mainPosition: id ? allPlayerPositions.find(p => p.id === id) || { id } : { id: '' }
-                                                }));
-                                            }}
-                                            fullWidth
-                                            required
-                                            margin="normal"
-                                            SelectProps={{ native: true }}
-                                            InputLabelProps={{ shrink: true }}
-                                        >
-                                            <option value="">Hauptposition wählen...</option>
-                                            {allPlayerPositions.map(position => (
-                                                <option key={position.id} value={String(position.id)}>{position.name}</option>
-                                            ))}
-                                        </TextField>
-                                    </Box>
-                                </Box>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
-                                        <Autocomplete
-                                            multiple
-                                            options={allPlayerPositions}
-                                            getOptionLabel={option => option.name}
-                                            value={player?.alternativePositions || []}
-                                            onChange={(_, newValue) => {
-                                                setPlayer((prev: any) => ({
-                                                    ...prev,
-                                                    alternativePositions: newValue
-                                                }));
-                                            }}
-                                            renderTags={(value, getTagProps) =>
-                                                value.map((option, index) => (
-                                                    <Chip label={option.name} {...getTagProps({ index })} key={option.id} />
-                                                ))
-                                            }
-                                            renderInput={params => (
-                                                <TextField {...params} label="Alternative Positionen" placeholder="Position(en) wählen..." margin="normal" fullWidth />
-                                            )}
-                                            isOptionEqualToValue={(option, value) => option.id === value.id}
-                                            sx={{ minWidth: 250 }}
-                                        />
-                                    </Box>
-                                </Box>
+                                sx={!canEditStammdaten ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
+                                <StammdatenSection
+                                    ref={stammdatenRef}
+                                    initialPlayer={player}
+                                    canEdit={canEditStammdaten}
+                                    allStrongFeets={allStrongFeets}
+                                    allPlayerPositions={allPlayerPositions}
+                                />
                             </Box>
                             <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
                                 <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
@@ -511,134 +844,36 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                 </Typography>
                                 <Stack spacing={2}>
                                     {/* Verein-Zuordnungen: immer sichtbar, nur bearbeitbar bei voller Berechtigung */}
-                                    <Box sx={player?.permissions?.canEditStammdaten === false ? { opacity: 0.75 } : {}}>
+                                    <Box sx={!canEditStammdaten ? { opacity: 0.75 } : {}}>
                                         <Typography variant="subtitle1" mt={2} mb={1}>Verein-Zuordnungen</Typography>
                                         {(player?.clubAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}
-                                            sx={player?.permissions?.canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
-                                            <Autocomplete
-                                                options={player?.permissions?.canEditStammdaten !== false ? [...allClubs, { id: 'new', name: 'Neuen Verein anlegen...' }] : allClubs}
-                                                getOptionLabel={(option) => option.name}
-                                                value={assignment.club || null}
-                                                onChange={(_, newValue) => {
-                                                    if (newValue && (newValue as any).id === 'new') {
-                                                        setClubModalId(assignment.id);
-                                                        setOpenClubModal(true);
-                                                    } else {
-                                                        handleClubAssignmentChange(assignment.id, 'club', newValue);
-                                                    }
-                                                }}
-                                                renderOption={(props, option) => {
-                                                    if ((option as any).id === 'new') {
-                                                        const { key, ...rest } = props;
-                                                        return (
-                                                            <li key={key} {...rest} style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontWeight: 500 }}>
-                                                                <AddIcon fontSize="small" style={{ marginRight: 8 }} />
-                                                                Neuen Verein anlegen...
-                                                            </li>
-                                                        );
-                                                    }
-                                                    const { key, ...rest } = props;
-                                                    return (
-                                                        <li key={key} {...rest}>{option.name}</li>
-                                                    );
-                                                }}
-                                                renderInput={(params) => (
-                                                    <TextField {...params} label="Verein" fullWidth margin="normal" required />
-                                                )}
-                                                isOptionEqualToValue={(option, value) => option.id === value.id}
-                                                sx={{ minWidth: 180 }}
+                                            <ClubAssignmentRow
+                                                key={assignment.id}
+                                                assignment={assignment}
+                                                canEditStammdaten={canEditStammdaten}
+                                                allClubs={allClubs}
+                                                onChange={handleClubAssignmentChange}
+                                                onRemove={handleRemoveClubAssignment}
+                                                onOpenNewClubModal={handleOpenNewClubModal}
                                             />
-                                            <TextField
-                                                label="Start"
-                                                type="date"
-                                                value={assignment.startDate || ''}
-                                                onChange={e => handleClubAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                                required
-                                            />
-                                            <TextField
-                                                label="Ende"
-                                                type="date"
-                                                value={assignment.endDate || ''}
-                                                onChange={e => handleClubAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                            />
-                                            {player?.permissions?.canEditStammdaten !== false && (
-                                                <IconButton onClick={() => handleRemoveClubAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
-                                            )}
-                                        </Box>
                                         ))}
-                                        {player?.permissions?.canEditStammdaten !== false && (
+                                        {canEditStammdaten && (
                                             <Button onClick={handleAddClubAssignment} startIcon={<AddIcon />} size="small" sx={{ mt: 1 }}>Verein-Zuordnung hinzufügen</Button>
                                         )}
                                     </Box>
 
                                     <Box>
                                         <Typography variant="subtitle1" mt={2} mb={1}>Team-Zuordnungen</Typography>
-                                        {(player?.teamAssignments ?? []).map((assignment: any) => {
-                                            // canEdit: bei neuen Einträgen (id=null) immer true,
-                                            // bei bestehenden kommt das Flag vom Backend
-                                            const ptaEditable = assignment.id === null || assignment.canEdit !== false;
-                                            return (
-                                            <Box key={assignment.id ?? `new-${Math.random()}`}
-                                                display="flex" gap={2} alignItems="center" mb={1}
-                                                sx={!ptaEditable ? { opacity: 0.55, pointerEvents: 'none' } : {}}>
-                                            <Autocomplete
-                                                options={allTeams}
-                                                getOptionLabel={(option) => option.name}
-                                                value={assignment.team || null}
-                                                onChange={(_, newValue) => handleTeamAssignmentChange(assignment.id, 'team', newValue)}
-                                                renderInput={(params) => (
-                                                    <TextField {...params} label="Team" fullWidth margin="normal" required />
-                                                )}
-                                                isOptionEqualToValue={(option, value) => option.id === value.id}
-                                                sx={{ minWidth: 180 }}
+                                        {(player?.teamAssignments ?? []).map((assignment: any) => (
+                                            <TeamAssignmentRow
+                                                key={assignment.id ?? assignment._tempKey}
+                                                assignment={assignment}
+                                                allTeams={allTeams}
+                                                allPlayerTeamAssignmentTypes={allPlayerTeamAssignmentTypes}
+                                                onChange={handleTeamAssignmentChange}
+                                                onRemove={handleRemoveTeamAssignment}
                                             />
-                                            <TextField
-                                                select
-                                                label="Typ"
-                                                value={assignment.type ? String(assignment.type) : ''}
-                                                onChange={e => handleTeamAssignmentChange(assignment.id, 'type', e.target.value)}
-                                                SelectProps={{ native: true }}
-                                                sx={{ minWidth: 140 }}
-                                            >
-                                                <option value="">Typ wählen...</option>
-                                                {allPlayerTeamAssignmentTypes.map(assignmentType => (
-                                                    <option key={assignmentType.id} value={String(assignmentType.id)}>{assignmentType.name}</option>
-                                                ))}
-                                            </TextField>
-                                            <Box flex={1} minWidth={80}>
-                                                <TextField label="Trikot Nummer" name="shirtNumber" value={assignment.shirtNumber || ''}
-                                                    onChange={e => handleTeamAssignmentChange(assignment.id, 'shirtNumber', e.target.value)} fullWidth
-                                                    InputProps={{ startAdornment: <InputAdornment position="start">#</InputAdornment> }} required
-                                            />
-                                            </Box>
-                                            <TextField
-                                                label="Start"
-                                                type="date"
-                                                value={assignment.startDate || ''}
-                                                onChange={e => handleTeamAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                                required
-                                            />
-                                            <TextField
-                                                label="Ende"
-                                                type="date"
-                                                value={assignment.endDate || ''}
-                                                onChange={e => handleTeamAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                            />
-                                            {ptaEditable && (
-                                                <IconButton onClick={() => handleRemoveTeamAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
-                                            )}
-                                        </Box>
-                                            );
-                                        })}
+                                        ))}
                                         <Button onClick={handleAddTeamAssignment} startIcon={<AddIcon />} size="small" sx={{ mt: 1 }}>Team-Zuordnung hinzufügen</Button>
                                     </Box>
 {/*
@@ -702,67 +937,20 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                     </Box>
 */}
                                     {/* Nationalitäten: immer sichtbar, nur bearbeitbar bei voller Berechtigung */}
-                                    <Box sx={player?.permissions?.canEditStammdaten === false ? { opacity: 0.75 } : {}}>
+                                    <Box sx={!canEditStammdaten ? { opacity: 0.75 } : {}}>
                                         <Typography variant="subtitle1" mt={2} mb={1}>Nationalitäten</Typography>
                                         {(player?.nationalityAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}
-                                            sx={player?.permissions?.canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
-                                            <Autocomplete
-                                                options={player?.permissions?.canEditStammdaten !== false ? [...allNationalities, { id: 'new', name: 'Neue Nationalität anlegen...' }] : allNationalities}
-                                                getOptionLabel={(option) => option.name}
-                                                value={assignment.nationality || null}
-                                                onChange={(_, newValue) => {
-                                                    if (newValue && (newValue as any).id === 'new') {
-                                                        setNationalityModalId(assignment.id);
-                                                        setOpenNationalityModal(true);
-                                                    } else {
-                                                        handleNationalityAssignmentChange(assignment.id, 'nationality', newValue);
-                                                    }
-                                                }}
-                                                renderOption={(props, option) => {
-                                                    if ((option as any).id === 'new') {
-                                                        const { key, ...rest } = props;
-                                                        return (
-                                                            <li key={key} {...rest} style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontWeight: 500 }}>
-                                                                <AddIcon fontSize="small" style={{ marginRight: 8 }} />
-                                                                Neue Nationalität anlegen...
-                                                            </li>
-                                                        );
-                                                    }
-                                                    const { key, ...rest } = props;
-                                                    return (
-                                                        <li key={key} {...rest}>{option.name}</li>
-                                                    );
-                                                }}
-                                                renderInput={(params) => (
-                                                    <TextField {...params} label="Nationalität" fullWidth margin="normal" required />
-                                                )}
-                                                isOptionEqualToValue={(option, value) => option.id === value.id}
-                                                sx={{ minWidth: 180 }}
+                                            <NationalityAssignmentRow
+                                                key={assignment.id}
+                                                assignment={assignment}
+                                                canEditStammdaten={canEditStammdaten}
+                                                allNationalities={allNationalities}
+                                                onChange={handleNationalityAssignmentChange}
+                                                onRemove={handleRemoveNationalityAssignment}
+                                                onOpenNewNationalityModal={handleOpenNewNationalityModal}
                                             />
-                                            <TextField
-                                                label="Start"
-                                                type="date"
-                                                value={assignment.startDate || ''}
-                                                onChange={e => handleNationalityAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                                required
-                                            />
-                                            <TextField
-                                                label="Ende"
-                                                type="date"
-                                                value={assignment.endDate || ''}
-                                                onChange={e => handleNationalityAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
-                                                sx={{ minWidth: 120 }}
-                                            />
-                                            <IconButton onClick={() => handleRemoveNationalityAssignment(assignment.id)} color="error" size="small">
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Box>
                                         ))}
-                                        {player?.permissions?.canEditStammdaten !== false && (
+                                        {canEditStammdaten && (
                                             <Button onClick={handleAddNationalityAssignment} startIcon={<AddIcon />} size="small" sx={{ mt: 1 }}>
                                                 Nationalität hinzufügen
                                             </Button>
