@@ -74,6 +74,7 @@ const baseNavConfig: ReturnType<typeof useNavConfig> = {
     { key: 'formations', label: 'Aufstellungen', icon: <span /> },
     { key: 'players',    label: 'Spieler',       icon: <span /> },
   ],
+  supporterMenuItems: [],
   adminMenuSections: [
     {
       section: 'Stammdaten',
@@ -88,6 +89,7 @@ const baseNavConfig: ReturnType<typeof useNavConfig> = {
     calendar:  <span data-testid="icon-calendar" />,
   },
   isAdmin: false,
+  isSupporter: false,
   isCoach: false,
 };
 

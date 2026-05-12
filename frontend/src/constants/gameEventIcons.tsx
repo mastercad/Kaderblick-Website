@@ -126,6 +126,7 @@ export const GAME_EVENT_ICON_MAP: Record<string, React.ReactNode> = {
   'fas fa-tools': <ToolsIcon sx={{ verticalAlign: 'middle' }} />, // Technische Probleme
   'fas fa-users': <GroupIcon sx={{ verticalAlign: 'middle' }} />, // Unsportliches Verhalten außen
   'fas fa-user': <UserIcon sx={{ verticalAlign: 'middle' }} />, // Schiedsrichter
+  'fas fa-hands-helping': <HandshakeIcon sx={{ verticalAlign: 'middle' }} />, // Vorlage / Torvorlage
 };
 
 // Hilfsfunktion für dynamischen Zugriff

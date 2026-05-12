@@ -25,6 +25,7 @@ use App\Service\CoachTeamPlayerService;
 use App\Service\GameSchedulePdfService;
 use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
+use App\Service\UserTeamAccessService;
 use App\Service\UserTitleService;
 use App\Service\VideoTimelineService;
 use DateTime;
@@ -85,6 +86,7 @@ class GamesController extends ApiController
         private readonly CoachTeamPlayerService $coachTeamPlayerService,
         private readonly GoalCountingService $goalCountingService,
         private readonly GameSchedulePdfService $gameSchedulePdfService,
+        private readonly UserTeamAccessService $userTeamAccessService,
     ) {
         $this->entityManager = $entityManager;
     }
@@ -345,17 +347,7 @@ class GamesController extends ApiController
         $matchPlan = $game->getMatchPlan();
         $canManageMatchPlan = $this->isGranted(MatchPlanVoter::MANAGE, $game);
         $canViewMatchPlan = $this->isGranted(MatchPlanVoter::VIEW, $game);
-        $userTeamIds = [];
-        if ($currentUser instanceof User) {
-            foreach ($this->coachTeamPlayerService->collectPlayerTeams($currentUser) as $team) {
-                $userTeamIds[$team->getId()] = $team->getId();
-            }
-            foreach ($this->coachTeamPlayerService->collectCoachTeams($currentUser) as $team) {
-                $userTeamIds[$team->getId()] = $team->getId();
-            }
-        }
-
-        $serializeGame = function ($game) use ($calendarEvent, $location, $matchPlan, $canManageMatchPlan, $canViewMatchPlan, $userTeamIds) {
+        $serializeGame = function ($game) use ($calendarEvent, $location, $matchPlan, $canManageMatchPlan, $canViewMatchPlan, $currentUser) {
             return [
                 'id' => $game->getId(),
                 'homeTeam' => $game->getHomeTeam() ? [
@@ -366,7 +358,7 @@ class GamesController extends ApiController
                     'id' => $game->getAwayTeam()->getId(),
                     'name' => $game->getAwayTeam()->getName(),
                 ] : null,
-                'userTeamIds' => array_values($userTeamIds),
+                'userTeamIds' => $currentUser instanceof User ? $this->resolveUserTeamIds($currentUser) : [],
                 'location' => $location ? [
                     'id' => $location->getId(),
                     'name' => $location->getName(),
@@ -662,7 +654,7 @@ class GamesController extends ApiController
         $running = [];
         $finished = [];
 
-        $serializeGame = function ($game) {
+        $serializeGame = function ($game) use ($currentUser) {
             $calendarEvent = $game->getCalendarEvent();
             $location = $calendarEvent->getLocation();
 
@@ -676,6 +668,7 @@ class GamesController extends ApiController
                     'id' => $game->getAwayTeam()->getId(),
                     'name' => $game->getAwayTeam()->getName(),
                 ] : null,
+                'userTeamIds' => $currentUser instanceof User ? $this->resolveUserTeamIds($currentUser) : [],
                 'location' => $location ? [
                     'id' => $location->getId(),
                     'name' => $location->getName(),
@@ -808,13 +801,13 @@ class GamesController extends ApiController
             }
         ));
 
-        // ---- Resolve user team IDs (only currently active assignments) ----
+        // ---- Resolve user team IDs for dropdown / default team selection ----
         $userTeamIds = [];
         if ($currentUser instanceof User) {
             foreach ($this->coachTeamPlayerService->collectPlayerTeams($currentUser) as $team) {
                 $userTeamIds[$team->getId()] = $team->getId();
             }
-            foreach ($this->coachTeamPlayerService->collectCoachTeams($currentUser) as $team) {
+            foreach ($this->userTeamAccessService->getCoachLinkedTeams($currentUser) as $team) {
                 $userTeamIds[$team->getId()] = $team->getId();
             }
         }
@@ -1054,5 +1047,27 @@ class GamesController extends ApiController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
+    }
+
+    /**
+     * Liefert die IDs der Spielteams (Home/Away), denen der User über irgendeine
+     * UserRelation zugeordnet ist — egal ob Spieler- oder Coach-Relation, egal
+     * welcher RelationType-Identifier.
+     *
+     * @return list<int>
+     */
+    private function resolveUserTeamIds(User $user): array
+    {
+        $matched = [];
+
+        foreach ($this->coachTeamPlayerService->collectPlayerTeams($user) as $team) {
+            $matched[$team->getId()] = $team->getId();
+        }
+
+        foreach ($this->userTeamAccessService->getCoachLinkedTeams($user) as $team) {
+            $matched[$team->getId()] = $team->getId();
+        }
+
+        return array_values($matched);
     }
 }

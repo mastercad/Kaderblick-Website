@@ -131,6 +131,34 @@ class UserTeamAccessService
     }
 
     /**
+     * Returns all teams reachable via ANY relation that links the user to a Coach
+     * (self_coach, assistant, observer, substitute, mentor, …) with an active
+     * CoachTeamAssignment on $referenceDate.
+     *
+     * @return array<int, Team> keyed by team ID
+     */
+    public function getCoachLinkedTeams(User $user, ?DateTimeInterface $referenceDate = null): array
+    {
+        $date = $referenceDate ?? new DateTimeImmutable();
+        $teams = [];
+
+        foreach ($user->getUserRelations() as $relation) {
+            $coach = $relation->getCoach();
+            if (!$coach) {
+                continue;
+            }
+            foreach ($coach->getCoachTeamAssignments() as $cta) {
+                if ($this->isActiveOnDate($cta->getStartDate(), $cta->getEndDate(), $date)) {
+                    $team = $cta->getTeam();
+                    $teams[$team->getId()] = $team;
+                }
+            }
+        }
+
+        return $teams;
+    }
+
+    /**
      * Returns all teams where the user is an active self_coach on $referenceDate.
      * Uses in-memory entity iteration (relies on already-loaded collections).
      *

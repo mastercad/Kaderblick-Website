@@ -1,4 +1,5 @@
 import React from 'react';
+import TuneIcon from '@mui/icons-material/Tune';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import GroupsIcon from '@mui/icons-material/Groups';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
@@ -122,11 +123,12 @@ export const navigationItems: NavItem[] = [
 ];
 
 export const trainerMenuItems: TrainerMenuItem[] = [
-  { key: 'team-size-guide', label: 'Team Size Guide',     icon: <CheckroomIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-  { key: 'formations',      label: 'Aufstellungen',       icon: <GroupWorkIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-  { key: 'players',         label: 'Spieler',             icon: <PersonIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-  { key: 'teams',           label: 'Teams',               icon: <GroupsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-  { key: 'watchlist',       label: 'Beobachtungsliste',   icon: <BookmarkBorderIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'team-size-guide',              label: 'Team Size Guide',            icon: <CheckroomIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'formations',                   label: 'Aufstellungen',              icon: <GroupWorkIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'players',                      label: 'Spieler',                    icon: <PersonIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'teams',                        label: 'Teams',                      icon: <GroupsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'watchlist',                    label: 'Beobachtungsliste',          icon: <BookmarkBorderIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'quick-event-konfigurationen',  label: 'Quick-Event Konfiguration',  icon: <TuneIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
 ];
 
 export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
@@ -180,18 +182,19 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
 }
 
 export const navItemIconMap: Record<string, React.ReactNode> = {
-  'home':          <HomeIcon fontSize="small" />,
-  'dashboard':     <DashboardIcon fontSize="small" />,
-  'my-team':       <GroupsIcon fontSize="small" />,
-  'mein-verein':   <ShieldIcon fontSize="small" />,
-  'calendar':      <CalendarMonthIcon fontSize="small" />,
-  'games':         <SportsSoccerIcon fontSize="small" />,
-  'reports':       <BarChartIcon fontSize="small" />,
-  'news':          <NewspaperIcon fontSize="small" />,
-  'surveys':       <PollIcon fontSize="small" />,
-  'mein-feedback': <FeedbackIcon fontSize="small" />,
-  'tasks':         <AssignmentIcon fontSize="small" />,
-  'mein-spieltag': <ChecklistIcon fontSize="small" />,
+  'home':                        <HomeIcon fontSize="small" />,
+  'dashboard':                   <DashboardIcon fontSize="small" />,
+  'my-team':                     <GroupsIcon fontSize="small" />,
+  'mein-verein':                 <ShieldIcon fontSize="small" />,
+  'calendar':                    <CalendarMonthIcon fontSize="small" />,
+  'games':                       <SportsSoccerIcon fontSize="small" />,
+  'reports':                     <BarChartIcon fontSize="small" />,
+  'news':                        <NewspaperIcon fontSize="small" />,
+  'surveys':                     <PollIcon fontSize="small" />,
+  'mein-feedback':               <FeedbackIcon fontSize="small" />,
+  'tasks':                       <AssignmentIcon fontSize="small" />,
+  'mein-spieltag':               <ChecklistIcon fontSize="small" />,
+  'quick-event-konfigurationen': <TuneIcon fontSize="small" />,
   // Nav group icons
   'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
   'team':          <GroupsIcon fontSize="small" />,
@@ -200,25 +203,26 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
 };
 
 export const navItemColorMap: Record<string, string> = {
-  'home':            '#5C6BC0',
-  'dashboard':       '#26A69A',
-  'my-team':         '#66BB6A',
-  'mein-verein':     '#5C6BC0',
-  'calendar':        '#FFA726',
-  'games':           '#EF5350',
-  'reports':         '#AB47BC',
-  'news':            '#42A5F5',
-  'surveys':         '#26C6DA',
-  'mein-feedback':   '#EC407A',
-  'tasks':           '#F59E0B',
-  'mein-spieltag':   '#EF5350',
-  'wissenspool':     '#7E57C2',
-  'formations':      '#66BB6A',
-  'players':         '#26A69A',
-  'teams':           '#5C6BC0',
-  'team-size-guide': '#FFA726',
-  'watchlist':       '#EC407A',
-  'messages':        '#29B6F6',
+  'home':                        '#5C6BC0',
+  'dashboard':                   '#26A69A',
+  'my-team':                     '#66BB6A',
+  'mein-verein':                 '#5C6BC0',
+  'calendar':                    '#FFA726',
+  'games':                       '#EF5350',
+  'reports':                     '#AB47BC',
+  'news':                        '#42A5F5',
+  'surveys':                     '#26C6DA',
+  'mein-feedback':               '#EC407A',
+  'tasks':                       '#F59E0B',
+  'mein-spieltag':               '#EF5350',
+  'wissenspool':                 '#7E57C2',
+  'formations':                  '#66BB6A',
+  'players':                     '#26A69A',
+  'teams':                       '#5C6BC0',
+  'team-size-guide':             '#FFA726',
+  'watchlist':                   '#EC407A',
+  'messages':                    '#29B6F6',
+  'quick-event-konfigurationen': '#FF7043',
   // Nav groups
   'spielbetrieb': '#EF5350',
   'team':         '#66BB6A',
@@ -251,18 +255,27 @@ export function findNavGroupForPathname(pathname: string): NavGroup | undefined 
   return navigationGroups.find(g => g.children.some(c => isNavItemActive(pathname, c.key)));
 }
 
+// ── Supporter-Menü ─────────────────────────────────────────────────────────────
+
+export const supporterMenuItems: TrainerMenuItem[] = [
+  { key: 'quick-event-konfigurationen', label: 'Quick-Event Konfiguration', icon: <TuneIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+];
+
 // ── Hook: assembles role-dependent nav config ──────────────────────────────────
 
 export function useNavConfig() {
   const { user, isSuperAdmin } = useAuth();
   const rolesArray = Object.values(user?.roles ?? {});
-  const isAdmin = rolesArray.includes('ROLE_ADMIN') || rolesArray.includes('ROLE_SUPERADMIN');
+  const isAdmin    = rolesArray.includes('ROLE_ADMIN') || rolesArray.includes('ROLE_SUPERADMIN');
+  const isSupporter = rolesArray.includes('ROLE_SUPPORTER');
   return {
     navigationItems,
     trainerMenuItems,
+    supporterMenuItems,
     adminMenuSections: getAdminMenuSections(isSuperAdmin),
     navItemIconMap,
     isAdmin,
+    isSupporter,
     isCoach: user?.isCoach ?? false,
   };
 }

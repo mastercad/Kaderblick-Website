@@ -696,7 +696,7 @@ const getAnalysisChipProps = (analysis: PhaseAnalysis) => {
 
 export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCardProps) {
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
 
   const teamOptions = useMemo(() => [game.homeTeam, game.awayTeam].filter(Boolean), [game.awayTeam, game.homeTeam]);
@@ -750,6 +750,7 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
   }, [canManageMatchPlan, canViewMatchPlan, defaultTeamId, game.id, game.matchPlan]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!canViewMatchPlan && !canManageMatchPlan) {
       setAllPlayersRows([]);
       setHasParticipationData(false);
@@ -787,7 +788,7 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
     return () => {
       cancelled = true;
     };
-  }, [canManageMatchPlan, canViewMatchPlan, game.id, showToast]);
+  }, [authLoading, canManageMatchPlan, canViewMatchPlan, game.id, showToast]);
 
   const sortedPhases = useMemo(() => sortPhases(matchPlan.phases), [matchPlan.phases]);
   const startPhase = sortedPhases[0] ?? createEmptyStartPhase();

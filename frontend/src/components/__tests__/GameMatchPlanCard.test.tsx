@@ -561,4 +561,107 @@ describe('GameMatchPlanCard', () => {
       }));
     });
   });
+
+  describe('auth-timing: no double-fetch when auth state changes', () => {
+    it('does not call fetchGameSquad while auth is still loading', async () => {
+      mockUseAuth.mockReturnValue({ user: null, isLoading: true });
+
+      render(
+        <GameMatchPlanCard
+          game={makeGame({
+            permissions: {
+              can_manage_match_plan: false,
+              can_publish_match_plan: false,
+              can_view_match_plan: true,
+            },
+          })}
+        />,
+      );
+
+      expect(mockFetchGameSquad).not.toHaveBeenCalled();
+    });
+
+    it('calls fetchGameSquad exactly once after auth resolves for a regular user', async () => {
+      mockUseAuth.mockReturnValue({ user: null, isLoading: true });
+
+      const game = makeGame({
+        permissions: {
+          can_manage_match_plan: false,
+          can_publish_match_plan: false,
+          can_view_match_plan: true,
+        },
+      });
+
+      const { rerender } = render(<GameMatchPlanCard game={game} />);
+
+      expect(mockFetchGameSquad).not.toHaveBeenCalled();
+
+      mockUseAuth.mockReturnValue({
+        user: { id: 1, isCoach: false, isPlayer: true, roles: { user: 'ROLE_USER' } },
+        isLoading: false,
+      });
+      rerender(<GameMatchPlanCard game={game} />);
+
+      await waitFor(() => {
+        expect(mockFetchGameSquad).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('calls fetchGameSquad exactly once after auth resolves for a coach (regression: was twice before fix)', async () => {
+      // Regression: previously the effect ran with canManageMatchPlan=false (user=null)
+      // and then again with canManageMatchPlan=true (user=coach), causing a double-fetch
+      // of /api/games/{id}/squad and /formations.
+      mockUseAuth.mockReturnValue({ user: null, isLoading: true });
+
+      const game = makeGame({
+        permissions: {
+          can_manage_match_plan: true,
+          can_publish_match_plan: true,
+          can_view_match_plan: true,
+        },
+      });
+
+      const { rerender } = render(<GameMatchPlanCard game={game} />);
+
+      expect(mockFetchGameSquad).not.toHaveBeenCalled();
+
+      // Auth resolves — user is a coach, so canManageMatchPlan flips to true
+      mockUseAuth.mockReturnValue({
+        user: { id: 7, isCoach: true, isPlayer: false, roles: { user: 'ROLE_USER' } },
+        isLoading: false,
+      });
+      rerender(<GameMatchPlanCard game={game} />);
+
+      await waitFor(() => {
+        expect(mockFetchGameSquad).toHaveBeenCalledTimes(1);
+      });
+
+      // Confirm no second call fires after the permissions stabilise
+      await new Promise(resolve => setTimeout(resolve, 80));
+      expect(mockFetchGameSquad).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fetch when the user has no view permission even after auth resolves', async () => {
+      mockUseAuth.mockReturnValue({ user: null, isLoading: true });
+
+      const game = makeGame({
+        permissions: {
+          can_manage_match_plan: false,
+          can_publish_match_plan: false,
+          can_view_match_plan: false,
+        },
+      });
+
+      const { rerender } = render(<GameMatchPlanCard game={game} />);
+
+      mockUseAuth.mockReturnValue({
+        user: { id: 1, isCoach: false, isPlayer: true, roles: { user: 'ROLE_USER' } },
+        isLoading: false,
+      });
+      rerender(<GameMatchPlanCard game={game} />);
+
+      await new Promise(resolve => setTimeout(resolve, 80));
+      expect(mockFetchGameSquad).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -2,9 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\QuickEventConfig;
 use App\Entity\User;
 use App\Entity\UserRelation;
+use App\Repository\QuickEventConfigRepository;
+use App\Repository\QuickEventPresetRepository;
 use App\Service\UserContactService;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -135,5 +139,98 @@ class UserController extends AbstractController
         }
 
         return $this->json(['success' => true]);
+    }
+
+    #[Route('/me/quick-event-config', name: 'quick_event_config_get', methods: ['GET'])]
+    public function getQuickEventConfig(
+        QuickEventConfigRepository $repo,
+        QuickEventPresetRepository $presetRepo,
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        // 1. Persönliche Konfiguration hat höchste Priorität
+        $entity = $repo->findByUser($user);
+        if (null !== $entity) {
+            return $this->json(['config' => $entity->getConfig()]);
+        }
+
+        // 2. Aktiv geschaltetes globales Preset
+        $activePreset = $presetRepo->findActive();
+        if (null !== $activePreset) {
+            return $this->json(['config' => $activePreset->getConfig()]);
+        }
+
+        // 3. Kein Preset aktiv → Frontend nutzt Default-Konfiguration
+        return $this->json(['config' => null]);
+    }
+
+    /**
+     * Searches for users eligible to receive a shared Quick-Event-Preset.
+     * Only coaches (UserRelation with RelationType category='coach'), assistants,
+     * and users with ROLE_SUPPORTER are returned.
+     * Requires at least 2 characters in the query parameter `q`.
+     */
+    #[Route('/shareable-search', name: 'shareable_search', methods: ['GET'])]
+    public function shareableSearch(Request $request, Connection $db): JsonResponse
+    {
+        $q = trim((string) $request->query->get('q', ''));
+        if (mb_strlen($q) < 2) {
+            return $this->json(['users' => []]);
+        }
+
+        /** @var User $me */
+        $me = $this->getUser();
+        $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $q) . '%';
+
+        $rows = $db->fetchAllAssociative(
+            "SELECT DISTINCT u.id, CONCAT(u.first_name, ' ', u.last_name) AS full_name
+               FROM users u
+               LEFT JOIN user_relations ur ON ur.user_id = u.id
+               LEFT JOIN relation_types rt ON rt.id = ur.relation_type_id
+              WHERE u.is_enabled = 1
+                AND u.is_verified = 1
+                AND u.id != :me
+                AND (CONCAT(u.first_name, ' ', u.last_name) LIKE :q OR u.email LIKE :q)
+                AND (rt.category = 'coach' OR JSON_SEARCH(u.roles, 'one', 'ROLE_SUPPORTER') IS NOT NULL)
+              ORDER BY u.first_name, u.last_name
+              LIMIT 20",
+            ['me' => $me->getId(), 'q' => $like],
+        );
+
+        return $this->json([
+            'users' => array_map(fn (array $row) => [
+                'id' => (int) $row['id'],
+                'fullName' => $row['full_name'],
+            ], $rows),
+        ]);
+    }
+
+    #[Route('/me/quick-event-config', name: 'quick_event_config_put', methods: ['PUT'])]
+    public function putQuickEventConfig(
+        Request $request,
+        QuickEventConfigRepository $repo,
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $data = $request->toArray();
+        $configData = $data['config'] ?? [];
+
+        if (!is_array($configData)) {
+            return $this->json(['error' => 'config must be an array'], 400);
+        }
+
+        $entity = $repo->findByUser($user);
+        if (null === $entity) {
+            $entity = new QuickEventConfig($user, $configData);
+            $this->entityManager->persist($entity);
+        } else {
+            $entity->setConfig($configData);
+        }
+
+        $this->entityManager->flush();
+
+        return $this->json(['config' => $entity->getConfig()]);
     }
 }

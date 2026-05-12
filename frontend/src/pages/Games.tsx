@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -33,9 +33,13 @@ import {
   ExpandLess as ExpandLessIcon,
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
-import { fetchGamesOverview, fetchGameSchedulePdf, GamesOverviewData } from '../services/games';
+import { fetchGamesOverview, fetchGameSchedulePdf, fetchGameDetails, GamesOverviewData } from '../services/games';
 import { Game, GameWithScore, TournamentOverview } from '../types/games';
 import { useAuth } from '../context/AuthContext';
+import { QuickEventPanel } from '../modals/quick-event/components/QuickEventPanel';
+import { useQuickEventConfig } from '../modals/quick-event/useQuickEventConfig';
+import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
+import { ToastProvider } from '../context/ToastContext';
 import Location from '../components/Location';
 import { WeatherDisplay } from '../components/WeatherIcons';
 import WeatherModal from '../modals/WeatherModal';
@@ -65,7 +69,17 @@ export default function Games() {
   const [error, setError] = useState<string | null>(null);
   const [weatherModalOpen, setWeatherModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState<number | 'all'>('all');
+  const [selectedTeamId, setSelectedTeamIdState] = useState<number | 'all'>(() => {
+    const stored = localStorage.getItem('games_selectedTeamId');
+    if (stored === 'all') return 'all';
+    const parsed = Number(stored);
+    return stored && !isNaN(parsed) ? parsed : 'all';
+  });
+
+  const setSelectedTeamId = (v: number | 'all') => {
+    localStorage.setItem('games_selectedTeamId', String(v));
+    setSelectedTeamIdState(v);
+  };
   const [noTeamAssignment, setNoTeamAssignment] = useState(false);
   const [sectionsOpen, setSectionsOpen] = useState({
     running: true,
@@ -77,6 +91,33 @@ export default function Games() {
     return today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
   });
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [quickEventGame, setQuickEventGame] = useState<Game | null>(null);
+  const [quickEventLoading, setQuickEventLoading] = useState(false);
+  const [supporterApplicationOpen, setSupporterApplicationOpen] = useState(false);
+  const quickEventDirty = useRef(false);
+  const { config: quickEventConfig } = useQuickEventConfig();
+
+  const rolesArray = Object.values(user?.roles ?? {});
+  const canUseQuickEvents =
+    rolesArray.includes('ROLE_SUPERADMIN') ||
+    rolesArray.includes('ROLE_SUPPORTER') ||
+    user?.isCoach === true;
+
+  const handleOpenQuickEvent = async (gameId: number) => {
+    if (!canUseQuickEvents) {
+      setSupporterApplicationOpen(true);
+      return;
+    }
+    setQuickEventLoading(true);
+    try {
+      const result = await fetchGameDetails(gameId);
+      setQuickEventGame(result.game);
+    } catch {
+      // Fehler ignorieren – Panel öffnet sich nicht
+    } finally {
+      setQuickEventLoading(false);
+    }
+  };
 
   const openWeatherModal = (eventId: number | null) => {
     setSelectedEventId(eventId);
@@ -97,12 +138,16 @@ export default function Games() {
   };
 
   useEffect(() => {
-    loadGamesOverview();
+    // Gespeichertes Team direkt beim ersten Laden mitgeben
+    const stored = localStorage.getItem('games_selectedTeamId');
+    const storedTeam: number | 'all' | undefined =
+      stored === 'all' ? 'all' : stored && !isNaN(Number(stored)) ? Number(stored) : undefined;
+    loadGamesOverview(storedTeam);
   }, []);
 
-  const loadGamesOverview = async (teamId?: number | 'all', season?: number) => {
+  const loadGamesOverview = async (teamId?: number | 'all', season?: number, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const result = await fetchGamesOverview(teamId, season ?? selectedSeason);
       if ('error' in result) {
@@ -112,7 +157,8 @@ export default function Games() {
       setData(overviewData);
       if (teamId === undefined) {
         setNoTeamAssignment(overviewData.noTeamAssignment ?? false);
-        if (overviewData.userDefaultTeamId) {
+        // userDefaultTeamId nur setzen wenn noch kein gespeicherter Wert vorhanden
+        if (overviewData.userDefaultTeamId && localStorage.getItem('games_selectedTeamId') === null) {
           setSelectedTeamId(overviewData.userDefaultTeamId);
         }
       }
@@ -415,8 +461,9 @@ export default function Games() {
               color="success"
               size="small"
               fullWidth
-              startIcon={<SoccerIcon />}
-              onClick={() => window.open(`/game/${game.id}/events`, '_blank')}
+              startIcon={quickEventLoading ? <CircularProgress size={16} color="inherit" /> : <SoccerIcon />}
+              onClick={(e) => { e.stopPropagation(); handleOpenQuickEvent(game.id); }}
+              disabled={quickEventLoading}
               sx={{ fontWeight: 600 }}
             >
               Spielereignis erfassen
@@ -873,6 +920,31 @@ export default function Games() {
         open={weatherModalOpen}
         onClose={() => setWeatherModalOpen(false)}
         eventId={selectedEventId}
+      />
+
+      {quickEventGame && (
+        <ToastProvider>
+          <QuickEventPanel
+            open={quickEventGame !== null}
+            onClose={() => {
+              setQuickEventGame(null);
+              if (quickEventDirty.current) {
+                quickEventDirty.current = false;
+                loadGamesOverview(selectedTeamId === 'all' ? undefined : selectedTeamId, selectedSeason, true);
+              }
+            }}
+            game={quickEventGame}
+            gameId={quickEventGame.id}
+            config={quickEventConfig}
+            filterTeamId={selectedTeamId}
+            onEventCreated={() => { quickEventDirty.current = true; }}
+          />
+        </ToastProvider>
+      )}
+
+      <SupporterApplicationModal
+        open={supporterApplicationOpen}
+        onClose={() => setSupporterApplicationOpen(false)}
       />
     </Box>
   );

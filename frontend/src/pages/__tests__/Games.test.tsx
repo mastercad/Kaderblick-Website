@@ -108,7 +108,7 @@ jest.mock('react-router-dom', () => ({
 // ── Auth context mock ──────────────────────────────────────────────────────────
 
 jest.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({ user: { firstName: 'Max', id: 1 }, isAdmin: true }),
+  useAuth: () => ({ user: { firstName: 'Max', id: 1, roles: { 0: 'ROLE_SUPPORTER' } }, isAdmin: true }),
 }));
 
 // ── Child component mocks ─────────────────────────────────────────────────────
@@ -141,10 +141,40 @@ jest.mock('../../utils/formatter', () => ({
 
 const mockFetchGamesOverview = jest.fn();
 const mockFetchGameSchedulePdf = jest.fn();
+const mockFetchGameDetails = jest.fn();
 
 jest.mock('../../services/games', () => ({
   fetchGamesOverview: (...args: any[]) => mockFetchGamesOverview(...args),
   fetchGameSchedulePdf: (...args: any[]) => mockFetchGameSchedulePdf(...args),
+  fetchGameDetails: (...args: any[]) => mockFetchGameDetails(...args),
+}));
+
+jest.mock('../../modals/quick-event/components/QuickEventPanel', () => ({
+  QuickEventPanel: (props: any) =>
+    props.open ? (
+      <div data-testid="quick-event-panel">
+        <button data-testid="qep-add-event" onClick={props.onEventCreated}>Event hinzufügen</button>
+        <button data-testid="qep-close" onClick={props.onClose}>Schließen</button>
+      </div>
+    ) : null,
+}));
+
+jest.mock('../../context/ToastContext', () => ({
+  ToastProvider: ({ children }: any) => <>{children}</>,
+  useToast: () => ({ showToast: jest.fn() }),
+}));
+
+jest.mock('../../modals/quick-event/useQuickEventConfig', () => ({
+  useQuickEventConfig: () => ({ config: null }),
+}));
+
+jest.mock('../../modals/SupporterApplicationModal', () => ({
+  SupporterApplicationModal: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
+    open ? (
+      <div data-testid="supporter-application-modal">
+        <button onClick={onClose}>Schließen</button>
+      </div>
+    ) : null,
 }));
 
 // ── URL / DOM shims ────────────────────────────────────────────────────────────
@@ -177,8 +207,10 @@ const makeOverviewData = (extraTeams: { id: number; name: string }[] = []) => ({
 // ── Setup / teardown ──────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  localStorage.clear();
   mockFetchGamesOverview.mockReset();
   mockFetchGameSchedulePdf.mockReset();
+  mockFetchGameDetails.mockReset();
   mockCreateObjectURL.mockClear();
   mockRevokeObjectURL.mockClear();
   mockWindowOpen.mockClear();
@@ -548,15 +580,17 @@ describe('Games — GameCard', () => {
     expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument();
   });
 
-  test('"Spielereignis" button opens game events in new tab', async () => {
+  test('"Spielereignis" button opens QuickEventPanel', async () => {
+    const game5 = makeGame(5);
+    mockFetchGameDetails.mockResolvedValue({ game: game5, gameEvents: [], homeScore: null, awayScore: null });
     mockFetchGamesOverview.mockResolvedValue({
       ...makeOverviewData(),
-      running_games: [makeGame(5)],
+      running_games: [game5],
     });
     render(<Games />);
     await waitFor(() => expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/Spielereignis erfassen/i));
-    expect(mockWindowOpen).toHaveBeenCalledWith('/game/5/events', '_blank');
+    await waitFor(() => expect(screen.getByTestId('quick-event-panel')).toBeInTheDocument());
   });
 
   test('renders finished game with score', async () => {
@@ -977,3 +1011,132 @@ describe('Games — SharePosterButton in GameCard', () => {
   });
 });
 
+// ── QuickEvent dirty-flag ─────────────────────────────────────────────────────
+
+describe('Games — QuickEvent dirty-flag behavior', () => {
+  /**
+   * Renders Games with one running game, clicks "Spielereignis erfassen" to open
+   * the QuickEventPanel and waits until the panel is visible.
+   * Resets the mockFetchGamesOverview call-count so tests can assert on calls
+   * that happen AFTER the panel was opened.
+   */
+  const openPanel = async (gameId: number) => {
+    const game = makeGame(gameId);
+    mockFetchGameDetails.mockResolvedValue({ game, gameEvents: [], homeScore: null, awayScore: null });
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData(),
+      running_games: [game],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByText(/Spielereignis erfassen/i));
+    await waitFor(() => expect(screen.getByTestId('quick-event-panel')).toBeInTheDocument());
+    // Reset call-count; only calls AFTER this point are relevant for the tests
+    mockFetchGamesOverview.mockClear();
+  };
+
+  test('onEventCreated does NOT call loadGamesOverview immediately', async () => {
+    await openPanel(60);
+
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+
+    // Panel remains open — no state change caused by onEventCreated
+    expect(screen.getByTestId('quick-event-panel')).toBeInTheDocument();
+    expect(mockFetchGamesOverview).not.toHaveBeenCalled();
+  });
+
+  test('multiple onEventCreated calls do NOT call loadGamesOverview', async () => {
+    await openPanel(61);
+
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+
+    expect(mockFetchGamesOverview).not.toHaveBeenCalled();
+  });
+
+  test('closing panel WITHOUT any events does NOT trigger loadGamesOverview', async () => {
+    await openPanel(62);
+
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+
+    expect(mockFetchGamesOverview).not.toHaveBeenCalled();
+  });
+
+  test('closing panel AFTER one event calls loadGamesOverview exactly once', async () => {
+    await openPanel(63);
+
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+
+    expect(mockFetchGamesOverview).toHaveBeenCalledTimes(1);
+  });
+
+  test('multiple events then close → loadGamesOverview called exactly once (not per-event)', async () => {
+    await openPanel(64);
+
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+
+    expect(mockFetchGamesOverview).toHaveBeenCalledTimes(1);
+  });
+
+  test('dirty flag resets after close: second session without events does NOT reload', async () => {
+    await openPanel(65);
+
+    // First session: add event + close → triggers reload
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+    mockFetchGamesOverview.mockClear();
+
+    // Wait for loadGamesOverview (triggered by onClose) to finish so the running game re-appears
+    await waitFor(() => expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument());
+
+    // Second session: re-open + close without events → no reload
+    fireEvent.click(screen.getByText(/Spielereignis erfassen/i));
+    await waitFor(() => expect(screen.getByTestId('quick-event-panel')).toBeInTheDocument());
+    mockFetchGamesOverview.mockClear();
+
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+
+    expect(mockFetchGamesOverview).not.toHaveBeenCalled();
+  });
+
+  test('loadGamesOverview on close uses the currently selected teamId', async () => {
+    // Use two-team overview so the team selector is visible
+    const game = makeGame(66);
+    mockFetchGameDetails.mockResolvedValue({ game, gameEvents: [], homeScore: null, awayScore: null });
+    mockFetchGamesOverview.mockResolvedValue({
+      ...makeOverviewData([TEAM_B]),
+      running_games: [game],
+    });
+    render(<Games />);
+    await waitFor(() => expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument());
+
+    // Switch team filter to TEAM_B before opening panel
+    const teamSelect = screen.getByTestId('select-team-filter-label');
+    fireEvent.change(teamSelect, { target: { value: String(TEAM_B.id) } });
+    // Wait for the re-fetch to COMPLETE (spinner gone, running game visible again)
+    await waitFor(() => expect(screen.getByText(/Spielereignis erfassen/i)).toBeInTheDocument());
+    mockFetchGamesOverview.mockClear();
+
+    fireEvent.click(screen.getByText(/Spielereignis erfassen/i));
+    await waitFor(() => expect(screen.getByTestId('quick-event-panel')).toBeInTheDocument());
+    mockFetchGamesOverview.mockClear();
+
+    // Add event + close → loadGamesOverview must use TEAM_B's id
+    fireEvent.click(screen.getByTestId('qep-add-event'));
+    fireEvent.click(screen.getByTestId('qep-close'));
+    await waitFor(() => expect(screen.queryByTestId('quick-event-panel')).not.toBeInTheDocument());
+
+    expect(mockFetchGamesOverview).toHaveBeenCalledTimes(1);
+    expect(mockFetchGamesOverview).toHaveBeenCalledWith(String(TEAM_B.id), expect.any(Number));
+  });
+});

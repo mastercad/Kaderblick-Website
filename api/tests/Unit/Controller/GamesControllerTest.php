@@ -10,6 +10,7 @@ use App\Service\CoachTeamPlayerService;
 use App\Service\GameSchedulePdfService;
 use App\Service\GoalCountingService;
 use App\Service\TournamentAdvancementService;
+use App\Service\UserTeamAccessService;
 use App\Service\VideoTimelineService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -36,6 +37,7 @@ class GamesControllerTest extends TestCase
             $this->createMock(CoachTeamPlayerService::class),
             $this->createMock(GoalCountingService::class),
             $this->createMock(GameSchedulePdfService::class),
+            $this->createMock(UserTeamAccessService::class),
         );
 
         $authChecker = $this->createMock(AuthorizationCheckerInterface::class);

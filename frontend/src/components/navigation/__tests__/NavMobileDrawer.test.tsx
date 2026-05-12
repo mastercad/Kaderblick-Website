@@ -59,10 +59,14 @@ function renderDrawer(open = true) {
 const baseNavConfig: ReturnType<typeof useNavConfig> = {
   navigationItems: [],
   trainerMenuItems: [
-    { key: 'formations', label: 'Aufstellungen', icon: <span /> },
-    { key: 'players',    label: 'Spieler',       icon: <span /> },
-    { key: 'teams',      label: 'Teams',         icon: <span /> },
+    { key: 'formations',                  label: 'Aufstellungen',           icon: <span /> },
+    { key: 'players',                     label: 'Spieler',                 icon: <span /> },
+    { key: 'teams',                       label: 'Teams',                   icon: <span /> },
+    { key: 'team-size-guide',             label: 'Team Size Guide',         icon: <span /> },
+    { key: 'watchlist',                   label: 'Beobachtungsliste',       icon: <span /> },
+    { key: 'quick-event-konfigurationen', label: 'Quick-Event Konfiguration', icon: <span /> },
   ],
+  supporterMenuItems: [],
   adminMenuSections: [
     {
       section: 'Stammdaten',
@@ -74,6 +78,7 @@ const baseNavConfig: ReturnType<typeof useNavConfig> = {
   ],
   navItemIconMap: {},
   isAdmin: false,
+  isSupporter: false,
   isCoach: false,
 };
 
@@ -179,6 +184,7 @@ describe('trainer section', () => {
     expect(screen.getByText('Aufstellungen')).toBeInTheDocument();
     expect(screen.getByText('Spieler')).toBeInTheDocument();
     expect(screen.getByText('Teams')).toBeInTheDocument();
+    expect(screen.getByText('Quick-Event Konfiguration')).toBeInTheDocument();
   });
 
   it('shows "Trainer" section header', () => {
@@ -193,6 +199,28 @@ describe('trainer section', () => {
     fireEvent.click(screen.getByText('Aufstellungen'));
     expect(mockNavigate).toHaveBeenCalledWith('/formations');
     expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('navigates to /quick-event-konfigurationen when tile is clicked', () => {
+    mockUseNavConfig.mockReturnValue({ ...baseNavConfig, isCoach: true });
+    renderDrawer();
+    fireEvent.click(screen.getByText('Quick-Event Konfiguration'));
+    expect(mockNavigate).toHaveBeenCalledWith('/quick-event-konfigurationen');
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('renders a tile for every trainerMenuItem key (config-driven guard)', () => {
+    // This test ensures the trainer section is driven by trainerMenuItems.
+    // Any future entry added to trainerMenuItems will automatically appear in
+    // mobile — and this test proves that guarantee.
+    const futureItem = { key: 'scouting', label: 'Scouting', icon: <span /> };
+    mockUseNavConfig.mockReturnValue({
+      ...baseNavConfig,
+      isCoach: true,
+      trainerMenuItems: [...baseNavConfig.trainerMenuItems, futureItem],
+    });
+    renderDrawer();
+    expect(screen.getByText('Scouting')).toBeInTheDocument();
   });
 });
 
