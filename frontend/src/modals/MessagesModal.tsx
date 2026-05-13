@@ -31,6 +31,7 @@ import { MessageListPane }    from './messages/MessageListPane';
 import { MessageDetailPane }  from './messages/MessageDetailPane';
 import { MessageComposePane } from './messages/MessageComposePane';
 import { ComposeForm, Folder, Message, MessageGroup, MessagesModalProps, OrgRef, User, View, ViewMode } from './messages/types';
+import * as localStorageService from '../services/localStorageService';
 
 export type { MessagesModalProps };
 
@@ -83,7 +84,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
   const [folder,        setFolder]        = useState<Folder>(0);
   const [expandedIds,   setExpandedIds]   = useState<Set<string>>(() => new Set());
   const [viewMode,      setViewMode]      = useState<ViewMode>(
-    () => (localStorage.getItem('messages.viewMode') as ViewMode) ?? 'chrono',
+    () => (localStorageService.getItem('messages.viewMode') as ViewMode) ?? 'chrono',
   );
   const [view,          setView]          = useState<View>('list');
   const [previousView,  setPreviousView]  = useState<View>('list');
@@ -248,7 +249,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
     setExpandedIds(new Set());
-    localStorage.setItem('messages.viewMode', mode);
+    localStorageService.setItem('messages.viewMode', mode);
   }, []);
 
   const loadThread = useCallback(async (rootId: string) => {

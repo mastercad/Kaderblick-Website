@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { isFunctionalAllowed } from '../services/cookieConsentService';
+import { useConsent } from './ConsentContext';
+import * as localStorageService from '../services/localStorageService';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -11,32 +14,39 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { functionalAllowed } = useConsent();
+
   const [mode, setMode] = useState<ThemeMode>(() => {
-    // Prüfe localStorage für gespeicherte Präferenz
-    const saved = localStorage.getItem('theme-mode');
-    if (saved === 'light' || saved === 'dark') {
-      return saved;
+    // Gespeicherte Präferenz nur lesen wenn funktionale Cookies erlaubt sind
+    if (isFunctionalAllowed()) {
+      const saved = localStorageService.getItem('theme-mode');
+      if (saved === 'light' || saved === 'dark') {
+        return saved;
+      }
     }
-    
+
     // Fallback auf System-Präferenz
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-    
+
     return 'light';
   });
 
-  // Speichere Theme-Änderungen in localStorage
+  // Wenn Consent erteilt wird: aktuelles Theme speichern
+  // Wenn Consent entzogen wird: gespeichertes Theme löschen (clearCategory erledigt das)
   useEffect(() => {
-    localStorage.setItem('theme-mode', mode);
-  }, [mode]);
+    if (functionalAllowed) {
+      localStorageService.setItem('theme-mode', mode);
+    }
+  }, [mode, functionalAllowed]);
 
   // Höre auf System-Theme-Änderungen
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      // Nur ändern wenn kein explizit gespeichertes Theme vorhanden
-      if (!localStorage.getItem('theme-mode')) {
+      // Nur ändern wenn kein explizit gespeichertes Theme vorhanden (oder Consent fehlt)
+      if (!isFunctionalAllowed() || !localStorageService.getItem('theme-mode')) {
         setMode(e.matches ? 'dark' : 'light');
       }
     };

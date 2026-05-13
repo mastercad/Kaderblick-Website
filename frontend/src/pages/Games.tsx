@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as localStorageService from '../services/localStorageService';
 import {
   Box,
   Typography,
@@ -70,14 +71,14 @@ export default function Games() {
   const [weatherModalOpen, setWeatherModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedTeamId, setSelectedTeamIdState] = useState<number | 'all'>(() => {
-    const stored = localStorage.getItem('games_selectedTeamId');
+    const stored = localStorageService.getItem('games_selectedTeamId');
     if (stored === 'all') return 'all';
     const parsed = Number(stored);
     return stored && !isNaN(parsed) ? parsed : 'all';
   });
 
   const setSelectedTeamId = (v: number | 'all') => {
-    localStorage.setItem('games_selectedTeamId', String(v));
+    localStorageService.setItem('games_selectedTeamId', String(v));
     setSelectedTeamIdState(v);
   };
   const [noTeamAssignment, setNoTeamAssignment] = useState(false);
@@ -139,7 +140,7 @@ export default function Games() {
 
   useEffect(() => {
     // Gespeichertes Team direkt beim ersten Laden mitgeben
-    const stored = localStorage.getItem('games_selectedTeamId');
+    const stored = localStorageService.getItem('games_selectedTeamId');
     const storedTeam: number | 'all' | undefined =
       stored === 'all' ? 'all' : stored && !isNaN(Number(stored)) ? Number(stored) : undefined;
     loadGamesOverview(storedTeam);
@@ -158,7 +159,7 @@ export default function Games() {
       if (teamId === undefined) {
         setNoTeamAssignment(overviewData.noTeamAssignment ?? false);
         // userDefaultTeamId nur setzen wenn noch kein gespeicherter Wert vorhanden
-        if (overviewData.userDefaultTeamId && localStorage.getItem('games_selectedTeamId') === null) {
+        if (overviewData.userDefaultTeamId && localStorageService.getItem('games_selectedTeamId') === null) {
           setSelectedTeamId(overviewData.userDefaultTeamId);
         }
       }

@@ -4,6 +4,7 @@ import { notificationService } from '../services/notificationService';
 import { ToastContainer } from '../components/ToastContainer';
 import { apiJson, isAuthenticationError } from '../utils/api';
 import { useAuth } from './AuthContext';
+import * as localStorageService from '../services/localStorageService';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
@@ -54,7 +55,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       }
 
       console.error('Failed to load notifications:', error);
-      const saved = localStorage.getItem('notifications');
+      const saved = localStorageService.getItem('notifications');
       if (saved) {
         try {
           const parsed = JSON.parse(saved).map((n: any) => ({
@@ -114,7 +115,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      localStorage.setItem('notifications', JSON.stringify(notifications));
+      localStorageService.setItem('notifications', JSON.stringify(notifications));
     }
   }, [notifications, isAuthenticated, user]);
 

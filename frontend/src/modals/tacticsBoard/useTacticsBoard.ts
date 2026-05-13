@@ -10,6 +10,7 @@ import {
 import type { TacticPreset } from './types';
 import { svgCoords, makeMarkerId, arrowPath, clipLine } from './utils';
 import { PALETTE } from './constants';
+import * as localStorageService from '../../services/localStorageService';
 
 const SAVE_MSG_TIMEOUT_MS = 3500;
 const DRAFT_SAVE_DEBOUNCE_MS = 250;
@@ -30,7 +31,7 @@ function getDraftStorageKey(formationId: number) {
 
 function readLocalDraft(formationId: number): LocalTacticsBoardDraft | null {
   try {
-    const raw = window.localStorage.getItem(getDraftStorageKey(formationId));
+    const raw = localStorageService.getItemByPrefix('tactics-board-draft:', formationId);
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as Partial<LocalTacticsBoardDraft>;
@@ -57,19 +58,11 @@ function readLocalDraft(formationId: number): LocalTacticsBoardDraft | null {
 }
 
 function writeLocalDraft(draft: LocalTacticsBoardDraft) {
-  try {
-    window.localStorage.setItem(getDraftStorageKey(draft.formationId), JSON.stringify(draft));
-  } catch {
-    // Ignore quota and privacy-mode failures; the board still works in-memory.
-  }
+  localStorageService.setItemByPrefix('tactics-board-draft:', draft.formationId, JSON.stringify(draft));
 }
 
 function clearLocalDraft(formationId: number) {
-  try {
-    window.localStorage.removeItem(getDraftStorageKey(formationId));
-  } catch {
-    // Ignore storage errors.
-  }
+  localStorageService.removeItemByPrefix('tactics-board-draft:', formationId);
 }
 
 function getLatestSavedAt(entries: TacticEntry[]) {
