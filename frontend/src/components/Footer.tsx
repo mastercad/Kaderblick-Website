@@ -2,10 +2,13 @@ import React from 'react';
 import { Box, Container, Link, Typography, useTheme } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import { Link as RouterLink } from 'react-router-dom';
+import CookieSettingsButton from './CookieSettingsButton';
+import { useAuth } from '../context/AuthContext';
 
 const Footer: React.FC = () => {
   const theme = useTheme();
   const location = useLocation();
+  const { user } = useAuth();
   const isHome = location.pathname === '/' || location.pathname === '';
   const [buildNumber, setBuildNumber] = React.useState<string | null>(null);
 
@@ -66,6 +69,7 @@ const Footer: React.FC = () => {
           <Link component={RouterLink} to="https://docs.kaderblick.de" color="inherit" underline="hover">
             Dokumentation
           </Link>
+          {!user && <CookieSettingsButton />}
         </Box>
       </Container>
     </Box>

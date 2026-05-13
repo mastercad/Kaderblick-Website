@@ -58,6 +58,10 @@ jest.mock('../seo/Seo', () => ({
 }));
 
 // ── Components ──────────────────────────────────────────────────────────────
+jest.mock('../components/CookieBanner', () => ({
+  __esModule: true,
+  default: () => null,
+}));
 jest.mock('../components/Navigation', () => ({
   __esModule: true,
   default: ({ onOpenDemo }: any) => (

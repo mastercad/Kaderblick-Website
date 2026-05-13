@@ -14,9 +14,21 @@ const makeFormation = (overrides: Record<string, unknown> = {}) => ({
   formationData: { code: '4-3-3', players: [], ...overrides },
 });
 
+const CONSENT_KEY = 'cookie_consent';
+const FULL_CONSENT = JSON.stringify({
+  timestamp: new Date().toISOString(),
+  policyVersion: '1.0',
+  categories: {
+    necessary: true,
+    functional: true,
+    analytics: false,
+  },
+});
+
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
   window.localStorage.clear();
+  window.localStorage.setItem(CONSENT_KEY, FULL_CONSENT);
 });
 
 describe('useTacticsBoard – initial load', () => {

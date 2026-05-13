@@ -9,6 +9,7 @@ import {
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { pushHealthMonitor, type PushHealthReport, type PushHealthStatus } from '../services/pushHealthMonitor';
 import { useAuth } from '../context/AuthContext';
+import * as localStorageService from '../services/localStorageService';
 
 const DISMISS_KEY = 'push-warning-dismissed';
 const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24h
@@ -26,17 +27,15 @@ export const PushWarningBanner: React.FC = () => {
 
   // Prüfe ob schon dismissed
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DISMISS_KEY);
-      if (raw) {
-        const ts = parseInt(raw, 10);
-        if (Date.now() - ts < DISMISS_DURATION_MS) {
-          setDismissed(true);
-        } else {
-          localStorage.removeItem(DISMISS_KEY);
-        }
+    const raw = localStorageService.getItem('push-warning-dismissed');
+    if (raw) {
+      const ts = parseInt(raw, 10);
+      if (Date.now() - ts < DISMISS_DURATION_MS) {
+        setDismissed(true);
+      } else {
+        localStorageService.removeItem('push-warning-dismissed');
       }
-    } catch { /* ignore */ }
+    }
   }, []);
 
   // Starte Monitoring wenn User eingeloggt
@@ -57,9 +56,7 @@ export const PushWarningBanner: React.FC = () => {
 
   const handleDismiss = () => {
     setDismissed(true);
-    try {
-      localStorage.setItem(DISMISS_KEY, Date.now().toString());
-    } catch { /* ignore */ }
+    localStorageService.setItem('push-warning-dismissed', Date.now().toString());
   };
 
   const handleEnablePush = async () => {

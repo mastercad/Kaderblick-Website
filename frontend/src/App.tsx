@@ -17,6 +17,7 @@ import ProfileModal from './modals/ProfileModal';
 import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
 import NavSidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
+import * as localStorageService from './services/localStorageService';
 import { PageTabBar } from './components/navigation/PageTabBar';
 import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
@@ -36,6 +37,7 @@ import ContactModal from './modals/ContactModal';
 import DemoRequestModal from './modals/DemoRequestModal';
 import Seo from './seo/Seo';
 import PublicLoadingScreen from './components/public/PublicLoadingScreen';
+import CookieBanner from './components/CookieBanner';
 import {
   APP_NOINDEX_DESCRIPTION,
   APP_NOINDEX_TITLE,
@@ -142,12 +144,12 @@ function App() {
   const [showRegistrationContext, setShowRegistrationContext] = useState(false);
   const [showQRShare, setShowQRShare] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    try { return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'; } catch { return false; }
+    return localStorageService.getItem('kb_sidebar_collapsed') === '1';
   });
   const handleSidebarToggle = () => {
     setSidebarCollapsed(prev => {
       const next = !prev;
-      try { localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0'); } catch {}
+      localStorageService.setItem('kb_sidebar_collapsed', next ? '1' : '0');
       return next;
     });
   };
@@ -442,6 +444,7 @@ function App() {
               />
               <QRCodeShareModal open={showQRShare} onClose={() => setShowQRShare(false)} />
               <ContactModal open={showContact} onClose={() => setShowContact(false)} />
+              <CookieBanner />
               {!isHome && (showAuthenticatedAppChrome ? (
                 <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>
               ) : (

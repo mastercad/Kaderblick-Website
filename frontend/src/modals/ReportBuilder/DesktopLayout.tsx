@@ -17,6 +17,7 @@ import { StepDataChart } from './StepDataChart';
 import { StepFilters } from './StepFilters';
 import { StepOptions } from './StepOptions';
 import { PreviewPanel } from './PreviewPanel';
+import * as localStorageService from '../../services/localStorageService';
 
 interface DesktopLayoutProps {
   state: ReportBuilderState;
@@ -25,12 +26,12 @@ interface DesktopLayoutProps {
 export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
   const { expandedSection, setExpandedSection, activeFilterCount, currentReport } = state;
   const [introDismissed, setIntroDismissed] = React.useState(
-    () => localStorage.getItem('reportBuilder.introDismissed') === '1',
+    () => localStorageService.getItem('reportBuilder.introDismissed') === '1',
   );
   const showIntro = !introDismissed && !currentReport.config.xField;
 
   const handleDismissIntro = () => {
-    localStorage.setItem('reportBuilder.introDismissed', '1');
+    localStorageService.setItem('reportBuilder.introDismissed', '1');
     setIntroDismissed(true);
   };
 

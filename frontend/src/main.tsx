@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from '@mui/material/styles';
 import { ThemeProvider as CustomThemeProvider } from './context/ThemeContext';
+import { ConsentProvider } from './context/ConsentContext';
 import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { lightTheme } from './theme/theme';
@@ -49,17 +50,19 @@ if (!rootElement) throw new Error('Root element not found');
 createRoot(rootElement).render(
   <StrictMode>
     <HelmetProvider>
-      <CustomThemeProvider>
-        <ThemeProvider theme={lightTheme}>
-          <AuthProvider>
-            <BrowserRouter>
-              <ToastProvider>
-                <App />
-              </ToastProvider>
-            </BrowserRouter>
-          </AuthProvider>
-        </ThemeProvider>
-      </CustomThemeProvider>
+      <ConsentProvider>
+        <CustomThemeProvider>
+          <ThemeProvider theme={lightTheme}>
+            <AuthProvider>
+              <BrowserRouter>
+                <ToastProvider>
+                  <App />
+                </ToastProvider>
+              </BrowserRouter>
+            </AuthProvider>
+          </ThemeProvider>
+        </CustomThemeProvider>
+      </ConsentProvider>
     </HelmetProvider>
   </StrictMode>
 );
