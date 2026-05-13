@@ -18,6 +18,7 @@ import {
 } from '../../../services/posterTemplateService';
 import type { PosterElement, PosterFormat } from '../../PosterGenerator/types/posterTemplate';
 import { createDefaultElement } from '../../PosterGenerator/types/posterTemplate';
+import { usePosterFonts } from '../../PosterGenerator/hooks/usePosterFonts';
 import { canvasHeight, emptyTemplate } from './helpers';
 import type { EditorTemplate } from './types';
 
@@ -41,6 +42,7 @@ import EditorCanvas from './EditorCanvas';
 import PreviewDialog from './PreviewDialog';
 
 export default function PosterTemplateEditor() {
+  usePosterFonts();
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'neu';
   const navigate = useNavigate();

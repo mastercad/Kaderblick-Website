@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
   Box,
   Button,
@@ -130,11 +131,20 @@ export default function Home() {
 
   return (
     <>
+      <Helmet>
+        <link rel="preload" as="image" href="/images/landing_page/background_central.jpg" fetchPriority="high" />
+      </Helmet>
       <Seo
         title="Kaderblick - Vereinssoftware für Fußballvereine, Trainer und Teams"
         description="Digitale Vereinssoftware für Fußballvereine mit Kalender, Spielanalyse, Formationen, Kommunikation, News, Berichten und Vereinsorganisation in einer Plattform."
         canonicalPath="/"
         jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Kaderblick',
+            url: 'https://kaderblick.de/',
+          },
           {
             '@context': 'https://schema.org',
             '@type': 'Organization',
@@ -146,18 +156,13 @@ export default function Home() {
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
             name: 'Kaderblick',
-            applicationCategory: 'BusinessApplication',
+            applicationCategory: 'SportsApplication',
             operatingSystem: 'Web',
             offers: {
               '@type': 'Offer',
               price: '10',
               priceCurrency: 'EUR',
-              priceSpecification: {
-                '@type': 'UnitPriceSpecification',
-                price: '10',
-                priceCurrency: 'EUR',
-                unitText: 'MON',
-              },
+              unitText: 'MONTH',
             },
             description: 'Vereinssoftware für Fußballvereine mit Kalender, Trainingsorganisation, Spielanalyse, Kommunikation und Berichten.',
             url: 'https://kaderblick.de/',

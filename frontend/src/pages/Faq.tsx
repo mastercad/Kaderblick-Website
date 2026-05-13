@@ -33,13 +33,22 @@ const Faq: React.FC = () => {
     })),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'FAQ', item: 'https://kaderblick.de/faq' },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title="FAQ zur Vereinssoftware Kaderblick"
         description="Antworten auf häufige Fragen zu Kaderblick: Zielgruppe, Einsatz im Amateurfußball, PWA, Vereinsorganisation und digitale Kommunikation im Verein."
         canonicalPath="/faq"
-        jsonLd={faqJsonLd}
+        jsonLd={[faqJsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">

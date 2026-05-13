@@ -1,5 +1,19 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /calendar
+Disallow: /games
+Disallow: /reports
+Disallow: /admin/
+Disallow: /surveys
+Disallow: /news
+Disallow: /my-team
+Disallow: /mein-verein
+Disallow: /mein-spieltag
+Disallow: /mein-feedback
+Disallow: /wissenspool
+Disallow: /watchlist
+Disallow: /test
+Disallow: /quick-event-konfigurationen
 
 Sitemap: https://kaderblick.de/sitemap.xml
-Sitemap: https://kaderblick.de/news-sitemap.xml

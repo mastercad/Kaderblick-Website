@@ -40,13 +40,22 @@ const PricingOverview: React.FC = () => {
     description: 'Kaderblick kostet 10 € pro Team und Monat – alle Funktionen inklusive, keine versteckten Kosten. Faire Preise für jeden Fußballverein.',
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'Preise', item: 'https://kaderblick.de/preise' },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title="Preise | Kaderblick – Vereinssoftware für Fußballvereine"
         description="Kaderblick kostet 10 € pro Team und Monat. Alle Funktionen inklusive, keine versteckten Kosten – faire Preise für jeden Fußballverein."
         canonicalPath="/preise"
-        jsonLd={jsonLd}
+        jsonLd={[jsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">

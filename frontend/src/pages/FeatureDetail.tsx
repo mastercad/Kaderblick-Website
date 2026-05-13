@@ -246,7 +246,7 @@ const FeatureDetail: React.FC = () => {
             </Box>
 
             <Box className="public-features-detail-stage">
-              <Box component="img" src={feature.image} alt={feature.name} />
+              <Box component="img" src={feature.image} alt={feature.name} loading="lazy" />
             </Box>
           </Box>
         </Container>
@@ -398,6 +398,54 @@ const FeatureDetail: React.FC = () => {
           </Stack>
         </Box>
       </Container>
+
+      {/* Interne Verlinkung: Weitere Funktionen */}
+      {(() => {
+        const relatedFeatures = marketingFeatures.filter((f) => f.slug !== feature.slug).slice(0, 3);
+        if (!relatedFeatures.length) return null;
+        return (
+          <Container maxWidth="xl" className="public-features-shell" sx={{ pb: 7 }}>
+            <Typography
+              component="h2"
+              sx={{ fontWeight: 700, fontSize: '1.35rem', mb: 2.5, color: '#17301a' }}
+            >
+              Weitere Funktionen
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: 2,
+              }}
+            >
+              {relatedFeatures.map((related) => (
+                <Box
+                  key={related.slug}
+                  component={RouterLink}
+                  to={`/funktionen/${related.slug}`}
+                  sx={{
+                    textDecoration: 'none',
+                    border: '1px solid #d9e4d4',
+                    borderRadius: '16px',
+                    padding: 2.5,
+                    background: 'rgba(255,255,255,0.95)',
+                    display: 'block',
+                    transition: 'border-color 0.15s',
+                    '&:hover': { borderColor: '#056d13' },
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, color: '#17301a', mb: 0.5 }}>
+                    {related.name}
+                  </Typography>
+                  <Typography sx={{ color: '#425646', fontSize: '0.93rem' }}>
+                    {related.teaser}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Container>
+        );
+      })()}
     </Box>
   );
 };

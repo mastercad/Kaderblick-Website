@@ -375,6 +375,7 @@ class NewsController extends AbstractController
         }
         $news->setTitle($title);
         $news->setContent($content);
+        $news->setUpdatedAt(new DateTimeImmutable());
         $this->em->flush();
 
         return new JsonResponse(['success' => true]);

@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "jest",
     "test:push": "jest src/services/__tests__/sw.test.ts src/services/__tests__/notificationService.test.ts",
-    "ci": "jest --no-coverage && vite build",
+    "ci": "jest --no-coverage && vite build && node scripts/prerender-public-pages.mjs",
     "verify-push": "bash scripts/verify-push-build.sh",
     "set-publish-date": "./scripts/set-publish-date.sh"
   },
