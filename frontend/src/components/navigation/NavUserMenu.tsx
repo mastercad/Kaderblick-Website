@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -11,9 +11,12 @@ import QrCode2Icon from '@mui/icons-material/QrCode2';
 import MessageIcon from '@mui/icons-material/Message';
 import LinkIcon from '@mui/icons-material/Link';
 import FeedbackIcon from '@mui/icons-material/Feedback';
+import CookieIcon from '@mui/icons-material/Cookie';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUnreadMessageCount } from '../../hooks/useUnreadMessageCount';
+import { useConsent } from '../../context/ConsentContext';
+import CookieSettingsDialog from '../CookieSettingsDialog';
 
 interface NavUserMenuProps {
   anchorEl: HTMLElement | null;
@@ -31,6 +34,8 @@ export default function NavUserMenu({
   const { user, logout } = useAuth();
   const unreadMessageCount = useUnreadMessageCount();
   const navigate = useNavigate();
+  const { consentRecord, handleAcceptAll, handleSaveCustom } = useConsent();
+  const [cookieDialogOpen, setCookieDialogOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -38,6 +43,7 @@ export default function NavUserMenu({
   };
 
   return (
+    <>
     <Menu
       id="menu-appbar"
       anchorEl={anchorEl}
@@ -79,10 +85,23 @@ export default function NavUserMenu({
         </Badge>
         Nachrichten
       </MenuItem>
+      <Divider />
+      <MenuItem onClick={() => { onClose(); setCookieDialogOpen(true); }}>
+        <CookieIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+        Cookie-Einstellungen
+      </MenuItem>
       <MenuItem onClick={handleLogout}>
         <LogoutIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
         Logout
       </MenuItem>
     </Menu>
+    <CookieSettingsDialog
+      open={cookieDialogOpen}
+      onClose={() => setCookieDialogOpen(false)}
+      onSave={cats => { handleSaveCustom(cats); setCookieDialogOpen(false); }}
+      onAcceptAll={() => { handleAcceptAll(); setCookieDialogOpen(false); }}
+      initialCategories={consentRecord?.categories ?? { necessary: true, functional: false, analytics: false }}
+    />
+    </>
   );
 }

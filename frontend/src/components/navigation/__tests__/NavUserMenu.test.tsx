@@ -2,7 +2,7 @@
  * Tests for NavUserMenu.tsx
  *
  * Tests: menu items rendered, logout, profile, QR code, messages, link
- * request visibility, unread message badge.
+ * request visibility, unread message badge, cookie settings.
  */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -10,6 +10,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import NavUserMenu from '../NavUserMenu';
 import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
+import { useConsent } from '../../../context/ConsentContext';
 import * as unreadHook from '../../../hooks/useUnreadMessageCount';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
@@ -32,8 +33,33 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigateFn,
 }));
 
+jest.mock('../../../context/ConsentContext', () => ({
+  useConsent: jest.fn(),
+}));
+
+jest.mock('../../CookieSettingsDialog', () =>
+  function MockCookieSettingsDialog({
+    open, onClose, onSave, onAcceptAll,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    onSave: (cats: Record<string, boolean>) => void;
+    onAcceptAll: () => void;
+  }) {
+    if (!open) return null;
+    return (
+      <div data-testid="cookie-settings-dialog">
+        <button onClick={onClose}>dialog-close</button>
+        <button onClick={() => onSave({ necessary: true, functional: false, analytics: false })}>dialog-save</button>
+        <button onClick={onAcceptAll}>dialog-accept-all</button>
+      </div>
+    );
+  },
+);
+
 const mockUseAuth          = useAuth          as jest.MockedFunction<typeof useAuth>;
 const mockUseNotifications = useNotifications as jest.MockedFunction<typeof useNotifications>;
+const mockUseConsent       = useConsent       as jest.MockedFunction<typeof useConsent>;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +71,8 @@ const mockOnOpenProfile  = jest.fn();
 const mockOnOpenQRShare  = jest.fn();
 const mockOpenMessages   = jest.fn();
 const mockOnRequestLink  = jest.fn();
+const mockHandleAcceptAll  = jest.fn();
+const mockHandleSaveCustom = jest.fn();
 
 const baseUser = {
   id: 1, email: 'player@example.com', name: 'Anna Muster',
@@ -92,6 +120,16 @@ beforeEach(() => {
     logout: mockLogout, checkAuthStatus: jest.fn(),
   });
   mockUseNotifications.mockReturnValue(baseContext);
+  mockUseConsent.mockReturnValue({
+    hasConsented: true,
+    consentRecord: { policyVersion: '1.0', timestamp: '', categories: { necessary: true, functional: false, analytics: false } },
+    functionalAllowed: false,
+    analyticsAllowed: false,
+    handleAcceptAll: mockHandleAcceptAll,
+    handleSaveCustom: mockHandleSaveCustom,
+    handleAcceptNecessaryOnly: jest.fn(),
+    handleReset: jest.fn(),
+  });
 });
 
 afterEach(() => {
@@ -200,5 +238,49 @@ describe('unread message badge', () => {
     jest.spyOn(unreadHook, 'useUnreadMessageCount').mockReturnValue(0);
     renderMenu();
     expect(screen.queryByText('1')).not.toBeInTheDocument();
+  });
+});
+
+// ── Cookie-Einstellungen ──────────────────────────────────────────────────────
+
+describe('Cookie-Einstellungen', () => {
+  it('zeigt den Menüpunkt "Cookie-Einstellungen"', () => {
+    renderMenu();
+    expect(screen.getByText('Cookie-Einstellungen')).toBeInTheDocument();
+  });
+
+  it('öffnet den Dialog beim Klick auf "Cookie-Einstellungen"', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Cookie-Einstellungen'));
+    expect(screen.getByTestId('cookie-settings-dialog')).toBeInTheDocument();
+  });
+
+  it('schließt das Menü beim Klick auf "Cookie-Einstellungen"', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Cookie-Einstellungen'));
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('schließt den Dialog über den Schließen-Button', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Cookie-Einstellungen'));
+    fireEvent.click(screen.getByText('dialog-close'));
+    expect(screen.queryByTestId('cookie-settings-dialog')).not.toBeInTheDocument();
+  });
+
+  it('ruft handleSaveCustom auf und schließt den Dialog beim Speichern', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Cookie-Einstellungen'));
+    fireEvent.click(screen.getByText('dialog-save'));
+    expect(mockHandleSaveCustom).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('cookie-settings-dialog')).not.toBeInTheDocument();
+  });
+
+  it('ruft handleAcceptAll auf und schließt den Dialog bei "Alle akzeptieren"', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Cookie-Einstellungen'));
+    fireEvent.click(screen.getByText('dialog-accept-all'));
+    expect(mockHandleAcceptAll).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('cookie-settings-dialog')).not.toBeInTheDocument();
   });
 });
