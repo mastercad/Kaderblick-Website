@@ -64,13 +64,22 @@ const BenefitsOverview: React.FC = () => {
     description: 'Warum Kaderblick für Fußballvereine operativ relevant ist: weniger Abstimmungschaos, klarere Kommunikation, mehr Verbindlichkeit und besserer Überblick im Vereinsalltag.',
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'Vorteile', item: 'https://kaderblick.de/vorteile' },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title="Vorteile für Fußballvereine | Kaderblick"
         description="Warum Kaderblick im Vereinsalltag einen echten Unterschied macht: weniger Organisationsaufwand, klarere Kommunikation, mehr Verbindlichkeit und besserer Überblick für Trainer, Teams und Verantwortliche."
         canonicalPath="/vorteile"
-        jsonLd={jsonLd}
+        jsonLd={[jsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">
@@ -81,7 +90,7 @@ const BenefitsOverview: React.FC = () => {
           <Box className="public-features-hero-shell">
             <Box className="public-features-hero-copy">
               <Typography className="public-features-kicker">
-                Öffentliche Produktseite
+                Vorteile für Fußballvereine
               </Typography>
               <Typography component="h1" className="public-features-title">
                 Weniger Abstimmung,
@@ -212,7 +221,7 @@ const BenefitsOverview: React.FC = () => {
             </Box>
 
             <Box className="public-features-spotlight-visual">
-              <Box component="img" src="/images/landing_page/game_overview.png" alt="Kaderblick für strukturierten Vereinsalltag" />
+              <Box component="img" src="/images/landing_page/game_overview.png" alt="Kaderblick für strukturierten Vereinsalltag" loading="lazy" />
             </Box>
           </Box>
         </Box>

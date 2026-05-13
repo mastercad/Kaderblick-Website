@@ -123,13 +123,22 @@ const PublicIntentPage: React.FC = () => {
     url: `https://kaderblick.de${currentPage.path}`,
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: currentPage.headline, item: `https://kaderblick.de${encodeURI(currentPage.path)}` },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title={currentPage.seoTitle}
         description={currentPage.seoDescription}
         canonicalPath={currentPage.path}
-        jsonLd={jsonLd}
+        jsonLd={[jsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">
@@ -249,7 +258,7 @@ const PublicIntentPage: React.FC = () => {
                 {linkedFeatures.map((feature) => (
                   <Box key={feature.slug} className="public-features-card">
                     <Box className="public-features-card-media">
-                      <Box component="img" src={feature.image} alt={feature.name} />
+                      <Box component="img" src={feature.image} alt={feature.name} loading="lazy" />
                     </Box>
                     <Box className="public-features-card-body">
                       <Typography className="public-features-card-kicker">Funktion</Typography>

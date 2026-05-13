@@ -34,7 +34,11 @@ const snapshotStyles = `
 const navigationLinks = [
   ['/', 'Startseite'],
   ['/funktionen', 'Funktionen'],
+  ['/vorteile', 'Vorteile'],
+  ['/preise', 'Preise'],
+  ['/aktuelles', 'Aktuelles'],
   ['https://docs.kaderblick.de', 'Dokumentation'],
+  ['/faq', 'FAQ'],
   ['/kontakt', 'Kontakt'],
 ];
 
@@ -67,6 +71,31 @@ function renderHome() {
     route: '/',
     title: 'Kaderblick - Vereinssoftware für Fußballvereine, Trainer und Teams',
     description: 'Digitale Vereinssoftware für Fußballvereine mit Kalender, Spielanalyse, Aufstellungen, Kommunikation und Vereinsorganisation.',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Kaderblick',
+        url: 'https://kaderblick.de/',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'Kaderblick',
+        url: 'https://kaderblick.de/',
+        logo: `${siteUrl}/images/kaderblick_website_appicon.png`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'Kaderblick',
+        applicationCategory: 'SportsApplication',
+        operatingSystem: 'Web',
+        offers: { '@type': 'Offer', price: '10', priceCurrency: 'EUR', unitText: 'MONTH' },
+        description: 'Vereinssoftware für Fußballvereine mit Kalender, Trainingsorganisation, Spielanalyse, Kommunikation und Berichten.',
+        url: 'https://kaderblick.de/',
+      },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -93,6 +122,16 @@ function renderFeaturesOverview() {
     route: '/funktionen',
     title: 'Funktionen für Fußballvereine | Kaderblick',
     description: 'Entdecke die wichtigsten Funktionen von Kaderblick für Fußballvereine: Kalender, Teilnahmen, Spielanalyse, Formationen, Kommunikation und Berichte.',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+          { '@type': 'ListItem', position: 2, name: 'Funktionen', item: 'https://kaderblick.de/funktionen' },
+        ],
+      },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -110,6 +149,17 @@ function renderFeaturePages() {
     route: `/funktionen/${feature.slug}`,
     title: feature.seoTitle,
     description: feature.seoDescription,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+          { '@type': 'ListItem', position: 2, name: 'Funktionen', item: 'https://kaderblick.de/funktionen' },
+          { '@type': 'ListItem', position: 3, name: feature.name, item: `https://kaderblick.de/funktionen/${feature.slug}` },
+        ],
+      },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -118,6 +168,11 @@ function renderFeaturePages() {
         <p>${escapeHtml(feature.summary)}</p>
         <ul class="seo-list">${feature.benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join('')}</ul>
         <div class="seo-grid">${feature.docsLinks.map((entry) => `<article class="seo-card"><h2>${escapeHtml(entry.label)}</h2><p>Vertiefende Beschreibung und konkrete Nutzung in der Dokumentation.</p><a href="${entry.url}">Zur Dokumentation</a></article>`).join('')}</div>
+        ${(() => {
+          const related = publicSiteData.features.filter((f) => f.slug !== feature.slug).slice(0, 3);
+          if (!related.length) return '';
+          return `<h2>Weitere Funktionen</h2><div class="seo-grid">${related.map((f) => `<article class="seo-card"><h3><a href="/funktionen/${f.slug}">${escapeHtml(f.name)}</a></h3><p>${escapeHtml(f.teaser)}</p></article>`).join('')}</div>`;
+        })()}
         <a class="seo-cta" href="/kontakt">Kontakt aufnehmen</a>
       </main>
     `,
@@ -129,6 +184,16 @@ function renderIntentPages() {
     route: page.path,
     title: page.seoTitle,
     description: page.seoDescription,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+          { '@type': 'ListItem', position: 2, name: page.headline, item: `https://kaderblick.de${encodeURI(page.path)}` },
+        ],
+      },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -153,10 +218,24 @@ function renderIntentPages() {
 }
 
 function renderFaq() {
+  const faqSchemaJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: publicSiteData.faqEntries.map((entry) => ({
+      '@type': 'Question',
+      name: getFaqQuestion(entry),
+      acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+    })),
+  };
+
   return {
     route: '/faq',
     title: 'FAQ zur Vereinssoftware Kaderblick',
     description: 'Antworten auf häufige Fragen zu Kaderblick, zur Vereinsorganisation und zur Nutzung im Amateurfußball.',
+    jsonLd: [
+      faqSchemaJsonLd,
+      { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' }, { '@type': 'ListItem', position: 2, name: 'FAQ', item: 'https://kaderblick.de/faq' }] },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -226,6 +305,9 @@ function renderContact() {
     route: '/kontakt',
     title: 'Kontakt zu Kaderblick',
     description: 'Kontaktseite für Kaderblick. Austausch zu Vereinsorganisation, Trainer-Workflows, Produktfragen und Einsatz im Fußballverein.',
+    jsonLd: [
+      { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' }, { '@type': 'ListItem', position: 2, name: 'Kontakt', item: 'https://kaderblick.de/kontakt' }] },
+    ],
     body: `
       <main class="seo-snapshot">
         ${renderNav()}
@@ -238,6 +320,81 @@ function renderContact() {
           <p><a href="mailto:andreas.kempe@kaderblick.de">andreas.kempe@kaderblick.de</a></p>
           <a class="seo-cta" href="mailto:andreas.kempe@kaderblick.de">E-Mail schreiben</a>
         </article>
+      </main>
+    `,
+  };
+}
+
+function renderVorteile() {
+  return {
+    route: '/vorteile',
+    title: 'Vorteile für Fußballvereine | Kaderblick',
+    description: 'Warum Kaderblick für Fußballvereine relevant ist: weniger Abstimmungschaos, klarere Kommunikation, mehr Verbindlichkeit und besserer Überblick im Vereinsalltag.',
+    jsonLd: [
+      { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' }, { '@type': 'ListItem', position: 2, name: 'Vorteile', item: 'https://kaderblick.de/vorteile' }] },
+    ],
+    body: `
+      <main class="seo-snapshot">
+        ${renderNav()}
+        <p class="seo-eyebrow">Vorteile</p>
+        <h1>Weniger Aufwand. Mehr Überblick. Mehr Verbindlichkeit.</h1>
+        <p>Kaderblick bündelt Kalender, Teilnahmen, Kommunikation und Spielbetrieb an einem Ort – damit Vereine klarer organisiert sind und Trainer mehr Zeit für das Wesentliche haben.</p>
+        <div class="seo-grid">
+          <article class="seo-card"><h2>Weniger Abstimmungsaufwand</h2><p>Chatgruppen, Tabellen und parallele Kanäle werden durch einen gemeinsamen Ort ersetzt, an dem alle relevanten Informationen verfügbar sind.</p></article>
+          <article class="seo-card"><h2>Klarere Kommunikation</h2><p>Änderungen, Rückmeldungen und Entscheidungen kommen verlässlich an – ohne Medienbrüche und unnötige Wiederholungen.</p></article>
+          <article class="seo-card"><h2>Mehr Verbindlichkeit</h2><p>Zusagen, Absagen und offene Rückmeldungen sind jederzeit sichtbar, damit Planung auf einer echten Grundlage basiert.</p></article>
+          <article class="seo-card"><h2>Datenschutz und Sicherheit</h2><p>Sensible Vereinsdaten gehören nicht in private Chats – Kaderblick bietet einen sicheren, zentralen Rahmen gemäß DSGVO.</p></article>
+        </div>
+        <a class="seo-cta" href="/kontakt">Kontakt aufnehmen</a>
+      </main>
+    `,
+  };
+}
+
+function renderPreise() {
+  return {
+    route: '/preise',
+    title: 'Preise | Kaderblick – Vereinssoftware für Fußballvereine',
+    description: 'Kaderblick kostet 10 € pro Team und Monat. Alle Funktionen inklusive, keine versteckten Kosten – faire Preise für jeden Fußballverein.',
+    jsonLd: [
+      { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' }, { '@type': 'ListItem', position: 2, name: 'Preise', item: 'https://kaderblick.de/preise' }] },
+    ],
+    body: `
+      <main class="seo-snapshot">
+        ${renderNav()}
+        <p class="seo-eyebrow">Transparente Preise</p>
+        <h1>Ein Plan. Alles inklusive.</h1>
+        <p>10 € pro Team und Monat. Alle Funktionen ohne Einschränkung – faire und transparente Preisgestaltung für Fußballvereine jeder Größe.</p>
+        <div class="seo-grid">
+          <article class="seo-card"><h2>10 € / Team / Monat</h2><p>Alle Funktionen inklusive. Keine versteckten Kosten, kein Kleingedrucktes. Kaderblick für den gesamten Vereinsbetrieb.</p></article>
+          <article class="seo-card"><h2>Alle Funktionen enthalten</h2><p>Kalender, Teilnahmen, Spielanalyse, Formationen, Kommunikation, Berichte, Videoanalyse, Umfragen und mehr – alles in einem Plan.</p></article>
+          <article class="seo-card"><h2>DSGVO-konform · Deutsche Server</h2><p>Datenschutzkonforme Infrastruktur in Deutschland. Kein Tracking, keine Weitergabe an Dritte.</p></article>
+        </div>
+        <a class="seo-cta" href="/kontakt">Demo anfragen</a>
+      </main>
+    `,
+  };
+}
+
+function renderUeberUns() {
+  return {
+    route: '/ueber-uns',
+    title: 'Über Kaderblick | Vereinssoftware für den Amateurfußball',
+    description: 'Kaderblick entstand nicht aus einer Marktanalyse, sondern aus konkreten Problemen im eigenen Vereinsleben. Erfahre mehr über Hintergrund und Mission.',
+    jsonLd: [
+      { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' }, { '@type': 'ListItem', position: 2, name: 'Über uns', item: 'https://kaderblick.de/ueber-uns' }] },
+    ],
+    body: `
+      <main class="seo-snapshot">
+        ${renderNav()}
+        <p class="seo-eyebrow">Über Kaderblick</p>
+        <h1>Entstanden aus dem Vereinsalltag.</h1>
+        <p>Kaderblick entstand nicht aus einer Marktanalyse, sondern aus konkreten, wiederkehrenden Problemen im eigenen Vereinsleben – zu viele parallele Kanäle, keine Übersicht, keine eigenen Statistiken und kein vernünftiges Werkzeug für Videoanalyse.</p>
+        <div class="seo-grid">
+          <article class="seo-card"><h2>Aus der Praxis für die Praxis</h2><p>Jede Funktion in Kaderblick löst ein echtes Problem, das im eigenen Verein erlebt wurde – kein Feature um des Features willen.</p></article>
+          <article class="seo-card"><h2>Unabhängig und transparent</h2><p>Kaderblick ist kein Konzernprodukt. Direkte Ansprechbarkeit, ehrliche Kommunikation und ein offenes Ohr für Feedback.</p></article>
+        </div>
+        <a class="seo-cta" href="/kontakt">Kontakt aufnehmen</a>
       </main>
     `,
   };
@@ -262,7 +419,11 @@ function buildHtml(baseHtml, page) {
   html = updateTag(html, /<meta property="og:url" content="[^"]*"\s*\/>/, `<meta property="og:url" content="${canonicalUrl}" />`);
   html = updateTag(html, /<meta name="twitter:title" content="[^"]*"\s*\/>/, `<meta name="twitter:title" content="${escapeHtml(page.title)}" />`);
   html = updateTag(html, /<meta name="twitter:description" content="[^"]*"\s*\/>/, `<meta name="twitter:description" content="${escapeHtml(page.description)}" />`);
-  html = html.replace('</head>', `${snapshotStyles}</head>`);
+  const pageJsonLdEntries = page.jsonLd ? (Array.isArray(page.jsonLd) ? page.jsonLd : [page.jsonLd]) : [];
+  const pageJsonLdHtml = pageJsonLdEntries.length > 0
+    ? pageJsonLdEntries.map(entry => `\n    <script type="application/ld+json">${JSON.stringify(entry)}</script>`).join('')
+    : '';
+  html = html.replace('</head>', `${pageJsonLdHtml}\n${snapshotStyles}</head>`);
   html = html.replace(/<body[^>]*>/, '<body>');
   html = html.replace(/<div id="preload-fallback"[\s\S]*?<div id="root" style="display:none;">[\s\S]*?<\/div>/, `<div id="root">${page.body}</div>`);
   return html;
@@ -273,6 +434,9 @@ const routes = [
   renderFeaturesOverview(),
   ...renderFeaturePages(),
   ...renderIntentPages(),
+  renderVorteile(),
+  renderPreise(),
+  renderUeberUns(),
   renderFaq(),
   renderContact(),
   renderImprint(),
@@ -289,3 +453,55 @@ for (const page of routes) {
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, buildHtml(baseHtml, page), 'utf8');
 }
+
+// Generate sitemap.xml from rendered routes
+function getSitemapPriority(route) {
+  if (route === '/') return '1.0';
+  if (route === '/funktionen') return '0.9';
+  if (['/vorteile', '/preise', '/ueber-uns'].includes(route)) return '0.8';
+  if (route.startsWith('/für-') || route === '/spielanalyse-software') return '0.8';
+  if (route.startsWith('/funktionen/')) return '0.7';
+  if (route === '/faq' || route === '/kontakt') return '0.6';
+  return '0.3';
+}
+
+function getSitemapChangefreq(route) {
+  if (route === '/' || route === '/funktionen') return 'weekly';
+  if (route === '/imprint' || route === '/privacy') return 'yearly';
+  return 'monthly';
+}
+
+const buildDate = new Date().toISOString().split('T')[0];
+
+const sitemapEntries = routes.map((page) => {
+  const encodedRoute = encodeURI(page.route);
+  const priority = getSitemapPriority(page.route);
+  const changefreq = getSitemapChangefreq(page.route);
+  return `  <url>\n    <loc>${siteUrl}${encodedRoute}</loc>\n    <lastmod>${buildDate}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+}).join('\n');
+
+const aktuellesEntry = `  <url>\n    <loc>${siteUrl}/aktuelles</loc>\n    <lastmod>${buildDate}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>`;
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapEntries}\n${aktuellesEntry}\n</urlset>\n`;
+
+await writeFile(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf8');
+// Keep frontend/public/sitemap.xml in sync so dev-mode always matches the build output.
+await writeFile(path.join(projectRoot, 'public', 'sitemap.xml'), sitemapXml, 'utf8');
+
+// Generate a static 404.html so nginx can serve it with HTTP 404 status for unknown routes
+const notFoundHtml = buildHtml(baseHtml, {
+  route: '/404',
+  title: 'Seite nicht gefunden | Kaderblick',
+  description: 'Die angeforderte Seite wurde nicht gefunden.',
+  htmlContent: `
+    <div class="seo-snapshot">
+      ${renderNav()}
+      <p class="seo-eyebrow">404 – Nicht gefunden</p>
+      <h1>Diese Seite gibt es nicht</h1>
+      <p>Die angeforderte URL existiert nicht. Bitte prüfe die Adresse oder kehre zur Startseite zurück.</p>
+      <a href="/" class="seo-cta">Zur Startseite</a>
+    </div>`,
+});
+await writeFile(path.join(distDir, '404.html'), notFoundHtml, 'utf8');
+
+console.log(`Prerender complete: ${routes.length} pages + sitemap.xml + 404.html generated.`);

@@ -1,8 +1,15 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
+import Seo from '../seo/Seo';
 
 const NotFound: React.FC = () => (
-  <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
+  <>
+    <Seo
+      title="Seite nicht gefunden | Kaderblick"
+      description="Die angeforderte Seite wurde nicht gefunden."
+      noindex={true}
+    />
+    <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
     <Typography variant="h2" color="error" gutterBottom>
       404 Not Found
     </Typography>
@@ -14,6 +21,7 @@ const NotFound: React.FC = () => (
       Bitte prüfe die URL oder gehe zurück zur Startseite.
     </Typography>
   </Container>
+  </>
 );
 
 export default NotFound;

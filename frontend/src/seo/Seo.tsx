@@ -15,6 +15,7 @@ interface SeoProps {
   description?: string;
   canonicalPath?: string;
   image?: string;
+  imageAlt?: string;
   type?: 'website' | 'article';
   noindex?: boolean;
   keywords?: string[];
@@ -36,6 +37,7 @@ export function Seo({
   description = DEFAULT_SEO_DESCRIPTION,
   canonicalPath = '/',
   image = DEFAULT_SHARE_IMAGE_URL,
+  imageAlt,
   type = 'website',
   noindex = false,
   keywords,
@@ -59,6 +61,7 @@ export function Seo({
         <meta name="keywords" content={keywords.join(', ')} />
       )}
       <link rel="canonical" href={canonicalUrl} />
+      <meta name="author" content="Andreas Kempe" />
 
       <meta property="og:site_name" content={SITE_NAME} />
       <meta property="og:locale" content="de_DE" />
@@ -68,10 +71,14 @@ export function Seo({
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:image" content={image} />
       <meta property="og:image:secure_url" content={image} />
+      <meta property="og:image:type" content="image/jpeg" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={imageAlt ?? title} />
 
       <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="@kaderblick" />
+      <meta name="twitter:creator" content="@kaderblick" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />

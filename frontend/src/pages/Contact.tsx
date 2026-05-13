@@ -32,6 +32,15 @@ const ContactPage: React.FC = () => {
     ],
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'Kontakt', item: 'https://kaderblick.de/kontakt' },
+    ],
+  };
+
   const openContactModal = () => {
     window.dispatchEvent(new CustomEvent('openContactModal'));
   };
@@ -42,7 +51,7 @@ const ContactPage: React.FC = () => {
         title="Kontakt zu Kaderblick"
         description="Kontaktseite für Kaderblick. Austausch zu Vereinsorganisation, Trainer-Workflows, Produktfragen und Einsatz im Fußballverein."
         canonicalPath="/kontakt"
-        jsonLd={contactJsonLd}
+        jsonLd={[contactJsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">

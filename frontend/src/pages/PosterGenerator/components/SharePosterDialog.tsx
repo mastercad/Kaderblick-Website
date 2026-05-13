@@ -21,6 +21,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { DynamicPosterRenderer } from '../DynamicPosterRenderer';
 import { ExportActions } from './ExportActions';
 import { usePosterClub } from '../hooks/usePosterClub';
+import { usePosterFonts } from '../hooks/usePosterFonts';
 import { fetchPosterTemplates } from '../../../services/posterTemplateService';
 import { parseClubColors } from '../utils/parseClubColors';
 import type { PosterPayload, PosterFormat } from '../types/poster';
@@ -63,6 +64,7 @@ export interface SharePosterDialogProps {
  * Lädt Vorlagen aus der API und rendert sie mit echten Spieler-/Spieldaten.
  */
 export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogProps) {
+  usePosterFonts();
   const posterRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [previewWidth, setPreviewWidth] = useState(getInitialPreviewWidth);

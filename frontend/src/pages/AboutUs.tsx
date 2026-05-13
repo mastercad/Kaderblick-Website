@@ -27,13 +27,22 @@ const AboutUs: React.FC = () => {
       'Kaderblick entstand aus echten Problemen im Amateurfußball und wuchs zu einer vollständigen Organisations- und Auswertungsplattform für Fußballvereine.',
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'Über uns', item: 'https://kaderblick.de/ueber-uns' },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title="Über Kaderblick | Vereinssoftware für den Amateurfußball"
         description="Kaderblick entstand aus echten Problemen im Vereinsalltag: chaotische Kommunikation, fehlende Statistiken, keine Videoanalyse. Daraus wurde eine vollständige Plattform für den Amateurfußball."
         canonicalPath="/ueber-uns"
-        jsonLd={jsonLd}
+        jsonLd={[jsonLd, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">

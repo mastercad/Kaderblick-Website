@@ -65,29 +65,6 @@ final class PublicNewsController extends AbstractController
         return $this->json($this->serializeNews($news, true));
     }
 
-    #[Route('/news-sitemap.xml', name: 'public_news_sitemap', methods: ['GET'])]
-    public function sitemap(NewsRepository $newsRepository): Response
-    {
-        $newsEntries = array_map(
-            fn (News $news) => [
-                'url' => $this->generateUrl('public_news_show', [
-                    'id' => $news->getId(),
-                    'slug' => $this->slugify($news->getTitle()),
-                ], UrlGeneratorInterface::ABSOLUTE_URL),
-                'lastModified' => $news->getCreatedAt()->format(DATE_ATOM),
-            ],
-            $newsRepository->findPublicPlatformNews(200)
-        );
-
-        $xml = $this->renderView('public_news/sitemap.xml.twig', [
-            'newsEntries' => $newsEntries,
-        ]);
-
-        return new Response($xml, Response::HTTP_OK, [
-            'Content-Type' => 'application/xml; charset=UTF-8',
-        ]);
-    }
-
     /**
      * @return array<string, int|string>
      */
@@ -98,6 +75,7 @@ final class PublicNewsController extends AbstractController
             'title' => $news->getTitle(),
             'slug' => $this->slugify($news->getTitle()),
             'createdAt' => $news->getCreatedAt()->format(DATE_ATOM),
+            'updatedAt' => $news->getUpdatedAt()?->format(DATE_ATOM),
             'createdBy' => trim($news->getCreatedBy()->getFirstName() . ' ' . $news->getCreatedBy()->getLastName()),
             'excerpt' => $this->buildExcerpt($news->getContent()),
             'url' => $this->generateUrl('public_news_show', [

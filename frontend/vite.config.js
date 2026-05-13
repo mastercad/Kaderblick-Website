@@ -29,19 +29,45 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'Kaderblick Fußballverein',
+        name: 'Kaderblick – Vereinssoftware für Fußballvereine',
         short_name: 'Kaderblick',
-        start_url: '.',
+        start_url: '/',
         display: 'standalone',
         background_color: '#4e4e4e',
         theme_color: '#B5AD9D',
-        description: 'Die Vereinsapp für Mitglieder, Teams und Fans.',
+        lang: 'de',
+        description: 'Vereinssoftware für Fußballvereine: Kalender, Spielanalyse, Formationen, Kommunikation und Berichte in einer modernen Web-App.',
+        categories: ['sports', 'productivity'],
         icons: [
+          {
+            src: '/images/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/images/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: '/images/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/images/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
           {
             src: '/images/kaderblick_website_appicon.png',
             sizes: 'any',
-            type: 'image/png'
-          }
+            type: 'image/png',
+          },
         ]
       },
       injectManifest: {

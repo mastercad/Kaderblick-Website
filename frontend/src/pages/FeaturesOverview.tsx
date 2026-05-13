@@ -53,13 +53,22 @@ const FeaturesOverview: React.FC = () => {
     })),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Startseite', item: 'https://kaderblick.de/' },
+      { '@type': 'ListItem', position: 2, name: 'Funktionen', item: 'https://kaderblick.de/funktionen' },
+    ],
+  };
+
   return (
     <Box className="public-features">
       <Seo
         title="Funktionen für Fußballvereine | Kaderblick"
         description="Entdecke die wichtigsten Funktionen von Kaderblick für Fußballvereine: Kalender, Teilnahmen, Spielanalyse, Formationen, Kommunikation, Berichte und Vereinsorganisation."
         canonicalPath="/funktionen"
-        jsonLd={itemList}
+        jsonLd={[itemList, breadcrumbJsonLd]}
       />
 
       <Box component="section" className="public-features-hero">
@@ -158,7 +167,7 @@ const FeaturesOverview: React.FC = () => {
             {marketingFeatures.map((feature) => (
               <Box key={feature.slug} className="public-features-card">
                 <Box className="public-features-card-media">
-                  <Box component="img" src={feature.image} alt={feature.name} />
+                  <Box component="img" src={feature.image} alt={feature.name} loading="lazy" />
                 </Box>
                 <Box className="public-features-card-body">
                   <Typography className="public-features-card-kicker">Funktion</Typography>
@@ -221,7 +230,7 @@ const FeaturesOverview: React.FC = () => {
             </Box>
 
             <Box className="public-features-spotlight-visual">
-              <Box component="img" src="/images/landing_page/game_overview.png" alt="Kaderblick Spielverwaltung und Analyse" />
+              <Box component="img" src="/images/landing_page/game_overview.png" alt="Kaderblick Spielverwaltung und Analyse" loading="lazy" />
             </Box>
           </Box>
         </Box>
