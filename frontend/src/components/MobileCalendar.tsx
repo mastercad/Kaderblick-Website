@@ -247,7 +247,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
         {/* Day grid */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
           {weeks.flat().map((day, idx) => {
-            const key = moment(day).format('YYYY-MM-DD');
+            const key = dayjs(day).format('YYYY-MM-DD');
             const dayEvents = eventsByDay.get(key) ?? [];
             const isToday = isSameDay(day, today);
             const isSelected = isSameDay(day, selectedDay);
@@ -358,7 +358,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
         >
           <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
           <Typography variant="subtitle2" fontWeight={700}>
-            {moment(selectedDay).format('dddd, D. MMMM')}
+            {dayjs(selectedDay).format('dddd, D. MMMM')}
           </Typography>
           {isSameDay(selectedDay, today) && (
             <Chip

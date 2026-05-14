@@ -49,6 +49,7 @@ jest.mock('react-big-calendar', () => ({
     </button>
   )),
   momentLocalizer: () => ({}),
+  dayjsLocalizer: () => ({}),
   Views: { DAY: 'day', WEEK: 'week', MONTH: 'month', AGENDA: 'agenda' },
 }));
 

@@ -117,8 +117,8 @@ export function useCalendarData(date: Date, view: string) {
 
   useEffect(() => {
     const viewType = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
-    const start = moment(date).startOf(viewType as any).toISOString();
-    const end = moment(date).endOf(viewType as any).toISOString();
+    const start = dayjs(date).startOf(viewType as any).toISOString();
+    const end = dayjs(date).endOf(viewType as any).toISOString();
 
     setLoading(true);
     setError(null);

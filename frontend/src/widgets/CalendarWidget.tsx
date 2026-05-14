@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import moment from 'moment';
 import { EventDetailsModal } from '../modals/EventDetailsModal';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -7,6 +8,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { Calendar as BigCalendar, dayjsLocalizer, Views } from 'react-big-calendar';
 import dayjs from '../utils/dayjsSetup';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { useWidgetRefresh } from '../context/WidgetRefreshContext';
+import { apiJson } from '../utils/api';
 
 dayjs.locale('de');
 const localizer = dayjsLocalizer(dayjs);
