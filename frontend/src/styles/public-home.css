@@ -1,5 +1,5 @@
 .public-home {
-  --public-home-font-family: 'Roboto Flex', Inter, 'Helvetica Neue', Arial, sans-serif;
+  --public-home-font-family: 'Roboto Flex', 'Inter Variable', Inter, 'Helvetica Neue', Arial, sans-serif;
   background: #ffffff;
   color: #142118;
   font-family: var(--public-home-font-family);

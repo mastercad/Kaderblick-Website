@@ -19,7 +19,7 @@ import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import moment from 'moment';
+import dayjs from '../utils/dayjsSetup';
 import { useTheme, alpha } from '@mui/material/styles';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -62,10 +62,10 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function formatTimeRange(start: Date, end: Date): string {
-  const startStr = moment(start).format('HH:mm');
-  const endStr = moment(end).format('HH:mm');
+  const startStr = dayjs(start).format('HH:mm');
+  const endStr = dayjs(end).format('HH:mm');
   const sameDay =
-    moment(start).format('YYYY-MM-DD') === moment(end).format('YYYY-MM-DD');
+    dayjs(start).format('YYYY-MM-DD') === dayjs(end).format('YYYY-MM-DD');
   if (!sameDay) return `${startStr} (mehrtägig)`;
   if (startStr === '00:00' && endStr === '23:59') return 'Ganztägig';
   return `${startStr} – ${endStr}`;
@@ -89,14 +89,14 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
 
   // ── Month grid construction ───────────────────────────────────────────────
   const monthStart = useMemo(
-    () => moment(date).startOf('month').toDate(),
+    () => dayjs(date).startOf('month').toDate(),
     [date],
   );
 
   // Build the 6×7 (or 5×7) calendar grid
   const weeks = useMemo(() => {
     // Start from Monday before/on the first day of the month
-    const gridStart = moment(monthStart).startOf('isoWeek').toDate();
+    const gridStart = dayjs(monthStart).startOf('isoWeek').toDate();
     const grid: Date[][] = [];
     let cursor = new Date(gridStart);
     // Always render 6 weeks so the grid height is stable
@@ -123,7 +123,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
       const endDay = new Date(evEnd);
       endDay.setHours(0, 0, 0, 0);
       while (cursor <= endDay) {
-        const key = moment(cursor).format('YYYY-MM-DD');
+        const key = dayjs(cursor).format('YYYY-MM-DD');
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(ev);
         cursor.setDate(cursor.getDate() + 1);
@@ -134,7 +134,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
 
   // Default selected day: today if in current month, else 1st
   const defaultDay = useMemo(() => {
-    const m = moment(date);
+    const m = dayjs(date);
     if (
       today.getFullYear() === m.year() &&
       today.getMonth() === m.month()
@@ -153,7 +153,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
 
   // Events for the selected day, sorted by start time
   const selectedDayEvents = useMemo(() => {
-    const key = moment(selectedDay).format('YYYY-MM-DD');
+    const key = dayjs(selectedDay).format('YYYY-MM-DD');
     return (eventsByDay.get(key) ?? []).slice().sort(
       (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
     );
@@ -170,11 +170,11 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const goBack = () =>
-    onNavigate(moment(date).subtract(1, 'month').startOf('month').toDate());
+    onNavigate(dayjs(date).subtract(1, 'month').startOf('month').toDate());
   const goForward = () =>
-    onNavigate(moment(date).add(1, 'month').startOf('month').toDate());
+    onNavigate(dayjs(date).add(1, 'month').startOf('month').toDate());
   const goToday = () => {
-    onNavigate(moment().startOf('month').toDate());
+    onNavigate(dayjs().startOf('month').toDate());
     setSelectedDay(today);
   };
 
@@ -204,7 +204,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
           </IconButton>
 
           <Typography variant="h6" fontWeight={700}>
-            {moment(date).format('MMMM YYYY')}
+            {dayjs(date).format('MMMM YYYY')}
           </Typography>
 
           <IconButton onClick={goForward} size="small">

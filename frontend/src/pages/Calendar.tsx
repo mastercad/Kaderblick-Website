@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar as BigCalendar, momentLocalizer, Views } from 'react-big-calendar';
+import { Calendar as BigCalendar, dayjsLocalizer, Views } from 'react-big-calendar';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import ButtonGroup from '@mui/material/ButtonGroup';
@@ -7,8 +7,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import moment from 'moment';
-import 'moment/locale/de';
+import dayjs from '../utils/dayjsSetup';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import CalendarFab from '../components/CalendarFab';
@@ -29,9 +28,7 @@ import { useCalendarEventState } from './calendar/useCalendarEventState';
 import { useCalendarEventSave } from './calendar/useCalendarEventSave';
 import { messages, formats } from './calendar/calendarConfig';
 
-moment.updateLocale('de', { week: { dow: 1 } });
-
-const localizer = momentLocalizer(moment);
+const localizer = dayjsLocalizer(dayjs);
 
 type CalendarExportProps = {
   setCalendarFabHandler?: (handler: (() => void) | null) => void;

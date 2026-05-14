@@ -4,16 +4,12 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Calendar as BigCalendar, momentLocalizer, Views } from 'react-big-calendar';
-import moment from 'moment';
-import 'moment/locale/de';
-import { apiJson } from '../utils/api';
-import { useWidgetRefresh } from '../context/WidgetRefreshContext';
-
+import { Calendar as BigCalendar, dayjsLocalizer, Views } from 'react-big-calendar';
+import dayjs from '../utils/dayjsSetup';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-moment.locale('de', { week: { dow: 1 } });
-const localizer = momentLocalizer(moment);
+dayjs.locale('de');
+const localizer = dayjsLocalizer(dayjs);
 
 export type CalendarViewMode = 'day' | 'week' | 'month';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import moment from 'moment';
+import dayjs from '../utils/dayjsSetup';
 import {
   CalendarEvent,
   CalendarEventType,
@@ -193,8 +193,8 @@ export function useCalendarData(date: Date, view: string) {
 
   const refreshEvents = async () => {
     const viewType = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
-    const start = moment(date).startOf(viewType as any).toISOString();
-    const end = moment(date).endOf(viewType as any).toISOString();
+    const start = dayjs(date).startOf(viewType as any).toISOString();
+    const end = dayjs(date).endOf(viewType as any).toISOString();
 
     const updatedEvents = await apiJson<CalendarEvent[] | { error: string }>(
       `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,

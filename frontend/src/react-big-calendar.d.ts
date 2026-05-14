@@ -54,6 +54,7 @@ declare module 'react-big-calendar' {
   export const Calendar: ComponentType<CalendarProps<any>>;
   export const Views: Record<string, string>;
   export function momentLocalizer(moment: any): any;
+  export function dayjsLocalizer(dayjs: any): any;
   export function dateFnsLocalizer(config: any): any;
   export function globalizeLocalizer(globalize: any): any;
 

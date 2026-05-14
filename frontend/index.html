@@ -18,12 +18,11 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/images/kaderblick_website_appicon.png" />
 
+    <!-- Preload LCP background image (Preload-Screen Hero) -->
+    <link rel="preload" href="/images/landing_page/background_central.jpg" as="image" fetchpriority="high" />
+
     <!-- Preload ImpactWeb font -->
     <link rel="preload" href="/fonts/ImpactLTStd.woff2" as="font" type="font/woff2" crossorigin />
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Anton&display=swap" rel="stylesheet">
 
     <style>
       @font-face {
@@ -78,7 +77,7 @@
     
     <style>
       :root {
-        --preload-font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        --preload-font-family: 'Inter Variable', 'Inter', 'Helvetica Neue', Arial, sans-serif;
         --preload-background: #0c0e0d;
         --preload-foreground: #ffffff;
         --preload-muted: rgba(255, 255, 255, 0.76);
