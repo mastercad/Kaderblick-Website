@@ -95,6 +95,11 @@ export function useSquadDrop({
     const currentBench   = benchPlayersRef.current;
     const currentNextNum = nextNumRef.current;
 
+    // Gesperrte Spieler dürfen nicht auf dem Feld eingesetzt werden.
+    if (player.isSuspended) {
+      return;
+    }
+
     const nearest        = findNearestInList(currentPlayers, pos.x, pos.y);
     const alreadyOnField = currentPlayers.some(p => p.playerId === player.id);
     const alreadyOnBench = currentBench.some(p  => p.playerId === player.id);

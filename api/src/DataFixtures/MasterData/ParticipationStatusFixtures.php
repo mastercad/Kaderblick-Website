@@ -44,7 +44,14 @@ class ParticipationStatusFixtures extends Fixture implements FixtureGroupInterfa
                 'color' => '#fd7e14',
                 'icon' => 'clock',
                 'sortOrder' => 40
-            ]
+            ],
+            [
+                'name' => 'Gesperrt',
+                'code' => 'suspended',
+                'color' => '#f44336',
+                'icon' => 'block',
+                'sortOrder' => 90
+            ],
         ];
 
         foreach ($statuses as $statusData) {

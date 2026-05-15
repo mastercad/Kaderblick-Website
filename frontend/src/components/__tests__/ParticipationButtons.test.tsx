@@ -134,4 +134,48 @@ describe('ParticipationButtons (shared component)', () => {
     expect(screen.getByRole('button', { name: 'Ja' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nein' })).toBeInTheDocument();
   });
+
+  it('renders an svg icon (not fallback text) for the "block" icon code (Gesperrt)', () => {
+    const suspended: ParticipationStatus = {
+      id: 99,
+      name: 'Gesperrt',
+      code: 'suspended',
+      color: '#f44336',
+      icon: 'block',
+      sort_order: 90,
+    };
+    render(
+      <ParticipationButtons
+        statuses={[suspended]}
+        currentParticipation={null}
+        saving={false}
+        onStatusClick={onStatusClick}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: 'Gesperrt' });
+    // When the icon is resolved, an <svg> is rendered; no fallback <span> with text
+    expect(btn.querySelector('svg')).not.toBeNull();
+    expect(btn.querySelector('span')).toBeNull();
+  });
+
+  it('renders fallback text (first 2 chars of name) for an unknown icon code', () => {
+    const unknown: ParticipationStatus = {
+      id: 99,
+      name: 'Unbekannt',
+      code: 'xyz',
+      icon: 'nonexistent-icon',
+      sort_order: 99,
+    };
+    render(
+      <ParticipationButtons
+        statuses={[unknown]}
+        currentParticipation={null}
+        saving={false}
+        onStatusClick={onStatusClick}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: 'Unbekannt' });
+    expect(btn.querySelector('span')).not.toBeNull();
+    expect(btn.querySelector('span')!.textContent).toBe('Un');
+  });
 });

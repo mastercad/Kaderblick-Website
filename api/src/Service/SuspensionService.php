@@ -9,6 +9,7 @@ use App\Entity\CoachSuspension;
 use App\Entity\CompetitionCardRule;
 use App\Entity\Game;
 use App\Entity\GameEvent;
+use App\Entity\Participation;
 use App\Entity\Player;
 use App\Entity\PlayerSuspension;
 use App\Entity\Team;
@@ -16,6 +17,10 @@ use App\Entity\User;
 use App\Repository\CoachSuspensionRepository;
 use App\Repository\CompetitionCardRuleRepository;
 use App\Repository\GameEventRepository;
+use App\Repository\GameRepository;
+use App\Repository\ParticipationRepository;
+use App\Repository\ParticipationStatusRepository;
+use App\Repository\PlayerRepository;
 use App\Repository\PlayerSuspensionRepository;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,6 +40,10 @@ class SuspensionService
         private readonly CoachSuspensionRepository $coachSuspensionRepository,
         private readonly CompetitionCardRuleRepository $cardRuleRepository,
         private readonly NotificationService $notificationService,
+        private readonly GameRepository $gameRepository,
+        private readonly ParticipationRepository $participationRepository,
+        private readonly ParticipationStatusRepository $participationStatusRepository,
+        private readonly PlayerRepository $playerRepository,
     ) {
     }
 
@@ -174,6 +183,7 @@ class SuspensionService
         if ($yellowCount >= $rule->getYellowSuspensionThreshold()) {
             $this->createSuspension(
                 $player,
+                $team,
                 $competitionType,
                 $competitionId,
                 PlayerSuspension::REASON_YELLOW_CARDS,
@@ -257,12 +267,13 @@ class SuspensionService
             $gamesSuspended = $rule?->getYellowRedCardSuspensionGames() ?? 1;
         }
 
-        $this->createSuspension($player, $competitionType, $competitionId, $reason, $gamesSuspended, $game);
+        $this->createSuspension($player, $team, $competitionType, $competitionId, $reason, $gamesSuspended, $game);
         $this->notifyDirectSuspension($player, $team, $game, $reason, $competitionType, $competitionId);
     }
 
     private function createSuspension(
         Player $player,
+        Team $team,
         string $competitionType,
         ?int $competitionId,
         string $reason,
@@ -280,6 +291,9 @@ class SuspensionService
 
         $this->em->persist($suspension);
         $this->em->flush();
+
+        $this->setParticipationsForSuspendedGames($player, $team, $competitionType, $competitionId, $game, $gamesSuspended);
+        $this->checkSquadReadiness($team, $game, $competitionType, $competitionId);
 
         return $suspension;
     }
@@ -747,6 +761,205 @@ class SuspensionService
                     'competitionId' => $competitionId,
                 ],
             );
+        }
+    }
+
+    /**
+     * Nachträgliches Setzen von Participation-Einträgen (Status: suspended) für eine Sperre.
+     *
+     * Wird verwendet wenn der User-Spieler-Link (UserRelation) erst NACH dem Anlegen
+     * der Sperre erstellt wurde und somit setParticipationsForSuspendedGames() zum
+     * Zeitpunkt der Sperre keine User gefunden hat.
+     */
+    public function syncParticipationsForSuspension(PlayerSuspension $suspension): void
+    {
+        $game = $suspension->getTriggeredByGame();
+        if (null === $game) {
+            return;
+        }
+
+        $player = $suspension->getPlayer();
+        $team = $this->resolveTeamForPlayerInGame($player, $game);
+        if (null === $team) {
+            return;
+        }
+
+        $this->setParticipationsForSuspendedGames(
+            $player,
+            $team,
+            $suspension->getCompetitionType(),
+            $suspension->getCompetitionId(),
+            $game,
+            $suspension->getGamesSuspended(),
+        );
+    }
+
+    /**
+     * Ermittelt das Team eines Spielers in einem Spiel.
+     *
+     * Strategie 1: Suche nach einem GameEvent des Spielers in diesem Spiel (hat team_id).
+     * Strategie 2: Abgleich der PlayerTeamAssignments mit home-/awayTeam des Spiels.
+     */
+    private function resolveTeamForPlayerInGame(Player $player, Game $game): ?Team
+    {
+        $gameEvent = $this->em->getRepository(GameEvent::class)->findOneBy([
+            'game' => $game,
+            'player' => $player,
+        ]);
+
+        if (null !== $gameEvent) {
+            return $gameEvent->getTeam();
+        }
+
+        $homeTeam = $game->getHomeTeam();
+        $awayTeam = $game->getAwayTeam();
+
+        foreach ($player->getPlayerTeamAssignments() as $assignment) {
+            $assignedTeam = $assignment->getTeam();
+            if (null === $assignedTeam) {
+                continue;
+            }
+
+            if (null !== $homeTeam && $assignedTeam->getId() === $homeTeam->getId()) {
+                return $homeTeam;
+            }
+
+            if (null !== $awayTeam && $assignedTeam->getId() === $awayTeam->getId()) {
+                return $awayTeam;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Sets the participation status to "suspended" for the next $gamesSuspended games
+     * of the given team in the given competition after the triggering game.
+     */
+    private function setParticipationsForSuspendedGames(
+        Player $player,
+        Team $team,
+        string $competitionType,
+        ?int $competitionId,
+        Game $triggerGame,
+        int $gamesSuspended,
+    ): void {
+        $suspendedStatus = $this->participationStatusRepository->findByCode('suspended');
+        if (null === $suspendedStatus) {
+            return;
+        }
+
+        $afterDate = $triggerGame->getCalendarEvent()?->getStartDate();
+        if (null === $afterDate) {
+            return;
+        }
+
+        $nextGames = $this->gameRepository->findNextGamesForTeamInCompetition(
+            $team,
+            $competitionType,
+            $competitionId,
+            $afterDate,
+            $gamesSuspended,
+        );
+
+        $users = $this->getUsersForPlayer($player);
+
+        foreach ($nextGames as $game) {
+            $calendarEvent = $game->getCalendarEvent();
+            if (null === $calendarEvent) {
+                continue;
+            }
+
+            foreach ($users as $user) {
+                $participation = $this->participationRepository->findByUserAndEvent($user, $calendarEvent);
+                if (null === $participation) {
+                    $participation = new Participation();
+                    $participation->setUser($user);
+                    $participation->setEvent($calendarEvent);
+                    $this->em->persist($participation);
+                }
+
+                $participation->setStatus($suspendedStatus);
+            }
+        }
+
+        $this->em->flush();
+    }
+
+    /**
+     * Checks whether the team has fewer than 11 available players for the next competition game
+     * after the triggering game. Notifies coaches if there is a squad shortage.
+     */
+    private function checkSquadReadiness(
+        Team $team,
+        Game $triggerGame,
+        string $competitionType,
+        ?int $competitionId,
+    ): void {
+        $afterDate = $triggerGame->getCalendarEvent()?->getStartDate();
+        if (null === $afterDate) {
+            return;
+        }
+
+        $nextGames = $this->gameRepository->findNextGamesForTeamInCompetition(
+            $team,
+            $competitionType,
+            $competitionId,
+            $afterDate,
+            1,
+        );
+
+        if (empty($nextGames)) {
+            return;
+        }
+
+        $nextGame = $nextGames[0];
+        $calendarEvent = $nextGame->getCalendarEvent();
+        if (null === $calendarEvent) {
+            return;
+        }
+
+        $allPlayers = $this->playerRepository->findActiveByTeams([$team]);
+        $participations = $this->participationRepository->findByEvent($calendarEvent);
+
+        $unavailableUserIds = [];
+        foreach ($participations as $participation) {
+            $statusCode = $participation->getStatus()?->getCode();
+            if (in_array($statusCode, ['suspended', 'no', 'sick'], true)) {
+                $unavailableUserIds[] = $participation->getUser()->getId();
+            }
+        }
+
+        $availableCount = 0;
+        foreach ($allPlayers as $player) {
+            foreach ($this->getUsersForPlayer($player) as $user) {
+                if (!in_array($user->getId(), $unavailableUserIds, true)) {
+                    ++$availableCount;
+                }
+            }
+        }
+
+        if ($availableCount < 11) {
+            $competitionLabel = $this->buildCompetitionLabel($nextGame, $competitionType);
+            foreach ($this->getUsersForTeamCoaches($team) as $user) {
+                $this->notificationService->createNotification(
+                    user: $user,
+                    type: 'system',
+                    title: 'Kadermangel: weniger als 11 Spieler verfügbar',
+                    message: sprintf(
+                        'Für das nächste Spiel in %s stehen voraussichtlich nur %d Spieler zur Verfügung. Bitte prüfe den Kader.',
+                        $competitionLabel,
+                        $availableCount,
+                    ),
+                    data: [
+                        'gameId' => $nextGame->getId(),
+                        'teamId' => $team->getId(),
+                        'availableCount' => $availableCount,
+                        'competitionType' => $competitionType,
+                        'competitionId' => $competitionId,
+                    ],
+                );
+            }
         }
     }
 

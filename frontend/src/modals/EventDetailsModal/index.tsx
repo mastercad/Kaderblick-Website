@@ -435,7 +435,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
                       {/* Status buttons */}
                       <ParticipationButtons
-                        statuses={participationStatuses}
+                        statuses={participationStatuses.filter(
+                          s => s.code !== 'suspended' || !!event?.game || !!event?.tournamentId,
+                        )}
                         currentParticipation={currentParticipation}
                         saving={saving}
                         onStatusClick={handleStatusClick}

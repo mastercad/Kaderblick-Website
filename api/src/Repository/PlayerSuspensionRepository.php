@@ -108,6 +108,12 @@ class PlayerSuspensionRepository extends ServiceEntityRepository
      * Sucht eine bestehende Sperre anhand des auslösenden Spiels und Grundes.
      * Wird vom Backfill-Command genutzt, um Duplikate zu vermeiden.
      */
+    /** @return PlayerSuspension[] */
+    public function findAllActive(): array
+    {
+        return $this->findBy(['isActive' => true]);
+    }
+
     public function findByTriggerGameAndReason(
         Player $player,
         string $competitionType,
