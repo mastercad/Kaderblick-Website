@@ -12,6 +12,7 @@ import {
   FaTimes,
   FaQuestion,
   FaHourglassHalf,
+  FaBan,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { ParticipationStatus, CurrentParticipation } from '../types/participation';
@@ -26,6 +27,7 @@ const FA_ICON_MAP: Record<string, IconType> = {
   'question': FaQuestion,
   'hourglass-half': FaHourglassHalf,
   'hourglass': FaHourglassHalf,
+  'block': FaBan,
 };
 
 interface ParticipationButtonsProps {

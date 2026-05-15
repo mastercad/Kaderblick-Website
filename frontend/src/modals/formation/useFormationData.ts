@@ -65,19 +65,20 @@ function mapApiPlayer(e: any): Player {
  * @internal Exportiert für Unit-Tests.
  */
 export function refreshShirtNumbers(playerList: PlayerData[], available: Player[]): PlayerData[] {
-  const shirtByPlayerId = new Map<number, string | number>(
-    available
-      .filter(p => p.shirtNumber != null)
-      .map(p => [p.id, p.shirtNumber!]),
-  );
+  const byPlayerId = new Map<number, Player>(available.map(p => [p.id, p]));
   return playerList.map(p => {
     if (!p.isRealPlayer || p.playerId == null) return p;
-    const current = shirtByPlayerId.get(p.playerId);
-    return current != null ? { ...p, number: current } : p;
+    const ap = byPlayerId.get(p.playerId);
+    if (!ap) return p;
+    return {
+      ...p,
+      ...(ap.shirtNumber != null ? { number: ap.shirtNumber } : {}),
+      isSuspended: ap.isSuspended ?? false,
+    };
   });
 }
 
-export function useFormationData(open: boolean, formationId: number | null, initialDraft?: FormationEditorDraft, initialShowTemplatePicker?: boolean): FormationDataState {
+export function useFormationData(open: boolean, formationId: number | null, initialDraft?: FormationEditorDraft, initialShowTemplatePicker?: boolean, gameId?: number): FormationDataState {
   const [formation, setFormation] = useState<Formation | null>(null);
   const [currentTemplateCode, setCurrentTemplateCode] = useState<string | null>(null);
   const [players, setPlayers] = useState<PlayerData[]>([]);
@@ -198,7 +199,14 @@ export function useFormationData(open: boolean, formationId: number | null, init
             const available = data.availablePlayers.players.map((e: any) =>
               mapApiPlayer({ ...e.player, shirtNumber: e.shirtNumber, position: e.position, alternativePositions: e.alternativePositions }),
             );
-            setAvailablePlayers(available);
+            console.debug('[useFormationData] Formation-Load: available gesetzt, gameId:', gameId);
+            // Wenn gameId gesetzt ist, überlässt der Formation-Load das Setzen von
+            // availablePlayers dem squad/suspension-Load-Effekt, damit isSuspended
+            // korrekt gesetzt wird und dieser spätere Fetch nicht das Ergebnis
+            // des anderen überschreiben kann (Race-Condition-Schutz).
+            if (!gameId) {
+              setAvailablePlayers(available);
+            }
             // Trikotnummern auf dem Feld und der Bank sofort auf den Stand
             // des aktuellen PlayerTeamAssignments bringen (überschreibt ggf.
             // veraltete oder sequenzielle Nummern aus dem gespeicherten JSON).
@@ -242,13 +250,50 @@ export function useFormationData(open: boolean, formationId: number | null, init
       return;
     }
     let cancelled = false;
+    console.debug('[useFormationData] Lade Kader für Team', selectedTeam, 'gameId:', gameId);
     apiJson<any>(`/formation/team/${selectedTeam}/players`)
       .then(data => {
         if (cancelled) return;
+        console.debug('[useFormationData] Kader-Antwort:', data);
         if (Array.isArray(data.players)) {
           const mapped = data.players
             .filter((e: any) => e?.id)
             .map(mapApiPlayer);
+          console.debug('[useFormationData] Gemappte Spieler:', mapped.map((p: any) => ({ id: p.id, name: p.name })));
+
+          if (gameId) {
+            // Sperrstatus direkt mit laden, um Race-Condition zu vermeiden.
+            // Die API liefert ein direktes Array (kein {players: []} Wrapper).
+            console.debug('[useFormationData] Lade Suspension-Status für gameId', gameId);
+            return apiJson<{ playerId: number; isSuspended: boolean }[]>(
+              `/api/game/${gameId}/players/suspension-status`,
+            )
+              .then(suspData => {
+                if (cancelled) return;
+                console.debug('[useFormationData] Suspension-Antwort (raw):', suspData);
+                console.debug('[useFormationData] Ist Array?', Array.isArray(suspData));
+                const suspendedIds = new Set(
+                  (Array.isArray(suspData) ? suspData : []).filter(p => p.isSuspended).map(p => p.playerId),
+                );
+                console.debug('[useFormationData] Gesperrte Spieler-IDs:', [...suspendedIds]);
+                const withSuspension = mapped.map((p: any) => ({ ...p, isSuspended: suspendedIds.has(p.id) }));
+                console.debug('[useFormationData] Spieler mit isSuspended:', withSuspension.map((p: any) => ({ id: p.id, name: p.name, isSuspended: p.isSuspended })));
+                setAvailablePlayers(withSuspension);
+                setPlayers(prev => refreshShirtNumbers(prev, withSuspension));
+                setBenchPlayers(prev => refreshShirtNumbers(prev, withSuspension));
+                setError(withSuspension.length === 0 ? 'Keine Spieler für dieses Team gefunden.' : null);
+              })
+              .catch((err) => {
+                if (cancelled) return;
+                console.error('[useFormationData] Suspension-Fetch fehlgeschlagen:', err);
+                // Suspension-Fehler: Spieler trotzdem anzeigen, ohne Sperr-Flag
+                setAvailablePlayers(mapped);
+                setPlayers(prev => refreshShirtNumbers(prev, mapped));
+                setBenchPlayers(prev => refreshShirtNumbers(prev, mapped));
+                setError(mapped.length === 0 ? 'Keine Spieler für dieses Team gefunden.' : null);
+              });
+          }
+
           setAvailablePlayers(mapped);
           // Bereits auf dem Feld oder der Bank befindliche echte Spieler
           // erhalten die Trikotnummer des neu gewählten Teams.
@@ -256,12 +301,16 @@ export function useFormationData(open: boolean, formationId: number | null, init
           setBenchPlayers(prev => refreshShirtNumbers(prev, mapped));
           setError(mapped.length === 0 ? 'Keine Spieler für dieses Team gefunden.' : null);
         } else {
+          console.warn('[useFormationData] Kader-Antwort enthält kein players-Array:', data);
           setAvailablePlayers([]);
         }
       })
-      .catch(() => { if (!cancelled) setAvailablePlayers([]); });
+      .catch((err) => {
+        if (!cancelled) setAvailablePlayers([]);
+        console.error('[useFormationData] Kader-Fetch fehlgeschlagen:', err);
+      });
     return () => { cancelled = true; };
-  }, [open, selectedTeam]);
+  }, [open, selectedTeam, gameId]);
 
   return {
     formation, setFormation,

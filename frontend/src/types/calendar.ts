@@ -74,6 +74,14 @@ export type CalendarEvent = {
   externalCalendarId?: number;
   externalCalendarName?: string;
   externalCalendarColor?: string;
+  /** Teilnahme-Status des authentifizierten Nutzers (vom Backend serialisiert). */
+  participation_status?: {
+    id: number;
+    name: string;
+    code?: string;
+    icon?: string;
+    color?: string;
+  };
 };
 
 export type CalendarEventType = {

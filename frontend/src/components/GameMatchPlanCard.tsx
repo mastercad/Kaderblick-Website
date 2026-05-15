@@ -1489,6 +1489,7 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
         onClose={() => setEditorState(current => ({ ...current, open: false, formationId: null, phaseId: null, draft: undefined, initialShowTemplatePicker: false, pendingPhase: undefined }))}
         onSaved={editorState.mode === 'portfolio' ? handlePortfolioSaved : undefined}
         onSaveDraft={editorState.mode === 'phase' ? handlePhaseDraftSave : undefined}
+        gameId={game.id}
       />
     </>
   );

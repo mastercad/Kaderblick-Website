@@ -137,6 +137,7 @@ export function useFormationEditor(
   onSaveDraft?: (draft: FormationEditorDraft) => Promise<void> | void,
   saveSuccessMessage?: string,
   initialShowTemplatePicker?: boolean,
+  gameId?: number,
 ): FormationEditorState {
   const { showToast } = useToast();
   const pitchRef = useRef<HTMLDivElement>(null);
@@ -154,7 +155,7 @@ export function useFormationEditor(
   const benchPlayersRef = useRef<PlayerData[]>([]);
 
   // ── State + API-Calls ────────────────────────────────────────────────────
-  const data = useFormationData(open, formationId, initialDraft, initialShowTemplatePicker);
+  const data = useFormationData(open, formationId, initialDraft, initialShowTemplatePicker, gameId);
 
   // Refs in sync halten
   useEffect(() => { playersRef.current = data.players; }, [data.players]);

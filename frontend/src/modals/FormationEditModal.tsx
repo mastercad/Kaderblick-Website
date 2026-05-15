@@ -97,6 +97,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
   saveButtonLabel,
   onSaveDraft,
   initialShowTemplatePicker,
+  gameId,
 }) => {
   const editor = useFormationEditor(
     open,
@@ -107,6 +108,7 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
     onSaveDraft,
     onSaveDraft ? 'Aufstellung übernommen.' : undefined,
     initialShowTemplatePicker,
+    gameId,
   );
   const [showCloseWarning, setShowCloseWarning] = useState(false);
   const [errorDialogDismissed, setErrorDialogDismissed] = useState(false);

@@ -20,6 +20,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import BlockIcon from '@mui/icons-material/Block';
 import { getPositionColor } from '../helpers';
 import type { Player, PlayerData } from '../types';
 
@@ -209,13 +210,15 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
       <List dense disablePadding>
         {filtered.map(player => {
           const isActive = activePlayerIds.has(player.id);
+          const isSuspended = player.isSuspended === true;
+          const notInteractable = isActive || isSuspended;
 
           return (
             <ListItem
               key={player.id}
               disablePadding
-              draggable={!isActive}
-              onDragStart={isActive ? undefined : event => handleDragStart(event, player)}
+              draggable={!notInteractable}
+              onDragStart={notInteractable ? undefined : event => handleDragStart(event, player)}
               onDragEnd={() => onSquadDragEnd?.()}
               sx={{ py: 0.2 }}
             >
@@ -229,16 +232,16 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
                   py: 0.5,
                   borderRadius: 2,
                   opacity: isActive ? 0.55 : 1,
-                  bgcolor: isActive ? 'action.selected' : 'transparent',
-                  cursor: isActive ? 'default' : 'grab',
-                  '&:hover': isActive ? {} : { bgcolor: 'action.hover' },
+                  bgcolor: isActive ? 'action.selected' : isSuspended ? 'rgba(211,47,47,0.08)' : 'transparent',
+                  cursor: notInteractable ? 'default' : 'grab',
+                  '&:hover': notInteractable ? {} : { bgcolor: 'action.hover' },
                 }}
               >
                 {/* Avatar – drag handle for touch (touchAction:none only here) */}
                 <SquadPlayerAvatar
                   player={player}
-                  isActive={isActive}
-                  onSquadDragStart={onSquadDragStart}
+                  isActive={notInteractable}
+                  onSquadDragStart={isSuspended ? undefined : onSquadDragStart}
                 />
 
                 {/* Name + meta */}
@@ -246,14 +249,38 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
                   <Typography variant="body2" fontWeight={600} noWrap>
                     {player.name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                    {[player.shirtNumber != null ? `#${player.shirtNumber}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {[player.shirtNumber != null ? `#${player.shirtNumber}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
+                    </Typography>
+                    {isSuspended && (
+                      <Chip
+                        label="Gesperrt"
+                        size="small"
+                        sx={{
+                          height: 16,
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          bgcolor: 'error.main',
+                          color: 'error.contrastText',
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                    )}
+                  </Box>
                 </Box>
 
                 {/* Actions */}
                 {isActive ? (
                   <CheckCircleOutlineIcon fontSize="small" sx={{ color: 'success.main', flexShrink: 0 }} />
+                ) : isSuspended ? (
+                  <Tooltip title="Gesperrt – kann nicht eingesetzt werden">
+                    <Box display="flex" flexShrink={0}>
+                      <IconButton size="small" disabled aria-label="Gesperrt">
+                        <BlockIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
+                  </Tooltip>
                 ) : (
                   <Box display="flex" flexShrink={0}>
                     <Tooltip title="Auf Spielfeld setzen">
