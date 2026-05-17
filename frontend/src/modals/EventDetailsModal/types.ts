@@ -79,6 +79,7 @@ export interface CalendarEvent {
     address?: string;
     city?: string;
   };
+  tournamentId?: number;
 }
 
 export interface EventDetailsModalProps {

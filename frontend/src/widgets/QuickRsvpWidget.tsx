@@ -175,7 +175,9 @@ const EventRow: React.FC<EventRowProps> = ({ event, row, statuses, onRespond, on
         {showButtons && (
           <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
             <ParticipationButtons
-              statuses={statuses}
+              statuses={statuses.filter(
+                s => s.code !== 'suspended' || !!event.game || event.type?.name?.toLowerCase().includes('turnier'),
+              )}
               currentParticipation={
                 row.participation
                   ? { statusId: row.participation.id, statusName: row.participation.name, color: row.participation.color, icon: row.participation.icon }

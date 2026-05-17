@@ -186,6 +186,11 @@ export function usePlayerActions({
       || benchPlayers.some(p => p.playerId === player.id);
     if (alreadyIn) return;
 
+    if (player.isSuspended) {
+      showToast(`${player.name} ist gesperrt und kann nicht eingesetzt werden.`, 'warning');
+      return;
+    }
+
     const newPlayer: PlayerData = {
       id: nextLocalPlayerId(),
       x: 0,
@@ -196,6 +201,7 @@ export function usePlayerActions({
       isRealPlayer: true,
       position: player.position ?? undefined,
       alternativePositions: player.alternativePositions ?? [],
+      isSuspended: player.isSuspended ?? false,
     };
 
     if (target === 'field') {
@@ -236,6 +242,10 @@ export function usePlayerActions({
   const sendToField = (id: number) => {
     const p = benchPlayers.find(pl => pl.id === id);
     if (!p) return;
+    if (p.isSuspended) {
+      showToast(`${p.name} ist gesperrt und kann nicht auf dem Spielfeld eingesetzt werden.`, 'warning');
+      return;
+    }
     setBenchPlayers(prev => prev.filter(pl => pl.id !== id));
     setPlayers(prev => [...prev, { ...p, ...findFreePosition(players) }]);
   };
@@ -261,7 +271,8 @@ export function usePlayerActions({
         .filter(p => p.isRealPlayer && p.playerId != null)
         .map(p => p.playerId as number),
     );
-    const unused = availablePlayers.filter(p => !alreadyUsed.has(p.id));
+    // Gesperrte Spieler grundsätzlich ausschließen
+    const unused = availablePlayers.filter(p => !alreadyUsed.has(p.id) && !p.isSuspended);
     if (!unused.length) return;
 
     // Nach Trikotnummer sortieren für deterministische Picks

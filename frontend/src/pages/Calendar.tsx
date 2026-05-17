@@ -377,6 +377,21 @@ function CalendarInner() {
                     opacity: event.cancelled ? 0.7 : 1,
                   }}>
                     {event.cancelled && '❌ '}
+                    {event.participation_status?.code === 'suspended' && (
+                      <span style={{
+                        display: 'inline-block',
+                        marginRight: '4px',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        backgroundColor: event.participation_status.color ?? '#f44336',
+                        color: '#fff',
+                        fontSize: '0.65em',
+                        fontWeight: 'bold',
+                        verticalAlign: 'middle',
+                      }}>
+                        Gesperrt
+                      </span>
+                    )}
                     {event.title}
                   </span>
                   {event.location?.name && (

@@ -11,6 +11,8 @@ export interface Player {
   position?: string | null;
   /** Alternative position abbreviations (e.g. ['ZM', 'DM']) */
   alternativePositions?: string[];
+  /** True when the player has an active suspension for the game associated with this formation. */
+  isSuspended?: boolean;
 }
 
 export interface Team {
@@ -38,6 +40,8 @@ export interface PlayerData {
   position?: string;
   /** Alternativpositionen – für Debug-Tooltip und Positionszuweisung. */
   alternativePositions?: string[];
+  /** True wenn der Spieler für das zugehörige Spiel gesperrt ist. */
+  isSuspended?: boolean;
 }
 
 export interface FormationData {
@@ -74,4 +78,6 @@ export interface FormationEditModalProps {
   saveButtonLabel?: string;
   onSaveDraft?: (draft: FormationEditorDraft) => Promise<void> | void;
   initialShowTemplatePicker?: boolean;
+  /** Optional game ID — when provided, suspended players are blocked from field placement. */
+  gameId?: number;
 }
