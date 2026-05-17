@@ -40,6 +40,10 @@ services:
     App\Security\Json401EntryPoint:
         public: true
 
+    App\EventSubscriber\DailyLoginXpSubscriber:
+        arguments:
+            $cache: '@daily_login_xp.cache'
+
     lexik_jwt_authentication.extractor.authorization_header_extractor:
         class: App\Security\JwtTokenExtractor
 

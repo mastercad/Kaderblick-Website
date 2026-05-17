@@ -23,11 +23,16 @@ class LeaguesControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $user;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($user, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->user = $user;
     }
 
     // ── GET /api/leagues ─────────────────────────────────────────────────────
@@ -41,10 +46,9 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testListReturnsLeaguesArray(): void
     {
-        $user = $this->createUser('lgtest-list@example.com');
         $this->createLeague('lgtest-Kreisliga');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues');
 
         $this->assertResponseIsSuccessful();
@@ -56,10 +60,9 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testListIncludesRequiredFields(): void
     {
-        $user = $this->createUser('lgtest-fields@example.com');
         $this->createLeague('lgtest-Bezirksliga');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues');
 
         $this->assertResponseIsSuccessful();
@@ -83,10 +86,9 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGameCountIsZeroForLeagueWithNoGames(): void
     {
-        $user = $this->createUser('lgtest-nocount@example.com');
         $this->createLeague('lgtest-EmptyLeague');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -101,14 +103,13 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGameCountReflectsActualGamesLinkedToLeague(): void
     {
-        $user = $this->createUser('lgtest-count@example.com');
         $league = $this->createLeague('lgtest-CountLeague');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
 
         $this->createCalendarEventWithGame($league, $evType);
         $this->createCalendarEventWithGame($league, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -134,12 +135,11 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGamesReturnsGamesArray(): void
     {
-        $user = $this->createUser('lgtest-games@example.com');
         $league = $this->createLeague('lgtest-GamesLeague');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
         $this->createCalendarEventWithGame($league, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues/' . $league->getId() . '/games');
 
         $this->assertResponseIsSuccessful();
@@ -152,12 +152,11 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGamesIncludesRequiredFields(): void
     {
-        $user = $this->createUser('lgtest-gamefields@example.com');
         $league = $this->createLeague('lgtest-FieldsLeague');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
         $this->createCalendarEventWithGame($league, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues/' . $league->getId() . '/games');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -175,10 +174,9 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGamesReturnsEmptyArrayForLeagueWithNoGames(): void
     {
-        $user = $this->createUser('lgtest-empty@example.com');
         $league = $this->createLeague('lgtest-EmptyGamesLeague');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues/' . $league->getId() . '/games');
 
         $this->assertResponseIsSuccessful();
@@ -189,31 +187,13 @@ class LeaguesControllerTest extends WebTestCase
 
     public function testGamesReturns404ForNonExistentLeague(): void
     {
-        $user = $this->createUser('lgtest-404@example.com');
-
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/leagues/999999/games');
 
         $this->assertResponseStatusCodeSame(404);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private function createUser(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
 
     private function createLeague(string $name): League
     {
@@ -291,7 +271,6 @@ class LeaguesControllerTest extends WebTestCase
         $conn->executeStatement("DELETE FROM calendar_events WHERE title = 'lgtest-Game'");
         $conn->executeStatement("DELETE FROM leagues WHERE name LIKE 'lgtest-%'");
         $conn->executeStatement("DELETE FROM game_types WHERE name LIKE 'lgtest-%'");
-        $conn->executeStatement("DELETE FROM users WHERE email LIKE 'lgtest-%'");
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

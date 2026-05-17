@@ -36,12 +36,22 @@ class ReportControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $u6;
+    private User $u7;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $u6 */
+        $u6 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($u6, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u6 = $u6;
+        /** @var User $u7 */
+        $u7 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        $this->assertNotNull($u7, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u7 = $u7;
     }
 
     // =========================================================================
@@ -60,8 +70,8 @@ class ReportControllerTest extends WebTestCase
 
     public function testAvailableReturnsOwnReportsAndTemplates(): void
     {
-        $user = $this->createUser(self::PREFIX . 'avail-user@example.com');
-        $other = $this->createUser(self::PREFIX . 'avail-other@example.com');
+        $user = $this->u6;
+        $other = $this->u7;
         $template = $this->createTemplateReport(self::PREFIX . 'Avail Template');
         $own = $this->createOwnedReport(self::PREFIX . 'Avail Own', $user);
         $foreign = $this->createOwnedReport(self::PREFIX . 'Avail Foreign', $other);
@@ -81,7 +91,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testAvailableContainsIsTemplateFlag(): void
     {
-        $user = $this->createUser(self::PREFIX . 'avail-flag@example.com');
+        $user = $this->u6;
         $template = $this->createTemplateReport(self::PREFIX . 'Flag Template');
         $own = $this->createOwnedReport(self::PREFIX . 'Flag Own', $user);
 
@@ -101,7 +111,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testDefinitionsReturnsSeparatedTemplatesAndUserReports(): void
     {
-        $user = $this->createUser(self::PREFIX . 'defs-user@example.com');
+        $user = $this->u6;
         $template = $this->createTemplateReport(self::PREFIX . 'Defs Template');
         $own = $this->createOwnedReport(self::PREFIX . 'Defs Own', $user);
 
@@ -128,7 +138,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testGetDefinitionReturnsOwnReport(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-own@example.com');
+        $user = $this->u6;
         $report = $this->createOwnedReport(self::PREFIX . 'Get Own', $user);
 
         $this->client->loginUser($user);
@@ -143,7 +153,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testGetDefinitionReturnsTemplate(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-tpl@example.com');
+        $user = $this->u6;
         $template = $this->createTemplateReport(self::PREFIX . 'Get Template');
 
         $this->client->loginUser($user);
@@ -156,8 +166,8 @@ class ReportControllerTest extends WebTestCase
 
     public function testGetDefinitionDeniesAccessToOtherUsersReport(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'get-owner@example.com');
-        $visitor = $this->createUser(self::PREFIX . 'get-visitor@example.com');
+        $owner = $this->u6;
+        $visitor = $this->u7;
         $report = $this->createOwnedReport(self::PREFIX . 'Get Foreign', $owner);
 
         $this->client->loginUser($visitor);
@@ -168,7 +178,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testGetDefinitionReturns404ForUnknownId(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-404@example.com');
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request('GET', '/api/report/definition/9999999');
@@ -182,7 +192,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testCreateReportSucceeds(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create@example.com');
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request(
@@ -208,7 +218,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testCreateReportRequiresName(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-noname@example.com');
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request(
@@ -225,7 +235,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testCreateReportRequiresConfig(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-nocfg@example.com');
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request(
@@ -242,7 +252,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testCreateReportRejectsInvalidMetricToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-badmetric@example.com');
+        $user = $this->u6;
         $config = array_merge(self::BASIC_CONFIG, ['metrics' => ['__invalid_metric__']]);
 
         $this->client->loginUser($user);
@@ -264,7 +274,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testUpdateOwnReportSucceeds(): void
     {
-        $user = $this->createUser(self::PREFIX . 'update@example.com');
+        $user = $this->u6;
         $report = $this->createOwnedReport(self::PREFIX . 'Update Me', $user);
 
         $this->client->loginUser($user);
@@ -285,8 +295,8 @@ class ReportControllerTest extends WebTestCase
 
     public function testUpdateDeniesAccessToOtherUsersReport(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'upd-owner@example.com');
-        $visitor = $this->createUser(self::PREFIX . 'upd-visitor@example.com');
+        $owner = $this->u6;
+        $visitor = $this->u7;
         $report = $this->createOwnedReport(self::PREFIX . 'Update Foreign', $owner);
 
         $this->client->loginUser($visitor);
@@ -304,7 +314,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testUpdatePreservesDescriptionWhenNotProvided(): void
     {
-        $user = $this->createUser(self::PREFIX . 'upd-desc@example.com');
+        $user = $this->u6;
         $report = $this->createOwnedReport(self::PREFIX . 'Update Desc', $user, 'Ursprüngliche Beschreibung');
 
         $this->client->loginUser($user);
@@ -330,7 +340,7 @@ class ReportControllerTest extends WebTestCase
 
     public function testDeleteOwnReportSucceeds(): void
     {
-        $user = $this->createUser(self::PREFIX . 'del@example.com');
+        $user = $this->u6;
         $report = $this->createOwnedReport(self::PREFIX . 'Delete Me', $user);
         $id = $report->getId();
 
@@ -344,8 +354,8 @@ class ReportControllerTest extends WebTestCase
 
     public function testDeleteDeniesAccessToOtherUsersReport(): void
     {
-        $owner = $this->createUser(self::PREFIX . 'del-owner@example.com');
-        $visitor = $this->createUser(self::PREFIX . 'del-visitor@example.com');
+        $owner = $this->u6;
+        $visitor = $this->u7;
         $report = $this->createOwnedReport(self::PREFIX . 'Delete Foreign', $owner);
 
         $this->client->loginUser($visitor);
@@ -359,23 +369,6 @@ class ReportControllerTest extends WebTestCase
     // =========================================================================
     //  Helpers
     // =========================================================================
-
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
 
     private function createTemplateReport(string $name): ReportDefinition
     {
@@ -415,7 +408,6 @@ class ReportControllerTest extends WebTestCase
             ['prefix' => self::PREFIX . '%'],
         );
         $conn->executeStatement('DELETE FROM report_definitions WHERE name LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
 
         $this->em->close();
         parent::tearDown();

@@ -27,17 +27,26 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class ExternalCalendarTest extends WebTestCase
 {
-    private const PREFIX = 'extcal-test-';
     private const BASE_URL = '/api/profile/calendar/external';
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $userA;
+    private User $userB;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $userA */
+        $userA = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($userA, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userA = $userA;
+        /** @var User $userB */
+        $userB = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        $this->assertNotNull($userB, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userB = $userB;
     }
 
     // =========================================================================
@@ -88,8 +97,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testListReturnsEmptyArrayInitially(): void
     {
-        $user = $this->createUser(self::PREFIX . 'list-empty@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request('GET', self::BASE_URL);
 
@@ -101,14 +109,11 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testListReturnsOnlyOwnCalendars(): void
     {
-        $userA = $this->createUser(self::PREFIX . 'list-a@test.example');
-        $userB = $this->createUser(self::PREFIX . 'list-b@test.example');
+        $this->createCalendar($this->userA, 'Kalender von A', 'https://example.com/a.ics');
+        $this->createCalendar($this->userA, 'Noch einer von A', 'https://example.com/a2.ics');
+        $this->createCalendar($this->userB, 'Kalender von B', 'https://example.com/b.ics');
 
-        $this->createCalendar($userA, 'Kalender von A', 'https://example.com/a.ics');
-        $this->createCalendar($userA, 'Noch einer von A', 'https://example.com/a2.ics');
-        $this->createCalendar($userB, 'Kalender von B', 'https://example.com/b.ics');
-
-        $this->client->loginUser($userA);
+        $this->client->loginUser($this->userA);
         $this->client->request('GET', self::BASE_URL);
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -126,8 +131,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testCreateWithValidDataReturns201(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-ok@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -153,8 +157,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testCreateWithWebcalUrlIsAccepted(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-webcal@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -173,8 +176,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testCreateWithoutNameReturns400(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-noname@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -192,8 +194,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testCreateWithoutUrlReturns400(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-nourl@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -209,8 +210,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testCreateWithInvalidUrlFormatReturns400(): void
     {
-        $user = $this->createUser(self::PREFIX . 'create-badurl@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -231,8 +231,7 @@ class ExternalCalendarTest extends WebTestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('ssrfUrlProvider')]
     public function testCreateBlocksSsrfUrls(string $maliciousUrl, string $description): void
     {
-        $user = $this->createUser(self::PREFIX . "ssrf-{$description}@test.example");
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'POST',
@@ -271,10 +270,9 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testUpdateBlocksSsrfUrls(): void
     {
-        $user = $this->createUser(self::PREFIX . 'ssrf-update@test.example');
-        $cal = $this->createCalendar($user, 'Legit', 'https://calendar.google.com/safe.ics');
+        $cal = $this->createCalendar($this->userA, 'Legit', 'https://calendar.google.com/safe.ics');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request(
             'PUT',
             self::BASE_URL . '/' . $cal->getId(),
@@ -296,11 +294,9 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testOtherUserCannotUpdateCalendar(): void
     {
-        $userA = $this->createUser(self::PREFIX . 'idor-update-a@test.example');
-        $userB = $this->createUser(self::PREFIX . 'idor-update-b@test.example');
-        $cal = $this->createCalendar($userA, 'Geheimkalender', 'https://private.example.com/cal.ics');
+        $cal = $this->createCalendar($this->userA, 'Geheimkalender', 'https://private.example.com/cal.ics');
 
-        $this->client->loginUser($userB);
+        $this->client->loginUser($this->userB);
         $this->client->request(
             'PUT',
             self::BASE_URL . '/' . $cal->getId(),
@@ -323,11 +319,9 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testOtherUserCannotDeleteCalendar(): void
     {
-        $userA = $this->createUser(self::PREFIX . 'idor-delete-a@test.example');
-        $userB = $this->createUser(self::PREFIX . 'idor-delete-b@test.example');
-        $cal = $this->createCalendar($userA, 'Kalender A', 'https://example.com/a.ics');
+        $cal = $this->createCalendar($this->userA, 'Kalender A', 'https://example.com/a.ics');
 
-        $this->client->loginUser($userB);
+        $this->client->loginUser($this->userB);
         $this->client->request('DELETE', self::BASE_URL . '/' . $cal->getId());
 
         $this->assertResponseStatusCodeSame(
@@ -342,11 +336,9 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testOtherUserCannotReadCalendarEvents(): void
     {
-        $userA = $this->createUser(self::PREFIX . 'idor-events-a@test.example');
-        $userB = $this->createUser(self::PREFIX . 'idor-events-b@test.example');
-        $cal = $this->createCalendar($userA, 'Privater Kalender', 'https://example.com/priv.ics');
+        $cal = $this->createCalendar($this->userA, 'Privater Kalender', 'https://example.com/priv.ics');
 
-        $this->client->loginUser($userB);
+        $this->client->loginUser($this->userB);
         $this->client->request('GET', self::BASE_URL . '/' . $cal->getId() . '/events');
 
         $this->assertResponseStatusCodeSame(
@@ -361,10 +353,9 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testOwnerCanUpdateCalendar(): void
     {
-        $user = $this->createUser(self::PREFIX . 'update-own@test.example');
-        $cal = $this->createCalendar($user, 'Alt', 'https://example.com/old.ics');
+        $cal = $this->createCalendar($this->userA, 'Alt', 'https://example.com/old.ics');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request(
             'PUT',
             self::BASE_URL . '/' . $cal->getId(),
@@ -382,8 +373,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testUpdateNonExistentReturns404(): void
     {
-        $user = $this->createUser(self::PREFIX . 'update-404@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request(
             'PUT',
@@ -403,11 +393,10 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testOwnerCanDeleteCalendar(): void
     {
-        $user = $this->createUser(self::PREFIX . 'delete-own@test.example');
-        $cal = $this->createCalendar($user, 'Zu löschen', 'https://example.com/del.ics');
+        $cal = $this->createCalendar($this->userA, 'Zu löschen', 'https://example.com/del.ics');
         $id = $cal->getId();
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request('DELETE', self::BASE_URL . '/' . $id);
 
         $this->assertResponseIsSuccessful();
@@ -418,8 +407,7 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testDeleteNonExistentReturns404(): void
     {
-        $user = $this->createUser(self::PREFIX . 'delete-404@test.example');
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
 
         $this->client->request('DELETE', self::BASE_URL . '/999999');
 
@@ -432,12 +420,11 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testDisabledCalendarReturnsEmptyEvents(): void
     {
-        $user = $this->createUser(self::PREFIX . 'disabled-events@test.example');
-        $cal = $this->createCalendar($user, 'Deaktiviert', 'https://example.com/dis.ics');
+        $cal = $this->createCalendar($this->userA, 'Deaktiviert', 'https://example.com/dis.ics');
         $cal->setIsEnabled(false);
         $this->em->flush();
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request('GET', self::BASE_URL . '/' . $cal->getId() . '/events');
 
         $this->assertResponseIsSuccessful();
@@ -448,11 +435,10 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testEventsEndpointReturnsArrayWhenNoCache(): void
     {
-        $user = $this->createUser(self::PREFIX . 'events-nocache@test.example');
-        $cal = $this->createCalendar($user, 'Ohne Cache', 'https://example.com/nocache.ics');
+        $cal = $this->createCalendar($this->userA, 'Ohne Cache', 'https://example.com/nocache.ics');
         // cachedContent ist null → parseIcalToJson gibt [] zurück
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request('GET', self::BASE_URL . '/' . $cal->getId() . '/events');
 
         $this->assertResponseIsSuccessful();
@@ -472,20 +458,18 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testAllEventsReturnsCombinedResults(): void
     {
-        $user = $this->createUser(self::PREFIX . 'all-events@test.example');
-
         // Kalender mit gecachtem iCal-Inhalt anlegen
         $ical = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
               . "UID:test-uid-1@example.com\r\nSUMMARY:Testtermin\r\n"
               . "DTSTART:20260401T100000Z\r\nDTEND:20260401T110000Z\r\n"
               . "END:VEVENT\r\nEND:VCALENDAR\r\n";
 
-        $cal = $this->createCalendar($user, 'Gefüllter Kalender', 'https://example.com/filled.ics');
+        $cal = $this->createCalendar($this->userA, 'Gefüllter Kalender', 'https://example.com/filled.ics');
         $cal->setCachedContent($ical);
         $cal->setLastFetchedAt(new DateTime('+1 hour')); // nicht veraltet → kein refetch
         $this->em->flush();
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request('GET', self::BASE_URL . '/events/all');
 
         $this->assertResponseIsSuccessful();
@@ -501,20 +485,18 @@ class ExternalCalendarTest extends WebTestCase
 
     public function testAllEventsExcludesDisabledCalendars(): void
     {
-        $user = $this->createUser(self::PREFIX . 'all-disabled@test.example');
-
         $ical = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
               . "UID:dis-uid@example.com\r\nSUMMARY:Disabled\r\n"
               . "DTSTART:20260401T100000Z\r\nDTEND:20260401T110000Z\r\n"
               . "END:VEVENT\r\nEND:VCALENDAR\r\n";
 
-        $cal = $this->createCalendar($user, 'Deaktiviert', 'https://example.com/dis.ics');
+        $cal = $this->createCalendar($this->userA, 'Deaktiviert', 'https://example.com/dis.ics');
         $cal->setCachedContent($ical);
         $cal->setLastFetchedAt(new DateTime('+1 hour'));
         $cal->setIsEnabled(false);
         $this->em->flush();
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->userA);
         $this->client->request('GET', self::BASE_URL . '/events/all');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -524,23 +506,6 @@ class ExternalCalendarTest extends WebTestCase
     // =========================================================================
     //  Helper
     // =========================================================================
-
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('External');
-        $user->setLastName('CalTest');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
 
     private function createCalendar(User $user, string $name, string $url): ExternalCalendar
     {
@@ -559,8 +524,8 @@ class ExternalCalendarTest extends WebTestCase
     {
         $conn = $this->em->getConnection();
         $conn->executeStatement(
-            'DELETE FROM users WHERE email LIKE :prefix',
-            ['prefix' => self::PREFIX . '%']
+            'DELETE FROM external_calendars WHERE user_id = :ua OR user_id = :ub',
+            ['ua' => $this->userA->getId(), 'ub' => $this->userB->getId()]
         );
 
         $this->em->close();

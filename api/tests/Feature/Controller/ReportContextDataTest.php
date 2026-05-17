@@ -23,16 +23,29 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 #[AllowMockObjectsWithoutExpectations]
 class ReportContextDataTest extends WebTestCase
 {
-    private const PREFIX = 'ctx-data-test-';
-
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $u6;
+    private User $u16;
+    private User $u21;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $u6 */
+        $u6 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($u6, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u6 = $u6;
+        /** @var User $u16 */
+        $u16 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $this->assertNotNull($u16, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u16 = $u16;
+        /** @var User $u21 */
+        $u21 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        $this->assertNotNull($u21, 'Fixture user user21@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u21 = $u21;
     }
 
     // =========================================================================
@@ -47,7 +60,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testPresetsReturnsPresetsArray(): void
     {
-        $user = $this->createUser(self::PREFIX . 'presets-user@example.com');
+        $user = $this->u6;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/presets');
@@ -61,7 +74,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testPresetsContainsKeyLabelAndConfig(): void
     {
-        $user = $this->createUser(self::PREFIX . 'presets-shape@example.com');
+        $user = $this->u6;
         $this->client->loginUser($user);
 
         $this->client->request('GET', '/api/report/presets');
@@ -93,7 +106,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataAdminReceivesResponseWithoutCallingService(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin@example.com', ['ROLE_ADMIN']);
+        $admin = $this->u16;
 
         $serviceMock = $this->createMock(CoachTeamPlayerService::class);
         // Admin path muss den Service NICHT benutzen
@@ -117,7 +130,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataSuperAdminReceivesResponseWithoutCallingService(): void
     {
-        $superAdmin = $this->createUser(self::PREFIX . 'superadmin@example.com', ['ROLE_SUPERADMIN']);
+        $superAdmin = $this->u21;
 
         $serviceMock = $this->createMock(CoachTeamPlayerService::class);
         $serviceMock->expects($this->never())->method('collectCoachTeams');
@@ -141,7 +154,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataRegularUserCallsServiceAndReturnsFilteredTeams(): void
     {
-        $user = $this->createUser(self::PREFIX . 'coach@example.com');
+        $user = $this->u6;
 
         // Mock-Team vorbereiten
         $teamMock = $this->createMock(Team::class);
@@ -187,7 +200,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataRegularUserWithNoAssignmentsReturnsEmptyArrays(): void
     {
-        $user = $this->createUser(self::PREFIX . 'noassign@example.com');
+        $user = $this->u6;
 
         $serviceMock = $this->createMock(CoachTeamPlayerService::class);
         $serviceMock->method('collectCoachTeams')->willReturn([]);
@@ -208,7 +221,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataDeduplicatesTeamsFromCoachAndPlayerRoles(): void
     {
-        $user = $this->createUser(self::PREFIX . 'dual-role@example.com');
+        $user = $this->u6;
 
         $teamMock = $this->createMock(Team::class);
         $teamMock->method('getId')->willReturn(7);
@@ -235,7 +248,7 @@ class ReportContextDataTest extends WebTestCase
 
     public function testContextDataDeduplicatesPlayersAcrossTeams(): void
     {
-        $user = $this->createUser(self::PREFIX . 'multi-team@example.com');
+        $user = $this->u6;
 
         $team1Mock = $this->createMock(Team::class);
         $team1Mock->method('getId')->willReturn(1);
@@ -270,28 +283,8 @@ class ReportContextDataTest extends WebTestCase
     //  Helpers
     // =========================================================================
 
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
-
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

@@ -37,12 +37,27 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $u6;
+    private User $u16;
+    private User $u21;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $u6 */
+        $u6 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($u6, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u6 = $u6;
+        /** @var User $u16 */
+        $u16 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $this->assertNotNull($u16, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u16 = $u16;
+        /** @var User $u21 */
+        $u21 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        $this->assertNotNull($u21, 'Fixture user user21@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u21 = $u21;
     }
 
     // =========================================================================
@@ -51,7 +66,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     public function testRegularUserCannotCreateTemplate(): void
     {
-        $user = $this->createUser(self::PREFIX . 'user1@example.com', ['ROLE_USER']);
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request(
@@ -79,7 +94,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     public function testAdminCanCreateTemplate(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin1@example.com', ['ROLE_ADMIN', 'ROLE_USER']);
+        $admin = $this->u16;
 
         $this->client->loginUser($admin);
         $this->client->request(
@@ -107,7 +122,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     public function testSuperAdminCanCreateTemplate(): void
     {
-        $superAdmin = $this->createUser(self::PREFIX . 'sadmin1@example.com', ['ROLE_SUPERADMIN', 'ROLE_USER']);
+        $superAdmin = $this->u21;
 
         $this->client->loginUser($superAdmin);
         $this->client->request(
@@ -137,7 +152,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
     public function testRegularUserEditingTemplateGetsCopy(): void
     {
         $template = $this->createTemplateReport(self::PREFIX . 'Template A');
-        $user = $this->createUser(self::PREFIX . 'user2@example.com', ['ROLE_USER']);
+        $user = $this->u6;
 
         $this->client->loginUser($user);
         $this->client->request(
@@ -176,7 +191,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
     public function testAdminEditingTemplateUpdatesInPlace(): void
     {
         $template = $this->createTemplateReport(self::PREFIX . 'Template B');
-        $admin = $this->createUser(self::PREFIX . 'admin2@example.com', ['ROLE_ADMIN', 'ROLE_USER']);
+        $admin = $this->u16;
 
         $newName = self::PREFIX . 'Updated Template B';
 
@@ -213,7 +228,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     public function testAdminCanPromoteOwnReportToTemplate(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin3@example.com', ['ROLE_ADMIN', 'ROLE_USER']);
+        $admin = $this->u16;
         $report = $this->createOwnedReport(self::PREFIX . 'Promote Me', $admin);
 
         $this->client->loginUser($admin);
@@ -239,7 +254,7 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
     public function testAdminCanDemoteTemplateToRegularReport(): void
     {
-        $admin = $this->createUser(self::PREFIX . 'admin4@example.com', ['ROLE_ADMIN', 'ROLE_USER']);
+        $admin = $this->u16;
         $template = $this->createTemplateReport(self::PREFIX . 'Demote Me');
 
         $this->client->loginUser($admin);
@@ -265,23 +280,6 @@ class ReportDefinitionTemplateTest extends WebTestCase
     // =========================================================================
     //  Helpers
     // =========================================================================
-
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
 
     private function createTemplateReport(string $name): ReportDefinition
     {
@@ -323,11 +321,6 @@ class ReportDefinitionTemplateTest extends WebTestCase
 
         $conn->executeStatement(
             'DELETE FROM report_definitions WHERE name LIKE :prefix',
-            ['prefix' => self::PREFIX . '%'],
-        );
-
-        $conn->executeStatement(
-            'DELETE FROM users WHERE email LIKE :prefix',
             ['prefix' => self::PREFIX . '%'],
         );
 

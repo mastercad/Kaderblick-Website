@@ -22,7 +22,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class CalendarTokenTest extends WebTestCase
 {
-    private const PREFIX = 'caltoken-test-';
     private const ENDPOINT = '/api/profile/calendar/token';
 
     /** Erwartete Länge: "kcal_" (5) + bin2hex(28 bytes) = 56 hex-Zeichen → 61 */
@@ -31,11 +30,37 @@ class CalendarTokenTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $em;
 
+    private User $user;
+    private User $userB;
+    private User $userC;
+
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+
+        /** @var User $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($user, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->user = $user;
+
+        /** @var User $userB */
+        $userB = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        self::assertNotNull($userB, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userB = $userB;
+
+        /** @var User $userC */
+        $userC = $this->em->getRepository(User::class)->findOneBy(['email' => 'user8@example.com']);
+        self::assertNotNull($userC, 'Fixture user user8@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userC = $userC;
+
+        // Reset calendar token state before each test
+        foreach ([$this->user, $this->userB, $this->userC] as $u) {
+            $u->setCalendarToken(null);
+            $u->setCalendarTokenCreatedAt(null);
+        }
+        $this->em->flush();
     }
 
     // =========================================================================
@@ -66,7 +91,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testGetStatusWhenNoToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-notoken@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('GET', self::ENDPOINT);
@@ -82,7 +107,7 @@ class CalendarTokenTest extends WebTestCase
     public function testGetStatusWhenTokenExists(): void
     {
         $token = 'kcal_' . bin2hex(random_bytes(28));
-        $user = $this->createUser(self::PREFIX . 'get-hastoken@test.example');
+        $user = $this->user;
         $user->setCalendarToken($token);
         $user->setCalendarTokenCreatedAt(new DateTime('2025-03-01 10:00:00'));
         $this->em->flush();
@@ -106,7 +131,7 @@ class CalendarTokenTest extends WebTestCase
     public function testGetStatusFeedsContainToken(): void
     {
         $token = 'kcal_' . bin2hex(random_bytes(28));
-        $user = $this->createUser(self::PREFIX . 'get-feedtoken@test.example');
+        $user = $this->user;
         $user->setCalendarToken($token);
         $user->setCalendarTokenCreatedAt(new DateTime());
         $this->em->flush();
@@ -128,7 +153,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testGenerateCreatesKcalPrefixedToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-new@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -147,7 +172,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testGenerateTokenPersistsToDatabase(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-persist@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -162,7 +187,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testGenerateTokenReturnsFeedUrls(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-feeds@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -182,7 +207,7 @@ class CalendarTokenTest extends WebTestCase
         // Ersten Token direkt via ORM setzen (kein HTTP), damit wir genau einen HTTP-Request
         // für den zweiten Token benötigen.
         $firstToken = 'kcal_' . bin2hex(random_bytes(28));
-        $user = $this->createUser(self::PREFIX . 'gen-rotate@test.example');
+        $user = $this->user;
         $user->setCalendarToken($firstToken);
         $user->setCalendarTokenCreatedAt(new DateTime());
         $this->em->flush();
@@ -207,11 +232,7 @@ class CalendarTokenTest extends WebTestCase
     public function testEachGeneratedTokenIsUnique(): void
     {
         // Drei User, jeder einmal POST → drei verschiedene kcal_-Tokens
-        $users = [
-            $this->createUser(self::PREFIX . 'gen-unique-a@test.example'),
-            $this->createUser(self::PREFIX . 'gen-unique-b@test.example'),
-            $this->createUser(self::PREFIX . 'gen-unique-c@test.example'),
-        ];
+        $users = [$this->user, $this->userB, $this->userC];
 
         $tokens = [];
         foreach ($users as $u) {
@@ -237,7 +258,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testRevokeTokenReturnsSuccess(): void
     {
-        $user = $this->createUser(self::PREFIX . 'revoke-ok@test.example');
+        $user = $this->user;
         $user->setCalendarToken('kcal_' . bin2hex(random_bytes(28)));
         $user->setCalendarTokenCreatedAt(new DateTime());
         $this->em->flush();
@@ -251,19 +272,20 @@ class CalendarTokenTest extends WebTestCase
     public function testRevokeTokenClearsDatabase(): void
     {
         // Token direkt via ORM setzen – dann nur einen HTTP-Request (DELETE) benötigen
-        $user = $this->createUser(self::PREFIX . 'revoke-db@test.example');
+        $user = $this->user;
         $user->setCalendarToken('kcal_' . bin2hex(random_bytes(28)));
         $user->setCalendarTokenCreatedAt(new DateTime());
         $this->em->flush();
+        $userId = $user->getId();
         $this->em->clear();
 
-        $user = $this->em->find(User::class, $user->getId());
+        $user = $this->em->find(User::class, $userId);
         $this->client->loginUser($user);
         $this->client->request('DELETE', self::ENDPOINT);
         $this->assertResponseIsSuccessful();
 
         $this->em->clear();
-        $refreshed = $this->em->find(User::class, $user->getId());
+        $refreshed = $this->em->find(User::class, $userId);
 
         $this->assertNull($refreshed->getCalendarToken(), 'calendarToken muss nach Widerruf null sein.');
         $this->assertNull($refreshed->getCalendarTokenCreatedAt(), 'calendarTokenCreatedAt muss nach Widerruf null sein.');
@@ -272,7 +294,7 @@ class CalendarTokenTest extends WebTestCase
     public function testGetStatusAfterRevokeShowsNoToken(): void
     {
         // Token direkt via ORM setzen, dann DELETE via HTTP
-        $userId = $this->createUser(self::PREFIX . 'revoke-status@test.example')->getId();
+        $userId = $this->user->getId();
         $user = $this->em->find(User::class, $userId);
         $user->setCalendarToken('kcal_' . bin2hex(random_bytes(28)));
         $user->setCalendarTokenCreatedAt(new DateTime());
@@ -309,7 +331,7 @@ class CalendarTokenTest extends WebTestCase
      */
     public function testCalendarTokenCannotAuthenticatePlatformApi(): void
     {
-        $user = $this->createUser(self::PREFIX . 'sec-noauth@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -332,7 +354,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testCalendarTokenCannotAuthenticateProtectedApiEndpoints(): void
     {
-        $user = $this->createUser(self::PREFIX . 'sec-api@test.example');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -372,7 +394,7 @@ class CalendarTokenTest extends WebTestCase
 
     public function testRevokedCalendarTokenStillCannotAuthenticate(): void
     {
-        $userId = $this->createUser(self::PREFIX . 'sec-revoked@test.example')->getId();
+        $userId = $this->user->getId();
         $user = $this->em->find(User::class, $userId);
 
         // Token erzeugen
@@ -406,35 +428,13 @@ class CalendarTokenTest extends WebTestCase
         );
     }
 
-    // =========================================================================
-    //  Helper
-    // =========================================================================
-
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Kalender');
-        $user->setLastName('Test');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
-
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        $conn->executeStatement(
-            'DELETE FROM users WHERE email LIKE :prefix',
-            ['prefix' => self::PREFIX . '%']
+        // Reset calendar token state of fixture users via raw SQL on the existing connection
+        $this->em->getConnection()->executeStatement(
+            'UPDATE users SET calendar_token = NULL, calendar_token_created_at = NULL WHERE email IN (:e1, :e2, :e3)',
+            ['e1' => 'user6@example.com', 'e2' => 'user7@example.com', 'e3' => 'user8@example.com']
         );
-
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

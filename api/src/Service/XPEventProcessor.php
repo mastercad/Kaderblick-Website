@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\User;
 use App\Entity\UserXpEvent;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class XPEventProcessor
@@ -16,23 +16,38 @@ class XPEventProcessor
 
     public function processPendingXpEvents(): void
     {
-        $pendingXpEvents = $this->entityManager->getRepository(UserXpEvent::class)
-            ->findBy(['isProcessed' => false]);
+        $this->entityManager->getConnection()->transactional(function (): void {
+            $pendingXpEvents = $this->entityManager->getRepository(UserXpEvent::class)
+                ->findBy(['isProcessed' => false]);
 
-        foreach ($pendingXpEvents as $xpEvent) {
-            /** @var User $user */
-            $user = $xpEvent->getUser();
-            $currentXP = $user->getUserLevel()->getXpTotal();
-            $this->xpService->addXpForAction($user, $xpEvent->getActionType(), $xpEvent->getActionId());
-            $xpEvent->setIsProcessed(true);
+            foreach ($pendingXpEvents as $xpEvent) {
+                $this->entityManager->lock($xpEvent, LockMode::PESSIMISTIC_WRITE);
+                $this->entityManager->refresh($xpEvent);
 
-            if ($currentXP !== $user->getUserLevel()->getXpTotal()) {
-                $this->entityManager->persist($user);
+                // Another worker may have already processed this row while we waited for the lock.
+                if ($xpEvent->isProcessed()) {
+                    continue;
+                }
+
+                $user = $xpEvent->getUser();
+                $xpValue = $xpEvent->getXpValue();
+
+                // Keep processing resilient when historical/legacy rows are malformed.
+                if (null === $user || $xpValue <= 0) {
+                    $xpEvent->setIsProcessed(true);
+                    $this->entityManager->persist($xpEvent);
+                    continue;
+                }
+
+                // Apply the value captured at registration time to keep pending events
+                // independent from later rule changes (disabled/edited/deleted rules).
+                $this->xpService->addXPToUser($user, $xpValue, false);
+                $xpEvent->setIsProcessed(true);
+
+                $this->entityManager->persist($xpEvent);
             }
 
-            $this->entityManager->persist($xpEvent);
-        }
-
-        $this->entityManager->flush();
+            $this->entityManager->flush();
+        });
     }
 }

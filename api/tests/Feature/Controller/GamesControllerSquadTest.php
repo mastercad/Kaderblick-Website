@@ -120,16 +120,11 @@ class GamesControllerSquadTest extends WebTestCase
         $ptaA->setStartDate(new DateTime('2020-01-01'));
         $this->em->persist($ptaA);
 
-        // User for playerA (self_player relation)
-        $this->userPlayerA = new User();
-        $this->userPlayerA->setEmail('test-squad-player@test.com');
-        $this->userPlayerA->setFirstName('SquadTest');
-        $this->userPlayerA->setLastName('PlayerA');
-        $this->userPlayerA->setPassword('test');
-        $this->userPlayerA->setRoles(['ROLE_USER']);
-        $this->userPlayerA->setIsEnabled(true);
-        $this->userPlayerA->setIsVerified(true);
-        $this->em->persist($this->userPlayerA);
+        // User for playerA (self_player relation) - use fixture user
+        /** @var User $userPlayerA */
+        $userPlayerA = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($userPlayerA, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userPlayerA = $userPlayerA;
 
         $urA = new UserRelation();
         $urA->setUser($this->userPlayerA);
@@ -138,16 +133,11 @@ class GamesControllerSquadTest extends WebTestCase
         $urA->setPermissions([]);
         $this->em->persist($urA);
 
-        // ── User Parent (should NOT appear in squad) ──────────────────────────
-        $this->userParent = new User();
-        $this->userParent->setEmail('test-squad-parent@test.com');
-        $this->userParent->setFirstName('SquadTest');
-        $this->userParent->setLastName('Parent');
-        $this->userParent->setPassword('test');
-        $this->userParent->setRoles(['ROLE_USER']);
-        $this->userParent->setIsEnabled(true);
-        $this->userParent->setIsVerified(true);
-        $this->em->persist($this->userParent);
+        // ── User Parent (should NOT appear in squad) - use fixture user ──────
+        /** @var User $userParent */
+        $userParent = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        self::assertNotNull($userParent, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userParent = $userParent;
 
         $urParent = new UserRelation();
         $urParent->setUser($this->userParent);
@@ -170,15 +160,10 @@ class GamesControllerSquadTest extends WebTestCase
         $ptaC->setStartDate(new DateTime('2020-01-01'));
         $this->em->persist($ptaC);
 
-        $this->userPlayerC = new User();
-        $this->userPlayerC->setEmail('test-squad-notattending@test.com');
-        $this->userPlayerC->setFirstName('SquadTest');
-        $this->userPlayerC->setLastName('PlayerC');
-        $this->userPlayerC->setPassword('test');
-        $this->userPlayerC->setRoles(['ROLE_USER']);
-        $this->userPlayerC->setIsEnabled(true);
-        $this->userPlayerC->setIsVerified(true);
-        $this->em->persist($this->userPlayerC);
+        /** @var User $userPlayerC */
+        $userPlayerC = $this->em->getRepository(User::class)->findOneBy(['email' => 'user8@example.com']);
+        self::assertNotNull($userPlayerC, 'Fixture user user8@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->userPlayerC = $userPlayerC;
 
         $urC = new UserRelation();
         $urC->setUser($this->userPlayerC);
@@ -528,7 +513,6 @@ class GamesControllerSquadTest extends WebTestCase
 
         $conn->executeStatement("DELETE FROM players WHERE first_name LIKE 'test-squad-%'");
         $conn->executeStatement("DELETE FROM teams WHERE name LIKE 'test-squad-%'");
-        $conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-squad-%'");
 
         $this->em->close();
         parent::tearDown();

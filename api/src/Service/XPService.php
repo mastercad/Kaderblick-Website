@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Entity\UserLevel;
 use App\Repository\XpRuleRepository;
 use DateTimeImmutable;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class XPService
@@ -27,31 +28,61 @@ class XPService
         return null !== $rule ? $rule->getXpValue() : 0;
     }
 
-    public function addXPToUser(User $user, int $xp): void
+    public function addXPToUser(User $user, int $xp, bool $flush = true): void
     {
-        $userLevel = $user->getUserLevel();
-        if (null === $userLevel) {
-            $userLevel = new UserLevel();
-            $userLevel->setUser($user);
-            $userLevel->setXpTotal(0);
-            $userLevel->setLevel(1);
+        $connection = $this->entityManager->getConnection();
+
+        $operation = function () use ($user, $xp, $flush): void {
+            $userLevel = $user->getUserLevel();
+
+            if (null !== $userLevel) {
+                $this->entityManager->lock($userLevel, LockMode::PESSIMISTIC_WRITE);
+            } elseif (null !== $user->getId()) {
+                // Serialize creation of user_levels row for first-ever XP write.
+                $this->entityManager->lock($user, LockMode::PESSIMISTIC_WRITE);
+                $this->entityManager->refresh($user);
+                $userLevel = $user->getUserLevel();
+                if (null !== $userLevel) {
+                    $this->entityManager->lock($userLevel, LockMode::PESSIMISTIC_WRITE);
+                }
+            }
+
+            if (null === $userLevel) {
+                $userLevel = new UserLevel();
+                $userLevel->setUser($user);
+                $userLevel->setXpTotal(0);
+                $userLevel->setLevel(1);
+                $userLevel->setUpdatedAt(new DateTimeImmutable());
+                $user->setUserLevel($userLevel);
+                $this->entityManager->persist($userLevel);
+            }
+
+            $currentXP = $userLevel->getXpTotal();
+            $currentLevel = $userLevel->getLevel();
+            // Add XP
+            $newXP = $currentXP + $xp;
+            $userLevel->setXpTotal($newXP);
+            // Check for level up
+            $newLevel = $this->retrieveLevelForXP($newXP);
+            if ($newLevel > $currentLevel) {
+                $userLevel->setLevel($newLevel);
+            }
             $userLevel->setUpdatedAt(new DateTimeImmutable());
-            $user->setUserLevel($userLevel);
             $this->entityManager->persist($userLevel);
+            if ($flush) {
+                $this->entityManager->flush();
+            }
+        };
+
+        if ($connection->isTransactionActive()) {
+            $operation();
+
+            return;
         }
-        $currentXP = $userLevel->getXpTotal();
-        $currentLevel = $userLevel->getLevel();
-        // Add XP
-        $newXP = $currentXP + $xp;
-        $userLevel->setXpTotal($newXP);
-        // Check for level up
-        $newLevel = $this->retrieveLevelForXP($newXP);
-        if ($newLevel > $currentLevel) {
-            $userLevel->setLevel($newLevel);
-        }
-        $userLevel->setUpdatedAt(new DateTimeImmutable());
-        $this->entityManager->persist($userLevel);
-        $this->entityManager->flush();
+
+        $connection->transactional(function () use ($operation): void {
+            $operation();
+        });
     }
 
     public function addXpForAction(User $user, string $action, ?int $referenceId = null): void
