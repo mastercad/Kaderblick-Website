@@ -22,6 +22,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
@@ -43,6 +44,7 @@ class GoogleAuthenticatorTest extends TestCase
     private ParameterBagInterface&MockObject $params;
     private RegistrationNotificationService&MockObject $registrationNotificationService;
     private LoggerInterface&MockObject $logger;
+    private EventDispatcherInterface&MockObject $dispatcher;
     private GoogleAuthenticator $authenticator;
 
     protected function setUp(): void
@@ -56,6 +58,7 @@ class GoogleAuthenticatorTest extends TestCase
         $this->params = $this->createMock(ParameterBagInterface::class);
         $this->registrationNotificationService = $this->createMock(RegistrationNotificationService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
 
         $this->authenticator = new GoogleAuthenticator(
             $this->clientRegistry,
@@ -67,6 +70,7 @@ class GoogleAuthenticatorTest extends TestCase
             $this->params,
             $this->registrationNotificationService,
             $this->logger,
+            $this->dispatcher,
         );
     }
 
@@ -567,5 +571,61 @@ class GoogleAuthenticatorTest extends TestCase
         $this->authenticator->onAuthenticationSuccess($request, $token, 'main');
 
         $this->assertSame('https://kaderblick.de', $capturedContext['frontend_url']);
+    }
+
+    // ── onAuthenticationSuccess(): DailyLoginEvent ────────────────────────
+
+    public function testOnAuthenticationSuccessDispatchesDailyLoginEvent(): void
+    {
+        $user = new User();
+        $user->setEmail('sso@example.com');
+        $user->setFirstName('SSO');
+        $user->setLastName('User');
+        $user->setRoles(['ROLE_USER']);
+
+        $token = $this->createMock(\Symfony\Component\Security\Core\Authentication\Token\TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $this->jwtManager->method('create')->willReturn('jwt-token');
+        $this->refreshTokenService->method('createRefreshToken')->willReturn('refresh-token');
+        $this->twig->method('render')->willReturn('<html></html>');
+        $this->params->method('get')->willReturnCallback(fn (string $k): string => match ($k) {
+            'app.frontend_url' => 'https://kaderblick.de',
+            default => '',
+        });
+
+        $this->dispatcher->expects($this->once())
+            ->method('dispatch')
+            ->with($this->isInstanceOf(\App\Event\DailyLoginEvent::class));
+
+        $this->authenticator->onAuthenticationSuccess(Request::create('/connect/google/check'), $token, 'main');
+    }
+
+    public function testOnAuthenticationSuccessDispatchedEventCarriesCorrectUser(): void
+    {
+        $user = new User();
+        $user->setEmail('sso-check@example.com');
+        $user->setFirstName('SSO');
+        $user->setLastName('Check');
+        $user->setRoles(['ROLE_USER']);
+
+        $token = $this->createMock(\Symfony\Component\Security\Core\Authentication\Token\TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $this->jwtManager->method('create')->willReturn('jwt-token');
+        $this->refreshTokenService->method('createRefreshToken')->willReturn('refresh-token');
+        $this->twig->method('render')->willReturn('<html></html>');
+        $this->params->method('get')->willReturnCallback(fn (string $k): string => match ($k) {
+            'app.frontend_url' => 'https://kaderblick.de',
+            default => '',
+        });
+
+        $this->dispatcher->expects($this->once())
+            ->method('dispatch')
+            ->with($this->callback(function (\App\Event\DailyLoginEvent $event) use ($user): bool {
+                return $event->getUser() === $user;
+            }));
+
+        $this->authenticator->onAuthenticationSuccess(Request::create('/connect/google/check'), $token, 'main');
     }
 }

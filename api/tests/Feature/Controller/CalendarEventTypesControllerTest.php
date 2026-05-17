@@ -12,46 +12,31 @@ class CalendarEventTypesControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
+    private User $user;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $container = static::getContainer();
         $this->entityManager = $container->get(EntityManagerInterface::class);
+        /** @var User $user */
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($user, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->user = $user;
     }
 
     public function testListReturnsAllEventTypesForAuthenticatedUser(): void
     {
-        $user = $this->createUser('voter-test-test@example.com', ['ROLE_USER']);
         $this->createEventType('voter-test-Training');
         $this->createEventType('voter-test-Match');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/calendar-event-types');
 
         $this->assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertArrayHasKey('entries', $data);
         $this->assertGreaterThanOrEqual(2, count($data['entries']));
-    }
-
-    /**
-     * @param array<string> $roles
-     */
-    private function createUser(string $email, array $roles): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        return $user;
     }
 
     private function createEventType(string $name): CalendarEventType
@@ -72,7 +57,6 @@ class CalendarEventTypesControllerTest extends WebTestCase
 
         // Delete only test data with voter-test- prefix
         $connection->executeStatement('DELETE FROM calendar_event_types WHERE name LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
 
         $this->entityManager->close();
 

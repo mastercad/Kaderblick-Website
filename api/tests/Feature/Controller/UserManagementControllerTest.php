@@ -38,10 +38,25 @@ class UserManagementControllerTest extends WebTestCase
 
         $this->emailSuffix = bin2hex(random_bytes(6));
 
-        $this->adminUser = $this->makeUser('test-um-admin', ['ROLE_ADMIN']);
-        $this->regularUser = $this->makeUser('test-um-regular', ['ROLE_USER']);
-        $this->targetUser = $this->makeUser('test-um-target', ['ROLE_USER']);
+        /** @var User $adminUser */
+        $adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        self::assertNotNull($adminUser, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->adminUser = $adminUser;
 
+        /** @var User $regularUser */
+        $regularUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($regularUser, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->regularUser = $regularUser;
+
+        /** @var User $targetUser */
+        $targetUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        self::assertNotNull($targetUser, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->targetUser = $targetUser;
+
+        // Reset targetUser to a clean known state before each test
+        $this->targetUser->setRoles(['ROLE_USER']);
+        $this->targetUser->setIsEnabled(true);
+        $this->targetUser->setLockedAt(null);
         $this->em->flush();
     }
 
@@ -83,7 +98,7 @@ class UserManagementControllerTest extends WebTestCase
     {
         $this->authenticate($this->adminUser);
 
-        $uniqueTerm = 'test-um-target-' . $this->emailSuffix;
+        $uniqueTerm = $this->targetUser->getEmail();
         $this->client->request('GET', '/admin/users?search=' . urlencode($uniqueTerm));
 
         self::assertResponseIsSuccessful();
@@ -430,8 +445,15 @@ class UserManagementControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        $conn->executeStatement("DELETE FROM users WHERE email LIKE 'test-um-%'");
+        // Reset targetUser to clean state in case the test left it modified
+        $this->em->refresh($this->targetUser);
+        $this->targetUser->setRoles(['ROLE_USER']);
+        $this->targetUser->setIsEnabled(true);
+        $this->targetUser->setLockedAt(null);
+        $this->em->flush();
+        // Clean up any temporary user created by testDeleteUserRemovesUser if it still exists
+        $this->em->getConnection()->executeStatement("DELETE FROM users WHERE email LIKE 'test-um-todelete%'");
+        $this->em->close();
         parent::tearDown();
         restore_exception_handler();
     }

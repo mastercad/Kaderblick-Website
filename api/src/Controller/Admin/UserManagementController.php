@@ -95,7 +95,12 @@ class UserManagementController extends AbstractController
         ];
 
         return $this->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getEmail(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName(),
+            ],
             'available_roles' => $availableRoles,
             'current_roles' => $user->getRoles()
         ]);

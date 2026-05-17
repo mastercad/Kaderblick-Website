@@ -3,6 +3,7 @@
 namespace App\Security;
 
 use App\Entity\User;
+use App\Event\DailyLoginEvent;
 use App\Service\RefreshTokenService;
 use App\Service\RegistrationNotificationService;
 use DateTime;
@@ -14,6 +15,7 @@ use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,6 +43,7 @@ class GoogleAuthenticator extends AbstractAuthenticator
         private ParameterBagInterface $params,
         private RegistrationNotificationService $registrationNotificationService,
         private LoggerInterface $logger,
+        private EventDispatcherInterface $dispatcher,
         private int $jwtTtl = 3600
     ) {
     }
@@ -219,6 +222,8 @@ class GoogleAuthenticator extends AbstractAuthenticator
                 'strict'
             ),
         );
+
+        $this->dispatcher->dispatch(new DailyLoginEvent($user));
 
         return $response;
     }

@@ -63,10 +63,10 @@ class ParticipationControllerXpTest extends TestCase
 
     // ─── TrainingAttendedEvent ────────────────────────────────────────────────
 
-    public function testDispatchesTrainingAttendedWhenConfirmedAndTypeIsTraining(): void
+    public function testDispatchesTrainingAttendedWhenAttendingAndTypeIsTraining(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('confirmed');
+        $status = $this->makeStatus('attending');
         $event = $this->makeCalendarEvent('Training');
 
         $this->wireScenario($user, $status, $event);
@@ -82,10 +82,10 @@ class ParticipationControllerXpTest extends TestCase
 
     // ─── MatchAttendedEvent ───────────────────────────────────────────────────
 
-    public function testDispatchesMatchAttendedWhenConfirmedAndTypeIsSpiel(): void
+    public function testDispatchesMatchAttendedWhenAttendingAndTypeIsSpiel(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('confirmed');
+        $status = $this->makeStatus('attending');
         $event = $this->makeCalendarEvent('Spiel');
 
         $this->wireScenario($user, $status, $event);
@@ -99,10 +99,10 @@ class ParticipationControllerXpTest extends TestCase
         $this->controller->respond($request, $event);
     }
 
-    public function testDispatchesMatchAttendedWhenConfirmedAndTypeIsTurnierMatch(): void
+    public function testDispatchesMatchAttendedWhenAttendingAndTypeIsTurnierMatch(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('confirmed');
+        $status = $this->makeStatus('attending');
         $event = $this->makeCalendarEvent('Turnier-Match');
 
         $this->wireScenario($user, $status, $event);
@@ -121,7 +121,7 @@ class ParticipationControllerXpTest extends TestCase
     public function testDispatchesCalendarEventParticipatedForOtherEventTypes(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('confirmed');
+        $status = $this->makeStatus('attending');
         $event = $this->makeCalendarEvent('Vereinstreffen');
 
         $this->wireScenario($user, $status, $event);
@@ -135,12 +135,12 @@ class ParticipationControllerXpTest extends TestCase
         $this->controller->respond($request, $event);
     }
 
-    // ─── No dispatch when status is not confirmed ─────────────────────────────
+    // ─── No dispatch when status is not attending ─────────────────────────────
 
-    public function testNoXpEventDispatchedWhenStatusIsDeclined(): void
+    public function testNoXpEventDispatchedWhenStatusIsNotAttending(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('declined');
+        $status = $this->makeStatus('not_attending');
         $event = $this->makeCalendarEvent('Training');
 
         $this->wireScenario($user, $status, $event);
@@ -153,10 +153,10 @@ class ParticipationControllerXpTest extends TestCase
         $this->controller->respond($request, $event);
     }
 
-    public function testNoXpEventDispatchedWhenStatusIsPending(): void
+    public function testNoXpEventDispatchedWhenStatusIsMaybe(): void
     {
         $user = $this->makeUser();
-        $status = $this->makeStatus('pending');
+        $status = $this->makeStatus('maybe');
         $event = $this->makeCalendarEvent('Spiel');
 
         $this->wireScenario($user, $status, $event);

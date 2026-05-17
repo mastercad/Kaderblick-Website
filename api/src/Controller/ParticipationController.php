@@ -140,7 +140,7 @@ class ParticipationController extends AbstractController
         $this->em->flush();
 
         // Dispatch XP event based on participation status and event type
-        if ('confirmed' === $status->getCode()) {
+        if ('attending' === $status->getCode()) {
             $eventTypeName = $event->getCalendarEventType()?->getName() ?? '';
             if ('Training' === $eventTypeName) {
                 $this->dispatcher->dispatch(new TrainingAttendedEvent($user, $event));
@@ -167,9 +167,9 @@ class ParticipationController extends AbstractController
                 }
 
                 $statusText = match ($status->getCode()) {
-                    'confirmed' => 'zugesagt',
-                    'declined' => 'abgesagt',
-                    'pending' => 'offen',
+                    'attending' => 'zugesagt',
+                    'not_attending' => 'abgesagt',
+                    'maybe' => 'vielleicht',
                     default => $status->getCode()
                 };
 

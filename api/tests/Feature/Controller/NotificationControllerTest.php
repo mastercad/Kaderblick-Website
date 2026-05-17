@@ -12,6 +12,9 @@ class NotificationControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
+    private User $u6;
+    private User $u7;
+    private User $u16;
 
     protected function setUp(): void
     {
@@ -19,12 +22,24 @@ class NotificationControllerTest extends WebTestCase
         $this->client = static::createClient();
         $container = static::getContainer();
         $this->entityManager = $container->get(EntityManagerInterface::class);
+        /** @var User $u6 */
+        $u6 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($u6, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u6 = $u6;
+        /** @var User $u7 */
+        $u7 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        $this->assertNotNull($u7, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u7 = $u7;
+        /** @var User $u16 */
+        $u16 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $this->assertNotNull($u16, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u16 = $u16;
     }
 
     public function testIndexOnlyReturnsOwnNotifications(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
+        $user1 = $this->u6;
+        $user2 = $this->u7;
 
         $this->createNotification($user1, 'voter-test-Notification for user1');
         $this->createNotification($user2, 'voter-test-Notification for user2');
@@ -42,8 +57,8 @@ class NotificationControllerTest extends WebTestCase
 
     public function testMarkReadDeniesAccessToOtherUsersNotification(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
+        $user1 = $this->u6;
+        $user2 = $this->u7;
         $notification = $this->createNotification($user2, 'voter-test-For user2');
 
         $this->client->loginUser($user1);
@@ -55,7 +70,7 @@ class NotificationControllerTest extends WebTestCase
 
     public function testMarkReadAllowsAccessToOwnNotification(): void
     {
-        $user = $this->createUser('voter-test-user@example.com');
+        $user = $this->u6;
         $notification = $this->createNotification($user, 'voter-test-My notification');
 
         $this->client->loginUser($user);
@@ -66,8 +81,8 @@ class NotificationControllerTest extends WebTestCase
 
     public function testAdminCannotMarkReadOtherUsersNotification(): void
     {
-        $admin = $this->createUser('voter-test-admin@example.com', ['ROLE_ADMIN']);
-        $user = $this->createUser('voter-test-user@example.com');
+        $admin = $this->u16;
+        $user = $this->u6;
         $notification = $this->createNotification($user, 'voter-test-User notification');
 
         $this->client->loginUser($admin);
@@ -76,25 +91,6 @@ class NotificationControllerTest extends WebTestCase
         // Controller returns 404 because findOneBy filters by user
         // Even admins can only mark their own notifications as read
         $this->assertResponseStatusCodeSame(404);
-    }
-
-    /**
-     * @param array<string> $roles
-     */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        return $user;
     }
 
     private function createNotification(User $user, string $message): Notification
@@ -116,7 +112,6 @@ class NotificationControllerTest extends WebTestCase
     {
         $connection = $this->entityManager->getConnection();
         $connection->executeStatement('DELETE FROM notifications WHERE message LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
         $this->entityManager->close();
         parent::tearDown();
         restore_exception_handler();
