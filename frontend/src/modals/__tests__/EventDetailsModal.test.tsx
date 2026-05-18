@@ -548,7 +548,7 @@ describe('EventDetailsModal', () => {
   });
 
   it('renders meetingTime header "Treffpunkt HH:MM Uhr" when meetingTime is set', async () => {
-    const event = { ...baseEvent, location: undefined, meetingPoint: 'Eingang', meetingTime: '2026-05-01T14:30:00' };
+    const event = { ...baseEvent, location: undefined, meetingPoint: 'Eingang', meetingTime: '14:30' };
     await act(async () => {
       render(<EventDetailsModal {...defaultProps} event={event} />);
     });

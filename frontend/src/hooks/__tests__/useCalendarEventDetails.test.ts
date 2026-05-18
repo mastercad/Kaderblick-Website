@@ -265,8 +265,13 @@ describe('toEventDetailsCalendarEvent — meeting fields', () => {
     expect(result!.meetingPoint).toBeUndefined();
   });
 
-  it('maps meetingTime when present', () => {
+  it('maps meetingTime when present as HH:mm string', () => {
     const result = toEventDetailsCalendarEvent({ meetingTime: '14:30' });
+    expect(result!.meetingTime).toBe('14:30');
+  });
+
+  it('extracts HH:mm from ISO datetime string for meetingTime', () => {
+    const result = toEventDetailsCalendarEvent({ meetingTime: '2026-05-01T14:30:00' });
     expect(result!.meetingTime).toBe('14:30');
   });
 

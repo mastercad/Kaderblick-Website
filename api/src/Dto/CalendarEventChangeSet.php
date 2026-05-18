@@ -17,6 +17,14 @@ final class CalendarEventChangeSet
         public readonly ?string $newWeekday = null,
         public readonly ?string $oldLocationName = null,
         public readonly ?string $newLocationName = null,
+        public readonly ?string $oldDate = null,              // 'Y-m-d'
+        public readonly ?string $newDate = null,              // 'Y-m-d'
+        public readonly ?string $oldMeetingPoint = null,      // free-text meeting point description
+        public readonly ?string $newMeetingPoint = null,
+        public readonly ?string $oldMeetingLocationName = null,
+        public readonly ?string $newMeetingLocationName = null,
+        public readonly ?string $oldMeetingTime = null,       // 'H:i'
+        public readonly ?string $newMeetingTime = null,
     ) {
     }
 
@@ -38,10 +46,40 @@ final class CalendarEventChangeSet
         return $this->oldLocationName !== $this->newLocationName;
     }
 
+    /** Returns true when the calendar date (Y-m-d) of the event changed. */
+    public function dateChanged(): bool
+    {
+        return null !== $this->oldDate
+            && null !== $this->newDate
+            && $this->oldDate !== $this->newDate;
+    }
+
+    /** Returns true when the free-text meeting-point description changed. */
+    public function meetingPointChanged(): bool
+    {
+        return $this->oldMeetingPoint !== $this->newMeetingPoint;
+    }
+
+    /** Returns true when the structured meeting-point location changed. */
+    public function meetingLocationChanged(): bool
+    {
+        return $this->oldMeetingLocationName !== $this->newMeetingLocationName;
+    }
+
+    /** Returns true when the meeting time (H:i) changed. */
+    public function meetingTimeChanged(): bool
+    {
+        return $this->oldMeetingTime !== $this->newMeetingTime;
+    }
+
     public function isEmpty(): bool
     {
         return !$this->timeChanged()
             && !$this->weekdayChanged()
-            && !$this->locationChanged();
+            && !$this->locationChanged()
+            && !$this->dateChanged()
+            && !$this->meetingPointChanged()
+            && !$this->meetingLocationChanged()
+            && !$this->meetingTimeChanged();
     }
 }
