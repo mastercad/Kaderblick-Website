@@ -18,8 +18,6 @@ use App\Event\CarpoolOfferedEvent;
 use App\Event\DailyLoginEvent;
 use App\Event\GameEventCreatedEvent;
 use App\Event\GameEventUpdatedEvent;
-use App\Event\GoalAssistedEvent;
-use App\Event\GoalScoredEvent;
 use App\Event\MatchAttendedEvent;
 use App\Event\ParticipationRespondedEvent;
 use App\Event\ProfileCompletenessReachedEvent;
@@ -187,8 +185,6 @@ class XpEventSubscriberTest extends TestCase
             CarpoolOfferedEvent::class,
             GameEventCreatedEvent::class,
             GameEventUpdatedEvent::class,
-            GoalScoredEvent::class,
-            GoalAssistedEvent::class,
         ];
 
         foreach ($expected as $eventClass) {
@@ -391,35 +387,5 @@ class XpEventSubscriberTest extends TestCase
             ->with($user, 'game_event_updated', 99);
 
         $this->subscriber->onGameEventUpdated(new GameEventUpdatedEvent($user, $gameEvent));
-    }
-
-    // ── onGoalScored ──────────────────────────────────────────────────────────
-
-    public function testOnGoalScoredRegistersGoalScoredActionType(): void
-    {
-        $user = $this->createMock(User::class);
-        $gameEvent = $this->createMock(GameEvent::class);
-        $gameEvent->method('getId')->willReturn(101);
-
-        $this->registrationService->expects($this->once())
-            ->method('registerXpEvent')
-            ->with($user, 'goal_scored', 101);
-
-        $this->subscriber->onGoalScored(new GoalScoredEvent($user, $gameEvent));
-    }
-
-    // ── onGoalAssisted ────────────────────────────────────────────────────────
-
-    public function testOnGoalAssistedRegistersGoalAssistedActionType(): void
-    {
-        $user = $this->createMock(User::class);
-        $gameEvent = $this->createMock(GameEvent::class);
-        $gameEvent->method('getId')->willReturn(102);
-
-        $this->registrationService->expects($this->once())
-            ->method('registerXpEvent')
-            ->with($user, 'goal_assisted', 102);
-
-        $this->subscriber->onGoalAssisted(new GoalAssistedEvent($user, $gameEvent));
     }
 }

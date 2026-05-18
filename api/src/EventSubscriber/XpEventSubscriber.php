@@ -8,8 +8,6 @@ use App\Event\CarpoolOfferedEvent;
 use App\Event\DailyLoginEvent;
 use App\Event\GameEventCreatedEvent;
 use App\Event\GameEventUpdatedEvent;
-use App\Event\GoalAssistedEvent;
-use App\Event\GoalScoredEvent;
 use App\Event\MatchAttendedEvent;
 use App\Event\ParticipationRespondedEvent;
 use App\Event\ProfileCompletenessReachedEvent;
@@ -47,8 +45,6 @@ class XpEventSubscriber implements EventSubscriberInterface
             CarpoolOfferedEvent::class => 'onCarpoolOffered',
             GameEventCreatedEvent::class => 'onGameEventCreated',
             GameEventUpdatedEvent::class => 'onGameEventUpdated',
-            GoalScoredEvent::class => 'onGoalScored',
-            GoalAssistedEvent::class => 'onGoalAssisted',
         ];
     }
 
@@ -178,24 +174,6 @@ class XpEventSubscriber implements EventSubscriberInterface
         $this->xpRegistrationService->registerXpEvent(
             $event->getUser(),
             'game_event_updated',
-            $event->getGameEvent()->getId()
-        );
-    }
-
-    public function onGoalScored(GoalScoredEvent $event): void
-    {
-        $this->xpRegistrationService->registerXpEvent(
-            $event->getUser(),
-            'goal_scored',
-            $event->getGameEvent()->getId()
-        );
-    }
-
-    public function onGoalAssisted(GoalAssistedEvent $event): void
-    {
-        $this->xpRegistrationService->registerXpEvent(
-            $event->getUser(),
-            'goal_assisted',
             $event->getGameEvent()->getId()
         );
     }

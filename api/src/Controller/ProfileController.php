@@ -249,6 +249,7 @@ class ProfileController extends AbstractController
             ->select('e.actionType, SUM(e.xpValue) as xpSum')
             ->where('e.user = :user')
             ->groupBy('e.actionType')
+            ->having('SUM(e.xpValue) > 0')
             ->setParameter('user', $user);
         $xpSums = $qb->getQuery()->getResult();
 

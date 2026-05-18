@@ -20,8 +20,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
+
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditIcon from '@mui/icons-material/Edit';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -470,16 +469,11 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
         <Box flex={1} minWidth={0}>
           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
             <Typography fontWeight={600} noWrap sx={{ maxWidth: 260 }}>{type.name}</Typography>
-            <Chip
-              label={`game_event_type_${type.code}`}
-              size="small"
-              sx={{ fontFamily: 'monospace', fontSize: 11 }}
-            />
             {!hasCustomRule && (
               <Chip
-                label="Fallback"
+                label={`Standard: ${fallbackXp} XP`}
                 size="small"
-                sx={{ bgcolor: 'grey.200', color: 'text.secondary', fontSize: 10 }}
+                sx={{ bgcolor: 'grey.100', color: 'text.secondary', fontSize: 10 }}
               />
             )}
           </Box>
@@ -500,7 +494,7 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
 
         {/* Actions */}
         <Box display="flex" alignItems="center" onClick={e => e.stopPropagation()}>
-          <Tooltip title={hasCustomRule ? 'Bearbeiten' : 'Eigenen XP-Wert setzen'}>
+          <Tooltip title={hasCustomRule ? 'XP-Wert ändern' : 'Eigenen XP-Wert für diesen Typ festlegen'}>
             <IconButton size="small" onClick={() => { setEditing(e => !e); setExpanded(true); }}>
               <EditIcon fontSize="small" />
             </IconButton>
@@ -528,14 +522,14 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
           {!editing ? (
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="caption" color="text.secondary">Code</Typography>
-                <Typography variant="body2" fontFamily="monospace">{type.code}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="caption" color="text.secondary">XP-Quelle</Typography>
                 <Typography variant="body2">
-                  {hasCustomRule ? 'Eigener Wert' : `Fallback via game_event-Regel (${fallbackXp} XP)`}
+                  {hasCustomRule ? 'Eigener Wert' : `Standard-Wert: ${fallbackXp} XP (aus Regel „Spielereignis hinterlegt")`}
                 </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Typography variant="caption" color="text.secondary">Interner Typ-Code</Typography>
+                <Typography variant="body2" fontFamily="monospace" fontSize={12}>{`game_event_type_${type.code}`}</Typography>
               </Grid>
               {rule && (
                 <Grid size={{ xs: 12 }}>
@@ -605,9 +599,8 @@ function GameEventTypeSection({ gameEventTypes, rulesMap, fallbackXp, onSave, on
   return (
     <Box>
       <Alert severity="info" sx={{ mb: 2 }} icon={<InfoOutlinedIcon />}>
-        Alle Spielereignistypen aus der Datenbank. Ohne eigenen Wert gilt der generische
-        <strong> game_event</strong>-Fallback ({fallbackXp} XP).
-        Setze einen eigenen Wert, um ihn für diesen Typ zu überschreiben.
+        Klicke auf den <strong>Stift-Button</strong> neben einem Ereignistyp, um einen eigenen XP-Wert festzulegen.
+        Ohne eigenen Wert erhalten alle Typen automatisch <strong>{fallbackXp} XP</strong> (Standard-Wert).
       </Alert>
       <TextField
         placeholder="Typ oder Code suchen…"
@@ -634,160 +627,6 @@ function GameEventTypeSection({ gameEventTypes, rulesMap, fallbackXp, onSave, on
   );
 }
 
-// ── CreateRuleDialog ──────────────────────────────────────────────────────────
-
-interface CreateRuleDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onCreate: (data: Partial<XpRule>) => Promise<void>;
-}
-
-function CreateRuleDialog({ open, onClose, onCreate }: CreateRuleDialogProps) {
-  const blank = (): Partial<XpRule> => ({
-    actionType: '',
-    label: '',
-    category: 'platform',
-    description: '',
-    xpValue: 10,
-    cooldownMinutes: 0,
-    dailyLimit: null,
-    monthlyLimit: null,
-  });
-  const [form, setForm]     = useState<Partial<XpRule>>(blank());
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
-
-  useEffect(() => { if (!open) { setForm(blank()); setError(null); } }, [open]);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSubmit = async () => {
-    if (!form.actionType || !form.label || form.xpValue === undefined) {
-      setError('Bitte alle Pflichtfelder ausfüllen.');
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await onCreate(form);
-      onClose();
-    } catch (e: any) {
-      setError(e?.message ?? 'Fehler beim Speichern.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Neue XP-Regel anlegen
-        <IconButton onClick={onClose}><CloseIcon /></IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={2} mt={0}>
-          {error && (
-            <Grid size={{ xs: 12 }}>
-              <Alert severity="error">{error}</Alert>
-            </Grid>
-          )}
-
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              label="actionType *"
-              value={form.actionType ?? ''}
-              onChange={e => setForm(f => ({ ...f, actionType: e.target.value }))}
-              fullWidth size="small"
-              helperText="Einzigartiger Code, z.B. 'custom_action'"
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 8 }}>
-            <TextField
-              label="Bezeichnung *"
-              value={form.label ?? ''}
-              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-              fullWidth size="small"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              label="XP-Wert *"
-              type="number"
-              value={form.xpValue ?? ''}
-              onChange={e => setForm(f => ({ ...f, xpValue: parseInt(e.target.value) || 0 }))}
-              fullWidth size="small"
-              InputProps={{ endAdornment: <InputAdornment position="end">XP</InputAdornment> }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Kategorie"
-              select
-              SelectProps={{ native: true }}
-              value={form.category ?? 'platform'}
-              onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-              fullWidth size="small"
-            >
-              {ALL_CATEGORIES.map(c => (
-                <option key={c} value={c}>{CATEGORY_META[c].label}</option>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <TextField
-              label="Beschreibung (optional)"
-              value={form.description ?? ''}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              fullWidth size="small" multiline rows={2}
-            />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <Divider><Typography variant="caption" color="text.secondary">Limits</Typography></Divider>
-          </Grid>
-          <Grid size={{ xs: 4 }}>
-            <TextField
-              label="Cooldown (min)"
-              type="number"
-              value={form.cooldownMinutes ?? 0}
-              onChange={e => setForm(f => ({ ...f, cooldownMinutes: parseInt(e.target.value) ?? 0 }))}
-              fullWidth size="small" helperText="0 / -1 / N min"
-            />
-          </Grid>
-          <Grid size={{ xs: 4 }}>
-            <TextField
-              label="Tages-Limit"
-              type="number"
-              value={form.dailyLimit ?? ''}
-              onChange={e => setForm(f => ({ ...f, dailyLimit: e.target.value !== '' ? parseInt(e.target.value) : null }))}
-              fullWidth size="small" helperText="Leer = ∞"
-            />
-          </Grid>
-          <Grid size={{ xs: 4 }}>
-            <TextField
-              label="Monats-Limit"
-              type="number"
-              value={form.monthlyLimit ?? ''}
-              onChange={e => setForm(f => ({ ...f, monthlyLimit: e.target.value !== '' ? parseInt(e.target.value) : null }))}
-              fullWidth size="small" helperText="Leer = ∞"
-            />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Abbrechen</Button>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
-          onClick={handleSubmit}
-          disabled={saving}
-        >
-          Erstellen
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function XpConfig() {
@@ -796,7 +635,6 @@ export default function XpConfig() {
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState<string | null>(null);
   const [success, setSuccess]             = useState<string | null>(null);
-  const [createOpen, setCreateOpen]       = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [resetting, setResetting]         = useState(false);
   const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
@@ -964,16 +802,7 @@ export default function XpConfig() {
             Defaults
           </Button>
         </Tooltip>
-        {filterCategory !== 'game_event' && (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-          >
-            Neue Regel
-          </Button>
-        )}
+
       </Box>
 
       {/* ── Rules grouped by category ──────────────────────────────────── */}
@@ -1036,13 +865,6 @@ export default function XpConfig() {
           />
         </Box>
       )}
-
-      {/* ── Create dialog ──────────────────────────────────────────────── */}
-      <CreateRuleDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreate={handleCreate}
-      />
 
       {/* ── Reset confirm dialog ───────────────────────────────────────── */}
       <Dialog open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)} maxWidth="xs" fullWidth>

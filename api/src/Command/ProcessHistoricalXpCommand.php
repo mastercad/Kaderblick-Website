@@ -461,6 +461,10 @@ HELP);
 
     private function createXpEventRecord(User $user, string $actionType, int $actionId, int $xpValue): void
     {
+        if ($xpValue <= 0) {
+            return; // No XP rule configured for this action — skip silently
+        }
+
         $xpEvent = new UserXpEvent();
         $xpEvent->setUser($user);
         $xpEvent->setActionType($actionType);
