@@ -115,6 +115,9 @@ class TrainingSeriesUpdateService
         $oldStartTimeFmt = $calendarEvent->getStartDate()?->format('H:i');
         $oldEndTimeFmt = $calendarEvent->getEndDate()?->format('H:i');
         $oldLocationName = $calendarEvent->getLocation()?->getName();
+        $oldMeetingPoint = $calendarEvent->getMeetingPoint();
+        $oldMeetingLocationName = $calendarEvent->getMeetingLocation()?->getName();
+        $oldMeetingTime = $calendarEvent->getMeetingTime()?->format('H:i');
 
         // ── 1. Update existing scoped events (or delete if weekday was removed) ─
         $endDateShortened = $oldSeriesEndDateStr && $newSeriesEndDateStr
@@ -235,6 +238,9 @@ class TrainingSeriesUpdateService
         $newStartFmt = $originalStart->format('H:i');
         $newEndFmt = $originalEnd?->format('H:i');
         $newLocationName = $calendarEvent->getLocation()?->getName();
+        $newMeetingPoint = $calendarEvent->getMeetingPoint();
+        $newMeetingLocationName = $calendarEvent->getMeetingLocation()?->getName();
+        $newMeetingTime = $calendarEvent->getMeetingTime()?->format('H:i');
 
         $changeSet = new CalendarEventChangeSet(
             oldStartTime: $oldStartTimeFmt,
@@ -245,6 +251,12 @@ class TrainingSeriesUpdateService
             newWeekday: !empty($newWeekdays) ? self::DAY_NAMES[reset($newWeekdays)] : null,
             oldLocationName: $oldLocationName,
             newLocationName: $newLocationName,
+            oldMeetingPoint: $oldMeetingPoint,
+            newMeetingPoint: $newMeetingPoint,
+            oldMeetingLocationName: $oldMeetingLocationName,
+            newMeetingLocationName: $newMeetingLocationName,
+            oldMeetingTime: $oldMeetingTime,
+            newMeetingTime: $newMeetingTime,
         );
 
         return new TrainingSeriesUpdateResult(

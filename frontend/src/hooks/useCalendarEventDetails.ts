@@ -49,7 +49,9 @@ export function toEventDetailsCalendarEvent(
     cancelReason: event.cancelReason || undefined,
     cancelledBy: event.cancelledBy || undefined,
     meetingPoint: event.meetingPoint || undefined,
-    meetingTime: event.meetingTime || undefined,
+    meetingTime: event.meetingTime
+      ? (event.meetingTime.includes('T') ? event.meetingTime.substring(11, 16) : event.meetingTime)
+      : undefined,
     meetingLocation: event.meetingLocation || undefined,
   };
 }

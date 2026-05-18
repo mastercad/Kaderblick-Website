@@ -369,7 +369,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 <Box>
                   {event.meetingTime && (
                     <Typography variant="body2" fontWeight={600} gutterBottom={false}>
-                      Treffpunkt {event.meetingTime.substring(11, 16)} Uhr
+                      Treffpunkt {event.meetingTime} Uhr
                     </Typography>
                   )}
                   {event.meetingLocation ? (
