@@ -20,17 +20,28 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 class ApiTokenTest extends WebTestCase
 {
-    private const PREFIX = 'api-token-test-';
     private const ENDPOINT = '/api/profile/api-token';
 
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+
+    private User $user;
 
     protected function setUp(): void
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+
+        /** @var User $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        self::assertNotNull($user, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->user = $user;
+
+        // Reset token state before each test
+        $this->user->setApiToken(null);
+        $this->user->setApiTokenCreatedAt(null);
+        $this->em->flush();
     }
 
     // =========================================================================
@@ -61,7 +72,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testGetTokenStatusWhenNoToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-notoken@example.com');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('GET', self::ENDPOINT);
@@ -75,7 +86,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testGetTokenStatusWhenTokenExists(): void
     {
-        $user = $this->createUser(self::PREFIX . 'get-hastoken@example.com');
+        $user = $this->user;
         $user->setApiToken('kbak_' . bin2hex(random_bytes(24)));
         $user->setApiTokenCreatedAt(new DateTime('2025-01-15 12:00:00'));
         $this->em->flush();
@@ -94,7 +105,7 @@ class ApiTokenTest extends WebTestCase
     public function testGetTokenStatusNeverReturnsActualToken(): void
     {
         $rawToken = 'kbak_' . bin2hex(random_bytes(24));
-        $user = $this->createUser(self::PREFIX . 'get-nosecret@example.com');
+        $user = $this->user;
         $user->setApiToken($rawToken);
         $user->setApiTokenCreatedAt(new DateTime());
         $this->em->flush();
@@ -112,7 +123,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testGenerateTokenReturnsValidToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-new@example.com');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -128,7 +139,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testGenerateTokenSetsHasTokenOnSubsequentGet(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-status@example.com');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -145,7 +156,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testGenerateTokenOverwritesPreviousToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'gen-overwrite@example.com');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         $this->client->request('POST', self::ENDPOINT);
@@ -169,7 +180,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testRevokeTokenReturnsSuccess(): void
     {
-        $user = $this->createUser(self::PREFIX . 'revoke-ok@example.com');
+        $user = $this->user;
         $user->setApiToken('kbak_' . bin2hex(random_bytes(24)));
         $user->setApiTokenCreatedAt(new DateTime());
         $this->em->flush();
@@ -184,7 +195,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testRevokeTokenClearsStatus(): void
     {
-        $user = $this->createUser(self::PREFIX . 'revoke-clear@example.com');
+        $user = $this->user;
         $this->client->loginUser($user);
 
         // Generate first
@@ -208,7 +219,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testAuthenticateWithGeneratedToken(): void
     {
-        $user = $this->createUser(self::PREFIX . 'bearer-auth@example.com');
+        $user = $this->user;
 
         // Generate token via logged-in session
         $this->client->loginUser($user);
@@ -240,7 +251,7 @@ class ApiTokenTest extends WebTestCase
 
     public function testRevokedTokenNoLongerAuthenticates(): void
     {
-        $user = $this->createUser(self::PREFIX . 'bearer-revoke@example.com');
+        $user = $this->user;
 
         // Generate
         $this->client->loginUser($user);
@@ -261,32 +272,13 @@ class ApiTokenTest extends WebTestCase
         $this->assertResponseStatusCodeSame(401, 'Revoked token must no longer authenticate.');
     }
 
-    // =========================================================================
-    //  Hilfsmethoden
-    // =========================================================================
-
-    /** @param string[] $roles */
-    private function createUser(string $email, array $roles = ['ROLE_USER']): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles($roles);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
-
     protected function tearDown(): void
     {
-        $conn = $this->em->getConnection();
-        $conn->executeStatement('DELETE FROM users WHERE email LIKE :prefix', ['prefix' => self::PREFIX . '%']);
-
+        // Reset token state of fixture user via raw SQL on the existing connection
+        $this->em->getConnection()->executeStatement(
+            'UPDATE users SET api_token = NULL, api_token_created_at = NULL WHERE email = :email',
+            ['email' => 'user6@example.com']
+        );
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

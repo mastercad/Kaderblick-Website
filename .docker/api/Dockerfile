@@ -71,7 +71,10 @@ RUN apk add --no-cache --virtual .build-deps \
     openssl-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) intl pdo pdo_mysql zip opcache bcmath gd \
-    && apk del .build-deps
+    && pecl install apcu \
+    && docker-php-ext-enable apcu \
+    && apk del .build-deps \
+    && echo "apc.enable_cli=1" >> /usr/local/etc/php/conf.d/apcu.ini
 
 # nginx als www-data ausführen (konsistent mit PHP-FPM-User)
 RUN sed -i 's/user nginx;/user www-data;/' /etc/nginx/nginx.conf \

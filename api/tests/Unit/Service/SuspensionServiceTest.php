@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Entity\CalendarEvent;
 use App\Entity\Coach;
 use App\Entity\CoachSuspension;
 use App\Entity\CoachTeamAssignment;
@@ -24,6 +25,10 @@ use App\Entity\UserRelation;
 use App\Repository\CoachSuspensionRepository;
 use App\Repository\CompetitionCardRuleRepository;
 use App\Repository\GameEventRepository;
+use App\Repository\GameRepository;
+use App\Repository\ParticipationRepository;
+use App\Repository\ParticipationStatusRepository;
+use App\Repository\PlayerRepository;
 use App\Repository\PlayerSuspensionRepository;
 use App\Service\NotificationService;
 use App\Service\SuspensionService;
@@ -44,6 +49,10 @@ class SuspensionServiceTest extends TestCase
     private CoachSuspensionRepository&MockObject $coachSuspensionRepository;
     private CompetitionCardRuleRepository&MockObject $cardRuleRepository;
     private NotificationService&MockObject $notificationService;
+    private GameRepository&MockObject $gameRepository;
+    private ParticipationRepository&MockObject $participationRepository;
+    private ParticipationStatusRepository&MockObject $participationStatusRepository;
+    private PlayerRepository&MockObject $playerRepository;
     private SuspensionService $service;
 
     protected function setUp(): void
@@ -54,6 +63,10 @@ class SuspensionServiceTest extends TestCase
         $this->coachSuspensionRepository = $this->createMock(CoachSuspensionRepository::class);
         $this->cardRuleRepository = $this->createMock(CompetitionCardRuleRepository::class);
         $this->notificationService = $this->createMock(NotificationService::class);
+        $this->gameRepository = $this->createMock(GameRepository::class);
+        $this->participationRepository = $this->createMock(ParticipationRepository::class);
+        $this->participationStatusRepository = $this->createMock(ParticipationStatusRepository::class);
+        $this->playerRepository = $this->createMock(PlayerRepository::class);
 
         $this->service = new SuspensionService(
             $this->em,
@@ -62,6 +75,10 @@ class SuspensionServiceTest extends TestCase
             $this->coachSuspensionRepository,
             $this->cardRuleRepository,
             $this->notificationService,
+            $this->gameRepository,
+            $this->participationRepository,
+            $this->participationStatusRepository,
+            $this->playerRepository,
         );
     }
 
@@ -135,10 +152,14 @@ class SuspensionServiceTest extends TestCase
         ?Cup $cup = null,
         ?TournamentMatch $tournamentMatch = null,
     ): Game {
+        $calendarEvent = $this->createMock(CalendarEvent::class);
+        $calendarEvent->method('getStartDate')->willReturn(new DateTimeImmutable('2026-06-01 15:00:00'));
+
         $game = $this->createMock(Game::class);
         $game->method('getLeague')->willReturn($league);
         $game->method('getCup')->willReturn($cup);
         $game->method('getTournamentMatch')->willReturn($tournamentMatch);
+        $game->method('getCalendarEvent')->willReturn($calendarEvent);
         $game->method('getId')->willReturn(100);
 
         return $game;
@@ -571,7 +592,7 @@ class SuspensionServiceTest extends TestCase
         $this->cardRuleRepository->method('findApplicableRule')->willReturn($rule);
 
         $resetDate = new DateTimeImmutable('2024-06-01');
-        $calendarEvent = $this->createMock(\App\Entity\CalendarEvent::class);
+        $calendarEvent = $this->createMock(CalendarEvent::class);
         $calendarEvent->method('getStartDate')->willReturn($resetDate);
 
         $triggerGame = $this->createMock(Game::class);
@@ -600,7 +621,7 @@ class SuspensionServiceTest extends TestCase
         $this->cardRuleRepository->method('findApplicableRule')->willReturn($rule);
 
         $resetDate = new DateTimeImmutable('2024-06-01');
-        $calendarEvent = $this->createMock(\App\Entity\CalendarEvent::class);
+        $calendarEvent = $this->createMock(CalendarEvent::class);
         $calendarEvent->method('getStartDate')->willReturn($resetDate);
 
         $triggerGame = $this->createMock(Game::class);

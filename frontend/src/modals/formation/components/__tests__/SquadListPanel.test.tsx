@@ -292,3 +292,53 @@ describe('SquadListPanel – Drag', () => {
     }
   });
 });
+
+// ─── Gesperrte Spieler ────────────────────────────────────────────────────────
+
+describe('SquadListPanel – gesperrte Spieler', () => {
+  it('zeigt den "Gesperrt"-Chip für gesperrte Spieler', () => {
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} activePlayerIds={new Set()} />);
+    expect(screen.getAllByText('Gesperrt')[0]).toBeInTheDocument();
+  });
+
+  it('zeigt keinen "Auf Spielfeld setzen"-Button für gesperrte Spieler', () => {
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} activePlayerIds={new Set()} />);
+    expect(screen.queryAllByLabelText('Auf Spielfeld setzen')).toHaveLength(0);
+  });
+
+  it('zeigt keinen "Auf Bank setzen"-Button für gesperrte Spieler', () => {
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} activePlayerIds={new Set()} />);
+    expect(screen.queryAllByLabelText('Auf Bank setzen')).toHaveLength(0);
+  });
+
+  it('ruft onAddToBench NICHT auf wenn gesperrter Spieler angezeigt wird', () => {
+    const onAddToBench = jest.fn();
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} onAddToBench={onAddToBench} activePlayerIds={new Set()} />);
+    // Alle Buttons klicken – kein Button sollte onAddToBench auslösen
+    screen.getAllByRole('button').forEach(btn => fireEvent.click(btn));
+    expect(onAddToBench).not.toHaveBeenCalled();
+  });
+
+  it('ruft onAddToField NICHT auf wenn gesperrter Spieler angezeigt wird', () => {
+    const onAddToField = jest.fn();
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} onAddToField={onAddToField} activePlayerIds={new Set()} />);
+    screen.getAllByRole('button').forEach(btn => fireEvent.click(btn));
+    expect(onAddToField).not.toHaveBeenCalled();
+  });
+
+  it('gesperrter Spieler ist nicht draggable', () => {
+    const onSquadDragStart = jest.fn();
+    const players = [makePlayer(1, { isSuspended: true })];
+    render(<SquadListPanel {...baseProps} availablePlayers={players} activePlayerIds={new Set()} onSquadDragStart={onSquadDragStart} />);
+    const listItem = screen.getAllByText('Spieler 1')[0].closest('li');
+    if (listItem) {
+      fireEvent.dragStart(listItem);
+      expect(onSquadDragStart).not.toHaveBeenCalled();
+    }
+  });
+});

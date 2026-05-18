@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, IconButton, Tooltip, Paper, Chip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
+import BlockIcon from '@mui/icons-material/Block';
 import { getPositionColor } from '../helpers';
 import type { PlayerData } from '../types';
 
@@ -125,14 +126,14 @@ const Bench: React.FC<BenchProps> = ({
           <Box
             sx={{
               display: 'flex', alignItems: 'center', gap: 1.25,
-              bgcolor: 'background.default',
+              bgcolor: player.isSuspended ? 'rgba(211,47,47,0.08)' : 'background.default',
               border: '1px solid',
-              borderColor: 'divider',
+              borderColor: player.isSuspended ? 'error.light' : 'divider',
               borderRadius: 2,
               px: 1.25,
               py: 0.75,
               userSelect: 'none',
-              '&:hover': { bgcolor: 'action.hover' },
+              '&:hover': { bgcolor: player.isSuspended ? 'rgba(211,47,47,0.14)' : 'action.hover' },
             }}
           >
             {/* Avatar – einziger Drag-Handle (touch + mouse) */}
@@ -142,22 +143,48 @@ const Bench: React.FC<BenchProps> = ({
               onTouchStart={onTouchStart}
             />
 
-            {/* Name */}
-            <Typography variant="body2" fontWeight={600} sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {player.name}
-            </Typography>
+            {/* Name + Gesperrt-Badge */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" fontWeight={600} noWrap>
+                {player.name}
+              </Typography>
+              {player.isSuspended && (
+                <Chip
+                  label="Gesperrt"
+                  size="small"
+                  sx={{
+                    height: 16,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    bgcolor: 'error.main',
+                    color: 'error.contrastText',
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
+                />
+              )}
+            </Box>
 
-            {/* Auf Feld */}
-            <Tooltip title="Auf Spielfeld setzen">
-              <IconButton
-                size="small"
-                sx={{ p: 0.5, flexShrink: 0 }}
-                onClick={() => onSendToField(player.id)}
-                aria-label={`${player.name} aufs Feld`}
-              >
-                <SportsSoccerIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
+            {/* Auf Feld – für gesperrte Spieler deaktiviert */}
+            {player.isSuspended ? (
+              <Tooltip title="Gesperrt – kann nicht auf dem Spielfeld eingesetzt werden">
+                <span>
+                  <IconButton size="small" sx={{ p: 0.5, flexShrink: 0 }} disabled>
+                    <BlockIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            ) : (
+              <Tooltip title="Auf Spielfeld setzen">
+                <IconButton
+                  size="small"
+                  sx={{ p: 0.5, flexShrink: 0 }}
+                  onClick={() => onSendToField(player.id)}
+                  aria-label={`${player.name} aufs Feld`}
+                >
+                  <SportsSoccerIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Entfernen */}
             <IconButton

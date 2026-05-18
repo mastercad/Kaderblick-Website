@@ -319,3 +319,179 @@ describe('useFormationData – Trikotnummern beim Teamwechsel', () => {
     expect(result.current.players.find(p => !p.isRealPlayer)?.number).toBe(5);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// refreshShirtNumbers – isSuspended-Synchronisierung (Regressions-Tests für Bug:
+// Spieler auf der Bank/dem Feld hatten isSuspended=false obwohl sie gesperrt waren,
+// weil refreshShirtNumbers das Flag nicht aus dem Kader übertragen hat.)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('refreshShirtNumbers – isSuspended-Synchronisierung', () => {
+  it('setzt isSuspended=true wenn Kaderspieler gesperrt ist', () => {
+    const [result] = refreshShirtNumbers(
+      [mkPD({ playerId: 10, number: 7, isSuspended: false })],
+      [mkPlayer({ id: 10, shirtNumber: 7, isSuspended: true })],
+    );
+    expect(result.isSuspended).toBe(true);
+  });
+
+  it('setzt isSuspended=false wenn Spieler nicht mehr gesperrt ist', () => {
+    const [result] = refreshShirtNumbers(
+      [mkPD({ playerId: 10, number: 7, isSuspended: true })],
+      [mkPlayer({ id: 10, shirtNumber: 7, isSuspended: false })],
+    );
+    expect(result.isSuspended).toBe(false);
+  });
+
+  it('setzt isSuspended=false wenn Kadereintrag kein isSuspended enthält', () => {
+    const [result] = refreshShirtNumbers(
+      [mkPD({ playerId: 10, number: 7, isSuspended: true })],
+      [mkPlayer({ id: 10, shirtNumber: 7 })], // isSuspended fehlt → undefined
+    );
+    expect(result.isSuspended).toBe(false);
+  });
+
+  it('lässt isSuspended bei Platzhaltern unverändert', () => {
+    const placeholder = mkPD({ playerId: null, isRealPlayer: false, number: 3, isSuspended: undefined });
+    const [result] = refreshShirtNumbers(
+      [placeholder],
+      [mkPlayer({ id: 1, shirtNumber: 9, isSuspended: true })],
+    );
+    expect(result.isSuspended).toBeUndefined();
+  });
+
+  it('synchronisiert isSuspended und number in einem Durchlauf', () => {
+    const [result] = refreshShirtNumbers(
+      [mkPD({ playerId: 10, number: 99, isSuspended: false })],
+      [mkPlayer({ id: 10, shirtNumber: 28, isSuspended: true })],
+    );
+    expect(result.number).toBe(28);
+    expect(result.isSuspended).toBe(true);
+  });
+
+  it('synchronisiert isSuspended für mehrere Spieler gleichzeitig', () => {
+    const list: PlayerData[] = [
+      mkPD({ id: 1, playerId: 10, number: 99, isSuspended: false }),
+      mkPD({ id: 2, playerId: 20, number: 88, isSuspended: false }),
+      mkPD({ id: 3, playerId: null, isRealPlayer: false, number: 3 }),
+    ];
+    const kader: Player[] = [
+      mkPlayer({ id: 10, shirtNumber: 7,  isSuspended: true }),
+      mkPlayer({ id: 20, shirtNumber: 1,  isSuspended: false }),
+    ];
+    const result = refreshShirtNumbers(list, kader);
+    expect(result[0].isSuspended).toBe(true);   // Spieler 10 – gesperrt
+    expect(result[1].isSuspended).toBe(false);  // Spieler 20 – nicht gesperrt
+    expect(result[2].isSuspended).toBeUndefined(); // Platzhalter unverändert
+  });
+
+  it('behält alle anderen PlayerData-Felder außer number und isSuspended', () => {
+    const original = mkPD({ playerId: 10, number: 99, x: 33, y: 77, name: 'Wolf', position: 'ST' });
+    const [updated] = refreshShirtNumbers(
+      [original],
+      [mkPlayer({ id: 10, shirtNumber: 28, isSuspended: true })],
+    );
+    expect(updated).toMatchObject({ x: 33, y: 77, name: 'Wolf', position: 'ST', playerId: 10 });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// useFormationData Hook – Sperrstatus-Integration (gameId-Pfad)
+// Prüft, dass isSuspended aus der Suspension-API korrekt auf Feld- und
+// Bankspieler übertragen wird — auch wenn sie schon vor dem Suspension-Fetch
+// gesetzt wurden (Timing-Regression).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('useFormationData – isSuspended über gameId-Pfad', () => {
+  const GAME_ID = 42;
+
+  const setupWithSuspension = (suspendedIds: number[]) => {
+    mockApiJson.mockImplementation(async (url: string) => {
+      if (url === '/api/teams/list') return TEAMS_RESPONSE;
+      if (url.includes('/team/') && url.includes('/players'))
+        return {
+          players: [
+            { id: 10, name: 'Wolf',  shirtNumber: 28, position: 'ST', alternativePositions: [] },
+            { id: 20, name: 'Maier', shirtNumber: 5,  position: 'IV', alternativePositions: [] },
+          ],
+        };
+      if (url.includes('/suspension-status'))
+        return [
+          { playerId: 10, playerName: 'Wolf',  isSuspended: suspendedIds.includes(10) },
+          { playerId: 20, playerName: 'Maier', isSuspended: suspendedIds.includes(20) },
+        ];
+      return {};
+    });
+  };
+
+  it('setzt isSuspended=true auf availablePlayers wenn Spieler gesperrt ist', async () => {
+    setupWithSuspension([10]);
+    const { result } = renderHook(() => useFormationData(true, null, undefined, undefined, GAME_ID));
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.availablePlayers.length).toBeGreaterThan(0); });
+    expect(result.current.availablePlayers.find(p => p.id === 10)?.isSuspended).toBe(true);
+    expect(result.current.availablePlayers.find(p => p.id === 20)?.isSuspended).toBe(false);
+  });
+
+  it('synchronisiert isSuspended auf bereits gesetzte Feldspieler nach Kaderload', async () => {
+    setupWithSuspension([10]);
+
+    // Spieler über initialDraft vorsetzen – sie sind bereits in State wenn die
+    // Suspension-API auflöst und refreshShirtNumbers aufgerufen wird.
+    const draft = {
+      name: '',
+      selectedTeam: 1 as number | '',
+      formationData: {
+        players: [mkPD({ id: 101, playerId: 10, number: 28, name: 'Wolf' })],
+        bench: [] as PlayerData[],
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFormationData(true, null, draft, undefined, GAME_ID),
+    );
+    await act(async () => {});
+
+    await waitFor(() => {
+      expect(result.current.players.find(p => p.playerId === 10)?.isSuspended).toBe(true);
+    });
+  });
+
+  it('synchronisiert isSuspended auf bereits gesetzte Bankspieler nach Kaderload', async () => {
+    setupWithSuspension([10]);
+
+    const draft = {
+      name: '',
+      selectedTeam: 1 as number | '',
+      formationData: {
+        players: [] as PlayerData[],
+        bench: [mkPD({ id: 201, playerId: 10, number: 28, name: 'Wolf' })],
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFormationData(true, null, draft, undefined, GAME_ID),
+    );
+    await act(async () => {});
+
+    await waitFor(() => {
+      expect(result.current.benchPlayers.find(p => p.playerId === 10)?.isSuspended).toBe(true);
+    });
+  });
+
+  it('belässt isSuspended=false für nicht gesperrte Bankspieler', async () => {
+    setupWithSuspension([]); // niemand gesperrt
+    const { result } = renderHook(() => useFormationData(true, null, undefined, undefined, GAME_ID));
+    await act(async () => {});
+    await waitFor(() => { expect(result.current.availablePlayers.length).toBeGreaterThan(0); });
+
+    await act(async () => {
+      result.current.setBenchPlayers([mkPD({ id: 201, playerId: 10, number: 28, name: 'Wolf', isSuspended: false })]);
+    });
+
+    await act(async () => { result.current.setSelectedTeam(1); });
+    await waitFor(() => {
+      expect(result.current.benchPlayers.find(p => p.playerId === 10)?.isSuspended).toBe(false);
+    });
+  });
+});

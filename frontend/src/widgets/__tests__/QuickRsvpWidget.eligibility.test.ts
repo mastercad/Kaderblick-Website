@@ -156,3 +156,5 @@ describe('QuickRsvpWidget dashboard eligibility – mixed event list', () => {
     expect(visible[1].permissions.isSelfMember).toBe(true);
   });
 });
+
+export {};

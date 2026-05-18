@@ -7,7 +7,9 @@ use App\Entity\CoachTeamAssignment;
 use App\Entity\Game;
 use App\Entity\Player;
 use App\Entity\PlayerTeamAssignment;
+use App\Entity\Team;
 use App\Entity\UserRelation;
+use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -227,5 +229,39 @@ class GameRepository extends ServiceEntityRepository implements OptimizedReposit
             ->setParameter('oldRound', $oldRound)
             ->getQuery()
             ->execute();
+    }
+
+    /**
+     * Finds the next N games for a team in a specific competition after a given date.
+     * Used to determine which games a suspension applies to.
+     *
+     * @return Game[]
+     */
+    public function findNextGamesForTeamInCompetition(
+        Team $team,
+        string $competitionType,
+        ?int $competitionId,
+        DateTimeInterface $afterDate,
+        int $limit = 1,
+    ): array {
+        $qb = $this->createQueryBuilder('g')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->where('(g.homeTeam = :team OR g.awayTeam = :team)')
+            ->andWhere('ce.startDate > :afterDate')
+            ->orderBy('ce.startDate', 'ASC')
+            ->setMaxResults($limit)
+            ->setParameter('team', $team)
+            ->setParameter('afterDate', $afterDate);
+
+        match ($competitionType) {
+            'league' => $qb->andWhere('g.league = :compId')->setParameter('compId', $competitionId),
+            'cup' => $qb->andWhere('g.cup = :compId')->setParameter('compId', $competitionId),
+            'tournament' => $qb->leftJoin('g.tournamentMatch', 'tm')
+                               ->andWhere('tm.tournament = :compId')
+                               ->setParameter('compId', $competitionId),
+            default => $qb->andWhere('g.league IS NULL AND g.cup IS NULL AND g.tournamentMatch IS NULL'),
+        };
+
+        return $qb->getQuery()->getResult();
     }
 }

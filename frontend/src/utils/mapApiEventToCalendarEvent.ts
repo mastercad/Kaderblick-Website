@@ -71,5 +71,6 @@ export function mapApiEventToCalendarEvent(
     meetingLocation: ev.meetingLocation || undefined,
     teamIds,
     tournamentTeams: teamIds,
+    participation_status: ev.participation_status || undefined,
   } as CalendarEvent;
 }

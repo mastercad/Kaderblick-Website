@@ -12,6 +12,9 @@ class MessageControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $entityManager;
+    private User $u1;
+    private User $u2;
+    private User $u3;
 
     protected function setUp(): void
     {
@@ -19,12 +22,24 @@ class MessageControllerTest extends WebTestCase
         $this->client = static::createClient();
         $container = static::getContainer();
         $this->entityManager = $container->get(EntityManagerInterface::class);
+        /** @var User $u1 */
+        $u1 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($u1, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u1 = $u1;
+        /** @var User $u2 */
+        $u2 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
+        $this->assertNotNull($u2, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u2 = $u2;
+        /** @var User $u3 */
+        $u3 = $this->entityManager->getRepository(User::class)->findOneBy(['email' => 'user8@example.com']);
+        $this->assertNotNull($u3, 'Fixture user user8@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->u3 = $u3;
     }
 
     public function testIndexIncludesSnippetField(): void
     {
-        $user = $this->createUser('voter-test-snippet-user@example.com');
-        $sender = $this->createUser('voter-test-snippet-sender@example.com');
+        $user = $this->u1;
+        $sender = $this->u2;
 
         $this->createMessageWithContent($sender, [$user], 'voter-test-Snippet subject', 'Hello World Content');
 
@@ -40,8 +55,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testSnippetTruncatesLongContent(): void
     {
-        $user = $this->createUser('voter-test-truncate-user@example.com');
-        $sender = $this->createUser('voter-test-truncate-sender@example.com');
+        $user = $this->u1;
+        $sender = $this->u2;
 
         $longContent = str_repeat('A', 200);
         $this->createMessageWithContent($sender, [$user], 'voter-test-Long subject', $longContent);
@@ -57,8 +72,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAsUnreadRequiresAuthentication(): void
     {
-        $sender = $this->createUser('voter-test-muauth-sender@example.com');
-        $recipient = $this->createUser('voter-test-muauth-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Unread auth');
 
         $this->client->request('PATCH', '/api/messages/' . $message->getId() . '/unread');
@@ -68,9 +83,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAsUnreadDeniesNonRecipient(): void
     {
-        $sender = $this->createUser('voter-test-mudenied-sender@example.com');
-        $recipient = $this->createUser('voter-test-mudenied-recipient@example.com');
-        $outsider = $this->createUser('voter-test-mudenied-outsider@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
+        $outsider = $this->u3;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Unread denied');
 
         $this->client->loginUser($outsider);
@@ -81,8 +96,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAsUnreadSucceedsForRecipient(): void
     {
-        $sender = $this->createUser('voter-test-mu-sender@example.com');
-        $recipient = $this->createUser('voter-test-mu-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Mark unread');
 
         // Mark as read directly via ORM (no HTTP request needed for setup)
@@ -105,8 +120,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAsUnreadIsIdempotentOnAlreadyUnreadMessage(): void
     {
-        $sender = $this->createUser('voter-test-muidem-sender@example.com');
-        $recipient = $this->createUser('voter-test-muidem-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Idempotent unread');
 
         // Message is unread by default – marking it as unread again must not error
@@ -126,9 +141,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAllAsReadMarksOnlyCurrentUsersMessages(): void
     {
-        $user1 = $this->createUser('voter-test-mar-user1@example.com');
-        $user2 = $this->createUser('voter-test-mar-user2@example.com');
-        $sender = $this->createUser('voter-test-mar-sender@example.com');
+        $user1 = $this->u1;
+        $user2 = $this->u2;
+        $sender = $this->u3;
 
         $this->createMessage($sender, [$user1], 'voter-test-MAR msg1');
         $this->createMessage($sender, [$user1], 'voter-test-MAR msg2');
@@ -151,8 +166,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testMarkAllAsReadIsIdempotent(): void
     {
-        $user = $this->createUser('voter-test-maridem-user@example.com');
-        $sender = $this->createUser('voter-test-maridem-sender@example.com');
+        $user = $this->u1;
+        $sender = $this->u2;
         $message = $this->createMessage($sender, [$user], 'voter-test-Idempotent read-all');
 
         // Pre-set all messages as read via ORM (simulates state after a first read-all call)
@@ -169,9 +184,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testIndexOnlyReturnsMessagesForRecipient(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
-        $sender = $this->createUser('voter-test-sender@example.com');
+        $user1 = $this->u1;
+        $user2 = $this->u2;
+        $sender = $this->u3;
 
         $this->createMessage($sender, [$user1], 'voter-test-Message for user1');
         $this->createMessage($sender, [$user2], 'voter-test-Message for user2');
@@ -189,9 +204,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testShowDeniesAccessToMessageForNonRecipient(): void
     {
-        $user1 = $this->createUser('voter-test-user1@example.com');
-        $user2 = $this->createUser('voter-test-user2@example.com');
-        $sender = $this->createUser('voter-test-sender@example.com');
+        $user1 = $this->u1;
+        $user2 = $this->u2;
+        $sender = $this->u3;
 
         $message = $this->createMessage($sender, [$user2], 'voter-test-Private message');
 
@@ -203,8 +218,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testShowAllowsAccessToMessageForRecipient(): void
     {
-        $user = $this->createUser('voter-test-user@example.com');
-        $sender = $this->createUser('voter-test-sender@example.com');
+        $user = $this->u1;
+        $sender = $this->u2;
 
         $message = $this->createMessage($sender, [$user], 'voter-test-Message for user');
 
@@ -218,8 +233,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testShowAllowsAccessToMessageForSender(): void
     {
-        $sender = $this->createUser('voter-test-sender@example.com');
-        $recipient = $this->createUser('voter-test-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
 
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Sent message');
 
@@ -235,8 +250,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testDeleteRequiresAuthentication(): void
     {
-        $sender = $this->createUser('voter-test-del-auth-sender@example.com');
-        $recipient = $this->createUser('voter-test-del-auth-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Delete auth');
 
         $this->client->request('DELETE', '/api/messages/' . $message->getId());
@@ -246,7 +261,7 @@ class MessageControllerTest extends WebTestCase
 
     public function testDeleteReturns404ForUnknownMessage(): void
     {
-        $user = $this->createUser('voter-test-del-404-user@example.com');
+        $user = $this->u1;
 
         $this->client->loginUser($user);
         $this->client->request('DELETE', '/api/messages/99999999');
@@ -256,9 +271,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testDeleteReturnsForbiddenForNonParticipant(): void
     {
-        $sender = $this->createUser('voter-test-del-forbidden-sender@example.com');
-        $recipient = $this->createUser('voter-test-del-forbidden-recipient@example.com');
-        $outsider = $this->createUser('voter-test-del-forbidden-outsider@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
+        $outsider = $this->u3;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Delete forbidden');
 
         $this->client->loginUser($outsider);
@@ -269,8 +284,8 @@ class MessageControllerTest extends WebTestCase
 
     public function testSenderCanDeleteMessageEntirely(): void
     {
-        $sender = $this->createUser('voter-test-del-sender-deletes@example.com');
-        $recipient = $this->createUser('voter-test-del-sender-deletes-recipient@example.com');
+        $sender = $this->u1;
+        $recipient = $this->u2;
         $message = $this->createMessage($sender, [$recipient], 'voter-test-Sender deletes');
         $messageId = $message->getId();
 
@@ -289,9 +304,9 @@ class MessageControllerTest extends WebTestCase
 
     public function testRecipientCanRemoveSelfFromMessage(): void
     {
-        $sender = $this->createUser('voter-test-del-recip-sender@example.com');
-        $recipient1 = $this->createUser('voter-test-del-recip-r1@example.com');
-        $recipient2 = $this->createUser('voter-test-del-recip-r2@example.com');
+        $sender = $this->u1;
+        $recipient1 = $this->u2;
+        $recipient2 = $this->u3;
         $message = $this->createMessage($sender, [$recipient1, $recipient2], 'voter-test-Recipient removes self');
         $messageId = $message->getId();
 
@@ -304,22 +319,6 @@ class MessageControllerTest extends WebTestCase
         $this->entityManager->clear();
         $found = $this->entityManager->getRepository(Message::class)->find($messageId);
         $this->assertNotNull($found);
-    }
-
-    private function createUser(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-
-        return $user;
     }
 
     /**
@@ -357,7 +356,6 @@ class MessageControllerTest extends WebTestCase
         // Delete only test data with voter-test- prefix
         $connection->executeStatement('DELETE FROM message_recipients WHERE message_id IN (SELECT id FROM messages WHERE subject LIKE "voter-test-%")');
         $connection->executeStatement('DELETE FROM messages WHERE subject LIKE "voter-test-%"');
-        $connection->executeStatement('DELETE FROM users WHERE email LIKE "voter-test-%"');
 
         $this->entityManager->close();
 

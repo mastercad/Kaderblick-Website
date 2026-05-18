@@ -23,11 +23,16 @@ class CupsControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
+    private User $user;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var User $user */
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
+        $this->assertNotNull($user, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $this->user = $user;
     }
 
     // ── GET /api/cups ────────────────────────────────────────────────────────
@@ -41,10 +46,9 @@ class CupsControllerTest extends WebTestCase
 
     public function testListReturnsCupsArray(): void
     {
-        $user = $this->createUser('cptest-list@example.com');
         $this->createCup('cptest-Kreispokal');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups');
 
         $this->assertResponseIsSuccessful();
@@ -56,10 +60,9 @@ class CupsControllerTest extends WebTestCase
 
     public function testListIncludesRequiredFields(): void
     {
-        $user = $this->createUser('cptest-fields@example.com');
         $this->createCup('cptest-Stadtpokal');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups');
 
         $this->assertResponseIsSuccessful();
@@ -83,10 +86,9 @@ class CupsControllerTest extends WebTestCase
 
     public function testGameCountIsZeroForCupWithNoGames(): void
     {
-        $user = $this->createUser('cptest-nocount@example.com');
         $this->createCup('cptest-EmptyCup');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -101,14 +103,13 @@ class CupsControllerTest extends WebTestCase
 
     public function testGameCountReflectsActualGamesLinkedToCup(): void
     {
-        $user = $this->createUser('cptest-count@example.com');
         $cup = $this->createCup('cptest-CountCup');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
 
         $this->createCalendarEventWithGame($cup, $evType);
         $this->createCalendarEventWithGame($cup, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -134,12 +135,11 @@ class CupsControllerTest extends WebTestCase
 
     public function testGamesReturnsGamesArray(): void
     {
-        $user = $this->createUser('cptest-games@example.com');
         $cup = $this->createCup('cptest-GamesCup');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
         $this->createCalendarEventWithGame($cup, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups/' . $cup->getId() . '/games');
 
         $this->assertResponseIsSuccessful();
@@ -152,12 +152,11 @@ class CupsControllerTest extends WebTestCase
 
     public function testGamesIncludesRequiredFields(): void
     {
-        $user = $this->createUser('cptest-gamefields@example.com');
         $cup = $this->createCup('cptest-FieldsCup');
         $evType = $this->getOrCreateCalendarEventType('Spiel');
         $this->createCalendarEventWithGame($cup, $evType);
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups/' . $cup->getId() . '/games');
 
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -175,10 +174,9 @@ class CupsControllerTest extends WebTestCase
 
     public function testGamesReturnsEmptyArrayForCupWithNoGames(): void
     {
-        $user = $this->createUser('cptest-empty@example.com');
         $cup = $this->createCup('cptest-EmptyGamesCup');
 
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups/' . $cup->getId() . '/games');
 
         $this->assertResponseIsSuccessful();
@@ -189,31 +187,13 @@ class CupsControllerTest extends WebTestCase
 
     public function testGamesReturns404ForNonExistentCup(): void
     {
-        $user = $this->createUser('cptest-404@example.com');
-
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->user);
         $this->client->request('GET', '/api/cups/999999/games');
 
         $this->assertResponseStatusCodeSame(404);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private function createUser(string $email): User
-    {
-        $user = new User();
-        $user->setEmail($email);
-        $user->setFirstName('Test');
-        $user->setLastName('User');
-        $user->setPassword('password');
-        $user->setRoles(['ROLE_USER']);
-        $user->setIsEnabled(true);
-        $user->setIsVerified(true);
-        $this->em->persist($user);
-        $this->em->flush();
-
-        return $user;
-    }
 
     private function createCup(string $name): Cup
     {
@@ -291,7 +271,6 @@ class CupsControllerTest extends WebTestCase
         $conn->executeStatement("DELETE FROM calendar_events WHERE title = 'cptest-Game'");
         $conn->executeStatement("DELETE FROM cups WHERE name LIKE 'cptest-%'");
         $conn->executeStatement("DELETE FROM game_types WHERE name LIKE 'cptest-%'");
-        $conn->executeStatement("DELETE FROM users WHERE email LIKE 'cptest-%'");
         $this->em->close();
         parent::tearDown();
         restore_exception_handler();

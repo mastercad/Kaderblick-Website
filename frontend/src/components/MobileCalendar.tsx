@@ -32,6 +32,7 @@ export interface MobileCalendarEvent {
   eventType?: { id?: number; name?: string; color?: string };
   cancelled?: boolean;
   location?: { name?: string };
+  participation_status?: { id: number; name: string; code?: string; icon?: string; color?: string };
 }
 
 interface MobileCalendarProps {
@@ -441,6 +442,24 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
                     >
                       {ev.cancelled && '❌ '}
                       {ev.title}
+                      {ev.participation_status?.code === 'suspended' && (
+                        <Box
+                          component="span"
+                          sx={{
+                            ml: 0.75,
+                            px: '4px',
+                            py: '1px',
+                            borderRadius: '3px',
+                            bgcolor: ev.participation_status.color ?? '#f44336',
+                            color: '#fff',
+                            fontSize: '0.65em',
+                            fontWeight: 'bold',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          Gesperrt
+                        </Box>
+                      )}
                     </Typography>
 
                     <Stack direction="row" spacing={0.75} alignItems="center" mt={0.25}>

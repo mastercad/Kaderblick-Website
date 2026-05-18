@@ -7,6 +7,7 @@ use App\Entity\Participation;
 use App\Entity\User;
 use App\Event\CalendarEventParticipatedEvent;
 use App\Event\MatchAttendedEvent;
+use App\Event\ParticipationRespondedEvent;
 use App\Event\TrainingAttendedEvent;
 use App\Repository\ParticipationRepository;
 use App\Repository\ParticipationStatusRepository;
@@ -140,7 +141,7 @@ class ParticipationController extends AbstractController
         $this->em->flush();
 
         // Dispatch XP event based on participation status and event type
-        if ('confirmed' === $status->getCode()) {
+        if ('attending' === $status->getCode()) {
             $eventTypeName = $event->getCalendarEventType()?->getName() ?? '';
             if ('Training' === $eventTypeName) {
                 $this->dispatcher->dispatch(new TrainingAttendedEvent($user, $event));
@@ -149,6 +150,8 @@ class ParticipationController extends AbstractController
             } else {
                 $this->dispatcher->dispatch(new CalendarEventParticipatedEvent($user, $event));
             }
+        } elseif (in_array($status->getCode(), ['not_attending', 'maybe', 'late'], true)) {
+            $this->dispatcher->dispatch(new ParticipationRespondedEvent($user, $event));
         }
 
         // Create notifications for other participants when a user changed
@@ -167,9 +170,9 @@ class ParticipationController extends AbstractController
                 }
 
                 $statusText = match ($status->getCode()) {
-                    'confirmed' => 'zugesagt',
-                    'declined' => 'abgesagt',
-                    'pending' => 'offen',
+                    'attending' => 'zugesagt',
+                    'not_attending' => 'abgesagt',
+                    'maybe' => 'vielleicht',
                     default => $status->getCode()
                 };
 
