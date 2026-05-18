@@ -152,9 +152,9 @@ class TitleCalculationServiceTest extends TestCase
         $method = $ref->getMethod('awardTitlesPerPlayerFromArray');
         $method->setAccessible(true);
 
-        // Pass explicit null for $league to ensure the $useOlympicRanking
+        // Pass explicit null for $league and $cup to ensure the $useOlympicRanking
         // parameter is bound correctly as the last argument.
-        return $method->invoke($service, $playerGoals, $cat, $scope, $team, $season, null, $useOlympicRanking);
+        return $method->invoke($service, $playerGoals, $cat, $scope, $team, $season, null, null, $useOlympicRanking);
     }
 
     public function testThreePlayersSameGoalsReceiveSameRank(): void

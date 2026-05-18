@@ -6,7 +6,7 @@ use App\Repository\PlayerTitleRepository;
 use App\Service\GoalCountingService;
 use App\Service\TitleCalculationService;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -48,7 +48,7 @@ class TitleCalculationServiceLeagueTest extends TestCase
         $method = $ref->getMethod('awardTitlesPerPlayerFromArray');
         $method->setAccessible(true);
         // Request Olympic ranking for this league test to match previous expectation
-        $result = $method->invoke($service, $playerGoals, 'top_scorer', 'league', null, '2025/2026', $league, true);
+        $result = $method->invoke($service, $playerGoals, 'top_scorer', 'league', null, '2025/2026', $league, null, true);
         $this->assertCount(3, $result, 'Alle drei Spieler sollten einen Titel erhalten.');
         $ranks = array_map(fn ($t) => $t->getTitleRank(), $result);
         $this->assertEqualsCanonicalizing(['bronze', 'gold', 'gold'], $ranks, 'Zwei Gold, dann Bronze (Silber entfällt, Logik wie im Service).');
@@ -66,23 +66,35 @@ class TitleCalculationServiceLeagueTest extends TestCase
 
         $repo = $this->createMock(PlayerTitleRepository::class);
         $em = $this->createMock(EntityManagerInterface::class);
-        $entityManagerDummy = $this->createMock(EntityManagerInterface::class);
-        $classMetadata = new ClassMetadata(\App\Entity\League::class);
-        $leagueRepo = $this->getMockBuilder(\Doctrine\ORM\EntityRepository::class)
-            ->setConstructorArgs([$entityManagerDummy, $classMetadata])
-            ->onlyMethods(['findAll'])
-            ->getMock();
-        $leagueRepo->method('findAll')->willReturn($leagues);
-        $em->method('getRepository')->willReturnCallback(function ($class) use ($leagueRepo, $repo) {
-            if ('App\\Entity\\League' == $class || \App\Entity\League::class == $class) {
-                return $leagueRepo;
-            }
-            if ('App\\Entity\\PlayerTitle' == $class || \App\Entity\PlayerTitle::class == $class) {
-                return $repo;
-            }
-            $entityRepoClass = class_exists('Doctrine\\ORM\\EntityRepository') ? 'Doctrine\\ORM\\EntityRepository' : 'Doctrine\\Persistence\\ObjectRepository';
 
-            return $this->createMock($entityRepoClass);
+        // Mock QueryBuilder-Kette für die Liga-Abfrage in calculateLeagueTopScorers
+        $queryMock = $this->getMockBuilder(\Doctrine\ORM\Query::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getScalarResult'])
+            ->getMock();
+        $queryMock->method('getScalarResult')->willReturn([['leagueId' => 1], ['leagueId' => 2]]);
+        $qbMock = $this->createMock(QueryBuilder::class);
+        $qbMock->method('select')->willReturnSelf();
+        $qbMock->method('from')->willReturnSelf();
+        $qbMock->method('join')->willReturnSelf();
+        $qbMock->method('where')->willReturnSelf();
+        $qbMock->method('andWhere')->willReturnSelf();
+        $qbMock->method('setParameter')->willReturnSelf();
+        $qbMock->method('groupBy')->willReturnSelf();
+        $qbMock->method('getQuery')->willReturn($queryMock);
+        $em->method('createQueryBuilder')->willReturn($qbMock);
+
+        $leagueRepoMock = $this->getMockBuilder(\Doctrine\ORM\EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findBy'])
+            ->getMock();
+        $leagueRepoMock->method('findBy')->willReturn($leagues);
+        $em->method('getRepository')->willReturnCallback(function ($class) use ($leagueRepoMock, $repo) {
+            if (\App\Entity\League::class === $class) {
+                return $leagueRepoMock;
+            }
+
+            return $repo;
         });
 
         $service = $this->getMockBuilder(TitleCalculationService::class)
@@ -102,5 +114,61 @@ class TitleCalculationServiceLeagueTest extends TestCase
 
         $result = $service->calculateLeagueTopScorers('2025/2026');
         $this->assertCount(2, $result, 'Es sollten für beide Ligen Titel vergeben werden.');
+    }
+
+    /**
+     * Kerntest für Bug-Fix: Ligen OHNE Spiele in der aktuellen Saison müssen ihre alten Titel verlieren.
+     * deactivateAllTitlesForScopeAndSeason muss VOR dem Loop aufgerufen werden – auch wenn $rows leer ist.
+     */
+    public function testCalculateLeagueTopScorersDeactivatesAllLeagueTitlesGlobally(): void
+    {
+        $repo = $this->createMock(PlayerTitleRepository::class);
+        $em = $this->createMock(EntityManagerInterface::class);
+
+        // QB gibt leeres Ergebnis zurück – keine Liga hat in dieser Saison Spiele
+        $queryMock = $this->getMockBuilder(\Doctrine\ORM\Query::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getScalarResult'])
+            ->getMock();
+        $queryMock->method('getScalarResult')->willReturn([]);
+        $qbMock = $this->createMock(QueryBuilder::class);
+        $qbMock->method('select')->willReturnSelf();
+        $qbMock->method('from')->willReturnSelf();
+        $qbMock->method('join')->willReturnSelf();
+        $qbMock->method('where')->willReturnSelf();
+        $qbMock->method('andWhere')->willReturnSelf();
+        $qbMock->method('setParameter')->willReturnSelf();
+        $qbMock->method('groupBy')->willReturnSelf();
+        $qbMock->method('getQuery')->willReturn($queryMock);
+        $em->method('createQueryBuilder')->willReturn($qbMock);
+
+        $leagueRepoMock = $this->getMockBuilder(\Doctrine\ORM\EntityRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['findBy'])
+            ->getMock();
+        $leagueRepoMock->method('findBy')->willReturn([]);
+        $em->method('getRepository')->willReturnCallback(function ($class) use ($leagueRepoMock, $repo) {
+            if (\App\Entity\League::class === $class) {
+                return $leagueRepoMock;
+            }
+
+            return $repo;
+        });
+
+        // KERNAUSSAGE: deactivateAllTitlesForScopeAndSeason muss aufgerufen werden,
+        // obwohl keine Liga Spiele hat – damit Alttitel aus Vorjahren entfernt werden.
+        $repo->expects($this->once())
+            ->method('deactivateAllTitlesForScopeAndSeason')
+            ->with('top_scorer', 'league', '2025/2026');
+
+        $service = $this->getMockBuilder(TitleCalculationService::class)
+            ->setConstructorArgs([$em, $repo, $this->createMock(GoalCountingService::class)])
+            ->onlyMethods(['debugGoalsForSeason'])
+            ->getMock();
+
+        $service->expects($this->never())->method('debugGoalsForSeason');
+
+        $result = $service->calculateLeagueTopScorers('2025/2026');
+        $this->assertSame([], $result, 'Ohne Spiele werden keine Titel vergeben.');
     }
 }

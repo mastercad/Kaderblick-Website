@@ -40,6 +40,7 @@ import { EquipmentTab } from './ProfileModal/tabs/EquipmentTab';
 import { SettingsTab } from './ProfileModal/tabs/SettingsTab';
 import { NotificationsTab } from './ProfileModal/tabs/NotificationsTab';
 import { ApiTokenTab } from './ProfileModal/tabs/ApiTokenTab';
+import { apiJson } from '../utils/api';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -89,11 +90,29 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, init
   const [avatarModalOpen, setAvatarModalOpen] = React.useState(false);
   const [relationsOpen, setRelationsOpen] = React.useState(false);
   const [showRelationEditModal, setShowRelationEditModal] = React.useState(false);
+  const [showInHallOfFame, setShowInHallOfFame] = React.useState(true);
+
+  const handleToggleHallOfFame = React.useCallback(async () => {
+    const next = !showInHallOfFame;
+    setShowInHallOfFame(next);
+    try {
+      await apiJson('/api/profile/hall-of-fame-visibility', { method: 'PATCH', body: { showInHallOfFame: next } });
+    } catch {
+      setShowInHallOfFame(!next);
+    }
+  }, [showInHallOfFame]);
 
   // ── Init on open ─────────────────────────────────────────────────────────
   React.useEffect(() => {
     if (open) {
       loadProfile();
+      apiJson<{ showInHallOfFame?: boolean }>('/api/about-me')
+        .then(data => {
+          if (typeof data.showInHallOfFame === 'boolean') {
+            setShowInHallOfFame(data.showInHallOfFame);
+          }
+        })
+        .catch(() => {});
       loadRelations();
       checkPush();
       loadNotifPrefs();
@@ -215,6 +234,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, init
               onDisable2FA={tf.openDisableDialog}
               onDisableEmailOtp={tf.openEmailDisableDialog}
               onOpenBackupCodes={tf.openBackupDialog}
+              showInHallOfFame={showInHallOfFame}
+              onToggleHallOfFame={handleToggleHallOfFame}
             />
           </TabPanel>
 

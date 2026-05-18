@@ -37,6 +37,10 @@ class AwardTitlesHandlerTest extends TestCase
             ->method('calculateLeagueTopScorers')
             ->with('2024/2025');
 
+        $this->titleCalculationService->expects($this->once())
+            ->method('calculateAllCupTopScorers')
+            ->with('2024/2025');
+
         ($this->handler)(new AwardTitlesMessage('2024/2025'));
     }
 
@@ -56,6 +60,11 @@ class AwardTitlesHandlerTest extends TestCase
 
         $this->titleCalculationService->expects($this->once())
             ->method('calculateLeagueTopScorers')
+            ->with($season)
+            ->willReturn([]);
+
+        $this->titleCalculationService->expects($this->once())
+            ->method('calculateAllCupTopScorers')
             ->with($season)
             ->willReturn([]);
 

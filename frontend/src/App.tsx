@@ -106,6 +106,7 @@ const AboutUs = lazy(() => import('./pages/AboutUs'));
 const PublicIntentPage = lazy(() => import('./pages/PublicIntentPage'));
 const Matchday = lazy(() => import('./pages/Matchday'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
+const HallOfFame = lazy(() => import('./pages/HallOfFame'));
 
 function RouteFallback() {
   return <PublicLoadingScreen />;
@@ -420,6 +421,7 @@ function App() {
                     <Route path="/survey/fill/:surveyId" element={<ProtectedRoute><SurveyFill /></ProtectedRoute>} />
                     <Route path="/mein-spieltag" element={<ProtectedRoute><Matchday /></ProtectedRoute>} />
                     <Route path="/mein-spieltag/:eventId" element={<ProtectedRoute><Matchday /></ProtectedRoute>} />
+                    <Route path="/hall-of-fame" element={<HallOfFame />} />
                     <Route path="/imprint" element={<Imprint />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="*" element={<Navigate to="/" />} />

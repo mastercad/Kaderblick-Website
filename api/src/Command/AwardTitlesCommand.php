@@ -124,6 +124,19 @@ class AwardTitlesCommand extends AbstractCronCommand
             ));
         }
 
+        $cupTitles = $this->titleCalculationService->calculateAllCupTopScorers($season);
+        $io->section('Cup Top Scorers');
+        foreach ($cupTitles as $title) {
+            $io->writeln(sprintf(
+                '%s: %s %s (%d goals) [Cup: %s]',
+                ucfirst($title->getTitleRank()),
+                $title->getPlayer()->getFirstName(),
+                $title->getPlayer()->getLastName(),
+                $title->getValue(),
+                $title->getCup()?->getName()
+            ));
+        }
+
         if ($dryRun) {
             $this->suppressHeartbeat(); // Dry-Run: keine echte Arbeit geleistet
             $io->success('DRY-RUN complete. No titles were persisted.');

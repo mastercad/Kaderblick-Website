@@ -38,15 +38,16 @@ import { apiJson } from '../../utils/api';
 
 /* ── Helpers ───────────────────────────────────────── */
 
-type Scope = 'platform' | 'league' | 'team';
+type Scope = 'platform' | 'league' | 'cup' | 'team';
 type Rank  = 'gold' | 'silver' | 'bronze';
 
-const SCOPE_ORDER: Record<Scope, number> = { platform: 0, league: 1, team: 2 };
+const SCOPE_ORDER: Record<Scope, number> = { platform: 0, league: 1, cup: 2, team: 3 };
 const RANK_ORDER:  Record<Rank,  number> = { gold: 0, silver: 1, bronze: 2 };
 
 const SCOPE_META: Record<Scope, { label: string; color: string; bgcolor: string; icon: React.ReactElement }> = {
   platform: { label: 'Plattform', color: '#1565c0', bgcolor: '#e3f2fd', icon: <PublicIcon fontSize="small" /> },
   league:   { label: 'Liga',      color: '#e65100', bgcolor: '#fff3e0', icon: <LeaderboardIcon fontSize="small" /> },
+  cup:      { label: 'Pokal',     color: '#6a1b9a', bgcolor: '#f3e5f5', icon: <EmojiEventsIcon fontSize="small" /> },
   team:     { label: 'Team',      color: '#2e7d32', bgcolor: '#e8f5e9', icon: <GroupsIcon fontSize="small" /> },
 };
 
@@ -79,6 +80,10 @@ function sortTitles(titles: any[]): any[] {
     }
     if (a.titleScope === 'league') {
       const cmp = (a.leagueName || '').localeCompare(b.leagueName || '');
+      return cmp !== 0 ? cmp : (RANK_ORDER[(a.titleRank as Rank)] ?? 99) - (RANK_ORDER[(b.titleRank as Rank)] ?? 99);
+    }
+    if (a.titleScope === 'cup') {
+      const cmp = (a.cupName || '').localeCompare(b.cupName || '');
       return cmp !== 0 ? cmp : (RANK_ORDER[(a.titleRank as Rank)] ?? 99) - (RANK_ORDER[(b.titleRank as Rank)] ?? 99);
     }
     if (a.titleScope === 'team') {
@@ -270,8 +275,9 @@ const AdminTitleXpOverview: React.FC = () => {
                 <TableBody>
                   {sortTitles(titles).map((t, idx) => {
                     let name = '-';
-                    if (t.titleScope === 'team')         name = t.teamName   || '-';
-                    else if (t.titleScope === 'league')  name = t.leagueName || '-';
+                    if (t.titleScope === 'team')          name = t.teamName   || '-';
+                    else if (t.titleScope === 'league')   name = t.leagueName || '-';
+                    else if (t.titleScope === 'cup')      name = t.cupName    || '-';
                     else if (t.titleScope === 'platform') name = 'Plattform';
                     return (
                       <TableRow
