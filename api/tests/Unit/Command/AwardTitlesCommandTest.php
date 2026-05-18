@@ -37,6 +37,7 @@ class AwardTitlesCommandTest extends TestCase
         $this->titleCalculationService->method('calculatePlatformTopScorers')->willReturn([]);
         $this->titleCalculationService->method('calculateAllTeamTopScorers')->willReturn([]);
         $this->titleCalculationService->method('calculateLeagueTopScorers')->willReturn([]);
+        $this->titleCalculationService->method('calculateAllCupTopScorers')->willReturn([]);
 
         $command = new AwardTitlesCommand(
             $this->entityManager,

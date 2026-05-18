@@ -11,10 +11,11 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_player_titles_player_id', columns: ['player_id'])]
 #[ORM\Index(name: 'idx_player_titles_team_id', columns: ['team_id'])]
 #[ORM\Index(name: 'idx_player_titles_league_id', columns: ['league_id'])]
+#[ORM\Index(name: 'idx_player_titles_cup_id', columns: ['cup_id'])]
 #[ORM\Index(name: 'idx_player_titles_is_active', columns: ['is_active'])]
 #[ORM\UniqueConstraint(
     name: 'uniq_player_title_active',
-    columns: ['player_id', 'title_category', 'title_scope', 'team_id', 'league_id', 'is_active']
+    columns: ['player_id', 'title_category', 'title_scope', 'team_id', 'league_id', 'cup_id', 'is_active']
 )]
 class PlayerTitle
 {
@@ -44,6 +45,10 @@ class PlayerTitle
     #[ORM\ManyToOne(targetEntity: League::class)]
     #[ORM\JoinColumn(name: 'league_id', referencedColumnName: 'id', nullable: true, onDelete: 'CASCADE')]
     private ?League $league = null;
+
+    #[ORM\ManyToOne(targetEntity: Cup::class)]
+    #[ORM\JoinColumn(name: 'cup_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Cup $cup = null;
 
     #[ORM\Column(type: 'integer')]
     private int $value; // Number of goals, assists, etc.
@@ -137,6 +142,18 @@ class PlayerTitle
         return $this;
     }
 
+    public function getCup(): ?Cup
+    {
+        return $this->cup;
+    }
+
+    public function setCup(?Cup $cup): self
+    {
+        $this->cup = $cup;
+
+        return $this;
+    }
+
     public function getValue(): int
     {
         return $this->value;
@@ -204,6 +221,7 @@ class PlayerTitle
     {
         $scopePriority = match ($this->titleScope) {
             'platform' => 0,
+            'cup' => 25,
             'league' => 50,
             'team' => 100,
             default => 200,

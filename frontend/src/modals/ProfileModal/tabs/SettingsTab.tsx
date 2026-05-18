@@ -17,6 +17,7 @@ import SendIcon from '@mui/icons-material/Send';
 import SecurityIcon from '@mui/icons-material/Security';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { SectionCard } from '../components/SectionCard';
 import { getPushStatusColor, getPushStatusLabel } from '../hooks/usePushNotifications';
 import type { PushHealthReport } from '../../../services/pushHealthMonitor';
@@ -39,6 +40,8 @@ interface SettingsTabProps {
   onDisable2FA: () => void;
   onDisableEmailOtp: () => void;
   onOpenBackupCodes: () => void;
+  showInHallOfFame: boolean;
+  onToggleHallOfFame: () => void;
 }
 
 export function SettingsTab({
@@ -47,6 +50,7 @@ export function SettingsTab({
   onEnablePush, onTestPush, onCheckPush,
   twoFactorEnabled, emailOtpEnabled, twoFactorRequired, twoFactorBackupCount,
   onSetup2FA, onDisable2FA, onDisableEmailOtp, onOpenBackupCodes,
+  showInHallOfFame, onToggleHallOfFame,
 }: SettingsTabProps) {
   return (
     <>
@@ -205,6 +209,26 @@ export function SettingsTab({
             )}
           </Box>
         </Stack>
+      </SectionCard>
+
+      <SectionCard title="Hall of Fame" icon={<EmojiEventsIcon fontSize="small" />}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showInHallOfFame}
+              onChange={onToggleHallOfFame}
+              color="primary"
+            />
+          }
+          label={
+            <Typography variant="body2">
+              In der Hall of Fame anzeigen
+            </Typography>
+          }
+        />
+        <Typography variant="caption" color="text.secondary">
+          Wenn aktiv, erscheinst du in der öffentlichen Level-Rangliste und als Titelträger.
+        </Typography>
       </SectionCard>
     </>
   );

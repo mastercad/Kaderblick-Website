@@ -117,10 +117,41 @@ class PlayerTitleRepository extends ServiceEntityRepository
     }
 
     /**
-     * Deactivate all titles of a specific category and scope for all users (optionale Saison und Team).
+     * Deactivate ALL active titles of a specific category and scope for a season, without filtering by league/cup/team.
+     * Use this before recalculating all league or cup titles so that leagues/cups with zero games also get cleaned up.
      */
-    public function deactivateAllTitlesForCategoryAndScope(string $titleCategory, string $titleScope, ?int $teamId = null, ?string $season = null): void
+    public function deactivateAllTitlesForScopeAndSeason(string $titleCategory, string $titleScope, ?string $season = null): void
     {
+        $qb = $this->createQueryBuilder('pt')
+            ->update()
+            ->set('pt.isActive', 'false')
+            ->set('pt.revokedAt', ':now')
+            ->where('pt.titleCategory = :category')
+            ->andWhere('pt.titleScope = :scope')
+            ->andWhere('pt.isActive = true')
+            ->setParameter('category', $titleCategory)
+            ->setParameter('scope', $titleScope)
+            ->setParameter('now', new DateTimeImmutable());
+
+        if (null !== $season) {
+            $qb->andWhere('pt.season = :season')
+               ->setParameter('season', $season);
+        }
+
+        $qb->getQuery()->execute();
+    }
+
+    /**
+     * Deactivate all titles of a specific category and scope for all users (optionale Saison, Team, Liga und Pokal).
+     */
+    public function deactivateAllTitlesForCategoryAndScope(
+        string $titleCategory,
+        string $titleScope,
+        ?int $teamId = null,
+        ?string $season = null,
+        ?int $leagueId = null,
+        ?int $cupId = null
+    ): void {
         $qb = $this->createQueryBuilder('pt')
             ->update()
             ->set('pt.isActive', 'false')
@@ -137,6 +168,18 @@ class PlayerTitleRepository extends ServiceEntityRepository
                ->setParameter('teamId', $teamId);
         } else {
             $qb->andWhere('pt.team IS NULL');
+        }
+        if (null !== $leagueId) {
+            $qb->andWhere('pt.league = :leagueId')
+               ->setParameter('leagueId', $leagueId);
+        } else {
+            $qb->andWhere('pt.league IS NULL');
+        }
+        if (null !== $cupId) {
+            $qb->andWhere('pt.cup = :cupId')
+               ->setParameter('cupId', $cupId);
+        } else {
+            $qb->andWhere('pt.cup IS NULL');
         }
         if (null !== $season) {
             $qb->andWhere('pt.season = :season')

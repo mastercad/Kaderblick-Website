@@ -21,5 +21,6 @@ final class AwardTitlesHandler
         $this->titleCalculationService->calculatePlatformTopScorers($season);
         $this->titleCalculationService->calculateAllTeamTopScorers($season);
         $this->titleCalculationService->calculateLeagueTopScorers($season);
+        $this->titleCalculationService->calculateAllCupTopScorers($season);
     }
 }

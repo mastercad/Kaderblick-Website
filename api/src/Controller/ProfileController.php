@@ -86,6 +86,7 @@ class ProfileController extends AbstractController
             'needsRegistrationContext' => $needsRegistrationContext,
             'twoFactorEnabled' => $user->hasAnyTwoFactorEnabled(),
             'twoFactorRequired' => $this->systemSettingService->is2faRequired(),
+            'showInHallOfFame' => $user->isShowInHallOfFame(),
         ]);
     }
 
@@ -300,6 +301,8 @@ class ProfileController extends AbstractController
         $activeTitles = $playerTitleRepo->createQueryBuilder('pt')
             ->leftJoin('pt.team', 'team')
             ->leftJoin('pt.player', 'player')
+            ->leftJoin('pt.league', 'league')
+            ->leftJoin('pt.cup', 'cup')
             ->where('pt.isActive = true')
             ->getQuery()->getResult();
 
@@ -311,7 +314,8 @@ class ProfileController extends AbstractController
             $rank = $pt->getTitleRank();
             $teamId = $pt->getTeam()?->getId();
             $leagueId = $pt->getLeague()?->getId();
-            $key = $cat . '|' . $scope . '|' . $rank . '|' . ($teamId ?? '') . '|' . ($leagueId ?? '');
+            $cupId = $pt->getCup()?->getId();
+            $key = $cat . '|' . $scope . '|' . $rank . '|' . ($teamId ?? '') . '|' . ($leagueId ?? '') . '|' . ($cupId ?? '');
 
             $player = $pt->getPlayer();
             if ($player) {
@@ -328,7 +332,7 @@ class ProfileController extends AbstractController
 
         // Füge Spieler-Liste zu jedem Titel hinzu
         $titlesWithPlayers = array_map(function ($t) use ($titlePlayersMap) {
-            $key = $t['titleCategory'] . '|' . $t['titleScope'] . '|' . $t['titleRank'] . '|' . ($t['teamId'] ?? '') . '|' . ($t['leagueId'] ?? '');
+            $key = $t['titleCategory'] . '|' . $t['titleScope'] . '|' . $t['titleRank'] . '|' . ($t['teamId'] ?? '') . '|' . ($t['leagueId'] ?? '') . '|' . ($t['cupId'] ?? '');
             $players = array_values($titlePlayersMap[$key] ?? []);
 
             return array_merge($t, ['players' => $players]);
@@ -469,5 +473,27 @@ class ProfileController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json(['success' => true]);
+    }
+
+    #[Route('/profile/hall-of-fame-visibility', name: 'api_profile_hall_of_fame_visibility', methods: ['PATCH'])]
+    public function updateHallOfFameVisibility(Request $request): JsonResponse
+    {
+        /** @var ?User $user */
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            return $this->json(['message' => 'Not logged in'], 401);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!is_array($data) || !array_key_exists('showInHallOfFame', $data)) {
+            return $this->json(['message' => 'Missing field showInHallOfFame'], 400);
+        }
+
+        $user->setShowInHallOfFame((bool) $data['showInHallOfFame']);
+        $this->entityManager->flush();
+
+        return $this->json(['showInHallOfFame' => $user->isShowInHallOfFame()]);
     }
 }
