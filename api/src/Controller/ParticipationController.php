@@ -7,6 +7,7 @@ use App\Entity\Participation;
 use App\Entity\User;
 use App\Event\CalendarEventParticipatedEvent;
 use App\Event\MatchAttendedEvent;
+use App\Event\ParticipationRespondedEvent;
 use App\Event\TrainingAttendedEvent;
 use App\Repository\ParticipationRepository;
 use App\Repository\ParticipationStatusRepository;
@@ -149,6 +150,8 @@ class ParticipationController extends AbstractController
             } else {
                 $this->dispatcher->dispatch(new CalendarEventParticipatedEvent($user, $event));
             }
+        } elseif (in_array($status->getCode(), ['not_attending', 'maybe', 'late'], true)) {
+            $this->dispatcher->dispatch(new ParticipationRespondedEvent($user, $event));
         }
 
         // Create notifications for other participants when a user changed

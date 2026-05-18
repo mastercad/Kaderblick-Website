@@ -132,6 +132,12 @@ class XpRuleFixtures extends Fixture implements FixtureGroupInterface
                 'description' => 'Einmalig je Spieltermin nach bestätigter Teilnahme.',
                 'xpValue' => 20,
             ],
+            'participation_response' => [
+                'label' => 'Teilnahme beantwortet',
+                'category' => 'sport',
+                'description' => 'Einmalig je Event für eine Rückmeldung (Absage, Vielleicht, Verspätet).',
+                'xpValue' => 5,
+            ],
             'carpool_offered' => [
                 'label' => 'Fahrgemeinschaft angeboten',
                 'category' => 'sport',

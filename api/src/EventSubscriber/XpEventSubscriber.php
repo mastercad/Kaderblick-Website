@@ -11,6 +11,7 @@ use App\Event\GameEventUpdatedEvent;
 use App\Event\GoalAssistedEvent;
 use App\Event\GoalScoredEvent;
 use App\Event\MatchAttendedEvent;
+use App\Event\ParticipationRespondedEvent;
 use App\Event\ProfileCompletenessReachedEvent;
 use App\Event\ProfileUpdatedEvent;
 use App\Event\SurveyCompletedEvent;
@@ -42,6 +43,7 @@ class XpEventSubscriber implements EventSubscriberInterface
             CalendarEventCreatedEvent::class => 'onCalendarEventCreated',
             TrainingAttendedEvent::class => 'onTrainingAttended',
             MatchAttendedEvent::class => 'onMatchAttended',
+            ParticipationRespondedEvent::class => 'onParticipationResponded',
             CarpoolOfferedEvent::class => 'onCarpoolOffered',
             GameEventCreatedEvent::class => 'onGameEventCreated',
             GameEventUpdatedEvent::class => 'onGameEventUpdated',
@@ -125,6 +127,15 @@ class XpEventSubscriber implements EventSubscriberInterface
         $this->xpRegistrationService->registerXpEvent(
             $event->getUser(),
             'match_attended',
+            $event->getCalendarEvent()->getId()
+        );
+    }
+
+    public function onParticipationResponded(ParticipationRespondedEvent $event): void
+    {
+        $this->xpRegistrationService->registerXpEvent(
+            $event->getUser(),
+            'participation_response',
             $event->getCalendarEvent()->getId()
         );
     }
