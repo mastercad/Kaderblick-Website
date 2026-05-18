@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\GameEvent;
+use App\Entity\Participation;
 use App\Entity\Player;
 use App\Entity\User;
 use App\Entity\UserLevel;
@@ -306,16 +307,83 @@ HELP);
     }
 
     /**
-     * Process calendar event participations (e.g., attendance).
+     * Process calendar event participations (attending and non-attending responses).
      *
      * @return array<int, int>
      */
     private function processCalendarEvents(SymfonyStyle $io, bool $dryRun, ?string $userId): array
     {
         $io->section('Processing Calendar Event Participations');
-        $io->note('Calendar event participation tracking needs to be implemented based on your data model');
 
-        return [0, 0];
+        $qb = $this->entityManager->getRepository(Participation::class)
+            ->createQueryBuilder('p')
+            ->innerJoin('p.user', 'u')
+            ->innerJoin('p.event', 'ce')
+            ->innerJoin('p.status', 'ps')
+            ->leftJoin('ce.calendarEventType', 'cet')
+            ->where('u.id IS NOT NULL');
+
+        if ($userId) {
+            $qb->andWhere('u.id = :userId')
+               ->setParameter('userId', $userId);
+        }
+
+        /** @var Participation[] $participations */
+        $participations = $qb->getQuery()->getResult();
+
+        $processed = 0;
+        $totalXpAwarded = 0;
+
+        foreach ($participations as $participation) {
+            $user = $participation->getUser();
+            $event = $participation->getEvent();
+            $statusCode = $participation->getStatus()->getCode();
+
+            if (null === $user || null === $event || null === $event->getId()) {
+                continue;
+            }
+
+            if ('attending' === $statusCode) {
+                $eventTypeName = $event->getCalendarEventType()?->getName() ?? '';
+                if ('Training' === $eventTypeName) {
+                    $actionType = 'training_attended';
+                } elseif (in_array($eventTypeName, ['Spiel', 'Turnier-Match'], true)) {
+                    $actionType = 'match_attended';
+                } else {
+                    $actionType = 'calendar_event';
+                }
+            } elseif (in_array($statusCode, ['not_attending', 'maybe', 'late'], true)) {
+                $actionType = 'participation_response';
+            } else {
+                continue;
+            }
+
+            if ($this->hasXpEventForAction($user, $actionType, $event->getId())) {
+                continue;
+            }
+
+            $xp = $this->xpService->retrieveXPForAction($actionType);
+            if ($xp <= 0) {
+                continue;
+            }
+
+            if (!$dryRun) {
+                $this->xpService->addXPToUser($user, $xp);
+                $this->createXpEventRecord($user, $actionType, $event->getId(), $xp);
+                $totalXpAwarded += $xp;
+                ++$processed;
+                $io->writeln("  ✓ Participation #{$participation->getId()} ({$statusCode}) → {$actionType} → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
+            } else {
+                $io->writeln(
+                    "  [DRY-RUN] Would award {$xp} XP ({$actionType}) for participation"
+                    . " #{$participation->getId()} ({$statusCode}) to user #{$user->getId()} ({$user->getEmail()})"
+                );
+                $totalXpAwarded += $xp;
+                ++$processed;
+            }
+        }
+
+        return [$processed, $totalXpAwarded];
     }
 
     /**
