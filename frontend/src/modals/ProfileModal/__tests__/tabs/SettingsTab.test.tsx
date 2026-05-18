@@ -37,6 +37,8 @@ const defaultProps = {
   onDisable2FA: jest.fn(),
   onDisableEmailOtp: jest.fn(),
   onOpenBackupCodes: jest.fn(),
+  showInHallOfFame: true,
+  onToggleHallOfFame: jest.fn(),
 };
 
 beforeEach(() => jest.clearAllMocks());

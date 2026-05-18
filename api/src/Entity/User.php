@@ -159,6 +159,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?DateTimeImmutable $emailOtpExpiresAt = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => true])]
+    private bool $showInHallOfFame = true;
+
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: UserLevel::class, cascade: ['persist', 'remove'])]
     private ?UserLevel $userLevel = null;
 
@@ -1232,5 +1235,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isLocked(): bool
     {
         return null !== $this->lockedAt;
+    }
+
+    public function isShowInHallOfFame(): bool
+    {
+        return $this->showInHallOfFame;
+    }
+
+    public function setShowInHallOfFame(bool $showInHallOfFame): static
+    {
+        $this->showInHallOfFame = $showInHallOfFame;
+
+        return $this;
     }
 }

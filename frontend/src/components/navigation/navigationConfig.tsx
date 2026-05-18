@@ -109,6 +109,7 @@ export const navigationGroups: NavGroup[] = [
       { key: 'news',        label: 'Neuigkeiten', route: '/news' },
       { key: 'surveys',     label: 'Umfragen',    route: '/surveys' },
       { key: 'wissenspool',   label: 'Wissenspool', route: '/wissenspool' },
+      { key: 'hall-of-fame', label: 'Hall of Fame', route: '/hall-of-fame' },
     ],
   },
 ];
@@ -199,6 +200,7 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
   'team':          <GroupsIcon fontSize="small" />,
   'wissenspool':   <MenuBookIcon fontSize="small" />,
+  'hall-of-fame':  <EmojiEventsIcon fontSize="small" />,
   'community':     <NewspaperIcon fontSize="small" />,
 };
 
@@ -216,6 +218,7 @@ export const navItemColorMap: Record<string, string> = {
   'tasks':                       '#F59E0B',
   'mein-spieltag':               '#EF5350',
   'wissenspool':                 '#7E57C2',
+  'hall-of-fame':                '#FFD700',
   'formations':                  '#66BB6A',
   'players':                     '#26A69A',
   'teams':                       '#5C6BC0',

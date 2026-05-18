@@ -20,9 +20,10 @@ interface UserProps {
   svgFrameUrl?: string; // Optionaler SVG-Dateipfad als Overlay (deprecated, use titleObj)
   svgFrameOffsetY?: number; // Optionaler vertikaler Offset für den Rahmen (in px)
   level?: number; // Optional: Level des Benutzers
+  showLabel?: boolean; // Namen als Text neben dem Avatar anzeigen (default: true)
 }
 
-export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, fontSize = 16, svgFrame, svgFrameUrl, svgFrameOffsetY = 0, level, titleObj }) => {
+export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, fontSize = 16, svgFrame, svgFrameUrl, svgFrameOffsetY = 0, level, titleObj, showLabel = true }) => {
   // Icon size for react-icon inside Avatar (slightly smaller than avatarSize)
   const iconInnerSize = Math.round(avatarSize * 0.6);
   let avatarContent: React.ReactNode;
@@ -31,12 +32,19 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
   const userTitle = displayTitleRaw
     ? (typeof displayTitleRaw === 'string' ? displayTitleRaw : displayTitleRaw.displayName)
     : undefined;
+  const initials = name
+    ? name.trim().split(/\s+/).map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : null;
   if (typeof icon === "string") {
     if (icon && icon.trim() !== "") {
       const src = icon.startsWith('http') ? icon : `${BACKEND_URL}/uploads/avatar/${icon}`;
-      avatarContent = <Avatar src={src} alt="Avatar" sx={{ width: avatarSize, height: avatarSize }} />;
+      avatarContent = (
+        <Avatar src={src} alt={name || 'Avatar'} sx={{ width: avatarSize, height: avatarSize }}>
+          {initials ?? <FaUserAlt size={iconInnerSize} />}
+        </Avatar>
+      );
     } else {
-      avatarContent = <Avatar sx={{ width: avatarSize, height: avatarSize }}><FaUserAlt size={iconInnerSize} /></Avatar>;
+      avatarContent = <Avatar sx={{ width: avatarSize, height: avatarSize }}>{initials ?? <FaUserAlt size={iconInnerSize} />}</Avatar>;
     }
   } else if (icon) {
     avatarContent = <Avatar sx={{ width: avatarSize, height: avatarSize }}>{icon}</Avatar>;
@@ -117,7 +125,7 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
           )}
         </Box>
       </Tooltip>
-      {name && name.trim() !== '' && (
+      {showLabel && name && name.trim() !== '' && (
         <Typography variant="subtitle1" fontWeight={500} fontSize={fontSize}>
           {name}
         </Typography>

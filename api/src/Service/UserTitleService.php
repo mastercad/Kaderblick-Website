@@ -214,39 +214,52 @@ class UserTitleService
     public function retrieveTitleStats(): array
     {
         $qb = $this->playerTitleRepository->createQueryBuilder('t');
-        $qb->select('t.titleCategory, t.titleScope, t.titleRank, team.id as teamId, team.name as teamName, league.id as leagueId, league.name as leagueName')
+        $qb->select(
+            't.titleCategory, t.titleScope, t.titleRank,' .
+            ' team.id as teamId, team.name as teamName,' .
+            ' league.id as leagueId, league.name as leagueName,' .
+            ' cup.id as cupId, cup.name as cupName'
+        )
             ->leftJoin('t.team', 'team')
             ->leftJoin('t.league', 'league')
+            ->leftJoin('t.cup', 'cup')
             ->where('t.isActive = true');
 
         // Filter: Für Liga-Titel nur solche mit gesetzter Liga
         $qb->andWhere('(t.titleScope != :leagueScope OR league.id IS NOT NULL)')
             ->setParameter('leagueScope', 'league');
 
-        $qb->groupBy('t.titleCategory, t.titleScope, t.titleRank, team.id, team.name, league.id, league.name');
-        $qb->orderBy('t.titleCategory, t.titleScope, t.titleRank, team.id, league.id');
+        // Filter: Für Cup-Titel nur solche mit gesetztem Cup
+        $qb->andWhere('(t.titleScope != :cupScope OR cup.id IS NOT NULL)')
+            ->setParameter('cupScope', 'cup');
+
+        $qb->groupBy('t.titleCategory, t.titleScope, t.titleRank, team.id, team.name, league.id, league.name, cup.id, cup.name');
+        $qb->orderBy('t.titleCategory, t.titleScope, t.titleRank, team.id, league.id, cup.id');
 
         $raw = $qb->getQuery()->getArrayResult();
 
         // Hole alle aktiven PlayerTitles für die Detailzählung
         $allActive = $this->playerTitleRepository->createQueryBuilder('pt')
-            ->select('pt.titleCategory, pt.titleScope, pt.titleRank, team2.id as teamId, league2.id as leagueId, pt.id as playerTitleId')
+            ->select('pt.titleCategory, pt.titleScope, pt.titleRank, team2.id as teamId, league2.id as leagueId, cup2.id as cupId, pt.id as playerTitleId')
             ->leftJoin('pt.team', 'team2')
             ->leftJoin('pt.league', 'league2')
+            ->leftJoin('pt.cup', 'cup2')
             ->where('pt.isActive = true')
             ->getQuery()->getArrayResult();
 
         // Zähle pro Gruppe die PlayerTitle-Einträge
         $countMap = [];
         foreach ($allActive as $row) {
-            $key = $row['titleCategory'] . '|' . $row['titleScope'] . '|' . $row['titleRank'] . '|' . ($row['teamId'] ?? '') . '|' . ($row['leagueId'] ?? '');
+            $key = $row['titleCategory'] . '|' . $row['titleScope'] . '|' . $row['titleRank']
+                . '|' . ($row['teamId'] ?? '') . '|' . ($row['leagueId'] ?? '') . '|' . ($row['cupId'] ?? '');
             $countMap[$key] = ($countMap[$key] ?? 0) + 1;
         }
 
         // Baue die finale Liste mit userCount
         $result = [];
         foreach ($raw as $row) {
-            $key = $row['titleCategory'] . '|' . $row['titleScope'] . '|' . $row['titleRank'] . '|' . ($row['teamId'] ?? '') . '|' . ($row['leagueId'] ?? '');
+            $key = $row['titleCategory'] . '|' . $row['titleScope'] . '|' . $row['titleRank']
+                . '|' . ($row['teamId'] ?? '') . '|' . ($row['leagueId'] ?? '') . '|' . ($row['cupId'] ?? '');
             $row['userCount'] = $countMap[$key] ?? 0;
             $result[] = $row;
         }
