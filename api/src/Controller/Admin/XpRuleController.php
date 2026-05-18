@@ -225,7 +225,7 @@ class XpRuleController extends AbstractController
             'match_attended' => ['label' => 'Spiel bestritten',              'category' => 'sport',    'xpValue' => 20,  'cooldownMinutes' => 0],
             'participation_response' => ['label' => 'Teilnahme beantwortet',       'category' => 'sport',    'xpValue' => 5,   'cooldownMinutes' => 0],
             'carpool_offered' => ['label' => 'Fahrgemeinschaft angeboten',    'category' => 'sport',    'xpValue' => 5,   'cooldownMinutes' => 0, 'monthlyLimit' => 8],
-            'game_event' => ['label' => 'Spielereignis hinterlegt (generisch)', 'category' => 'sport', 'xpValue' => 15, 'cooldownMinutes' => 0],
+            'game_event' => ['label' => 'Spielereignis hinterlegt', 'category' => 'sport', 'xpValue' => 15, 'cooldownMinutes' => 0],
             'game_event_updated' => ['label' => 'Spielereignis angepasst',       'category' => 'sport',    'xpValue' => 5,   'cooldownMinutes' => 1440, 'monthlyLimit' => 5],
         ];
     }
