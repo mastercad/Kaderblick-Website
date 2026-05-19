@@ -39,6 +39,51 @@
             <directory>src/DataFixtures</directory>
             <directory>src/Repository</directory>
             <directory>src/Entity</directory>
+
+            <!-- Symfony form type definitions – pure configuration, no testable logic -->
+            <directory>src/Form</directory>
+
+            <!-- Doctrine custom infrastructure – framework-level, not unit-testable -->
+            <directory>src/Doctrine</directory>
+
+            <!-- Framework bootstrap -->
+            <file>src/Kernel.php</file>
+
+            <!-- External service adapters – wrap external APIs, no business logic -->
+            <directory>src/Adapter</directory>
+
+            <!-- Dev/utility CLI commands – no business logic worth unit-testing -->
+            <file>src/Command/GenerateFakeGameEventsCommand.php</file>
+            <file>src/Command/GenerateVapidKeysCommand.php</file>
+            <file>src/Command/HashPasswordCommand.php</file>
+            <file>src/Command/GoogleDriveAuthCommand.php</file>
+            <file>src/Command/MigrationDiffCommand.php</file>
+
+            <!-- Simple DTOs / value objects with no logic -->
+            <file>src/Dto/ContactMessageDto.php</file>
+
+            <!-- PHP enums – pure data definitions, nothing to test regardless of existing coverage -->
+            <directory>src/Enum</directory>
+
+            <!-- JWT framework integration subscribers – test LexikJWT, not our logic -->
+            <file>src/EventSubscriber/JWTExceptionSubscriber.php</file>
+            <file>src/EventSubscriber/JWTExpiredSubscriber.php</file>
+            <file>src/EventSubscriber/JWTLoginSubscriber.php</file>
+            <file>src/EventSubscriber/JWTResponseSubscriber.php</file>
+
+            <!-- Security framework glue – minimal/no business logic -->
+            <file>src/Security/JwtEntryPoint.php</file>
+            <file>src/Security/UserChecker.php</file>
+
+            <!-- Symfony constraint annotation and validator – framework glue -->
+            <directory>src/Validator</directory>
+
+            <!-- Static/trivial one-liner controllers -->
+            <file>src/Controller/ImprintController.php</file>
+            <file>src/Controller/PrivacyController.php</file>
+
+            <!-- Dev-only email preview controller -->
+            <file>src/Controller/EmailPreviewController.php</file>
         </exclude>
 
         <deprecationTrigger>
