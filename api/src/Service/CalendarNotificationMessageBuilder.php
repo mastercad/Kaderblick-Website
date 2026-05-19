@@ -106,8 +106,15 @@ class CalendarNotificationMessageBuilder
             }
         } else {
             if (null !== $dateFmt) {
-                $lines[] = ($isTraining ? 'Das Training' : 'Der Termin') . ' am ' . $dateFmt . ' hat sich geändert.';
+                $lines[] = ($isTraining ? 'Das Training' : 'Der Termin') . ' am ' . $dateFmt . ' wurde aktualisiert.';
             }
+        }
+
+        // ── Date change (event moved to a different day) ──────────────────────
+        if (null !== $changeSet && $changeSet->dateChanged()) {
+            $oldDateFmt = (new DateTimeImmutable($changeSet->oldDate))->format('d.m.Y');
+            $newDateFmt = (new DateTimeImmutable($changeSet->newDate))->format('d.m.Y');
+            $lines[] = '📅 Der ' . $termPost . ' wurde vom ' . $oldDateFmt . ' auf den ' . $newDateFmt . ' verschoben.';
         }
 
         // ── Time / weekday change ────────────────────────────────────────────
@@ -120,6 +127,33 @@ class CalendarNotificationMessageBuilder
             $lines[] = $this->buildLocationChangeLine($changeSet);
         } elseif (null !== $location) {
             $lines[] = '📍 Ort: ' . $location->getName();
+        }
+
+        // ── Meeting time change ───────────────────────────────────────────────
+        if (null !== $changeSet && $changeSet->meetingTimeChanged()) {
+            if (null !== $changeSet->newMeetingTime) {
+                $lines[] = '⏰ Wir treffen uns um ' . $changeSet->newMeetingTime . ' Uhr.';
+            } else {
+                $lines[] = '⏰ Die Treffpunkt-Zeit wurde entfernt.';
+            }
+        }
+
+        // ── Meeting location change ───────────────────────────────────────────
+        if (null !== $changeSet && $changeSet->meetingLocationChanged()) {
+            if (null !== $changeSet->newMeetingLocationName) {
+                $lines[] = '📍 Der Treffpunkt-Ort ist jetzt ' . $changeSet->newMeetingLocationName . '.';
+            } else {
+                $lines[] = '📍 Der Treffpunkt-Ort wurde entfernt.';
+            }
+        }
+
+        // ── Meeting point text change ─────────────────────────────────────────
+        if (null !== $changeSet && $changeSet->meetingPointChanged()) {
+            if (null !== $changeSet->newMeetingPoint) {
+                $lines[] = '📍 Der Treffpunkt lautet jetzt: ' . $changeSet->newMeetingPoint;
+            } else {
+                $lines[] = '📍 Der Treffpunkt wurde entfernt.';
+            }
         }
 
         // ── Series end-date changes (cumulative – always shown when applicable) ─

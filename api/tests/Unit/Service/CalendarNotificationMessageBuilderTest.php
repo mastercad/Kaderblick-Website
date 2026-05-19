@@ -286,6 +286,139 @@ class CalendarNotificationMessageBuilderTest extends TestCase
         $this->assertStringNotContainsString('Ort:', $result['body']);
     }
 
+    public function testUpdatedSingleBodyOverviewLineUsesWurdeAktualisiert(): void
+    {
+        $event = $this->makeEvent('Event');
+        $event->method('getStartDate')->willReturn(new DateTime('2026-05-07 18:00:00'));
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single');
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('wurde aktualisiert', $result['body']);
+        $this->assertStringNotContainsString('hat sich geändert', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyDateChangedShowsVerschoben(): void
+    {
+        $event = $this->makeEvent('Event');
+        $event->method('getStartDate')->willReturn(new DateTime('2026-05-08 18:00:00'));
+        $changeSet = new CalendarEventChangeSet(
+            oldDate: '2026-05-07',
+            newDate: '2026-05-08',
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('verschoben', $result['body']);
+        $this->assertStringContainsString('07.05.2026', $result['body']);
+        $this->assertStringContainsString('08.05.2026', $result['body']);
+        $this->assertStringNotContainsString('→', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyMeetingTimeChangedShowsNewTime(): void
+    {
+        $event = $this->makeEvent('Event');
+        $changeSet = new CalendarEventChangeSet(
+            oldMeetingTime: '17:30',
+            newMeetingTime: '18:00',
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('Wir treffen uns um 18:00 Uhr', $result['body']);
+        $this->assertStringNotContainsString('17:30', $result['body']);
+        $this->assertStringNotContainsString('→', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyMeetingTimeRemovedShowsEntfernt(): void
+    {
+        $event = $this->makeEvent('Event');
+        $changeSet = new CalendarEventChangeSet(
+            oldMeetingTime: '17:30',
+            newMeetingTime: null,
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('Treffpunkt-Zeit', $result['body']);
+        $this->assertStringContainsString('entfernt', $result['body']);
+        $this->assertStringNotContainsString('(keine)', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyMeetingLocationChangedShowsNewLocation(): void
+    {
+        $event = $this->makeEvent('Event');
+        $changeSet = new CalendarEventChangeSet(
+            oldMeetingLocationName: 'Parkplatz Nord',
+            newMeetingLocationName: 'Haupteingang Halle',
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('Treffpunkt-Ort', $result['body']);
+        $this->assertStringContainsString('Haupteingang Halle', $result['body']);
+        $this->assertStringNotContainsString('Parkplatz Nord', $result['body']);
+        $this->assertStringNotContainsString('→', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyMeetingPointChangedShowsNewPoint(): void
+    {
+        $event = $this->makeEvent('Event');
+        $changeSet = new CalendarEventChangeSet(
+            oldMeetingPoint: 'Eingang A3',
+            newMeetingPoint: 'Seiteneingang Sporthalle',
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('Treffpunkt', $result['body']);
+        $this->assertStringContainsString('Seiteneingang Sporthalle', $result['body']);
+        $this->assertStringNotContainsString('Eingang A3', $result['body']);
+        $this->assertStringNotContainsString('→', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyMeetingPointRemovedShowsEntfernt(): void
+    {
+        $event = $this->makeEvent('Event');
+        $changeSet = new CalendarEventChangeSet(
+            oldMeetingPoint: 'Eingang A3',
+            newMeetingPoint: null,
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('entfernt', $result['body']);
+        $this->assertStringNotContainsString('(kein)', $result['body']);
+    }
+
+    public function testUpdatedSingleBodyOnlyMeetingPointChangedDoesNotMentionDateChange(): void
+    {
+        $event = $this->makeEvent('Event');
+        $event->method('getStartDate')->willReturn(new DateTime('2026-05-07 18:00:00'));
+        // Only meeting point changed, date and time are identical
+        $changeSet = new CalendarEventChangeSet(
+            oldDate: '2026-05-07',
+            newDate: '2026-05-07',
+            oldStartTime: '18:00',
+            newStartTime: '18:00',
+            oldMeetingPoint: 'Eingang Ost',
+            newMeetingPoint: 'Eingang West',
+        );
+        $updatedEvent = new CalendarEventUpdatedEvent($this->makeUser(), $event, 1, 'single', $changeSet);
+
+        $result = $this->builder->forUpdated($updatedEvent);
+
+        $this->assertStringContainsString('Treffpunkt', $result['body']);
+        $this->assertStringNotContainsString('verschoben', $result['body']);
+        $this->assertStringNotContainsString('Uhrzeit:', $result['body']);
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // forUpdated — series: end-date extension
     // ══════════════════════════════════════════════════════════════════════════

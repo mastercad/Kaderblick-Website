@@ -49,9 +49,13 @@ class CalendarEventUpdateController extends AbstractController
 
         // Single event (or no series): update only the one event.
         if ('single' === $scope || null === $seriesId) {
+            $oldDate = $calendarEvent->getStartDate()?->format('Y-m-d');
             $oldStartTime = $calendarEvent->getStartDate()?->format('H:i');
             $oldEndTime = $calendarEvent->getEndDate()?->format('H:i');
             $oldLocationName = $calendarEvent->getLocation()?->getName();
+            $oldMeetingPoint = $calendarEvent->getMeetingPoint();
+            $oldMeetingLocationName = $calendarEvent->getMeetingLocation()?->getName();
+            $oldMeetingTime = $calendarEvent->getMeetingTime()?->format('H:i');
 
             $this->calendarEventService->updateEventFromData($calendarEvent, $data);
             $this->entityManager->flush();
@@ -63,6 +67,14 @@ class CalendarEventUpdateController extends AbstractController
                 newEndTime: $calendarEvent->getEndDate()?->format('H:i'),
                 oldLocationName: $oldLocationName,
                 newLocationName: $calendarEvent->getLocation()?->getName(),
+                oldDate: $oldDate,
+                newDate: $calendarEvent->getStartDate()?->format('Y-m-d'),
+                oldMeetingPoint: $oldMeetingPoint,
+                newMeetingPoint: $calendarEvent->getMeetingPoint(),
+                oldMeetingLocationName: $oldMeetingLocationName,
+                newMeetingLocationName: $calendarEvent->getMeetingLocation()?->getName(),
+                oldMeetingTime: $oldMeetingTime,
+                newMeetingTime: $calendarEvent->getMeetingTime()?->format('H:i'),
             );
 
             $this->dispatcher->dispatch(
