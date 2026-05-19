@@ -189,6 +189,11 @@ export interface PosterElement {
    * Ohne diesen Wert: bisheriges Verhalten (CSS word-break).
    */
   textFit?: 'shrink' | 'shrink-wrap';
+  /**
+   * Maximale Zeilenanzahl für shrink-wrap (Standard: 3).
+   * Der Algorithmus wählt automatisch die Aufteilung mit der größten Schrift.
+   */
+  maxLines?: 2 | 3;
 }
 
 // ─── Template-Definition ─────────────────────────────────────────────────────

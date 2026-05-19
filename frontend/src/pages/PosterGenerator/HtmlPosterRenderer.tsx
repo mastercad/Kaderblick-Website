@@ -170,6 +170,7 @@ export const HtmlPosterRenderer = React.forwardRef<HTMLDivElement, HtmlPosterRen
               el.letterSpacing ?? 0,
               (el.textTransform ?? 'none') as 'none' | 'uppercase' | 'lowercase',
               el.lineHeight ?? 1.1,
+              el.maxLines ?? 3,
             );
             computedFontSize = fitResult.fontSize;
             displayLines = fitResult.lines as string[];

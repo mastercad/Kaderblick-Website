@@ -59,6 +59,17 @@ export async function uploadPosterImage(file: File): Promise<{ url: string }> {
   return { url: absoluteUrl(result.url) };
 }
 
+/** Lädt einen Poster-Blob temporär auf den Server (24 h TTL) und gibt die absolute öffentliche URL zurück. */
+export async function uploadPosterShare(blob: Blob, posterFilename = 'poster.png'): Promise<string> {
+  const formData = new FormData();
+  formData.append('image', new File([blob], posterFilename, { type: 'image/png' }));
+  const result = await apiJson<{ url: string }>('/api/poster/share/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  return absoluteUrl(result.url);
+}
+
 export async function deletePosterImage(url: string): Promise<void> {
   const filename = url.split('/').pop();
   if (!filename) throw new Error('Ungültige Bild-URL');

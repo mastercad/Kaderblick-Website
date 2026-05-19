@@ -14,6 +14,7 @@ import {
   deletePosterTemplate,
   listPosterImages,
   uploadPosterImage,
+  uploadPosterShare,
   deletePosterImage,
 } from '../posterTemplateService';
 
@@ -194,5 +195,55 @@ describe('deletePosterImage', () => {
     await expect(
       deletePosterImage('http://localhost:8081/uploads/poster/used.jpg'),
     ).rejects.toBe(apiError);
+  });
+});
+
+// ─── uploadPosterShare ────────────────────────────────────────────────────────
+
+describe('uploadPosterShare', () => {
+  it('calls POST /api/poster/share/upload with FormData body containing the blob as a File', async () => {
+    mockApiJson.mockResolvedValue({ url: '/uploads/poster-share/share_abc.png' });
+    const blob = new Blob(['fake png'], { type: 'image/png' });
+
+    await uploadPosterShare(blob);
+
+    expect(mockApiJson).toHaveBeenCalledTimes(1);
+    const [url, options] = mockApiJson.mock.calls[0] as [string, { method: string; body: FormData }];
+    expect(url).toBe('/api/poster/share/upload');
+    expect(options.method).toBe('POST');
+    expect(options.body).toBeInstanceOf(FormData);
+
+    const imageField = (options.body as FormData).get('image');
+    expect(imageField).toBeInstanceOf(File);
+    expect((imageField as File).name).toBe('poster.png');
+    expect((imageField as File).type).toBe('image/png');
+  });
+
+  it('returns absolute URL (prepends BACKEND_URL to relative path)', async () => {
+    mockApiJson.mockResolvedValue({ url: '/uploads/poster-share/share_xyz.png' });
+    const result = await uploadPosterShare(new Blob(['x']));
+    expect(result).toBe('http://localhost:8081/uploads/poster-share/share_xyz.png');
+  });
+
+  it('uses custom filename when provided', async () => {
+    mockApiJson.mockResolvedValue({ url: '/uploads/poster-share/share_abc.png' });
+    await uploadPosterShare(new Blob(['x']), 'mein-poster.png');
+    const [, options] = mockApiJson.mock.calls[0] as [string, { body: FormData }];
+    const imageField = (options.body as FormData).get('image') as File;
+    expect(imageField.name).toBe('mein-poster.png');
+  });
+
+  it('defaults filename to "poster.png" when not provided', async () => {
+    mockApiJson.mockResolvedValue({ url: '/uploads/poster-share/share_abc.png' });
+    await uploadPosterShare(new Blob(['x']));
+    const [, options] = mockApiJson.mock.calls[0] as [string, { body: FormData }];
+    const imageField = (options.body as FormData).get('image') as File;
+    expect(imageField.name).toBe('poster.png');
+  });
+
+  it('propagates ApiError from apiJson unchanged', async () => {
+    const apiError = new Error('Unauthorized');
+    mockApiJson.mockRejectedValue(apiError);
+    await expect(uploadPosterShare(new Blob(['x']))).rejects.toBe(apiError);
   });
 });

@@ -311,6 +311,22 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           </Select>
         </FormControl>
 
+        {element.textFit === 'shrink-wrap' && (
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+              Max. Zeilen (Smart-Modus)
+            </Typography>
+            <Select
+              value={element.maxLines ?? 3}
+              onChange={e => u({ maxLines: Number(e.target.value) as 2 | 3 })}
+              sx={{ fontSize: 12 }}
+            >
+              <MenuItem value={2}>2 Zeilen</MenuItem>
+              <MenuItem value={3}>3 Zeilen (empfohlen für lange Teamnamen)</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+
         <Box sx={{ mb: 2 }}>
           <Typography variant="caption" color="text.secondary">
             Deckkraft: {Math.round(element.opacity * 100)}%
