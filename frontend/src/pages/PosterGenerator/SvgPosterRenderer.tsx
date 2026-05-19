@@ -405,6 +405,7 @@ export const SvgPosterRenderer = React.forwardRef<SVGSVGElement, SvgPosterRender
               resolvedText, el.textFit, scaledFontSize, 10,
               elWidth, elHeight,
               fontFamily, el.fontWeight, el.letterSpacing, el.textTransform, el.lineHeight,
+              el.maxLines ?? 3,
             );
             lines = result.lines as string[];
             finalFontSize = result.fontSize;
