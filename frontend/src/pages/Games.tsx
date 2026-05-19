@@ -294,13 +294,13 @@ export default function Games() {
 
         <CardActionArea onClick={() => handleGameClick(game.id)}>
           {/* Scoreboard Area */}
-          <Box sx={{ px: { xs: 1.5, sm: 2.5 }, pt: { xs: 1.5, sm: 2 }, pb: 1 }}>
+          <Box sx={{ px: { xs: 1.5, sm: 2.5 }, pt: { xs: 3.5, sm: 4 }, pb: 0.5 }}>
             <Box sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: { xs: 1, sm: 2 },
-              minHeight: { xs: 48, sm: 56 },
+              minHeight: { xs: 36, sm: 44 },
             }}>
               {/* Home Team */}
               <Typography
@@ -390,17 +390,22 @@ export default function Games() {
             </Box>
           </Box>
 
-          {/* Meta Info Bar */}
-          <Box sx={{
+        </CardActionArea>
+
+        {/* Meta Info Bar */}
+        <Box
+          onClick={() => handleGameClick(game.id)}
+          sx={{
             px: { xs: 1.5, sm: 2.5 },
-            pb: { xs: 1.5, sm: 2 },
+            pb: { xs: 0.75, sm: 1 },
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: { xs: 0.75, sm: 1 },
             borderTop: '1px solid',
             borderColor: 'divider',
-            pt: 1,
+            pt: 0.75,
+            cursor: 'pointer',
           }}>
             {/* Date & Time */}
             {game.calendarEvent?.startDate && (
@@ -429,30 +434,40 @@ export default function Games() {
               </Box>
             )}
 
-            {/* Weather */}
-            <Box
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                openWeatherModal(game.calendarEvent ? game.calendarEvent.id : null);
-              }}
-              sx={{
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                ml: 'auto',
-                '&:hover': { opacity: 0.7 },
-              }}
-              title="Wetterdetails anzeigen"
-            >
-              <WeatherDisplay
-                code={Array.isArray(game.weatherData?.weatherCode) ? game.weatherData.weatherCode[0] : undefined}
-                theme={'light'}
-                size={26}
-              />
+            {/* Weather + Share */}
+            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  openWeatherModal(game.calendarEvent ? game.calendarEvent.id : null);
+                }}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  '&:hover': { opacity: 0.7 },
+                }}
+                title="Wetterdetails anzeigen"
+              >
+                <WeatherDisplay
+                  code={Array.isArray(game.weatherData?.weatherCode) ? game.weatherData.weatherCode[0] : undefined}
+                  theme={'light'}
+                  size={24}
+                />
+              </Box>
+              {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
+                <SharePosterButton
+                  payload={
+                    hasScore
+                      ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: score!.homeScore, awayScore: score!.awayScore } } }
+                      : { templateId: 'game-announcement', data: { game } }
+                  }
+                  label={hasScore ? 'Ergebnis teilen' : 'Ankündigung teilen'}
+                />
+              )}
             </Box>
           </Box>
-        </CardActionArea>
 
         {/* Live Action Button */}
         {isRunning && (
@@ -472,19 +487,7 @@ export default function Games() {
           </Box>
         )}
 
-        {/* Share poster button — only for upcoming and finished games */}
-        {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
-          <Box sx={{ px: { xs: 1.5, sm: 2.5 }, pb: { xs: 1, sm: 1.5 }, display: 'flex', justifyContent: 'flex-end' }}>
-            <SharePosterButton
-              payload={
-                hasScore
-                  ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: score!.homeScore, awayScore: score!.awayScore } } }
-                  : { templateId: 'game-announcement', data: { game } }
-              }
-              label={hasScore ? 'Ergebnis teilen' : 'Ankündigung teilen'}
-            />
-          </Box>
-        )}
+
       </Card>
     );
   };

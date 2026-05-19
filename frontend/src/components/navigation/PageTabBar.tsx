@@ -24,6 +24,9 @@ export function PageTabBar() {
       <Tabs
         value={activeIndex === -1 ? 0 : activeIndex}
         onChange={(_, v) => navigate(group.children[v].route)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
         sx={{
           minHeight: 44,
           '& .MuiTab-root': { fontSize: '0.85rem', minHeight: 44, py: 0 },

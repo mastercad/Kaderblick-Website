@@ -112,6 +112,18 @@ export const navigationGroups: NavGroup[] = [
       { key: 'hall-of-fame', label: 'Hall of Fame', route: '/hall-of-fame' },
     ],
   },
+  {
+    key: 'tasks',
+    label: 'Aufgaben',
+    icon: <AssignmentIcon fontSize="small" />,
+    color: '#F59E0B',
+    primaryRoute: '/tasks',
+    children: [
+      { key: 'tasks-mine',    label: 'Meine Aufgaben',    route: '/tasks' },
+      { key: 'tasks-created', label: 'Von mir erstellt', route: '/tasks/created' },
+      { key: 'tasks-all',     label: 'Alle',              route: '/tasks/all' },
+    ],
+  },
 ];
 
 export const navigationItems: NavItem[] = [
@@ -239,6 +251,9 @@ export function isNavItemActive(pathname: string, key: string): boolean {
   if (key === 'home') return pathname === '/' || pathname === '';
   if (key === 'surveys') return pathname === '/surveys' || pathname.startsWith('/surveys/') || pathname.startsWith('/survey/');
   if (key === 'mein-spieltag') return pathname.startsWith('/mein-spieltag');
+  if (key === 'tasks-mine') return pathname === '/tasks';
+  if (key === 'tasks-created') return pathname === '/tasks/created';
+  if (key === 'tasks-all') return pathname === '/tasks/all';
   // Group keys: active if any child route is active
   const group = navigationGroups.find(g => g.key === key);
   if (group) return group.children.some(c => isNavItemActive(pathname, c.key));
