@@ -89,7 +89,7 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transform: svgFrameOffsetY !== 0 ? `translateY(${svgFrameOffsetY}px)` : `translateY(-7px)`,
+              transform: svgFrameOffsetY !== 0 ? `translateY(${svgFrameOffsetY}px)` : `translateY(-11px)`,
             }}>
               {frameUrl ? (
                 <img

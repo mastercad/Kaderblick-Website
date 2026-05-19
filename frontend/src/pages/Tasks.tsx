@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Button, Stack, Typography, Box, Paper, IconButton, Chip, Avatar,
-  Tabs, Tab, Tooltip, LinearProgress, Snackbar, Alert, Skeleton,
+  Tooltip, LinearProgress, Snackbar, Alert, Skeleton,
   Card, CardContent, CardActions, Divider, AvatarGroup,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -14,6 +14,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiJson } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import TaskEditModal, { TaskEditModalCloseResult } from '../modals/TaskEditModal';
@@ -277,12 +278,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
 const Tasks: React.FC = () => {
   const { user } = useAuth();
   const currentUserId = user?.id ?? 0;
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const tab = pathname === '/tasks/created' ? 1 : pathname === '/tasks/all' ? 2 : 0;
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [tab, setTab] = useState(0);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
   const [deletionModal, setDeletionModal] = useState<{ open: boolean; task: Task | null }>({ open: false, task: null });
   const [deletionLoading, setDeletionLoading] = useState(false);
@@ -382,7 +385,7 @@ const Tasks: React.FC = () => {
     if (!result.changed) return;
 
     if (result.action === 'created') {
-      setTab(1);
+      navigate('/tasks/created');
       setSnackbar({ open: true, message: 'Aufgabe angelegt und unter "Von mir erstellt" einsortiert.', severity: 'success' });
     } else {
       setSnackbar({ open: true, message: 'Aufgabe aktualisiert.', severity: 'success' });
@@ -397,33 +400,12 @@ const Tasks: React.FC = () => {
 
   return (
     <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
-      {/* Sticky Header + Tabs */}
-      <Box
-        sx={{
-          position: 'sticky',
-          top: 'var(--app-header-height)',
-          zIndex: 10,
-          bgcolor: 'background.default',
-          pt: 1.5,
-          mx: { xs: -1.5, sm: -3 },
-          px: { xs: 1.5, sm: 3 },
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          mb: 1.5,
-        }}
-      >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ pb: 1.5 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Aufgaben</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} size="medium">
-            Neue Aufgabe
-          </Button>
-        </Stack>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 0 }}>
-          <Tab label={`Meine Aufgaben (${myTasks.length})`} />
-          <Tab label={`Von mir erstellt (${createdByMe.length})`} />
-          <Tab label={`Alle (${tasks.length})`} />
-        </Tabs>
-      </Box>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>Aufgaben</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} size="medium">
+          Neue Aufgabe
+        </Button>
+      </Stack>
 
       {/* Quick stats */}
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>

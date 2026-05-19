@@ -60,6 +60,14 @@ jest.mock('./seo/siteConfig', () => {
 Object.defineProperty(global.URL, 'createObjectURL', { writable: true, value: jest.fn(() => 'blob:mock-url') });
 Object.defineProperty(global.URL, 'revokeObjectURL', { writable: true, value: jest.fn() });
 
+// JSDOM does not implement ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor(_callback: ResizeObserverCallback) {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 // JSDOM does not implement IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   readonly root: Element | Document | null = null;

@@ -27,6 +27,7 @@ import { parseClubColors } from '../utils/parseClubColors';
 import type { PosterPayload, PosterFormat } from '../types/poster';
 import type { PosterTemplateDefinition, PosterType } from '../types/posterTemplate';
 import { FORMAT_DIMS } from '../types/posterTemplate';
+import { getInitialPreviewWidth } from '../utils/previewWidth';
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 
@@ -42,14 +43,6 @@ const PAYLOAD_TYPE_MAP: Record<PosterPayload['templateId'], PosterType> = {
   'event-announcement': 'event_announcement',
   'player-highlight':   'player_highlight',
 };
-
-/** Berechnet die initiale Vorschau-Breite anhand der Viewport-Breite.
- * MUI Dialog sm = max 600px, 32px margin je Seite → Paper = min(600, vw-64).
- * DialogContent hat 24px Padding je Seite → Nutzbreite = Paper − 48. */
-function getInitialPreviewWidth(): number {
-  const paper = Math.min(600, window.innerWidth - 64);
-  return Math.max(200, paper - 48);
-}
 
 // ─── Komponente ───────────────────────────────────────────────────────────────
 
@@ -109,10 +102,15 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTemplateId]);
 
+  const isLoading = clubLoading || templatesLoading;
+
   useLayoutEffect(() => {
     const el = previewContainerRef.current;
     if (!el) return;
-    // Sofort messen, damit scale beim ersten Render korrekt ist
+    // Sofort messen, damit scale beim ersten Render korrekt ist.
+    // isLoading als Dependency: wenn Templates geladen werden und der Poster
+    // sichtbar wird, ist der Dialog seit dem Netzwerk-Roundtrip vollständig
+    // im DOM – el.offsetWidth ist dann zuverlässig (kein Fade-In-Timing-Problem).
     const w = el.offsetWidth;
     if (w > 0) setPreviewWidth(w);
     const ro = new ResizeObserver(entries => {
@@ -121,12 +119,15 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [open]);
+  }, [open, isLoading]);
 
   const dims = FORMAT_DIMS[format] ?? FORMAT_DIMS['1:1'];
-  const scale = previewWidth / dims.width;
-
-  const isLoading = clubLoading || templatesLoading;
+  const scale = previewWidth > 0 ? previewWidth / dims.width : 0;
+  // Explizite Höhe in JS statt CSS aspect-ratio: verhindert 1-px-Lücken durch
+  // Sub-Pixel-Rounding zwischen aspect-ratio und transform:scale auf HiDPI-Displays.
+  const previewHeight = previewWidth > 0
+    ? Math.round(previewWidth * dims.height / dims.width)
+    : undefined;
 
   return (
     <Dialog
@@ -134,6 +135,13 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      // scrollbar-gutter: stable verhindert das Flackern auf Desktop:
+      // Das MUI-Paper hat overflow-y: auto. Wenn der Inhalt die max-height
+      // überschreitet, erscheint ein Scrollbar und entzieht dem Inhalt ~15px
+      // Breite. Der ResizeObserver reagiert → previewHeight ändert sich →
+      // Scrollbar verschwindet → Breite nimmt zu → loop. Mit stable wird
+      // der Scrollbar-Bereich immer reserviert – die Innenbreite bleibt konstant.
+      PaperProps={{ style: { scrollbarGutter: 'stable' } }}
       data-testid="share-poster-dialog"
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
@@ -192,13 +200,19 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
         {/* Poster-Vorschau */}
         <Box
           ref={previewContainerRef}
+          data-testid="poster-preview-container"
+          data-preview-height={previewHeight ?? 'auto'}
           sx={{
             position: 'relative',
             background: '#0a0a14',
             borderRadius: 2,
             overflow: 'hidden',
             width: '100%',
-            aspectRatio: `${dims.width} / ${dims.height}`,
+            // Wenn die Breite noch nicht gemessen wurde, aspectRatio als Fallback;
+            // danach explizite Höhe für pixelgenaues Sub-Pixel-Matching.
+            ...(previewHeight !== undefined
+              ? { height: previewHeight }
+              : { aspectRatio: `${dims.width} / ${dims.height}` }),
           }}
         >
           {isLoading ? (

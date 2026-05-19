@@ -411,6 +411,8 @@ function App() {
                     <Route path="surfaceTypes" element={<ProtectedRoute><SurfaceTypes /></ProtectedRoute>} />
                     <Route path="gameEventTypes" element={<ProtectedRoute><GameEventTypes /></ProtectedRoute>} />
                     <Route path="tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                    <Route path="tasks/created" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                    <Route path="tasks/all" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
                     <Route path="nationalities" element={<ProtectedRoute><Nationalities /></ProtectedRoute>} />
                     <Route path="leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
                     <Route path="cups" element={<ProtectedRoute><Cups /></ProtectedRoute>} />
