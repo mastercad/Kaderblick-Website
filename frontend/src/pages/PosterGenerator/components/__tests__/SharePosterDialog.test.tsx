@@ -16,6 +16,15 @@ jest.mock('../../hooks/usePosterClub', () => ({
   }),
 }));
 
+// ExportActions wird gemockt, damit:
+// 1. Tests kein echtes html2canvas/Blob-Setup benötigen
+// 2. Das weitergeleitete format-Prop direkt über data-format geprüft werden kann
+jest.mock('../ExportActions', () => ({
+  ExportActions: ({ format }: { format?: string }) => (
+    <div data-testid="export-actions" data-format={format ?? '1:1'} />
+  ),
+}));
+
 const mockTemplate = {
   id: 1,
   name: 'Testvorlage',
@@ -656,5 +665,65 @@ describe('SharePosterDialog – Desktop-Flicker-Prävention (scrollbar-gutter:st
     // previewHeight entspricht dem letzten gemeldeten Wert (600px, 1:1-Format)
     const container = screen.getByTestId('poster-preview-container');
     expect(container.dataset.previewHeight).toBe(String(WIDE));
+  });
+});
+
+// ─── Format-Prop an ExportActions ────────────────────────────────────────────
+
+/**
+ * Sichert dass SharePosterDialog das aktive Format korrekt an ExportActions
+ * weitergibt – entscheidend für die X-Preview-Dialog-Logik in ExportActions
+ * (16:9 → kein Dialog, alle anderen → Letterbox-Dialog).
+ */
+describe('SharePosterDialog – format-Prop wird an ExportActions weitergeleitet', () => {
+  const onClose = jest.fn();
+  beforeEach(() => jest.clearAllMocks());
+
+  it('übergibt den ersten supportedFormat-Wert als initialen format-Prop', async () => {
+    // Template unterstützt ['1:1', '9:16'] → Initialwert muss '1:1' sein
+    wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+    await waitFor(() => expect(screen.getByTestId('export-actions')).toBeInTheDocument());
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '1:1');
+  });
+
+  it('übergibt format=16:9 wenn Template nur 16:9 unterstützt', async () => {
+    const { fetchPosterTemplates } = await import('../../../../services/posterTemplateService');
+    (fetchPosterTemplates as jest.Mock).mockResolvedValueOnce([
+      { ...mockTemplate, supportedFormats: ['16:9'] },
+    ]);
+
+    wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+    await waitFor(() => expect(screen.getByTestId('export-actions')).toBeInTheDocument());
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '16:9');
+  });
+
+  it('aktualisiert format-Prop nach Klick auf 9:16-Toggle-Button', async () => {
+    // Default-Template unterstützt ['1:1', '9:16'] → Toggle-Buttons sichtbar
+    wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+    await waitFor(() => expect(screen.getByTestId('export-actions')).toBeInTheDocument());
+
+    // Anfangszustand: 1:1
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '1:1');
+
+    // Auf 9:16 wechseln
+    fireEvent.click(screen.getByText('Story (9:16)'));
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '9:16');
+  });
+
+  it('aktualisiert format-Prop nach Klick auf 1:1-Toggle-Button', async () => {
+    const { fetchPosterTemplates } = await import('../../../../services/posterTemplateService');
+    (fetchPosterTemplates as jest.Mock).mockResolvedValueOnce([
+      { ...mockTemplate, supportedFormats: ['9:16', '1:1'] },
+    ]);
+
+    wrap(<SharePosterDialog open payload={payload} onClose={onClose} />);
+    await waitFor(() => expect(screen.getByTestId('export-actions')).toBeInTheDocument());
+
+    // Anfangszustand: 9:16 (erster supportedFormat-Wert)
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '9:16');
+
+    // Auf 1:1 wechseln
+    fireEvent.click(screen.getByText('Quadrat (1:1)'));
+    expect(screen.getByTestId('export-actions')).toHaveAttribute('data-format', '1:1');
   });
 });

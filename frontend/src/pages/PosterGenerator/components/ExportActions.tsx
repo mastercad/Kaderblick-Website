@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import {
-  Box, Button, CircularProgress, IconButton,
-  Snackbar, Alert, Tooltip,
+  Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
+  DialogTitle, IconButton, Snackbar, Alert, Tooltip, Typography,
 } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
+import CloseIcon from '@mui/icons-material/Close';
 import { FaWhatsapp, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { posterToBlob } from '../utils/exportPoster';
+import { posterToBlob, createXOptimizedBlob } from '../utils/exportPoster';
 import { uploadPosterShare } from '../../../services/posterTemplateService';
+import type { PosterFormat } from '../types/posterTemplate';
 
 interface Props {
   /** Ref to the HTMLDivElement rendered by DynamicPosterRenderer */
   posterRef: React.RefObject<HTMLDivElement | null>;
   filename?: string;
+  /** Aktuell gewähltes Poster-Format – bestimmt ob der X-Preview-Dialog erscheint. */
+  format?: PosterFormat;
 }
 
 type Platform = {
@@ -69,11 +73,17 @@ const PLATFORMS: Platform[] = [
  * On mobile: Web Share API → native share sheet → user picks Instagram / WhatsApp / etc.
  * On desktop: poster is uploaded to the server, the public URL is used for platform share links.
  */
-export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
+export function ExportActions({ posterRef, filename = 'poster.png', format = '1:1' }: Props) {
   const [loading, setLoading]       = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('Poster wird erstellt…');
   const [notice, setNotice]         = useState<string | null>(null);
   const [error, setError]           = useState<string | null>(null);
+
+  // ── X / Twitter preview dialog ─────────────────────────────────────────────
+  const [xPreviewOpen, setXPreviewOpen]   = useState(false);
+  const [xPreviewUrl, setXPreviewUrl]     = useState<string | null>(null);
+  const [xBlobPending, setXBlobPending]   = useState<Blob | null>(null);
+  const [xPlatform, setXPlatform]         = useState<Platform | null>(null);
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -102,6 +112,14 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function closeXPreview() {
+    setXPreviewOpen(false);
+    if (xPreviewUrl) URL.revokeObjectURL(xPreviewUrl);
+    setXPreviewUrl(null);
+    setXBlobPending(null);
+    setXPlatform(null);
   }
 
   // ── handlers ───────────────────────────────────────────────────────────────
@@ -190,7 +208,81 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
   }
 
   async function handlePlatformShare(platform: Platform) {
+    if (platform.id === 'twitter' && format !== '16:9') {
+      await handleXShare(platform);
+      return;
+    }
     await shareAsFile(platform.shareText, platform);
+  }
+
+  /**
+   * X/Twitter-spezifischer Share-Pfad (nur bei nicht-16:9-Formaten).
+   * Versucht zunächst nativen File-Share. Schlägt dieser fehl, wird eine
+   * 1920×1080-Version (Letterbox) generiert und ein Preview-Dialog gezeigt.
+   */
+  async function handleXShare(platform: Platform) {
+    const blob = await renderBlob();
+    if (!blob) return;
+
+    const file = new File([blob], filename, { type: 'image/png' });
+
+    // Nativen File-Share versuchen (kein URL-Preview beteiligt)
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ files: [file], title: 'Poster teilen', text: platform.shareText });
+        return;
+      } catch (err) {
+        if ((err as DOMException).name === 'AbortError') return;
+        // Fehlgeschlagen → weiter zum X-Preview-Dialog
+      }
+    }
+
+    // 2:1-Version für X erzeugen
+    setLoading(true);
+    setLoadingMsg('X-Vorschau wird erstellt…');
+    let xBlob: Blob;
+    try {
+      xBlob = await createXOptimizedBlob(blob);
+    } catch {
+      setError('X-Vorschau konnte nicht erstellt werden.');
+      return;
+    } finally {
+      setLoading(false);
+      setLoadingMsg('Poster wird erstellt…');
+    }
+
+    setXBlobPending(xBlob);
+    setXPreviewUrl(URL.createObjectURL(xBlob));
+    setXPlatform(platform);
+    setXPreviewOpen(true);
+  }
+
+  /** Upload und Öffnen der X-Share-URL nach Bestätigung im Preview-Dialog. */
+  async function handleXConfirm() {
+    if (!xBlobPending || !xPlatform) return;
+    closeXPreview();
+
+    setLoading(true);
+    setLoadingMsg('Poster wird hochgeladen…');
+    let shareUrl: string;
+    try {
+      shareUrl = await uploadPosterShare(xBlobPending, filename);
+    } catch {
+      setError('Poster konnte nicht hochgeladen werden.');
+      return;
+    } finally {
+      setLoading(false);
+      setLoadingMsg('Poster wird erstellt…');
+    }
+
+    const sharePageUrl = shareUrl
+      .replace('/uploads/poster-share/', '/poster-share/')
+      .replace(/\.png$/i, '');
+
+    const platformUrl = xPlatform.buildFallbackUrl(sharePageUrl);
+    if (platformUrl) {
+      window.open(platformUrl, '_blank', 'noopener,noreferrer');
+    }
   }
 
   /** Copy image to clipboard (where supported). */
@@ -297,6 +389,47 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
           {notice}
         </Alert>
       </Snackbar>
+
+      {/* X / Twitter Preview Dialog */}
+      <Dialog
+        open={xPreviewOpen}
+        onClose={closeXPreview}
+        maxWidth="sm"
+        fullWidth
+        data-testid="x-preview-dialog"
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+          <Typography fontWeight={700} component="span">Vorschau für X</Typography>
+          <IconButton size="small" aria-label="schließen" onClick={closeXPreview}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            X zeigt Bilder im 16:9-Format an. Damit dein Poster vollständig sichtbar bleibt,
+            wird es mit schwarzen Balken ergänzt.
+          </Alert>
+          {xPreviewUrl && (
+            <Box
+              component="img"
+              src={xPreviewUrl}
+              alt="X-Vorschau"
+              sx={{ width: '100%', display: 'block', borderRadius: 1 }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeXPreview}>Abbrechen</Button>
+          <Button
+            variant="contained"
+            onClick={() => { void handleXConfirm(); }}
+            startIcon={<FaXTwitter size={16} />}
+            data-testid="x-preview-confirm"
+          >
+            Jetzt auf X teilen
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

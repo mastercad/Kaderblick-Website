@@ -7,17 +7,19 @@ import { ExportActions } from '../ExportActions';
 
 jest.mock('../../utils/exportPoster', () => ({
   posterToBlob: jest.fn(),
+  createXOptimizedBlob: jest.fn(),
 }));
 
 jest.mock('../../../../services/posterTemplateService', () => ({
   uploadPosterShare: jest.fn(),
 }));
 
-import { posterToBlob } from '../../utils/exportPoster';
+import { posterToBlob, createXOptimizedBlob } from '../../utils/exportPoster';
 import { uploadPosterShare } from '../../../../services/posterTemplateService';
 
-const mockBlob   = posterToBlob   as jest.Mock;
-const mockUpload = uploadPosterShare as jest.Mock;
+const mockBlob       = posterToBlob        as jest.Mock;
+const mockCreateXBlob = createXOptimizedBlob as jest.Mock;
+const mockUpload     = uploadPosterShare    as jest.Mock;
 // Direktbild-URL wie sie vom Server zurückkommt
 const UPLOAD_URL     = 'https://example.com/uploads/poster-share/share_test.png';
 // OG-Landing-Page-URL (kein .png, wird im Frontend berechnet)
@@ -51,6 +53,7 @@ if (typeof (globalThis as Record<string, unknown>)['ClipboardItem'] === 'undefin
 beforeEach(() => {
   jest.clearAllMocks();
   mockBlob.mockResolvedValue(fakeBlob);
+  mockCreateXBlob.mockResolvedValue(fakeBlob);
   mockUpload.mockResolvedValue(UPLOAD_URL);
 
   Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
@@ -256,13 +259,46 @@ describe('handlePlatformShare – fallback: native file share not available', ()
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Twitter: lädt Bild hoch und öffnet Tweet-Intent-URL', async () => {
-    wrap(<ExportActions posterRef={posterRef} />);
+  it('Twitter: zeigt X-Preview-Dialog (kein sofortiger Upload)', async () => {
+    wrap(<ExportActions posterRef={posterRef} format="1:1" />);
+    fireEvent.click(screen.getByTestId('platform-btn-twitter'));
+
+    await waitFor(() => expect(screen.getByTestId('x-preview-dialog')).toBeInTheDocument());
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it('Twitter: Upload + Tweet-Intent-URL nach Bestätigung im Dialog', async () => {
+    wrap(<ExportActions posterRef={posterRef} format="1:1" />);
+    fireEvent.click(screen.getByTestId('platform-btn-twitter'));
+
+    await waitFor(() => expect(screen.getByTestId('x-preview-confirm')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('x-preview-confirm'));
+
+    await waitFor(() => expect(mockUpload).toHaveBeenCalled());
+    const expected = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_PAGE_URL)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`;
+    expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
+  });
+
+  it('Twitter: kein Upload wenn Dialog abgebrochen', async () => {
+    wrap(<ExportActions posterRef={posterRef} format="1:1" />);
+    fireEvent.click(screen.getByTestId('platform-btn-twitter'));
+
+    await waitFor(() => expect(screen.getByTestId('x-preview-dialog')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+
+    await act(async () => {});
+    expect(mockUpload).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it('Twitter mit format=16:9: lädt sofort hoch ohne Dialog', async () => {
+    wrap(<ExportActions posterRef={posterRef} format="16:9" />);
     fireEvent.click(screen.getByTestId('platform-btn-twitter'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
     const expected = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_PAGE_URL)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
+    expect(screen.queryByTestId('x-preview-dialog')).not.toBeInTheDocument();
   });
 
   it('Instagram: lädt Bild hoch und öffnet instagram.com', async () => {
@@ -293,6 +329,14 @@ describe('handlePlatformShare – fallback: navigator.share throws (file not sup
 
     const expected = `https://wa.me/?text=${encodeURIComponent(SHARE_PAGE_URL)}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
+  });
+
+  it('Twitter: fällt auf X-Preview-Dialog zurück wenn navigator.share wirft', async () => {
+    wrap(<ExportActions posterRef={posterRef} format="1:1" />);
+    fireEvent.click(screen.getByTestId('platform-btn-twitter'));
+
+    await waitFor(() => expect(screen.getByTestId('x-preview-dialog')).toBeInTheDocument());
+    expect(mockUpload).not.toHaveBeenCalled();
   });
 });
 
