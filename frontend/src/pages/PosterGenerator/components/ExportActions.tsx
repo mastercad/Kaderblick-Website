@@ -23,7 +23,7 @@ type Platform = {
   Icon: React.ComponentType<{ size?: number }>;
   color: string;
   shareText: string;
-  /** URL zum Öffnen der Plattform, wenn nativer File-Share nicht verfügbar ist (z. B. Linux). */
+  /** Baut die Plattform-URL wenn nativer File-Share nicht verfügbar ist. */
   buildFallbackUrl: (posterUrl: string) => string | null;
 };
 
@@ -34,7 +34,7 @@ const PLATFORMS: Platform[] = [
     Icon: FaWhatsapp,
     color: '#25D366',
     shareText: 'Schaut mal unser Poster an!',
-    buildFallbackUrl: (url) => `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + url)}`,
+    buildFallbackUrl: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
   },
   {
     id: 'instagram',
@@ -42,7 +42,7 @@ const PLATFORMS: Platform[] = [
     Icon: FaInstagram,
     color: '#E4405F',
     shareText: 'Schaut mal unser Poster an!',
-    buildFallbackUrl: () => null, // Instagram hat keine URL-basierte Share-API
+    buildFallbackUrl: () => null,
   },
   {
     id: 'facebook',
@@ -109,14 +109,15 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
   /**
    * Teilt das Poster als Datei.
    *
-   * Pfad 1 – nativer File-Share:
-   *   Plattform-Buttons: navigator.share wird IMMER versucht (canShare wird ignoriert,
-   *   da es auf manchen Geräten falsch negative Ergebnisse liefert).
+   * Pfad 1 – nativer File-Share (Android, iOS, moderne Desktop-Browser):
+   *   navigator.share({ files: [file] }) → OS-Share-Sheet → Nutzer wählt App.
+   *   Gilt für ALLE Plattform-Buttons (WhatsApp, Instagram, Facebook, X) gleichermaßen.
    *   Haupt-Button: nur wenn canShare({ files }) = true.
    *
-   * Pfad 2 – Fallback (nur Plattform-Buttons):
-   *   Bild hochladen → OG-Landing-Page-URL öffnen. Die Seite hat og:image-Tags,
-   *   damit WhatsApp/Twitter/Facebook eine Bildvorschau-Karte zeigen.
+   * Pfad 2 – Fallback (wenn navigator.share nicht verfügbar oder fehlschlägt):
+   *   Bild hochladen → OG-Landing-Page → Plattform-spezifische URL öffnen.
+   *   WhatsApp/Facebook/X: zeigen eine Bildvorschau-Karte über die og:image-Tags.
+   *   Instagram: keine URL-basierte Share-API → instagram.com öffnen.
    */
   async function shareAsFile(shareText: string, platform?: Platform) {
     const blob = await renderBlob();
@@ -148,7 +149,9 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
       }
     }
 
-    // ── Pfad 2: Fallback für Plattform-Buttons ────────────────────────────
+    // ── Pfad 2: Fallback für Plattform-Buttons ─────────────────────────────
+    // Bild hochladen → OG-Landing-Page-URL öffnen.
+    // WhatsApp/Facebook/Twitter holen die og:image-Tags und zeigen eine Bildvorschau-Karte.
     if (platform) {
       setLoading(true);
       setLoadingMsg('Poster wird hochgeladen…');
@@ -163,9 +166,10 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
         setLoadingMsg('Poster wird erstellt…');
       }
 
-      // OG-Landing-Page-URL: /uploads/poster-share/… → /poster-share/…
-      // Dort werden og:image-Tags gesetzt, damit Social-Plattformen eine Bildvorschau zeigen.
-      const sharePageUrl = shareUrl.replace('/uploads/poster-share/', '/poster-share/');
+      // OG-Landing-Page-URL: /uploads/poster-share/share_xxx.png → /poster-share/share_xxx
+      const sharePageUrl = shareUrl
+        .replace('/uploads/poster-share/', '/poster-share/')
+        .replace(/\.png$/i, '');
 
       const platformUrl = platform.buildFallbackUrl(sharePageUrl);
       if (platformUrl) {

@@ -18,10 +18,11 @@ import { uploadPosterShare } from '../../../../services/posterTemplateService';
 
 const mockBlob   = posterToBlob   as jest.Mock;
 const mockUpload = uploadPosterShare as jest.Mock;
-const SHARE_URL       = 'https://example.com/uploads/poster-share/share_test.png';
-// OG landing-page URL computed by ExportActions from the image URL
-const SHARE_PAGE_URL  = 'https://example.com/poster-share/share_test.png';
-const fakeBlob   = new Blob(['x'], { type: 'image/png' });
+// Direktbild-URL wie sie vom Server zurückkommt
+const UPLOAD_URL     = 'https://example.com/uploads/poster-share/share_test.png';
+// OG-Landing-Page-URL (kein .png, wird im Frontend berechnet)
+const SHARE_PAGE_URL = 'https://example.com/poster-share/share_test';
+const fakeBlob = new Blob(['x'], { type: 'image/png' });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ if (typeof (globalThis as Record<string, unknown>)['ClipboardItem'] === 'undefin
 beforeEach(() => {
   jest.clearAllMocks();
   mockBlob.mockResolvedValue(fakeBlob);
-  mockUpload.mockResolvedValue(SHARE_URL);
+  mockUpload.mockResolvedValue(UPLOAD_URL);
 
   Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
   Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
@@ -186,7 +187,7 @@ describe('handleMainShare – file sharing supported', () => {
 });
 
 describe('handleMainShare – fallback: no native file-share support', () => {
-  it('shows error without uploading when canShare(files)=false (e.g. Linux Chrome)', async () => {
+  it('shows error when canShare(files)=false (e.g. Linux Chrome)', async () => {
     Object.defineProperty(navigator, 'share',    { value: jest.fn().mockResolvedValue(undefined), configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: jest.fn().mockReturnValue(false),        configurable: true });
 
@@ -198,7 +199,7 @@ describe('handleMainShare – fallback: no native file-share support', () => {
     expect((navigator.share as jest.Mock).mock.calls).toHaveLength(0);
   });
 
-  it('shows error without uploading when navigator.share is unavailable', async () => {
+  it('shows error when navigator.share is unavailable', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('export-share-btn'));
 
@@ -231,23 +232,22 @@ describe('handlePlatformShare – fallback: native file share not available', ()
 
   beforeEach(() => {
     openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
-    // navigator.share is unavailable → platform buttons go straight to URL fallback
     Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
   });
 
   afterEach(() => openSpy.mockRestore());
 
-  it('WhatsApp: uploads and opens wa.me URL with text + OG page URL', async () => {
+  it('WhatsApp: lädt Bild hoch und öffnet wa.me mit OG-Seiten-URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-whatsapp'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
-    const expected = `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + SHARE_PAGE_URL)}`;
+    const expected = `https://wa.me/?text=${encodeURIComponent(SHARE_PAGE_URL)}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Facebook: uploads and opens Facebook sharer URL with OG page URL', async () => {
+  it('Facebook: lädt Bild hoch und öffnet Facebook-Sharer-URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-facebook'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
@@ -256,7 +256,7 @@ describe('handlePlatformShare – fallback: native file share not available', ()
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Twitter: uploads and opens tweet intent URL with OG page URL', async () => {
+  it('Twitter: lädt Bild hoch und öffnet Tweet-Intent-URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-twitter'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
@@ -265,7 +265,7 @@ describe('handlePlatformShare – fallback: native file share not available', ()
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Instagram: uploads and opens instagram.com (no URL-based share API)', async () => {
+  it('Instagram: lädt Bild hoch und öffnet instagram.com', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-instagram'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
@@ -279,7 +279,6 @@ describe('handlePlatformShare – fallback: navigator.share throws (file not sup
 
   beforeEach(() => {
     openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
-    // navigator.share exists but throws NotSupportedError for file sharing
     const shareErr = Object.assign(new Error('file share not supported'), { name: 'NotSupportedError' });
     Object.defineProperty(navigator, 'share',    { value: jest.fn().mockRejectedValue(shareErr), configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: jest.fn().mockReturnValue(false),       configurable: true });
@@ -287,12 +286,12 @@ describe('handlePlatformShare – fallback: navigator.share throws (file not sup
 
   afterEach(() => openSpy.mockRestore());
 
-  it('WhatsApp: falls through to URL fallback when navigator.share throws', async () => {
+  it('WhatsApp: fällt auf Upload-Fallback zurück wenn navigator.share wirft', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-whatsapp'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
-    const expected = `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + SHARE_PAGE_URL)}`;
+    const expected = `https://wa.me/?text=${encodeURIComponent(SHARE_PAGE_URL)}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 });
@@ -347,8 +346,7 @@ describe('loading state', () => {
     );
   });
 
-  it('shows "Poster wird hochgeladen…" on platform button during upload fallback', async () => {
-    // navigator.share unavailable → platform button goes to URL fallback (upload)
+  it('zeigt "Poster wird hochgeladen…" während Upload (Plattform-Button, kein nativer Share)', async () => {
     Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
     jest.spyOn(window, 'open').mockImplementation(() => null);
@@ -363,7 +361,7 @@ describe('loading state', () => {
       expect(screen.getByTestId('export-share-btn')).toHaveTextContent('Poster wird hochgeladen'),
     );
 
-    resolveUpload(SHARE_URL);
+    resolveUpload(UPLOAD_URL);
     await waitFor(() =>
       expect(screen.getByTestId('export-share-btn')).toHaveTextContent('Auf Sozialen Medien teilen'),
     );

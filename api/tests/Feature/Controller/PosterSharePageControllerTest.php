@@ -68,7 +68,7 @@ class PosterSharePageControllerTest extends ApiWebTestCase
 
         $this->createdFiles[] = $filename;
 
-        return $filename;
+        return pathinfo($filename, PATHINFO_FILENAME);
     }
 
     // ── Success ───────────────────────────────────────────────────────────────
@@ -215,8 +215,8 @@ class PosterSharePageControllerTest extends ApiWebTestCase
 
     public function testReturns404WhenFileDoesNotExistOnDisk(): void
     {
-        // Valid filename format, but no file written to disk
-        $this->client->request('GET', '/poster-share/share_doesnotexist12345.png');
+        // Valid ID format, but no file written to disk
+        $this->client->request('GET', '/poster-share/share_doesnotexist12345');
 
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
