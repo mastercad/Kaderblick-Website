@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\ApiWebTestCase;
 
 /**
- * Feature tests for GET /poster-share/{filename}
+ * Feature tests for GET /poster-share/{filename}.
  *
  * Covered behaviour:
  *  - 200 with correct HTML / OG meta tags for existing file
@@ -25,7 +25,7 @@ class PosterSharePageControllerTest extends ApiWebTestCase
     /** Absolute path to the server-side upload directory. */
     private string $uploadDir = '';
 
-    /** Filenames of files created during a test, cleaned up in tearDown. */
+    /** @var list<string> Filenames of files created during a test, cleaned up in tearDown. */
     private array $createdFiles = [];
 
     protected function setUp(): void
@@ -237,13 +237,13 @@ class PosterSharePageControllerTest extends ApiWebTestCase
     public static function invalidFilenameProvider(): array
     {
         return [
-            'missing share_ prefix'     => ['poster_abc123.png'],
-            'wrong extension'           => ['share_abc123.jpg'],
-            'no extension'              => ['share_abc123'],
-            'php extension'             => ['share_abc123.php'],
-            'shell injection'           => ['share_abc;rm -rf /.png'],
-            'space in name'             => ['share_abc 123.png'],
-            'null byte'                 => ["share_abc\x00.png"],
+            'missing share_ prefix' => ['poster_abc123.png'],
+            'wrong extension' => ['share_abc123.jpg'],
+            'no extension' => ['share_abc123'],
+            'php extension' => ['share_abc123.php'],
+            'shell injection' => ['share_abc;rm -rf /.png'],
+            'space in name' => ['share_abc 123.png'],
+            'null byte' => ["share_abc\x00.png"],
         ];
     }
 
