@@ -22,9 +22,9 @@ type Platform = {
   label: string;
   Icon: React.ComponentType<{ size?: number }>;
   color: string;
-  shareText: string | null;
-  /** Gibt die fertige Web-Share-URL zurück, oder null wenn die Plattform keinen URL-Share unterstützt (z. B. Instagram). */
-  buildUrl: (posterUrl: string) => string | null;
+  shareText: string;
+  /** URL zum Öffnen der Plattform, wenn nativer File-Share nicht verfügbar ist (z. B. Linux). */
+  buildFallbackUrl: (posterUrl: string) => string | null;
 };
 
 const PLATFORMS: Platform[] = [
@@ -34,24 +34,23 @@ const PLATFORMS: Platform[] = [
     Icon: FaWhatsapp,
     color: '#25D366',
     shareText: 'Schaut mal unser Poster an!',
-    buildUrl: (posterUrl) => `https://wa.me/?text=${encodeURIComponent(posterUrl)}`,
+    buildFallbackUrl: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
   },
   {
     id: 'instagram',
     label: 'Instagram',
     Icon: FaInstagram,
     color: '#E4405F',
-    shareText: null,
-    // Instagram unterstützt keinen URL-basierten Web-Share → Bild herunterladen
-    buildUrl: (_posterUrl) => null,
+    shareText: 'Schaut mal unser Poster an!',
+    buildFallbackUrl: () => null, // Instagram hat keine URL-basierte Share-API
   },
   {
     id: 'facebook',
     label: 'Facebook',
     Icon: FaFacebook,
     color: '#1877F2',
-    shareText: null,
-    buildUrl: (posterUrl) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(posterUrl)}`,
+    shareText: 'Schaut mal unser Poster an!',
+    buildFallbackUrl: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
   },
   {
     id: 'twitter',
@@ -59,8 +58,8 @@ const PLATFORMS: Platform[] = [
     Icon: FaXTwitter,
     color: '#000000',
     shareText: 'Schaut mal unser Poster an!',
-    buildUrl: (posterUrl) =>
-      `https://twitter.com/intent/tweet?url=${encodeURIComponent(posterUrl)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`,
+    buildFallbackUrl: (url) =>
+      `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`,
   },
 ];
 
@@ -71,15 +70,10 @@ const PLATFORMS: Platform[] = [
  * On desktop: poster is uploaded to the server, the public URL is used for platform share links.
  */
 export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
-  /** true auf iOS/Android, false auf Desktop-Browsern. Innerhalb der Funktion damit Tests navigator mocken können. */
-  const isMobileDevice = navigator.maxTouchPoints > 1 || /Mobi|Android/i.test(navigator.userAgent);
-
   const [loading, setLoading]       = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('Poster wird erstellt…');
   const [notice, setNotice]         = useState<string | null>(null);
   const [error, setError]           = useState<string | null>(null);
-
-  const canNativeShare = typeof navigator?.share === 'function';
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -101,29 +95,6 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
     }
   }
 
-  /**
-   * Rendert das Poster und lädt es auf den Server.
-   * Gibt den Blob und die absolute öffentliche URL zurück.
-   * Wird nur auf Desktop verwendet.
-   */
-  async function renderAndUpload(): Promise<{ blob: Blob; shareUrl: string } | null> {
-    if (!posterRef.current) return null;
-    setLoading(true);
-    setLoadingMsg('Poster wird erstellt…');
-    try {
-      const blob = await posterToBlob(posterRef.current);
-      setLoadingMsg('Poster wird hochgeladen…');
-      const shareUrl = await uploadPosterShare(blob, filename);
-      return { blob, shareUrl };
-    } catch {
-      setError('Poster konnte nicht hochgeladen werden.');
-      return null;
-    } finally {
-      setLoading(false);
-      setLoadingMsg('Poster wird erstellt…');
-    }
-  }
-
   function triggerDownload(blob: Blob) {
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
@@ -135,78 +106,72 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
 
   // ── handlers ───────────────────────────────────────────────────────────────
 
-  /** Primär-Button: Mobil → nativer File-Share. Desktop → Poster hochladen → URL teilen. */
-  async function handleMainShare() {
-    // ── Mobil: nativer Datei-Share ──────────────────────────────────────────
-    if (isMobileDevice && canNativeShare) {
-      const blob = await renderBlob();
-      if (!blob) return;
-      const file = new File([blob], filename, { type: 'image/png' });
+  /**
+   * Teilt das Poster als Datei.
+   *
+   * Pfad 1 – nativer File-Share (Mobil, Windows, macOS):
+   *   navigator.canShare({ files }) → true → navigator.share({ files, text })
+   *
+   * Pfad 2 – Fallback für Plattform-Buttons ohne File-Share (z. B. Linux):
+   *   Bild auf Server hochladen → plattformspezifische URL in neuem Tab öffnen.
+   *   Haupt-Button: Fehlermeldung (URL-Share ist kein Bild-Share).
+   */
+  async function shareAsFile(shareText: string, platform?: Platform) {
+    const blob = await renderBlob();
+    if (!blob) return;
+
+    const file = new File([blob], filename, { type: 'image/png' });
+
+    // ── Pfad 1: nativer File-Share ─────────────────────────────────────────
+    if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Poster teilen' });
-        return;
+        await navigator.share({ files: [file], title: 'Poster teilen', text: shareText });
       } catch (err) {
-        if ((err as DOMException).name === 'AbortError') return;
-        triggerDownload(blob);
-        return;
+        if ((err as DOMException).name !== 'AbortError') {
+          setError('Das Teilen ist fehlgeschlagen. Bitte versuche es erneut.');
+        }
       }
+      return;
     }
 
-    // ── Desktop: Poster hochladen → öffentliche URL → Browser-Share oder URL kopieren ─
-    const result = await renderAndUpload();
-    if (!result) return;
-    const { blob, shareUrl } = result;
-
-    if (canNativeShare) {
+    // ── Pfad 2: Fallback für Plattform-Buttons ────────────────────────────
+    // Bild auf den Server laden und plattformspezifische URL öffnen.
+    // Nur für Plattform-Buttons sinnvoll – ein Link ist kein Bild-Share.
+    if (platform) {
+      setLoading(true);
+      setLoadingMsg('Poster wird hochgeladen…');
+      let shareUrl: string;
       try {
-        await navigator.share({ url: shareUrl, title: 'Poster teilen' });
+        shareUrl = await uploadPosterShare(blob, filename);
+      } catch {
+        setError('Poster konnte nicht hochgeladen werden.');
         return;
-      } catch (err) {
-        if ((err as DOMException).name === 'AbortError') return;
+      } finally {
+        setLoading(false);
+        setLoadingMsg('Poster wird erstellt…');
       }
+
+      const platformUrl = platform.buildFallbackUrl(shareUrl);
+      if (platformUrl) {
+        window.open(platformUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        // Instagram: keine URL-basierte Share-API
+        window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+      }
+      return;
     }
 
-    // Fallback: Link in Zwischenablage
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setNotice('Poster-Link kopiert – einfach in WhatsApp, Messenger oder E-Mail einfügen!');
-    } catch {
-      triggerDownload(blob);
-    }
+    // Haupt-Share-Button: Datei-Share wird auf diesem System nicht unterstützt.
+    // Eine URL zu teilen ist kein Ersatz – der Empfänger sieht ein Link, kein Bild.
+    setError('Direktes Teilen von Bildern wird auf diesem System nicht unterstützt. Nutze einen der Plattform-Buttons.');
   }
 
-  /** Platform-Button: Mobil → nativer File-Share. Desktop → Poster hochladen → Plattform mit URL öffnen. */
+  async function handleMainShare() {
+    await shareAsFile('Schaut mal unser Poster an!');
+  }
+
   async function handlePlatformShare(platform: Platform) {
-    // ── Mobil: nativer Datei-Share ──────────────────────────────────────────
-    if (isMobileDevice && canNativeShare) {
-      const blob = await renderBlob();
-      if (!blob) return;
-      const file = new File([blob], filename, { type: 'image/png' });
-      try {
-        await navigator.share({ files: [file], title: 'Poster teilen', text: platform.shareText ?? undefined });
-        return;
-      } catch (err) {
-        if ((err as DOMException).name === 'AbortError') return;
-        triggerDownload(blob);
-        return;
-      }
-    }
-
-    // ── Desktop: Poster hochladen → Plattform-URL mit Poster-URL öffnen ────
-    const result = await renderAndUpload();
-    if (!result) return;
-    const { blob, shareUrl } = result;
-
-    const platformUrl = platform.buildUrl(shareUrl);
-    if (platformUrl) {
-      window.open(platformUrl, '_blank', 'noopener,noreferrer');
-      setNotice(`${platform.label} geöffnet – das Poster ist bereits als Link eingebettet!`);
-    } else {
-      // Instagram: kein URL-Share-API → herunterladen + Instagram öffnen
-      triggerDownload(blob);
-      window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
-      setNotice('Poster heruntergeladen – jetzt auf Instagram hochladen.');
-    }
+    await shareAsFile(platform.shareText, platform);
   }
 
   /** Copy image to clipboard (where supported). */
