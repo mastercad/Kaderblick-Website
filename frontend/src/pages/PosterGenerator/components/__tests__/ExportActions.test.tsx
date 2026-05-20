@@ -18,7 +18,9 @@ import { uploadPosterShare } from '../../../../services/posterTemplateService';
 
 const mockBlob   = posterToBlob   as jest.Mock;
 const mockUpload = uploadPosterShare as jest.Mock;
-const SHARE_URL  = 'https://example.com/uploads/poster-share/share_test.png';
+const SHARE_URL       = 'https://example.com/uploads/poster-share/share_test.png';
+// OG landing-page URL computed by ExportActions from the image URL
+const SHARE_PAGE_URL  = 'https://example.com/poster-share/share_test.png';
 const fakeBlob   = new Blob(['x'], { type: 'image/png' });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -112,6 +114,21 @@ describe('handleCopy', () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('export-copy-btn'));
     await waitFor(() => expect(screen.getByTestId('export-notice')).toBeInTheDocument());
+  });
+
+  it('shows error (no download) when clipboard.write fails', async () => {
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { write: jest.fn().mockRejectedValue(new Error('not allowed')), writeText: jest.fn() },
+      configurable: true,
+    });
+
+    wrap(<ExportActions posterRef={posterRef} />);
+    fireEvent.click(screen.getByTestId('export-copy-btn'));
+
+    await waitFor(() => expect(screen.getByTestId('export-error')).toBeInTheDocument());
+    expect(clickSpy).not.toHaveBeenCalled();
+    clickSpy.mockRestore();
   });
 });
 
@@ -209,41 +226,42 @@ describe('handlePlatformShare – file sharing supported', () => {
   );
 });
 
-describe('handlePlatformShare – fallback: canShare(files)=false', () => {
+describe('handlePlatformShare – fallback: native file share not available', () => {
   let openSpy: jest.SpyInstance;
 
   beforeEach(() => {
     openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
-    Object.defineProperty(navigator, 'share',    { value: jest.fn().mockResolvedValue(undefined), configurable: true });
-    Object.defineProperty(navigator, 'canShare', { value: jest.fn().mockReturnValue(false),        configurable: true });
+    // navigator.share is unavailable → platform buttons go straight to URL fallback
+    Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
+    Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
   });
 
   afterEach(() => openSpy.mockRestore());
 
-  it('WhatsApp: uploads and opens wa.me URL', async () => {
+  it('WhatsApp: uploads and opens wa.me URL with text + OG page URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-whatsapp'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
-    const expected = `https://wa.me/?text=${encodeURIComponent(SHARE_URL)}`;
+    const expected = `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + SHARE_PAGE_URL)}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Facebook: uploads and opens Facebook sharer URL', async () => {
+  it('Facebook: uploads and opens Facebook sharer URL with OG page URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-facebook'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
-    const expected = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`;
+    const expected = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_PAGE_URL)}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
-  it('Twitter: uploads and opens tweet intent URL', async () => {
+  it('Twitter: uploads and opens tweet intent URL with OG page URL', async () => {
     wrap(<ExportActions posterRef={posterRef} />);
     fireEvent.click(screen.getByTestId('platform-btn-twitter'));
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
-    const expected = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`;
+    const expected = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_PAGE_URL)}&text=${encodeURIComponent('Schaut mal unser Poster an!')}`;
     expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 
@@ -253,6 +271,29 @@ describe('handlePlatformShare – fallback: canShare(files)=false', () => {
     await waitFor(() => expect(mockUpload).toHaveBeenCalled());
 
     expect(openSpy).toHaveBeenCalledWith('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+  });
+});
+
+describe('handlePlatformShare – fallback: navigator.share throws (file not supported)', () => {
+  let openSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    // navigator.share exists but throws NotSupportedError for file sharing
+    const shareErr = Object.assign(new Error('file share not supported'), { name: 'NotSupportedError' });
+    Object.defineProperty(navigator, 'share',    { value: jest.fn().mockRejectedValue(shareErr), configurable: true });
+    Object.defineProperty(navigator, 'canShare', { value: jest.fn().mockReturnValue(false),       configurable: true });
+  });
+
+  afterEach(() => openSpy.mockRestore());
+
+  it('WhatsApp: falls through to URL fallback when navigator.share throws', async () => {
+    wrap(<ExportActions posterRef={posterRef} />);
+    fireEvent.click(screen.getByTestId('platform-btn-whatsapp'));
+    await waitFor(() => expect(mockUpload).toHaveBeenCalled());
+
+    const expected = `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + SHARE_PAGE_URL)}`;
+    expect(openSpy).toHaveBeenCalledWith(expected, '_blank', 'noopener,noreferrer');
   });
 });
 
@@ -307,8 +348,9 @@ describe('loading state', () => {
   });
 
   it('shows "Poster wird hochgeladen…" on platform button during upload fallback', async () => {
-    Object.defineProperty(navigator, 'share',    { value: jest.fn().mockResolvedValue(undefined), configurable: true });
-    Object.defineProperty(navigator, 'canShare', { value: jest.fn().mockReturnValue(false),        configurable: true });
+    // navigator.share unavailable → platform button goes to URL fallback (upload)
+    Object.defineProperty(navigator, 'share',    { value: undefined, configurable: true });
+    Object.defineProperty(navigator, 'canShare', { value: undefined, configurable: true });
     jest.spyOn(window, 'open').mockImplementation(() => null);
 
     let resolveUpload!: (url: string) => void;

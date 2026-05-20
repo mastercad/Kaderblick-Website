@@ -34,7 +34,7 @@ const PLATFORMS: Platform[] = [
     Icon: FaWhatsapp,
     color: '#25D366',
     shareText: 'Schaut mal unser Poster an!',
-    buildFallbackUrl: (url) => `https://wa.me/?text=${encodeURIComponent(url)}`,
+    buildFallbackUrl: (url) => `https://wa.me/?text=${encodeURIComponent('Schaut mal unser Poster an!\n' + url)}`,
   },
   {
     id: 'instagram',
@@ -109,12 +109,14 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
   /**
    * Teilt das Poster als Datei.
    *
-   * Pfad 1 – nativer File-Share (Mobil, Windows, macOS):
-   *   navigator.canShare({ files }) → true → navigator.share({ files, text })
+   * Pfad 1 – nativer File-Share:
+   *   Plattform-Buttons: navigator.share wird IMMER versucht (canShare wird ignoriert,
+   *   da es auf manchen Geräten falsch negative Ergebnisse liefert).
+   *   Haupt-Button: nur wenn canShare({ files }) = true.
    *
-   * Pfad 2 – Fallback für Plattform-Buttons ohne File-Share (z. B. Linux):
-   *   Bild auf Server hochladen → plattformspezifische URL in neuem Tab öffnen.
-   *   Haupt-Button: Fehlermeldung (URL-Share ist kein Bild-Share).
+   * Pfad 2 – Fallback (nur Plattform-Buttons):
+   *   Bild hochladen → OG-Landing-Page-URL öffnen. Die Seite hat og:image-Tags,
+   *   damit WhatsApp/Twitter/Facebook eine Bildvorschau-Karte zeigen.
    */
   async function shareAsFile(shareText: string, platform?: Platform) {
     const blob = await renderBlob();
@@ -123,20 +125,30 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
     const file = new File([blob], filename, { type: 'image/png' });
 
     // ── Pfad 1: nativer File-Share ─────────────────────────────────────────
-    if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Poster teilen', text: shareText });
-      } catch (err) {
-        if ((err as DOMException).name !== 'AbortError') {
-          setError('Das Teilen ist fehlgeschlagen. Bitte versuche es erneut.');
+    if (typeof navigator.share === 'function') {
+      // Plattform-Buttons: immer versuchen (canShare kann falsch-negativ sein).
+      // Haupt-Button: nur wenn canShare(files) explizit true zurückgibt.
+      const shouldTry = platform
+        ? true
+        : (navigator.canShare?.({ files: [file] }) ?? false);
+
+      if (shouldTry) {
+        try {
+          await navigator.share({ files: [file], title: 'Poster teilen', text: shareText });
+          return; // Erfolg oder Abbruch durch Nutzer
+        } catch (err) {
+          if ((err as DOMException).name === 'AbortError') return; // Nutzer hat abgebrochen
+          if (!platform) {
+            // Haupt-Button: Fehler anzeigen
+            setError('Das Teilen ist fehlgeschlagen. Bitte versuche es erneut.');
+            return;
+          }
+          // Plattform-Button: File-Share fehlgeschlagen → weiter zu Pfad 2
         }
       }
-      return;
     }
 
     // ── Pfad 2: Fallback für Plattform-Buttons ────────────────────────────
-    // Bild auf den Server laden und plattformspezifische URL öffnen.
-    // Nur für Plattform-Buttons sinnvoll – ein Link ist kein Bild-Share.
     if (platform) {
       setLoading(true);
       setLoadingMsg('Poster wird hochgeladen…');
@@ -151,7 +163,11 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
         setLoadingMsg('Poster wird erstellt…');
       }
 
-      const platformUrl = platform.buildFallbackUrl(shareUrl);
+      // OG-Landing-Page-URL: /uploads/poster-share/… → /poster-share/…
+      // Dort werden og:image-Tags gesetzt, damit Social-Plattformen eine Bildvorschau zeigen.
+      const sharePageUrl = shareUrl.replace('/uploads/poster-share/', '/poster-share/');
+
+      const platformUrl = platform.buildFallbackUrl(sharePageUrl);
       if (platformUrl) {
         window.open(platformUrl, '_blank', 'noopener,noreferrer');
       } else {
@@ -161,8 +177,7 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
       return;
     }
 
-    // Haupt-Share-Button: Datei-Share wird auf diesem System nicht unterstützt.
-    // Eine URL zu teilen ist kein Ersatz – der Empfänger sieht ein Link, kein Bild.
+    // Haupt-Share-Button ohne File-Share-Unterstützung:
     setError('Direktes Teilen von Bildern wird auf diesem System nicht unterstützt. Nutze einen der Plattform-Buttons.');
   }
 
@@ -185,8 +200,7 @@ export function ExportActions({ posterRef, filename = 'poster.png' }: Props) {
       ]);
       setNotice('Bild in Zwischenablage kopiert!');
     } catch {
-      triggerDownload(blob);
-      setNotice('Kopieren nicht unterstützt – Poster wurde heruntergeladen.');
+      setError('Kopieren wird auf diesem Gerät nicht unterstützt. Bitte den Download-Button nutzen.');
     }
   }
 

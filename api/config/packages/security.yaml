@@ -39,6 +39,11 @@ security:
             custom_authenticators:
                 - App\Security\ApiTokenAuthenticator
 
+        # OG-Landing-Pages für geteilte Poster – kein Auth nötig, auch für Social-Bots
+        poster_share_page:
+            pattern: ^/poster-share/
+            security: false
+
         # kein jwt, kein authenticator
         verify_email:
             pattern: ^/api/verify/email
@@ -67,6 +72,7 @@ security:
         ROLE_SUPERADMIN:  [ROLE_ADMIN]
 
     access_control:
+    - { path: ^/poster-share/, roles: PUBLIC_ACCESS }
     - { path: ^/connect/google, roles: PUBLIC_ACCESS }
     - { path: ^/connect/google/check, roles: PUBLIC_ACCESS }
     - { path: ^/aktuelles, roles: PUBLIC_ACCESS }
