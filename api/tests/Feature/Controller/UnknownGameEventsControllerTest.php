@@ -7,6 +7,7 @@ namespace Tests\Feature\Controller;
 use App\Entity\GameEvent;
 use App\Entity\Player;
 use App\Entity\User;
+use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -56,21 +57,21 @@ class UnknownGameEventsControllerTest extends WebTestCase
     {
         self::ensureKernelShutdown();
         $this->client = static::createClient();
-        $this->em     = static::getContainer()->get(EntityManagerInterface::class);
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->getConnection()->beginTransaction();
 
         // Fixture-User laden
-        $this->superAdmin  = $this->loadUser('user21@example.com');
-        $this->adminUser   = $this->loadUser('user16@example.com');
-        $this->coachUser   = $this->loadUser('user11@example.com');
+        $this->superAdmin = $this->loadUser('user21@example.com');
+        $this->adminUser = $this->loadUser('user16@example.com');
+        $this->coachUser = $this->loadUser('user11@example.com');
         $this->regularUser = $this->loadUser('user6@example.com');
-        $this->noRelUser   = $this->loadUser('user10@example.com');
+        $this->noRelUser = $this->loadUser('user10@example.com');
 
         // Fixture-Ereignisse anhand des eindeutigen Beschreibungsmarkers laden
         $this->unknownEventTeam1 = $this->loadGameEvent('__test_unknown_evt_1__');
         $this->unknownEventTeam2 = $this->loadGameEvent('__test_unknown_evt_2__');
-        $this->eventWithCoach    = $this->loadGameEvent('__test_evt_with_coach__');
-        $this->eventWithPlayer   = $this->loadGameEvent('__test_evt_with_player__');
+        $this->eventWithCoach = $this->loadGameEvent('__test_evt_with_coach__');
+        $this->eventWithPlayer = $this->loadGameEvent('__test_evt_with_player__');
 
         // Einen aktiven Spieler aus Team 1 und Team 3 für assign-Tests bereitstellen
         $this->team1Player = $this->findFirstActivePlayerForTeam('Team 1');
@@ -202,7 +203,6 @@ class UnknownGameEventsControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $data = $this->decodeResponseJson();
 
-        $this->assertIsArray($data);
         $this->assertNotEmpty($data, 'Spielerliste muss mindestens einen aktiven Spieler enthalten');
 
         // Jeder Eintrag hat id und fullName
@@ -350,7 +350,7 @@ class UnknownGameEventsControllerTest extends WebTestCase
             ->where('t.name = :teamName')
             ->andWhere('pta.endDate IS NULL OR pta.endDate >= :now')
             ->setParameter('teamName', $teamName)
-            ->setParameter('now', new \DateTime())
+            ->setParameter('now', new DateTime())
             ->setMaxResults(1)
             ->getQuery()
             ->getResult();

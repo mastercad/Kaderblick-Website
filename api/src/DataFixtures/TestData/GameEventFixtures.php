@@ -11,6 +11,7 @@ use App\Entity\GameEvent;
 use App\Entity\GameEventType;
 use App\Entity\Player;
 use App\Entity\Team;
+use Closure;
 use DateTime;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
@@ -125,10 +126,10 @@ class GameEventFixtures extends Fixture implements DependentFixtureInterface, Fi
     /**
      * Legt ein GameEvent nur dann an, wenn noch keines mit dieser Beschreibung existiert (Idempotenz).
      */
-    private function persistIfNew(ObjectManager $manager, string $description, \Closure $factory): void
+    private function persistIfNew(ObjectManager $manager, string $description, Closure $factory): void
     {
         $existing = $manager->getRepository(GameEvent::class)->findOneBy(['description' => $description]);
-        if ($existing !== null) {
+        if (null !== $existing) {
             return;
         }
 

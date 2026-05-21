@@ -75,7 +75,7 @@ class UnknownGameEventsController extends AbstractController
         $players = $this->playerRepository->findActiveByTeams($teams);
 
         $data = array_map(fn ($player) => [
-            'id'       => $player->getId(),
+            'id' => $player->getId(),
             'fullName' => $player->getFullName(),
         ], $players);
 
@@ -107,7 +107,7 @@ class UnknownGameEventsController extends AbstractController
 
         $player = $this->playerRepository->find((int) $playerId);
 
-        if ($player === null) {
+        if (null === $player) {
             return $this->json(['error' => 'Spieler nicht gefunden'], Response::HTTP_NOT_FOUND);
         }
 
@@ -143,7 +143,7 @@ class UnknownGameEventsController extends AbstractController
 
         // Trainer-Zugang: User hat mindestens eine Coach-Relation
         foreach ($user->getUserRelations() as $userRelation) {
-            if ($userRelation->getCoach() !== null) {
+            if (null !== $userRelation->getCoach()) {
                 return true;
             }
         }
@@ -161,27 +161,27 @@ class UnknownGameEventsController extends AbstractController
         $startDate = $calEvent?->getStartDate();
 
         $minute = null;
-        if ($startDate !== null) {
+        if (null !== $startDate) {
             $diffSeconds = $event->getTimestamp()->getTimestamp() - $startDate->getTimestamp();
             $minute = (int) max(1, ceil($diffSeconds / 60));
         }
 
         return [
-            'id'            => $event->getId(),
-            'eventType'     => $event->getGameEventType()?->getName(),
+            'id' => $event->getId(),
+            'eventType' => $event->getGameEventType()?->getName(),
             'eventTypeCode' => $event->getGameEventType()?->getCode(),
-            'minute'        => $minute,
-            'timestamp'     => $event->getTimestamp()->format('Y-m-d H:i:s'),
-            'description'   => $event->getDescription(),
-            'team'          => [
-                'id'   => $event->getTeam()->getId(),
+            'minute' => $minute,
+            'timestamp' => $event->getTimestamp()->format('Y-m-d H:i:s'),
+            'description' => $event->getDescription(),
+            'team' => [
+                'id' => $event->getTeam()->getId(),
                 'name' => $event->getTeam()->getName(),
             ],
-            'game'          => [
-                'id'       => $game->getId(),
+            'game' => [
+                'id' => $game->getId(),
                 'homeTeam' => $game->getHomeTeam()?->getName(),
                 'awayTeam' => $game->getAwayTeam()?->getName(),
-                'date'     => $startDate?->format('Y-m-d'),
+                'date' => $startDate?->format('Y-m-d'),
             ],
         ];
     }
