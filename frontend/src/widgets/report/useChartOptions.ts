@@ -54,7 +54,8 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     const legendPadding = isMobile ? 8 : isTablet ? 12 : 18;
     const pieLegendPosition = isMobile ? ('bottom' as const) : ('right' as const);
 
-    const xTickRotation = isMobile && hasManylabels ? 45 : isTablet && hasManylabels ? 30 : 0;
+    const hasLongLabels = safeLabels.some((l) => l.length > 10);
+    const xTickRotation = hasManylabels && (isMobile || isTablet || hasLongLabels) ? 45 : 0;
     // When horizontal-scroll is active, don't limit ticks – all labels are visible by scrolling.
     // Compute scroll threshold here (mirrors scrollMinWidth logic) to avoid circular dependency.
     const willScroll =

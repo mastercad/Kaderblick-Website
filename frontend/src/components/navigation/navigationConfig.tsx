@@ -35,6 +35,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BuildIcon from '@mui/icons-material/Build';
 import StyleIcon from '@mui/icons-material/Style';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -142,6 +143,7 @@ export const trainerMenuItems: TrainerMenuItem[] = [
   { key: 'teams',                        label: 'Teams',                      icon: <GroupsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
   { key: 'watchlist',                    label: 'Beobachtungsliste',          icon: <BookmarkBorderIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
   { key: 'quick-event-konfigurationen',  label: 'Quick-Event Konfiguration',  icon: <TuneIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+  { key: 'admin/unknown-game-events',    label: 'Unbekannte Ereignisse',      icon: <HelpOutlineIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
 ];
 
 export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
@@ -176,6 +178,7 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
         { label: 'Aufstellungen',          page: 'formations',             icon: <GroupWorkIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
         { label: 'Aufgaben',               page: 'tasks',                  icon: <ManageAccountsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
         { label: 'Titel & XP Übersicht',   page: 'admin/title-xp-overview', icon: <EmojiEventsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+        { label: 'Unbekannte Ereignisse',    page: 'admin/unknown-game-events', icon: <HelpOutlineIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
         ...(isSuperAdmin ? [{ label: 'XP-Konfiguration',     page: 'admin/xp-config',       icon: <EmojiEventsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'Karten-Regeln',         page: 'admin/karten-regeln',   icon: <StyleIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'Poster-Vorlagen',       page: 'admin/poster-vorlagen',  icon: <CameraAltIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),

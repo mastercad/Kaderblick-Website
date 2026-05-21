@@ -7,6 +7,7 @@ use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\Player;
 use App\Entity\Team;
+use App\Entity\User;
 use DateTimeInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -392,5 +393,81 @@ class GameEventRepository extends ServiceEntityRepository implements OptimizedRe
         }
 
         return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Liefert alle GameEvents ohne Player-Zuweisung (und ohne Coach-Zuweisung),
+     * gefiltert nach den Teams, die der User sehen darf.
+     *
+     * ROLE_SUPERADMIN sieht alle; alle anderen nur Ereignisse ihrer Teams.
+     *
+     * @return GameEvent[]
+     */
+    public function findUnknownPlayerEvents(User $user): array
+    {
+        $qb = $this->createQueryBuilder('ge')
+            ->select('ge', 'g', 'ht', 'at', 'get2', 'ce')
+            ->leftJoin('ge.game', 'g')
+            ->leftJoin('g.homeTeam', 'ht')
+            ->leftJoin('g.awayTeam', 'at')
+            ->leftJoin('ge.gameEventType', 'get2')
+            ->leftJoin('g.calendarEvent', 'ce')
+            ->where('ge.player IS NULL')
+            ->andWhere('ge.coach IS NULL')
+            ->orderBy('ce.startDate', 'DESC')
+            ->addOrderBy('ge.timestamp', 'ASC');
+
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+            return $qb->getQuery()->getResult();
+        }
+
+        $teamIds = $this->getUserTeamIds($user);
+
+        if (empty($teamIds)) {
+            return [];
+        }
+
+        $qb->andWhere('ht.id IN (:teamIds) OR at.id IN (:teamIds)')
+            ->setParameter('teamIds', $teamIds);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Prüft ob der User Zugriff auf ein bestimmtes GameEvent hat.
+     */
+    public function userCanAccessGameEvent(GameEvent $event, User $user): bool
+    {
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles())) {
+            return true;
+        }
+
+        $teamIds = $this->getUserTeamIds($user);
+        $homeTeamId = $event->getGame()->getHomeTeam()?->getId();
+        $awayTeamId = $event->getGame()->getAwayTeam()?->getId();
+
+        return in_array($homeTeamId, $teamIds) || in_array($awayTeamId, $teamIds);
+    }
+
+    /**
+     * @return int[]
+     */
+    private function getUserTeamIds(User $user): array
+    {
+        $teamIds = [];
+        foreach ($user->getUserRelations() as $userRelation) {
+            if ($userRelation->getPlayer()) {
+                foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
+                    $teamIds[] = $assignment->getTeam()->getId();
+                }
+            }
+            if ($userRelation->getCoach()) {
+                foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
+                    $teamIds[] = $assignment->getTeam()->getId();
+                }
+            }
+        }
+
+        return array_unique($teamIds);
     }
 }

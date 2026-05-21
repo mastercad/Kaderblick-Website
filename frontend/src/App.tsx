@@ -67,6 +67,7 @@ const MyFeedback = lazy(() => import('./pages/MyFeedback'));
 const MyFeedbackDetail = lazy(() => import('./pages/MyFeedbackDetail'));
 const AdminTitleXpOverview = lazy(() => import('./pages/admin/AdminTitleXpOverview'));
 const ActivityOverview = lazy(() => import('./pages/admin/ActivityOverview'));
+const UnknownGameEvents = lazy(() => import('./pages/admin/UnknownGameEvents'));
 const SystemSettings = lazy(() => import('./pages/admin/SystemSettings'));
 const SystemAlertDetail = lazy(() => import('./pages/admin/SystemAlertDetail'));
 const SystemAlertStats = lazy(() => import('./pages/admin/SystemAlertStats'));
@@ -393,6 +394,7 @@ function App() {
                     <Route path="/quick-event-konfigurationen" element={<ProtectedRoute><QuickEventPresets /></ProtectedRoute>} />
                     <Route path="/admin/system-settings" element={<ProtectedRoute><SystemSettings /></ProtectedRoute>} />
                     <Route path="/admin/activity" element={<ProtectedRoute><ActivityOverview /></ProtectedRoute>} />
+                    <Route path="/admin/unknown-game-events" element={<ProtectedRoute><UnknownGameEvents /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts" element={<Navigate to="/admin/system-maintenance?tab=alerts" replace />} />
                     <Route path="/admin/system-alerts/stats" element={<ProtectedRoute><SystemAlertStats /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts/:id" element={<ProtectedRoute><SystemAlertDetail /></ProtectedRoute>} />

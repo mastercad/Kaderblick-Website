@@ -76,6 +76,18 @@ class ReportFieldAliasService
                 'type' => 'relation',
                 'subfield' => 'fullName',
                 'category' => 'dimension',
+                'value' => static function ($event) {
+                    $player = $event->getPlayer();
+                    if (null !== $player) {
+                        return $player->getFullName();
+                    }
+                    $coach = $event->getCoach();
+                    if (null !== $coach) {
+                        return 'Trainer: ' . $coach->getFullName();
+                    }
+
+                    return null;
+                },
             ],
             'team' => [
                 'label' => 'Mannschaft',

@@ -1406,4 +1406,121 @@ class ReportFieldAliasServiceTest extends TestCase
 
         $this->assertArrayHasKey('eventCount', $metrics);
     }
+
+    // =========================================================================
+    // player dimension — value callback (coach card fallback)
+    // =========================================================================
+
+    public function testPlayerValueCallbackReturnsPlayerFullNameWhenPlayerIsSet(): void
+    {
+        $player = new class {
+            public function getFullName(): string
+            {
+                return 'Max Mustermann';
+            }
+        };
+
+        $event = new class ($player) {
+            public function __construct(private object $player)
+            {
+            }
+
+            public function getPlayer(): object
+            {
+                return $this->player;
+            }
+
+            public function getCoach(): mixed
+            {
+                return null;
+            }
+        };
+
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+        $this->assertSame('Max Mustermann', ($aliases['player']['value'])($event));
+    }
+
+    public function testPlayerValueCallbackReturnsCoachLabelWhenPlayerIsNullAndCoachIsSet(): void
+    {
+        $coach = new class {
+            public function getFullName(): string
+            {
+                return 'Hans Trainer';
+            }
+        };
+
+        $event = new class ($coach) {
+            public function __construct(private object $coach)
+            {
+            }
+
+            public function getPlayer(): mixed
+            {
+                return null;
+            }
+
+            public function getCoach(): object
+            {
+                return $this->coach;
+            }
+        };
+
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+        $this->assertSame('Trainer: Hans Trainer', ($aliases['player']['value'])($event));
+    }
+
+    public function testPlayerValueCallbackReturnsNullWhenBothPlayerAndCoachAreNull(): void
+    {
+        $event = new class {
+            public function getPlayer(): mixed
+            {
+                return null;
+            }
+
+            public function getCoach(): mixed
+            {
+                return null;
+            }
+        };
+
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+        $this->assertNull(($aliases['player']['value'])($event));
+    }
+
+    public function testPlayerValueCallbackPrefersDatasourcePlayerOverCoach(): void
+    {
+        // When both player and coach are set, player takes precedence.
+        $player = new class {
+            public function getFullName(): string
+            {
+                return 'Spieler Name';
+            }
+        };
+
+        $coach = new class {
+            public function getFullName(): string
+            {
+                return 'Trainer Name';
+            }
+        };
+
+        $event = new class ($player, $coach) {
+            public function __construct(private object $player, private object $coach)
+            {
+            }
+
+            public function getPlayer(): object
+            {
+                return $this->player;
+            }
+
+            public function getCoach(): object
+            {
+                return $this->coach;
+            }
+        };
+
+        $aliases = ReportFieldAliasService::fieldAliases(null);
+        $this->assertSame('Spieler Name', ($aliases['player']['value'])($event));
+    }
 }
