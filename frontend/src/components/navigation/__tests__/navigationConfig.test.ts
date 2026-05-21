@@ -124,8 +124,8 @@ describe('navigationItems', () => {
 // ── trainerMenuItems ──────────────────────────────────────────────────────────
 
 describe('trainerMenuItems', () => {
-  it('contains 6 items', () => {
-    expect(trainerMenuItems).toHaveLength(6);
+  it('contains 7 items', () => {
+    expect(trainerMenuItems).toHaveLength(7);
   });
 
   it('every item has key, label and icon', () => {
