@@ -116,6 +116,7 @@ export function useCalendarEventState({ eventTypes, gameTypes, teams, events }: 
 
   const handleEventClick = (info: any) => {
     if (info?.isExternal) return;
+    if (info?.isHoliday) return;
     setSelectedEvent(info);
   };
 

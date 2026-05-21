@@ -83,6 +83,16 @@ jest.mock('../../utils/api', () => ({
   getApiErrorMessage: jest.fn(() => 'Fehler'),
 }));
 
+jest.mock('../../context/HolidayContext', () => ({
+  useHolidays: () => ({
+    holidaysEnabled: false,
+    holidayState: 'NATIONAL',
+    setHolidaysEnabled: jest.fn(),
+    setHolidayState: jest.fn(),
+  }),
+  HOLIDAY_STATE_LABELS: { NATIONAL: 'Bundesweit' },
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function setupApiMock(createAndEditAllowed: boolean) {

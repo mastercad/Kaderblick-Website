@@ -11,6 +11,7 @@ import {
 } from '../types/calendar';
 import { apiJson } from '../utils/api';
 import { mapApiEventToCalendarEvent } from '../utils/mapApiEventToCalendarEvent';
+import { useHolidays } from '../context/HolidayContext';
 
 type UserEntry = {
   id: string | number;
@@ -28,6 +29,8 @@ type UserEntry = {
  * @param view  Currently displayed view (controls events-by-view refetch)
  */
 export function useCalendarData(date: Date, view: string) {
+  const { holidaysEnabled, holidayState } = useHolidays();
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +49,7 @@ export function useCalendarData(date: Date, view: string) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [users, setUsers] = useState<UserEntry[]>([]);
   const [activeEventTypeIds, setActiveEventTypeIds] = useState<Set<number>>(new Set());
+  const [holidayEvents, setHolidayEvents] = useState<CalendarEvent[]>([]);
 
   // ─── Initial load: event types, teams, game types, locations, users ───────
 
@@ -167,6 +171,46 @@ export function useCalendarData(date: Date, view: string) {
       });
   }, []);
 
+  // ─── Feiertage (feiertage-api.de) ──────────────────────────────────────────
+
+  useEffect(() => {
+    if (!holidaysEnabled) {
+      setHolidayEvents([]);
+      return;
+    }
+
+    const currentYear = dayjs(date).year();
+    // Lade aktuelles Jahr und Folgejahr (für Dezember/Januar-Übergänge)
+    const years = [currentYear, currentYear + 1];
+
+    let cancelled = false;
+    Promise.all(
+      years.map(year =>
+        apiJson<{ name: string; date: string }[]>(`/api/holidays?year=${year}&state=${holidayState}`)
+          .then((data) =>
+            data.map((info, idx) => {
+              // Parse as local time (not UTC) to avoid off-by-one errors in German timezone
+              const [y, mo, d] = info.date.split('-').map(Number);
+              const day = new Date(y, mo - 1, d);
+              return {
+                id: -(2000000 + year * 1000 + idx),
+                title: info.name,
+                start: day,
+                end: day, // same date → exactly 1 day in react-big-calendar
+                allDay: true,
+                isHoliday: true,
+              } as CalendarEvent;
+            }),
+          )
+          .catch(() => [] as CalendarEvent[]),
+      ),
+    ).then(results => {
+      if (!cancelled) setHolidayEvents(results.flat());
+    });
+
+    return () => { cancelled = true; };
+  }, [holidaysEnabled, holidayState, dayjs(date).year()]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ─── Derived state ─────────────────────────────────────────────────────────
 
   const filteredEvents = useMemo(() => {
@@ -174,8 +218,8 @@ export function useCalendarData(date: Date, view: string) {
       if (!event.eventType?.id) return true;
       return activeEventTypeIds.has(event.eventType.id);
     });
-    return [...platformEvents, ...externalEvents];
-  }, [events, activeEventTypeIds, externalEvents]);
+    return [...platformEvents, ...externalEvents, ...holidayEvents];
+  }, [events, activeEventTypeIds, externalEvents, holidayEvents]);
 
   // ─── Actions ───────────────────────────────────────────────────────────────
 

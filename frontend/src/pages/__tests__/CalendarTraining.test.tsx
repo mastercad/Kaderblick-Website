@@ -132,6 +132,16 @@ jest.mock('../../modals/EventModal', () => ({
 }));
 
 // ─── API mocks ────────────────────────────────────────────────────────────────
+jest.mock('../../context/HolidayContext', () => ({
+  useHolidays: () => ({
+    holidaysEnabled: false,
+    holidayState: 'NATIONAL',
+    setHolidaysEnabled: jest.fn(),
+    setHolidayState: jest.fn(),
+  }),
+  HOLIDAY_STATE_LABELS: { NATIONAL: 'Bundesweit' },
+}));
+
 jest.mock('../../utils/api', () => ({
   __esModule: true,
   apiJson: jest.fn(),

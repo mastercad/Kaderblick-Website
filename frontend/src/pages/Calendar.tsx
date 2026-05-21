@@ -148,6 +148,22 @@ function CalendarInner() {
   }, [eventTypes.createAndEditAllowed]);
 
   const eventStyleGetter = (event: any) => {
+    if (event.isHoliday) {
+      return {
+        className: 'rbc-event--holiday',
+        style: {
+          backgroundColor: '#e65100',
+          borderRadius: '4px',
+          opacity: 0.9,
+          color: 'white',
+          border: '0px',
+          display: 'block',
+          fontWeight: 'bold',
+          fontSize: isMobile ? '0.7rem' : '0.8rem',
+          cursor: 'default',
+        },
+      };
+    }
     const backgroundColor = event.isExternal
       ? event.externalCalendarColor || '#607d8b'
       : event.eventType?.color || theme.palette.primary.main;
@@ -208,6 +224,12 @@ function CalendarInner() {
         fontSize: isMobile ? '0.65rem' : '0.75rem',
         padding: isMobile ? '1px 2px' : '2px 4px',
         lineHeight: isMobile ? 1.2 : 1.4,
+      },
+      '& .rbc-event--holiday, & .rbc-event--holiday.rbc-event': {
+        backgroundColor: '#e65100 !important',
+        color: 'white !important',
+        border: 'none !important',
+        cursor: 'default !important',
       },
       '& .rbc-toolbar': {
         marginBottom: theme.spacing(2),

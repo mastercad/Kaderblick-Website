@@ -8,6 +8,8 @@ import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -18,9 +20,11 @@ import SecurityIcon from '@mui/icons-material/Security';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { SectionCard } from '../components/SectionCard';
 import { getPushStatusColor, getPushStatusLabel } from '../hooks/usePushNotifications';
 import type { PushHealthReport } from '../../../services/pushHealthMonitor';
+import { useHolidays, HOLIDAY_STATE_LABELS, type HolidayStateCode } from '../../../context/HolidayContext';
 
 interface SettingsTabProps {
   themeMode: 'light' | 'dark';
@@ -52,6 +56,8 @@ export function SettingsTab({
   onSetup2FA, onDisable2FA, onDisableEmailOtp, onOpenBackupCodes,
   showInHallOfFame, onToggleHallOfFame,
 }: SettingsTabProps) {
+  const { holidaysEnabled, holidayState, setHolidaysEnabled, setHolidayState } = useHolidays();
+
   return (
     <>
       <SectionCard
@@ -208,6 +214,41 @@ export function SettingsTab({
               </Button>
             )}
           </Box>
+        </Stack>
+      </SectionCard>
+
+      <SectionCard title="Feiertage im Kalender" icon={<CalendarMonthIcon fontSize="small" />}>
+        <Stack spacing={1.5}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={holidaysEnabled}
+                onChange={e => setHolidaysEnabled(e.target.checked)}
+                color="primary"
+              />
+            }
+            label={<Typography variant="body2">Feiertage anzeigen</Typography>}
+          />
+          {holidaysEnabled && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Bundesland / Geltungsbereich
+              </Typography>
+              <Select
+                value={holidayState}
+                onChange={e => setHolidayState(e.target.value as HolidayStateCode)}
+                size="small"
+                fullWidth
+              >
+                {(Object.entries(HOLIDAY_STATE_LABELS) as [HolidayStateCode, string][]).map(([code, label]) => (
+                  <MenuItem key={code} value={code}>{label}</MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Feiertage werden jährlich automatisch aktuell aus der Datenbank der feiertage-api.de geladen.
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </SectionCard>
 

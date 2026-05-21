@@ -3,7 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\PlayerTeamAssignment;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/player-team-assignments', name: 'api_player_team_assignments_')]
 class PlayerTeamAssignmentsController extends ApiController

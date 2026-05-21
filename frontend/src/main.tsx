@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from '@mui/material/styles';
 import { ThemeProvider as CustomThemeProvider } from './context/ThemeContext';
 import { ConsentProvider } from './context/ConsentContext';
+import { HolidayProvider } from './context/HolidayContext';
 import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { lightTheme } from './theme/theme';
@@ -54,15 +55,17 @@ createRoot(rootElement).render(
     <HelmetProvider>
       <ConsentProvider>
         <CustomThemeProvider>
-          <ThemeProvider theme={lightTheme}>
-            <AuthProvider>
-              <BrowserRouter>
-                <ToastProvider>
-                  <App />
-                </ToastProvider>
-              </BrowserRouter>
-            </AuthProvider>
-          </ThemeProvider>
+          <HolidayProvider>
+            <ThemeProvider theme={lightTheme}>
+              <AuthProvider>
+                <BrowserRouter>
+                  <ToastProvider>
+                    <App />
+                  </ToastProvider>
+                </BrowserRouter>
+              </AuthProvider>
+            </ThemeProvider>
+          </HolidayProvider>
         </CustomThemeProvider>
       </ConsentProvider>
     </HelmetProvider>

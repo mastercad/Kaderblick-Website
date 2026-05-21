@@ -8,7 +8,7 @@ use App\Security\Voter\CalendarEventVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/calendar-event-types', name: 'api_calendar_event_types_')]
 class CalendarEventTypesController extends AbstractController

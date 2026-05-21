@@ -411,10 +411,17 @@ describe('STORAGE_REGISTRY Vollständigkeit', () => {
       'kb_sidebar_collapsed',
       'notifications',
       'games_selectedTeamId',
+      'calendar.holidays.enabled',
+      'calendar.holidays.state',
     ];
     knownKeys.forEach(key => {
       expect(Object.prototype.hasOwnProperty.call(STORAGE_REGISTRY, key)).toBe(true);
     });
+  });
+
+  it('Feiertags-Keys sind als "functional" eingestuft', () => {
+    expect(STORAGE_REGISTRY['calendar.holidays.enabled']).toBe('functional');
+    expect(STORAGE_REGISTRY['calendar.holidays.state']).toBe('functional');
   });
 });
 

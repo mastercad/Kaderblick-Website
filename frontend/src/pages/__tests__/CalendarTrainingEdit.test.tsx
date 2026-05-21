@@ -97,6 +97,16 @@ jest.mock('../../utils/api', () => ({
   getApiErrorMessage: jest.fn(() => 'Fehler'),
 }));
 
+jest.mock('../../context/HolidayContext', () => ({
+  useHolidays: () => ({
+    holidaysEnabled: false,
+    holidayState: 'NATIONAL',
+    setHolidaysEnabled: jest.fn(),
+    setHolidayState: jest.fn(),
+  }),
+  HOLIDAY_STATE_LABELS: { NATIONAL: 'Bundesweit' },
+}));
+
 // ─── Helper: standard API mock setup ─────────────────────────────────────────
 function setupApiMock(events: any[] = []) {
   (apiJson as jest.Mock).mockImplementation((url: string) => {

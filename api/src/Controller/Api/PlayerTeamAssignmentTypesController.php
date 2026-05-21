@@ -7,7 +7,7 @@ use App\Security\Voter\PlayerTeamAssignmentTypeVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/player-team-assignment-types', name: 'api_player_team_assignment_types_')]
 class PlayerTeamAssignmentTypesController extends AbstractController

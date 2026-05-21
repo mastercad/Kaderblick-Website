@@ -74,6 +74,10 @@ export type CalendarEvent = {
   externalCalendarId?: number;
   externalCalendarName?: string;
   externalCalendarColor?: string;
+  // All-Day-Events (z. B. Feiertage)
+  allDay?: boolean;
+  // Feiertage
+  isHoliday?: boolean;
   /** Teilnahme-Status des authentifizierten Nutzers (vom Backend serialisiert). */
   participation_status?: {
     id: number;

@@ -47,6 +47,10 @@ export const STORAGE_REGISTRY = {
   'notifications':                 'functional',
   /** Zuletzt gewählte Team-ID auf der Spiele-Seite */
   'games_selectedTeamId':          'functional',
+  /** Ob Feiertage im Kalender angezeigt werden */
+  'calendar.holidays.enabled':     'functional',
+  /** Bundesland-Code für Feiertagsanzeige im Kalender (NATIONAL, BY, BW, …) */
+  'calendar.holidays.state':       'functional',
 } as const satisfies Record<string, ConsentCategory>;
 
 /**

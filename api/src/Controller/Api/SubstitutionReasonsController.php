@@ -6,7 +6,7 @@ use App\Repository\SubstitutionReasonRepository;
 use App\Security\Voter\SubstitutionReasonVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/substitution-reasons', name: 'api_substitution_reasons_')]
 class SubstitutionReasonsController extends AbstractController

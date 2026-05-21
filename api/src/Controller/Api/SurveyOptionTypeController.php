@@ -7,7 +7,7 @@ use App\Repository\SurveyOptionTypeRepository;
 use App\Security\Voter\SurveyOptionTypeVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/survey-option-types', name: 'api_survey_option_types_')]
 class SurveyOptionTypeController extends AbstractController

@@ -7,7 +7,7 @@ use App\Repository\SurveyQuestionRepository;
 use App\Security\Voter\SurveyQuestionVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/survey-questions', name: 'api_survey_questions_')]
 class SurveyQuestionController extends AbstractController

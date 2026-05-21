@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { SettingsTab } from '../../tabs/SettingsTab';
 import type { PushHealthReport } from '../../../../services/pushHealthMonitor';
 
+jest.mock('../../../../context/HolidayContext', () => ({
+  useHolidays: () => ({
+    holidaysEnabled: false,
+    holidayState: 'NATIONAL',
+    setHolidaysEnabled: jest.fn(),
+    setHolidayState: jest.fn(),
+  }),
+  HOLIDAY_STATE_LABELS: { NATIONAL: 'Bundesweit' },
+}));
+
 const healthyPush: PushHealthReport = {
   status: 'healthy',
   issues: [],

@@ -15,7 +15,7 @@ use App\Service\GoalCountingService;
 use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/games', name: 'games_')]
 class GamesController extends AbstractController

@@ -3,7 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\GameEvent;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/game-events', name: 'api_game_events_')]
 class GameEventsController extends ApiController

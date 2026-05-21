@@ -3,7 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\Club;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/clubs', name: 'api_clubs_')]
 class ClubsController extends ApiController
