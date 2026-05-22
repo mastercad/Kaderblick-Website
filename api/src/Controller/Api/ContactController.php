@@ -21,9 +21,15 @@ class ContactController extends AbstractController
     public function contact(Request $request, MailerInterface $mailer, ValidatorInterface $validator): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
+
+        // Honeypot: Bots füllen das "email"-Feld aus – echte Nutzer nicht
+        if (!empty($data['email'] ?? '')) {
+            return new JsonResponse(['success' => true]);
+        }
+
         $dto = new ContactMessageDto();
         $dto->name = $data['name'] ?? '';
-        $dto->email = $data['email'] ?? '';
+        $dto->email = $data['reachEmail'] ?? '';
         $dto->message = $data['message'] ?? '';
 
         $violations = $validator->validate($dto);

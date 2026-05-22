@@ -25,6 +25,7 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import AuthModal from '../modals/AuthModal';
 import ContactForm from '../components/public/ContactForm';
+import ObfuscatedEmail from '../components/public/ObfuscatedEmail';
 import DemoRequestModal from '../modals/DemoRequestModal';
 import PublicSiteHeader from '../components/public/PublicSiteHeader';
 import { useHomeScroll } from '../context/HomeScrollContext';
@@ -332,13 +333,11 @@ export default function Home() {
                 </Typography>
                 <Box className="public-home-contact-email-wrap">
                   <EmailOutlinedIcon />
-                  <Typography
-                    component="a"
-                    href="mailto:andreas.kempe@kaderblick.de"
+                  <ObfuscatedEmail
+                    user="andreas.kempe"
+                    domain="kaderblick.de"
                     className="public-home-contact-email-link"
-                  >
-                    andreas.kempe@kaderblick.de
-                  </Typography>
+                  />
                 </Box>
               </Box>
 

@@ -15,18 +15,24 @@ export default function ContactForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [honeypotEmail, setHoneypotEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Honeypot: Bots füllen das versteckte "email"-Feld aus
+    if (honeypotEmail) {
+      setSuccess(true);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       await apiJson('/api/contact', {
         method: 'POST',
-        body: { name, email, message },
+        body: { name, reachEmail: email, message },
       });
       setSuccess(true);
     } catch (err: any) {
@@ -52,6 +58,28 @@ export default function ContactForm() {
 
   return (
     <Box component="form" onSubmit={handleSubmit} className="public-home-contact-form">
+      {/* Honeypot-Falle für Bots: visuell versteckt, aber kein type="hidden" */}
+      <Box
+        aria-hidden="true"
+        sx={{
+          position: 'absolute',
+          left: '-9999px',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          opacity: 0,
+        }}
+      >
+        <input
+          type="text"
+          name="email"
+          id="email"
+          value={honeypotEmail}
+          onChange={e => setHoneypotEmail(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </Box>
       <TextField
         label="Name"
         value={name}
@@ -68,6 +96,7 @@ export default function ContactForm() {
         required
         fullWidth
         size="small"
+        slotProps={{ htmlInput: { name: 'contact_address', autoComplete: 'email' } }}
       />
       <TextField
         label="Nachricht"
