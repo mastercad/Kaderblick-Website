@@ -109,11 +109,11 @@ export function SharePresetDialog({ preset, onClose, onShared }: SharePresetDial
                 ...params.slotProps,
 
                 input: {
-                  ...params.slotProps.input,
+                  ...(params.slotProps?.input ?? {}),
                   endAdornment: (
                     <>
                       {searching && <CircularProgress size={18} />}
-                      {params.slotProps.input.endAdornment}
+                      {params.slotProps?.input?.endAdornment}
                     </>
                   ),
                 }

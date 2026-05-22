@@ -26,8 +26,10 @@ Object.defineProperty(window, 'matchMedia', {
 jest.mock('../../../context/AuthContext', () => ({ useAuth: jest.fn() }));
 
 let mockPathname = '/';
+const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: mockPathname }),
+  useNavigate: () => mockNavigate,
   Link: ({ children, to }: any) => <a href={to}>{children}</a>,
 }));
 

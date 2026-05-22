@@ -27,7 +27,7 @@ import { apiJson } from '../utils/api';
 import { useWidgetRefresh } from '../context/WidgetRefreshContext';
 
 // Side-effect import: registers Chart.js components & plugins globally
-import './report/chartPlugins.js';
+import './report/chartPlugins';
 
 import type { ReportData, FacetedPanel } from './report/reportTypes';
 import { defaultColors, rgbaColors, applyMovingAverage } from './report/chartHelpers';

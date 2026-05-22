@@ -270,11 +270,11 @@ export const MessageComposePane: React.FC<Props> = ({
                             ...params.slotProps,
 
                             input: {
-                              ...params.slotProps.input,
+                              ...(params.slotProps?.input ?? {}),
                               startAdornment: (
                                 <>
                                   <PersonIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} />
-                                  {params.slotProps.input.startAdornment}
+                                  {params.slotProps?.input?.startAdornment}
                                 </>
                               ),
                               sx: { flexWrap: 'wrap' },

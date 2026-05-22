@@ -178,20 +178,13 @@ export const lightTheme = createTheme({
     },
     MuiButton: {
       ...baseTheme.components?.MuiButton,
+      variants: [
+        ...(baseTheme.components?.MuiButton?.variants ?? []),
+        { props: { variant: 'contained', color: 'primary' }, style: { backgroundColor: '#018606', '&:hover': { backgroundColor: '#02b008' } } },
+        { props: { variant: 'contained', color: 'secondary' }, style: { backgroundColor: '#00c853', '&:hover': { backgroundColor: '#5efc82' } } },
+      ],
       styleOverrides: {
         ...baseTheme.components?.MuiButton?.styleOverrides,
-        containedPrimary: {
-          backgroundColor: '#018606',
-          '&:hover': {
-            backgroundColor: '#02b008', // Heller beim Hover
-          },
-        },
-        containedSecondary: {
-          backgroundColor: '#00c853',
-          '&:hover': {
-            backgroundColor: '#5efc82', // Heller beim Hover
-          },
-        },
         outlined: {
           borderWidth: 2,
           '&:hover': {

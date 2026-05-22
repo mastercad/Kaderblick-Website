@@ -1125,3 +1125,107 @@
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
 }
+
+/* ======================================================
+   Contact Section (inline, Home page)
+   ====================================================== */
+
+.public-home-contact-section {
+  padding: 4.5rem 0 5.5rem;
+  background: linear-gradient(180deg, #fcfbf8 0%, #f5f8f4 100%);
+  border-top: 1px solid #e6ede4;
+  border-bottom: 1px solid #e6ede4;
+}
+
+.public-home-contact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 5rem;
+  align-items: start;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.public-home-contact-copy {
+  padding-top: 0.5rem;
+}
+
+.public-home-contact-email-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.65rem;
+}
+
+.public-home-contact-email-wrap svg {
+  font-size: 1.15rem;
+  color: #2c9b46;
+  flex-shrink: 0;
+}
+
+.public-home-contact-email-link {
+  font-family: var(--public-home-font-family);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c9b46;
+  text-decoration: none;
+}
+
+.public-home-contact-email-link:hover {
+  text-decoration: underline;
+}
+
+.public-home-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2.25rem;
+  box-shadow: 0 2px 20px rgba(26, 33, 24, 0.07);
+}
+
+.public-home-contact-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 3.5rem 2rem;
+  box-shadow: 0 2px 20px rgba(26, 33, 24, 0.07);
+  text-align: center;
+  min-height: 20rem;
+}
+
+.public-home-contact-success-icon {
+  font-size: 3.25rem !important;
+  color: #2c9b46;
+}
+
+.public-home-contact-success-title {
+  font-family: var(--public-home-font-family);
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  color: #101814;
+  margin: 0;
+}
+
+.public-home-contact-success-text {
+  font-size: 0.92rem !important;
+  color: #4a5c4c;
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .public-home-contact-section {
+    padding: 3.25rem 0 4rem;
+  }
+
+  .public-home-contact-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.25rem;
+  }
+}

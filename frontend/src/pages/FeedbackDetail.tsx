@@ -350,7 +350,6 @@ const FeedbackDetailPage: React.FC = () => {
                 href={item.url}
                 target="_blank"
                 sx={{
-                  color: "text.disabled",
                   wordBreak: 'break-all',
                   color: 'inherit',
                   textDecoration: 'none',

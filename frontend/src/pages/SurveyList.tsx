@@ -322,7 +322,6 @@ const SurveyList: React.FC = () => {
         sx={{
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 1,
           position: 'sticky',
           top: 'var(--app-header-height)',
           zIndex: 10,

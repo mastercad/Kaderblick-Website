@@ -215,8 +215,8 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
                     slotProps={{
                       ...params.slotProps,
 
-                      input: { ...params.slotProps.input,
-                        endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.slotProps.input.endAdornment}</>)
+                      input: { ...(params.slotProps?.input ?? {}),
+                        endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.slotProps?.input?.endAdornment}</>)
                       }
                     }}
                   />

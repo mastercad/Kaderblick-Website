@@ -36,7 +36,7 @@ import QRCodeShareModal from './modals/QRCodeShareModal';
 import ContactModal from './modals/ContactModal';
 import DemoRequestModal from './modals/DemoRequestModal';
 import Seo from './seo/Seo';
-import PublicLoadingScreen from './components/public/PublicLoadingScreen';
+import LinearProgress from '@mui/material/LinearProgress';
 import CookieBanner from './components/CookieBanner';
 import {
   APP_NOINDEX_DESCRIPTION,
@@ -110,7 +110,24 @@ const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const HallOfFame = lazy(() => import('./pages/HallOfFame'));
 
 function RouteFallback() {
-  return <PublicLoadingScreen />;
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 200);
+    return () => clearTimeout(t);
+  }, []);
+  if (!show) return null;
+  return (
+    <LinearProgress
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        height: 3,
+      }}
+    />
+  );
 }
 
 function RouteSeoBoundary() {

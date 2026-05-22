@@ -88,11 +88,11 @@ export const StepContext: React.FC<StepContextProps> = ({
                 ...params.slotProps,
 
                 input: {
-                  ...params.slotProps.input,
+                  ...(params.slotProps?.input ?? {}),
                   endAdornment: (
                     <>
                       {playerSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.slotProps.input.endAdornment}
+                      {params.slotProps?.input?.endAdornment}
                     </>
                   ),
                 }
@@ -269,11 +269,11 @@ export const StepContext: React.FC<StepContextProps> = ({
               ...params.slotProps,
 
               input: {
-                ...params.slotProps.input,
+                ...(params.slotProps?.input ?? {}),
                 endAdornment: (
                   <>
                     {playerSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                    {params.slotProps.input.endAdornment}
+                    {params.slotProps?.input?.endAdornment}
                   </>
                 ),
               }

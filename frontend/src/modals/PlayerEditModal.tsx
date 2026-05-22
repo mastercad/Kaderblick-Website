@@ -920,11 +920,11 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                                 ...params.slotProps,
 
                                                 input: {
-                                                    ...params.slotProps.input,
+                                                    ...(params.slotProps?.input ?? {}),
                                                     endAdornment: (
                                                         <>
                                                             {playerSearchLoading ? <CircularProgress size={16} /> : null}
-                                                            {params.slotProps.input.endAdornment}
+                                                            {params.slotProps?.input?.endAdornment}
                                                         </>
                                                     ),
                                                 }

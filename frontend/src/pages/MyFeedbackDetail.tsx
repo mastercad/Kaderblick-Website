@@ -247,7 +247,6 @@ const MyFeedbackDetailPage: React.FC = () => {
                 href={item.url}
                 target="_blank"
                 sx={{
-                  color: "text.disabled",
                   color: 'inherit',
                   textDecoration: 'none',
                   wordBreak: 'break-all',

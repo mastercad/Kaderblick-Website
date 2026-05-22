@@ -4,7 +4,7 @@ import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/public-home.css';
 
@@ -20,6 +20,7 @@ const defaultOpenAuth = () => {
 export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenDemo }: PublicSiteHeaderProps) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isHome = location.pathname === '/' || location.pathname === '';
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -59,8 +60,7 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
           <Button
             key={item.label}
             className={`public-home-nav-link${item.active ? ' public-home-nav-link-active' : ''}`}
-            component="a"
-            href={item.href}
+            onClick={() => navigate(item.href)}
           >
             {item.label}
           </Button>
@@ -141,9 +141,7 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
           {navItems.map((item) => (
             <ListItem key={item.label} disablePadding>
               <ListItemButton
-                component="a"
-                href={item.href}
-                onClick={() => setDrawerOpen(false)}
+                onClick={() => { setDrawerOpen(false); navigate(item.href); }}
                 className={`public-home-mobile-nav-item${item.active ? ' public-home-mobile-nav-item-active' : ''}`}
               >
                 <ListItemText primary={item.label} />

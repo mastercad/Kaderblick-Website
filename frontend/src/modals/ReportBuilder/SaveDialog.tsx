@@ -54,10 +54,9 @@ export const SaveDialog: React.FC<SaveDialogProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={onCancel}
+      onClose={(_, reason) => { if (saving && reason === 'escapeKeyDown') return; onCancel(); }}
       maxWidth="xs"
       fullWidth
-      disableEscapeKeyDown={saving}
     >
       <DialogTitle>Auswertung speichern</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>

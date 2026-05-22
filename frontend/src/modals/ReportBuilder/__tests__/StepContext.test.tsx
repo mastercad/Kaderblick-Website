@@ -36,11 +36,13 @@ jest.mock('@mui/material', () => {
       noOptionsText,
     }: any) => {
       const inputNode = renderInput({
-        InputProps: { endAdornment: null },
-        inputProps: {
-          'data-testid': 'autocomplete-input',
-          value: inputValue ?? '',
-          onChange: (e: React.ChangeEvent<HTMLInputElement>) => onInputChange?.(null, e.target.value),
+        slotProps: {
+          input: { endAdornment: null },
+          htmlInput: {
+            'data-testid': 'autocomplete-input',
+            value: inputValue ?? '',
+            onChange: (e: React.ChangeEvent<HTMLInputElement>) => onInputChange?.(null, e.target.value),
+          },
         },
         id: 'mock-autocomplete',
         fullWidth: true,

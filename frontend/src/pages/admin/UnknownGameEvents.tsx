@@ -108,11 +108,11 @@ function EventRow({ event, onAssigned }: EventRowProps) {
                 ...params.slotProps,
 
                 input: {
-                  ...params.slotProps.input,
+                  ...(params.slotProps?.input ?? {}),
                   endAdornment: (
                     <>
                       {playersLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.slotProps.input.endAdornment}
+                      {params.slotProps?.input?.endAdornment}
                     </>
                   ),
                 }

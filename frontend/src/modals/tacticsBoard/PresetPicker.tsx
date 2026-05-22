@@ -228,7 +228,7 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
         }}
         slotProps={{
           input: { sx: { fontSize: '0.8rem', color: '#e5e7eb' } },
-          select: { MenuProps: { PaperProps: { sx: { bgcolor: '#1f2937', color: '#e5e7eb' } } } },
+          select: { MenuProps: { slotProps: { paper: { sx: { bgcolor: '#1f2937', color: '#e5e7eb' } } } } },
           inputLabel: { sx: { fontSize: '0.8rem', color: '#9ca3af' } }
         }}>
         {PRESET_CATEGORIES.map(cat => (

@@ -173,8 +173,10 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
                 {homeMenuItems.map((item) => (
                   <Button
                     key={item.label}
-                    component="a"
-                    href={item.href}
+                    {...(item.href.startsWith('#')
+                      ? { component: 'a', href: item.href }
+                      : { onClick: () => navigate(item.href) }
+                    )}
                     className="navigation-transparent-btn"
                     sx={{
                       color: item.active ? '#ffffff' : 'rgba(255,255,255,0.82)',

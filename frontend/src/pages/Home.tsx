@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   Link,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
@@ -21,7 +24,9 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { Link as RouterLink } from 'react-router-dom';
+import { apiJson } from '../utils/api';
 import AuthModal from '../modals/AuthModal';
 import DemoRequestModal from '../modals/DemoRequestModal';
 import PublicSiteHeader from '../components/public/PublicSiteHeader';
@@ -100,6 +105,30 @@ export default function Home() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const { setIsOnHeroSection } = useHomeScroll();
+
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactLoading(true);
+    setContactError(null);
+    try {
+      await apiJson('/api/contact', {
+        method: 'POST',
+        body: { name: contactName, email: contactEmail, message: contactMessage },
+      });
+      setContactSuccess(true);
+    } catch (err: any) {
+      setContactError(err.message || 'Fehler beim Senden. Bitte versuch es erneut.');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   useEffect(() => {
     const original = document.body.style.background;
@@ -202,8 +231,8 @@ export default function Home() {
                     variant="outlined"
                     endIcon={<ArrowForwardRoundedIcon />}
                     className="public-home-more-button"
-                    component="a"
-                    href="/funktionen"
+                    component={RouterLink}
+                    to="/funktionen"
                   >
                     Mehr erfahren
                   </Button>
@@ -314,6 +343,89 @@ export default function Home() {
           </Container>
         </Box>
 
+        <Box component="section" id="kontakt" className="public-home-contact-section">
+          <Container maxWidth="xl">
+            <Box className="public-home-contact-grid">
+              <Box className="public-home-contact-copy">
+                <Typography className="public-home-kicker">Direkt schreiben</Typography>
+                <Typography component="h2" className="public-home-section-title">
+                  Jetzt Kontakt
+                  <br />
+                  aufnehmen.
+                </Typography>
+                <Typography className="public-home-section-text">
+                  Fragen zu Kaderblick, zur Einführung im Verein oder zu einzelnen Funktionen?
+                  Schreib uns direkt — kein Herumklicken nötig.
+                </Typography>
+                <Box className="public-home-contact-email-wrap">
+                  <EmailOutlinedIcon />
+                  <Typography
+                    component="a"
+                    href="mailto:andreas.kempe@kaderblick.de"
+                    className="public-home-contact-email-link"
+                  >
+                    andreas.kempe@kaderblick.de
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box>
+                {contactSuccess ? (
+                  <Box className="public-home-contact-success">
+                    <CheckCircleOutlineRoundedIcon className="public-home-contact-success-icon" />
+                    <Typography component="h3" className="public-home-contact-success-title">
+                      Nachricht gesendet!
+                    </Typography>
+                    <Typography className="public-home-contact-success-text">
+                      Ich melde mich zeitnah bei dir.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box component="form" onSubmit={handleContactSubmit} className="public-home-contact-form">
+                    <TextField
+                      label="Name"
+                      value={contactName}
+                      onChange={e => setContactName(e.target.value)}
+                      required
+                      fullWidth
+                      size="small"
+                    />
+                    <TextField
+                      label="E-Mail"
+                      type="email"
+                      value={contactEmail}
+                      onChange={e => setContactEmail(e.target.value)}
+                      required
+                      fullWidth
+                      size="small"
+                    />
+                    <TextField
+                      label="Nachricht"
+                      value={contactMessage}
+                      onChange={e => setContactMessage(e.target.value)}
+                      required
+                      fullWidth
+                      multiline
+                      minRows={4}
+                      size="small"
+                    />
+                    {contactError && <Alert severity="error">{contactError}</Alert>}
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={contactLoading}
+                      endIcon={contactLoading ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardRoundedIcon />}
+                      className="public-home-primary-button"
+                    >
+                      {contactLoading ? 'Wird gesendet…' : 'Nachricht senden'}
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Container>
+        </Box>
+
         <Box component="footer" id="cta" className="public-home-proof-section">
           <Container maxWidth="lg" className="public-home-proof-grid">
             <Box className="public-home-proof-copy">
@@ -353,8 +465,8 @@ export default function Home() {
                 Demo anfragen
               </Button>
               <Button
-                component="a"
-                href="/funktionen"
+                component={RouterLink}
+                to="/funktionen"
                 variant="outlined"
                 endIcon={<ArrowOutwardRoundedIcon />}
                 className="public-home-cta-button-ghost"

@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'child_process';
 
 // Get git commit hash for build info
-let commitHash = '';
+let commitHash;
 try {
   commitHash = execSync('git rev-parse --short HEAD').toString().trim();
 } catch {

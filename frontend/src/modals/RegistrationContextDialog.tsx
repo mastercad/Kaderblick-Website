@@ -310,11 +310,11 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                                 ...params.slotProps,
 
                                                 input: {
-                                                    ...params.slotProps.input,
+                                                    ...(params.slotProps?.input ?? {}),
                                                     endAdornment: (
                                                         <>
                                                             {searchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                                                            {params.slotProps.input.endAdornment}
+                                                            {params.slotProps?.input?.endAdornment}
                                                         </>
                                                     ),
                                                 }

@@ -107,18 +107,21 @@ jest.mock('@mui/material/ListItemText', () => ({
 }));
 jest.mock('@mui/material/TextField', () => ({
   __esModule: true,
-  default: ({ value, onChange, InputProps, placeholder, size: _s, fullWidth: _fw, sx: _sx }: any) => (
-    <div>
-      {InputProps?.startAdornment}
-      <input
-        data-testid="search-field"
-        value={value}
-        onChange={onChange ?? (() => {})}
-        placeholder={placeholder}
-      />
-      {InputProps?.endAdornment}
-    </div>
-  ),
+  default: ({ value, onChange, InputProps, slotProps, placeholder, size: _s, fullWidth: _fw, sx: _sx }: any) => {
+    const adornmentSource = InputProps ?? slotProps?.input;
+    return (
+      <div>
+        {adornmentSource?.startAdornment}
+        <input
+          data-testid="search-field"
+          value={value}
+          onChange={onChange ?? (() => {})}
+          placeholder={placeholder}
+        />
+        {adornmentSource?.endAdornment}
+      </div>
+    );
+  },
 }));
 jest.mock('@mui/material/Tooltip', () => ({
   __esModule: true,

@@ -42,7 +42,7 @@ jest.mock('@mui/material', () => {
             disabled={props.disabled}
             placeholder={props.placeholder}
           />
-          {props.InputProps?.endAdornment}
+          {(props.InputProps ?? props.slotProps?.input)?.endAdornment}
         </div>
       );
     },
