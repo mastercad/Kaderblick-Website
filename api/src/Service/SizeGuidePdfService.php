@@ -89,14 +89,14 @@ class SizeGuidePdfService
     /**
      * @param array<array<string, mixed>> $players
      *
-     * @return array<string, int>
+     * @return array<array-key, int>
      */
     private function aggregate(array $players, string $key): array
     {
         $result = [];
         foreach ($players as $player) {
             $val = isset($player[$key]) ? (string) $player[$key] : '';
-            if ('' === $val) {
+            if ('' === $val || '0' === $val) {
                 continue;
             }
             $result[$val] = ($result[$val] ?? 0) + 1;

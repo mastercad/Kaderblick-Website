@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { apiBlob } from '../utils/api';
 import { apiJson } from '../utils/api';
 import {
@@ -13,7 +13,20 @@ import {
   TableRow,
   Alert,
   CircularProgress,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Snackbar,
+  Switch,
+  TextField,
+  FormControlLabel,
   useTheme,
   useMediaQuery,
   Stack,
@@ -21,6 +34,7 @@ import {
   Tooltip,
   Avatar,
   Button,
+  IconButton,
   FormControl,
   InputLabel,
   Select,
@@ -32,7 +46,9 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import GroupsIcon from '@mui/icons-material/Groups';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CloseIcon from '@mui/icons-material/Close';
 import EmptyStateHint from '../components/EmptyStateHint';
 
 interface Player {
@@ -45,22 +61,56 @@ interface Player {
   jacket_size: string | null;
 }
 
+interface Coach {
+  id: number;
+  name: string;
+  shorts_size: string | null;
+  shirt_size: string | null;
+  shoe_size: string | null;
+  socks_size: string | null;
+  jacket_size: string | null;
+}
+
+interface Supporter {
+  id: number;
+  name: string;
+  shorts_size: string | null;
+  shirt_size: string | null;
+  shoe_size: string | null;
+  socks_size: string | null;
+  jacket_size: string | null;
+}
+
+type Candidate = (Player & { role: 'player' }) | (Coach & { role: 'coach' }) | (Supporter & { role: 'supporter' });
+
 interface Team {
   team_id: number;
   team_name: string;
   players: Player[];
+  coaches: Coach[];
+  supporters: Supporter[];
 }
 
 interface SizeSummary {
   [size: string]: number;
 }
 
-const aggregateTeamSizes = (players: Player[], key: keyof Player): SizeSummary =>
-  players.reduce((acc: SizeSummary, p) => {
+const aggregateTeamSizes = (members: Array<Player | Coach | Supporter>, key: keyof Player): SizeSummary =>
+  members.reduce((acc: SizeSummary, p) => {
     const val = p[key];
-    if (val) acc[val as string] = (acc[val as string] || 0) + 1;
+    if (val && val !== '0') acc[val as string] = (acc[val as string] || 0) + 1;
     return acc;
   }, {});
+
+const getMissingFields = (p: Player | Coach | Supporter): string[] => {
+  const missing: string[] = [];
+  if (!p.shorts_size || p.shorts_size === '0') missing.push('Hose');
+  if (!p.shirt_size  || p.shirt_size  === '0') missing.push('Trikot');
+  if (!p.shoe_size   || p.shoe_size   === '0') missing.push('Schuhgröße');
+  if (!p.socks_size  || p.socks_size  === '0') missing.push('Stutzen');
+  if (!p.jacket_size || p.jacket_size === '0') missing.push('Trainingsjacke');
+  return missing;
+};
 
 /** Sortiert Größen: XS/S/M/L/XL/XXL-aware, numerisch, sonst alphabetisch */
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
@@ -103,7 +153,7 @@ const getChipStyle = (size: string, isDark: boolean) => {
 
 const SizeChip: React.FC<{ size: string | null }> = ({ size }) => {
   const theme = useTheme();
-  if (!size) {
+  if (!size || size === '0') {
     return (
       <Tooltip title="Keine Angabe">
         <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic', userSelect: 'none' }}>–</Typography>
@@ -205,6 +255,144 @@ const SizeSummarySection: React.FC<{
   );
 };
 
+// ─── ReminderDialog ────────────────────────────────────────────────────────
+
+interface ReminderDialogProps {
+  open: boolean;
+  candidates: Candidate[];
+  sending: boolean;
+  onClose: () => void;
+  onConfirm: (excludedIds: number[], createTask: boolean, taskDueDate: string) => void;
+}
+
+const ReminderDialog: React.FC<ReminderDialogProps> = ({ open, candidates, sending, onClose, onConfirm }) => {
+  const [excluded, setExcluded] = React.useState<Set<number>>(new Set());
+  const [createTask, setCreateTask] = React.useState(false);
+  const [taskDueDate, setTaskDueDate] = React.useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
+
+  React.useEffect(() => {
+    if (open) {
+      // Supporters standardmäßig ausgeschlossen
+      setExcluded(new Set(candidates.filter(c => c.role === 'supporter').map(c => c.id)));
+      setCreateTask(false);
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      setTaskDueDate(d.toISOString().slice(0, 10));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const toggle = (id: number) =>
+    setExcluded(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const notifyCount = candidates.length - excluded.size;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700, pr: 6 }}>
+        Erinnerung senden
+        <IconButton
+          aria-label="Schließen"
+          onClick={onClose}
+          sx={{ position: 'absolute', right: 8, top: 8, color: 'text.secondary' }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Die folgenden {candidates.length} Mitglieder haben unvollständige Ausrüstungsangaben.
+          Entferne das Häkchen, um einzelne Personen von der Benachrichtigung auszuschließen.
+        </Typography>
+        <List dense disablePadding>
+          {candidates.map(player => {
+            const isExcluded = excluded.has(player.id);
+            const missing = getMissingFields(player);
+            return (
+              <ListItem key={player.id} disablePadding>
+                <ListItemButton
+                  onClick={() => toggle(player.id)}
+                  sx={{ borderRadius: 1, opacity: isExcluded ? 0.45 : 1 }}
+                >
+                  <Checkbox
+                    checked={!isExcluded}
+                    tabIndex={-1}
+                    disableRipple
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
+                  <ListItemText
+                    primary={
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {player.name}
+                        </Typography>
+                        {player.role === 'coach' && (
+                          <Chip label="Trainer" size="small" variant="outlined" color="secondary"
+                            sx={{ fontSize: '0.63rem', height: 17, '& .MuiChip-label': { px: 0.75 } }}
+                          />
+                        )}
+                        {player.role === 'supporter' && (
+                          <Chip label="Supporter" size="small" variant="outlined" color="warning"
+                            sx={{ fontSize: '0.63rem', height: 17, '& .MuiChip-label': { px: 0.75 } }}
+                          />
+                        )}
+                      </Stack>
+                    }
+                    secondary={
+                      <Typography variant="caption" color={isExcluded ? 'text.disabled' : 'warning.main'}>
+                        Fehlt: {missing.join(', ')}
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+        <Divider sx={{ my: 2 }} />
+        <FormControlLabel
+          control={<Switch checked={createTask} onChange={e => setCreateTask(e.target.checked)} size="small" />}
+          label={<Typography variant="body2">Aufgabe im Kalender anlegen</Typography>}
+        />
+        {createTask && (
+          <TextField
+            label="Fälligkeitsdatum"
+            type="date"
+            value={taskDueDate}
+            onChange={e => setTaskDueDate(e.target.value)}
+            size="small"
+            fullWidth
+            sx={{ mt: 1.5 }}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={onClose} color="inherit">Abbrechen</Button>
+        <Button
+          variant="contained"
+          startIcon={sending
+            ? <CircularProgress size={16} color="inherit" />
+            : <NotificationsActiveIcon />}
+          disabled={sending || notifyCount === 0}
+          onClick={() => onConfirm([...excluded], createTask, taskDueDate)}
+        >
+          {notifyCount} Mitglieder benachrichtigen
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 // ─── Hauptkomponente ────────────────────────────────────────────────────────
 
 const SizeGuide: React.FC = () => {
@@ -213,10 +401,63 @@ const SizeGuide: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [reminderSending, setReminderSending] = useState(false);
+  const [reminderSnackbar, setReminderSnackbar] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
+  const [reminderDialog, setReminderDialog] = useState<{
+    open: boolean;
+    teamId: number | null;
+    candidates: Candidate[];
+  }>({ open: false, teamId: null, candidates: [] });
+
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
 
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const openReminderDialog = (team: Team) => {
+    const candidates: Candidate[] = [
+      ...team.players
+        .filter(p => getMissingFields(p).length > 0)
+        .map(p => ({ ...p, role: 'player' as const })),
+      ...team.coaches
+        .filter(c => getMissingFields(c).length > 0)
+        .map(c => ({ ...c, role: 'coach' as const })),
+      ...team.supporters
+        .filter(s => getMissingFields(s).length > 0)
+        .map(s => ({ ...s, role: 'supporter' as const })),
+    ];
+    setReminderDialog({ open: true, teamId: team.team_id, candidates });
+  };
+
+  const handleConfirmReminder = async (excludedIds: number[], createTask: boolean, taskDueDate: string) => {
+    const { teamId } = reminderDialog;
+    if (!teamId) return;
+    setReminderDialog(d => ({ ...d, open: false }));
+    setReminderSending(true);
+    try {
+      const result = await apiJson<{ notified: number; skipped: number }>(
+        `/api/teams/${teamId}/size-guide-remind`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ exclude: excludedIds, createTask, taskDueDate }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+      setReminderSnackbar({
+        open: true,
+        success: true,
+        message: result.notified > 0
+          ? `${result.notified} Spieler wurden per Push-Benachrichtigung erinnert.`
+          : 'Alle Spieler haben bereits vollständige Angaben.',
+      });
+    } catch {
+      setReminderSnackbar({ open: true, success: false, message: 'Erinnerung konnte nicht gesendet werden.' });
+    } finally {
+      setReminderSending(false);
+    }
+  };
 
   const handleDownloadPdf = async (teamId: number, teamName: string) => {
     setPdfDownloading(true);
@@ -292,31 +533,8 @@ const SizeGuide: React.FC = () => {
           </Box>
         </Stack>
 
-        {/* PDF-Download & Team-Auswahl */}
-        <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-          {selectedTeamId !== '' && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={pdfDownloading ? <CircularProgress size={15} color="inherit" /> : <PictureAsPdfIcon />}
-              disabled={pdfDownloading}
-              onClick={() => {
-                const team = teams.find(t => t.team_id === selectedTeamId);
-                if (team) handleDownloadPdf(team.team_id, team.team_name);
-              }}
-              sx={{
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                textTransform: 'none',
-                bgcolor: 'error.main',
-                '&:hover': { bgcolor: 'error.dark' },
-              }}
-            >
-              {pdfDownloading ? 'Wird erstellt…' : 'PDF exportieren'}
-            </Button>
-          )}
-          {teams.length > 0 && (
+        {/* Team-Auswahl */}
+        {teams.length > 0 && (
           <FormControl
             size="small"
             sx={{ minWidth: 220, width: { xs: '100%', sm: 'auto' } }}
@@ -346,7 +564,7 @@ const SizeGuide: React.FC = () => {
                     <GroupsIcon sx={{ fontSize: 16, color: 'primary.main', opacity: 0.7 }} />
                     <span>{t.team_name}</span>
                     <Chip
-                      label={t.players.length}
+                      label={t.players.length + t.coaches.length + t.supporters.length}
                       size="small"
                       sx={{
                         height: 18,
@@ -362,8 +580,7 @@ const SizeGuide: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          )}
-        </Stack>
+        )}
       </Stack>
 
       {teams.length === 0 && (
@@ -378,84 +595,138 @@ const SizeGuide: React.FC = () => {
       {/* ── Ausgewähltes Team ──────────────────────────────────── */}
       {selectedTeam !== null && (() => {
         const team = selectedTeam;
-        const shortsSummary = aggregateTeamSizes(team.players, 'shorts_size');
-        const shirtSummary  = aggregateTeamSizes(team.players, 'shirt_size');
-        const shoeSummary   = aggregateTeamSizes(team.players, 'shoe_size');
-        const socksSummary  = aggregateTeamSizes(team.players, 'socks_size');
-        const jacketSummary = aggregateTeamSizes(team.players, 'jacket_size');
+        const allMembers = [...team.players, ...team.coaches, ...team.supporters];
+        const shortsSummary = aggregateTeamSizes(allMembers, 'shorts_size');
+        const shirtSummary  = aggregateTeamSizes(allMembers, 'shirt_size');
+        const shoeSummary   = aggregateTeamSizes(allMembers, 'shoe_size');
+        const socksSummary  = aggregateTeamSizes(allMembers, 'socks_size');
+        const jacketSummary = aggregateTeamSizes(allMembers, 'jacket_size');
 
-        const missingShorts  = team.players.filter(p => !p.shorts_size).length;
-        const missingShirts  = team.players.filter(p => !p.shirt_size).length;
-        const missingShoes   = team.players.filter(p => !p.shoe_size).length;
-        const missingSocks   = team.players.filter(p => !p.socks_size).length;
-        const missingJackets = team.players.filter(p => !p.jacket_size).length;
+        const missingShorts  = allMembers.filter(p => !p.shorts_size  || p.shorts_size  === '0').length;
+        const missingShirts  = allMembers.filter(p => !p.shirt_size   || p.shirt_size   === '0').length;
+        const missingShoes   = allMembers.filter(p => !p.shoe_size    || p.shoe_size    === '0').length;
+        const missingSocks   = allMembers.filter(p => !p.socks_size   || p.socks_size   === '0').length;
+        const missingJackets = allMembers.filter(p => !p.jacket_size  || p.jacket_size  === '0').length;
+        const incompleteCount = allMembers.filter(p =>
+          !p.shorts_size || p.shorts_size === '0' ||
+          !p.shirt_size  || p.shirt_size  === '0' ||
+          !p.shoe_size   || p.shoe_size   === '0' ||
+          !p.socks_size  || p.socks_size  === '0' ||
+          !p.jacket_size || p.jacket_size === '0'
+        ).length;
 
         return (
+          <>
             <Paper
               key={team.team_id}
               elevation={isDark ? 2 : 3}
               sx={{
                 borderRadius: 3,
-                overflow: 'hidden',
+                overflow: 'clip',
                 border: `1px solid ${theme.palette.divider}`,
               }}
             >
-              {/* Team-Header */}
+              {/* Team-Header + Spalten-Header (gemeinsam sticky) */}
+              <Box sx={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <Box
                 sx={{
                   px: { xs: 2, md: 3 },
                   py: 2,
                   background: isDark
-                    ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.35)} 0%, ${alpha(theme.palette.primary.main, 0.15)} 100%)`
-                    : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.10)} 0%, ${alpha(theme.palette.primary.light, 0.06)} 100%)`,
+                    ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.35)} 0%, ${alpha(theme.palette.primary.main, 0.15)} 100%), ${theme.palette.background.paper}`
+                    : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.10)} 0%, ${alpha(theme.palette.primary.light, 0.06)} 100%), ${theme.palette.background.paper}`,
                   borderBottom: `1px solid ${theme.palette.divider}`,
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'flex-start', sm: 'center' },
                   gap: 1.5,
                 }}
               >
-                <Avatar
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    bgcolor: alpha(theme.palette.primary.main, 0.2),
-                    color: 'primary.main',
-                  }}
+                <Stack direction="row" alignItems="center" spacing={1.5} flex={1} width="100%">
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: alpha(theme.palette.primary.main, 0.2),
+                      color: 'primary.main',
+                    }}
+                  >
+                    <GroupsIcon sx={{ fontSize: 20 }} />
+                  </Avatar>
+                  <Box flex={1}>
+                    <Typography variant="h6" fontWeight={700} fontSize="1rem" lineHeight={1.2}>
+                      {team.team_name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {team.players.length} Spieler
+                      {team.coaches.length > 0 && ` · ${team.coaches.length} Trainer`}
+                      {team.supporters.length > 0 && ` · ${team.supporters.length} Supporter`}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  width={{ xs: '100%', sm: 'auto' }}
                 >
-                  <GroupsIcon sx={{ fontSize: 20 }} />
-                </Avatar>
-                <Box flex={1}>
-                  <Typography variant="h6" fontWeight={700} fontSize="1rem" lineHeight={1.2}>
-                    {team.team_name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {team.players.length} Spieler
-                  </Typography>
-                </Box>
-                <Chip
-                  label={`${team.players.length} Spieler`}
-                  size="small"
-                  sx={{
-                    bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.1),
-                    color: 'primary.main',
-                    fontWeight: 600,
-                    fontSize: '0.72rem',
-                    display: { xs: 'none', sm: 'flex' },
-                  }}
-                />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={reminderSending ? <CircularProgress size={14} color="inherit" /> : <NotificationsActiveIcon />}
+                    disabled={reminderSending || incompleteCount === 0}
+                    onClick={() => openReminderDialog(team)}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      fontSize: '0.78rem',
+                      textTransform: 'none',
+                      flex: { xs: 1, sm: 'initial' },
+                    }}
+                  >
+                    {reminderSending ? 'Wird gesendet…' : `Erinnerung senden${incompleteCount > 0 ? ` (${incompleteCount})` : ''}`}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={pdfDownloading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdfIcon />}
+                    disabled={pdfDownloading}
+                    onClick={() => handleDownloadPdf(team.team_id, team.team_name)}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      fontSize: '0.78rem',
+                      textTransform: 'none',
+                      bgcolor: 'error.main',
+                      flex: { xs: 1, sm: 'initial' },
+                      '&:hover': { bgcolor: 'error.dark' },
+                    }}
+                  >
+                    {pdfDownloading ? 'Wird erstellt…' : 'PDF exportieren'}
+                  </Button>
+                </Stack>
               </Box>
-
-              {/* Tabelle */}
-              <TableContainer>
-                <Table size="small">
+              {/* Spalten-Header – scrollt per JS-Sync horizontal mit dem Body */}
+              <Box
+                ref={headerScrollRef}
+                sx={{
+                  overflowX: 'hidden',
+                  bgcolor: isDark
+                    ? alpha(theme.palette.background.default, 0.6)
+                    : alpha(theme.palette.grey[100], 0.8),
+                }}
+              >
+                <Table size="small" sx={{ minWidth: 530, tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                  </colgroup>
                   <TableHead>
-                    <TableRow
-                      sx={{
-                        bgcolor: isDark
-                          ? alpha(theme.palette.background.default, 0.6)
-                          : alpha(theme.palette.grey[100], 0.8),
-                      }}
-                    >
+                    <TableRow>
                       {[
                         { label: 'Spieler', icon: null, align: 'left' as const },
                         { label: 'Hose', icon: <CheckroomIcon sx={{ fontSize: 14 }} />, align: 'center' as const },
@@ -477,6 +748,9 @@ const SizeGuide: React.FC = () => {
                             px: { xs: 1, md: 2 },
                             borderBottom: `2px solid ${theme.palette.divider}`,
                             whiteSpace: 'nowrap',
+                            bgcolor: isDark
+                              ? alpha(theme.palette.background.default, 0.95)
+                              : alpha(theme.palette.grey[100], 0.97),
                           }}
                         >
                           <Stack
@@ -492,10 +766,33 @@ const SizeGuide: React.FC = () => {
                       ))}
                     </TableRow>
                   </TableHead>
+                </Table>
+              </Box>
+              </Box> {/* end sticky wrapper */}
+
+              {/* Tabelle – nur Body, scrollt horizontal */}
+              <Box
+                ref={bodyScrollRef}
+                sx={{ overflowX: 'auto' }}
+                onScroll={(e) => {
+                  if (headerScrollRef.current) {
+                    headerScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+                  }
+                }}
+              >
+                <Table size="small" sx={{ minWidth: 530, tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                    <col style={{ width: 70 }} />
+                  </colgroup>
                   <TableBody>
                     {team.players.map((player, idx) => (
                       <TableRow
-                        key={player.id}
+                        key={`p-${player.id}`}
                         sx={{
                           bgcolor: idx % 2 === 0
                             ? 'transparent'
@@ -545,10 +842,156 @@ const SizeGuide: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {team.coaches.length > 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          sx={{
+                            py: 0.75,
+                            px: { xs: 1, md: 2 },
+                            bgcolor: isDark
+                              ? alpha(theme.palette.secondary.main, 0.07)
+                              : alpha(theme.palette.secondary.main, 0.04),
+                            borderBottom: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
+                          }}
+                        >
+                          <Typography variant="caption" fontWeight={700}
+                            sx={{ textTransform: 'uppercase', letterSpacing: '0.07em', color: 'secondary.main' }}
+                          >
+                            Trainer
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {team.coaches.map((coach) => (
+                      <TableRow
+                        key={`c-${coach.id}`}
+                        sx={{
+                          '&:last-child td': { border: 0 },
+                          '&:hover': {
+                            bgcolor: alpha(theme.palette.secondary.main, isDark ? 0.08 : 0.04),
+                            transition: 'background-color 0.15s',
+                          },
+                        }}
+                      >
+                        <TableCell sx={{ py: 1, px: { xs: 1, md: 2 }, fontWeight: 500, fontSize: '0.875rem' }}>
+                          <Stack direction="row" alignItems="center" spacing={1.25}>
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                bgcolor: alpha(theme.palette.secondary.main, isDark ? 0.25 : 0.15),
+                                color: 'secondary.main',
+                              }}
+                            >
+                              {coach.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </Avatar>
+                            <Typography variant="body2" fontWeight={500} noWrap>
+                              {coach.name}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={coach.shorts_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={coach.shirt_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={coach.jacket_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={coach.shoe_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={coach.socks_size} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {team.supporters.length > 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          sx={{
+                            py: 0.75,
+                            px: { xs: 1, md: 2 },
+                            bgcolor: isDark
+                              ? alpha(theme.palette.warning.main, 0.07)
+                              : alpha(theme.palette.warning.main, 0.04),
+                            borderBottom: `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
+                          }}
+                        >
+                          <Typography variant="caption" fontWeight={700}
+                            sx={{ textTransform: 'uppercase', letterSpacing: '0.07em', color: 'warning.main' }}
+                          >
+                            Supporter
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {team.supporters.map((supporter) => (
+                      <TableRow
+                        key={`s-${supporter.id}`}
+                        sx={{
+                          '&:last-child td': { border: 0 },
+                          '&:hover': {
+                            bgcolor: alpha(theme.palette.warning.main, isDark ? 0.08 : 0.04),
+                            transition: 'background-color 0.15s',
+                          },
+                        }}
+                      >
+                        <TableCell sx={{ py: 1, px: { xs: 1, md: 2 }, fontWeight: 500, fontSize: '0.875rem' }}>
+                          <Stack direction="row" alignItems="center" spacing={1.25}>
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                bgcolor: alpha(theme.palette.warning.main, isDark ? 0.25 : 0.15),
+                                color: 'warning.main',
+                              }}
+                            >
+                              {supporter.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </Avatar>
+                            <Typography variant="body2" fontWeight={500} noWrap>
+                              {supporter.name}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={supporter.shorts_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={supporter.shirt_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={supporter.jacket_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={supporter.shoe_size} />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1, px: { xs: 1, md: 2 } }}>
+                          <SizeChip size={supporter.socks_size} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </Box>
+            </Paper>
 
+            <Paper
+              elevation={isDark ? 1 : 2}
+              sx={{
+                mt: 3,
+                borderRadius: 3,
+                overflow: 'clip',
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+            >
               {/* Größenverteilung */}
               <Box sx={{ px: { xs: 2, md: 3 }, py: 2.5 }}>
                 <Divider sx={{ mb: 2 }}>
@@ -599,8 +1042,33 @@ const SizeGuide: React.FC = () => {
                 </Stack>
               </Box>
             </Paper>
+          </>
         );
       })()}
+
+      {/* Erinnerung: Bestätigungsdialog */}
+      <ReminderDialog
+        open={reminderDialog.open}
+        candidates={reminderDialog.candidates}
+        sending={reminderSending}
+        onClose={() => setReminderDialog(d => ({ ...d, open: false }))}
+        onConfirm={handleConfirmReminder}
+      />
+
+      <Snackbar
+        open={reminderSnackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setReminderSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={reminderSnackbar.success ? 'success' : 'error'}
+          onClose={() => setReminderSnackbar(s => ({ ...s, open: false }))}
+          sx={{ width: '100%' }}
+        >
+          {reminderSnackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
