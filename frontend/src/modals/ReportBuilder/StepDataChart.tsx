@@ -82,11 +82,11 @@ const DIAGRAM_TYPE_META: Record<string, { svg: React.ReactNode; desc: string }> 
     svg: (
       // 3 equal sectors (120° each), center (20,16), r=13
       // Points: 0°→(33,16)  120°→(13.5,27.3)  240°→(13.5,4.7)
-      <svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor">
+      (<svg viewBox="0 0 40 32" width={40} height={32} fill="currentColor">
         <path d="M20,16 L33,16 A13,13 0 0,1 13.5,27.3 Z"/>
         <path d="M20,16 L13.5,27.3 A13,13 0 0,1 13.5,4.7 Z" opacity={0.6}/>
         <path d="M20,16 L13.5,4.7 A13,13 0 0,1 33,16 Z" opacity={0.35}/>
-      </svg>
+      </svg>)
     ),
   },
   doughnut: {
@@ -94,9 +94,9 @@ const DIAGRAM_TYPE_META: Record<string, { svg: React.ReactNode; desc: string }> 
     svg: (
       // Thick ring (r=11, strokeWidth=7 → outer≈14.5, inner≈7.5)
       // strokeDasharray "21 2" repeats 3× over circumference≈69 ⇒ 3 equal segments
-      <svg viewBox="0 0 40 32" width={40} height={32} fill="none" stroke="currentColor">
+      (<svg viewBox="0 0 40 32" width={40} height={32} fill="none" stroke="currentColor">
         <circle cx="20" cy="16" r="11" strokeWidth="7" strokeDasharray="21 2" transform="rotate(-90 20 16)"/>
-      </svg>
+      </svg>)
     ),
   },
   radar: {
@@ -349,7 +349,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-
       {/* Boxplot explanation — shown as soon as boxplot is selected */}
       {isBoxplot && !boxplotYInvalid && (
         <Alert severity="info" sx={{ mb: 0.5 }}>
@@ -361,7 +360,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           monatliche Streuung der Tore.
         </Alert>
       )}
-
       {/* Boxplot mis-configuration: Y is a non-numeric dimension */}
       {boxplotYInvalid && (
         <Alert
@@ -384,7 +382,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           Wähle stattdessen eine Metrik wie <em>Tore</em>, <em>Schüsse</em> oder <em>Vorlagen</em>.
         </Alert>
       )}
-
       {/* Axes-swapped warning */}
       {axesSwapped && (
         <Alert
@@ -423,7 +420,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           })()}
         </Alert>
       )}
-
       {/* X-Axis — typically a dimension (Spieler, Team, Monat...) */}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <FormControl fullWidth>
@@ -469,7 +465,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         </FormControl>
         <Tip text="Wähle die Dimension, nach der ausgewertet werden soll – z.B. Spieler, Monat oder Team. Jeder eindeutige Wert ergibt eine eigene Kategorie im Diagramm." />
       </Box>
-
       {/* Swap: only shown in single-metric mode when both fields are set and no axes-swapped warning is active */}
       {!axesSwapped && effectiveMetricKeys.length <= 1 && !!(xField) && !!(yField) && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: -0.5 }}>
@@ -500,7 +495,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           </Tooltip>
         </Box>
       )}
-
       {/* Y-Axis — multi-select for chart types that support multiple metrics */}
       {(['radar', 'radaroverlay', 'bar', 'line'].includes(diag ?? '')) ? (
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -525,9 +519,9 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
               // Sync yField: use first selected metric, or clear it when all metrics removed
               handleConfigChange('yField', keys[0] ?? '');
             }}
-            renderTags={(value: any[], getTagProps) =>
+            renderValue={(value: any[], getItemProps) =>
               value.map((option: any, index: number) => (
-                <Chip label={option.label} {...getTagProps({ index })} key={option.key} size="small" />
+                <Chip label={option.label} {...getItemProps({ index })} key={option.key} size="small" />
               ))
             }
             renderGroup={(params) => (
@@ -543,7 +537,9 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             renderInput={(params) => (
               <TextField {...params} label="Was messen? *" placeholder="Feld(er) wählen…" />
             )}
-            ListboxProps={{ sx: { pt: 0 } }}
+            slotProps={{
+              listbox: { sx: { pt: 0 } }
+            }}
           />
           <Tip text="Wähle was gemessen werden soll – z.B. Tore, Karten oder Vorlagen. Bei Radar- und Liniendiagrammen können mehrere Werte gleichzeitig verglichen werden." />
         </Box>
@@ -584,7 +580,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           <Tip text="Wähle was gemessen werden soll – z.B. Tore, Karten oder Vorlagen. Die Höhe jedes Balkens entspricht diesem Wert." />
         </Box>
       )}
-
       {/* Gruppierung — multi-select: the backend already supports groupBy as an array,
           concatenating group keys with " | " to form composite dataset labels.
           This lets users break down data by e.g. both Team AND Ereignistyp simultaneously. */}
@@ -605,9 +600,9 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             const keys = newValue.map((v: any) => v.key);
             handleConfigChange('groupBy', keys);
           }}
-          renderTags={(value: any[], getTagProps) =>
+          renderValue={(value: any[], getItemProps) =>
             value.map((option: any, index: number) => (
-              <Chip label={option.label} {...getTagProps({ index })} key={option.key} size="small" />
+              <Chip label={option.label} {...getItemProps({ index })} key={option.key} size="small" />
             ))
           }
           renderInput={(params) => (
@@ -616,7 +611,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         />
         <Tip text="Optional: Unterteile die Daten weiter – z.B. nach Wettbewerb oder Ereignistyp. Jede Kombination ergibt eine eigene farbige Linie oder Balkengruppe." />
       </Box>
-
       {/* Chart Type — card grid on mobile, select on desktop */}
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -660,14 +654,26 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                   )}
                   <Typography
                     variant="caption"
-                    fontWeight={isSelected ? 600 : 400}
-                    display="block"
-                    sx={{ lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}
-                  >
+                    sx={{
+                      fontWeight: isSelected ? 600 : 400,
+                      display: "block",
+                      lineHeight: 1.2,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%'
+                    }}>
                     {dt.label}
                   </Typography>
                   {meta && (
-                    <Typography variant="caption" display="block" sx={{ fontSize: '0.65rem', opacity: 0.7, lineHeight: 1 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        fontSize: '0.65rem',
+                        opacity: 0.7,
+                        lineHeight: 1
+                      }}>
                       {meta.desc}
                     </Typography>
                   )}
@@ -686,7 +692,16 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             return (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75, fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      display: 'block',
+                      mb: 0.75,
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase'
+                    }}>
                     Empfohlen für deine Einstellungen
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 1 }}>
@@ -694,7 +709,16 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                   </Box>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 0.75, fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.disabled",
+                      display: 'block',
+                      mb: 0.75,
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase'
+                    }}>
                     Weitere Typen
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 1 }}>
@@ -745,9 +769,16 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                         </Box>
                       )}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={600}>{dt.label}</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>{dt.label}</Typography>
                         {meta && (
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              display: "block"
+                            }}>
                             {meta.desc}
                           </Typography>
                         )}
@@ -774,9 +805,16 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                         </Box>
                       )}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography variant="body2" color="text.secondary">{dt.label}</Typography>
+                        <Typography variant="body2" sx={{
+                          color: "text.secondary"
+                        }}>{dt.label}</Typography>
                         {meta && (
-                          <Typography variant="caption" color="text.disabled" display="block">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.disabled",
+                              display: "block"
+                            }}>
                             {meta.desc}
                           </Typography>
                         )}
@@ -800,7 +838,12 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="body2">{dt.label}</Typography>
                         {meta && (
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              display: "block"
+                            }}>
                             {meta.desc}
                           </Typography>
                         )}
@@ -813,7 +856,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
           </FormControl>
         )}
       </Box>
-
       {/* Facet-By selector for faceted charts */}
       {diag === 'faceted' && (
       <>
@@ -834,7 +876,12 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
                   <MenuItem key={f.key} value={f.key}>{f.label}</MenuItem>
               ))}
             </Select>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mt: 0.5
+              }}>
               Pro Wert dieses Feldes wird ein eigenes Panel/Diagramm erstellt.
             </Typography>
           </FormControl>
@@ -855,7 +902,12 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
               <MenuItem value="area">Fläche (Area)</MenuItem>
               <MenuItem value="line">Linie</MenuItem>
             </Select>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mt: 0.5
+              }}>
               Bestimmt den Chart-Typ innerhalb jedes Panels.
             </Typography>
           </FormControl>
@@ -877,7 +929,12 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
             <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
           </Tooltip>
         </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mt: -0.5
+          }}>
           An: Spieler als Overlay-Layers, Ereignistypen als Achsen. Aus: umgekehrt.
         </Typography>
 
@@ -894,7 +951,12 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
               <MenuItem value="vertical">Untereinander (volle Breite)</MenuItem>
               <MenuItem value="interactive">Interaktiv (Umschalten per Klick)</MenuItem>
             </Select>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mt: 0.5
+              }}>
               Raster: kompakter Überblick. Untereinander: größere Panels. Interaktiv: ein Panel mit Umschalter.
             </Typography>
           </FormControl>
@@ -902,7 +964,6 @@ export const StepDataChart: React.FC<StepDataChartProps> = ({ state }) => {
         </Box>
       </>
       )}
-
     </Box>
   );
 };

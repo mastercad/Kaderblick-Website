@@ -162,9 +162,11 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderTop: `4px solid ${color}`,
+      slotProps={{
+        paper: {
+          sx: {
+            borderTop: `4px solid ${color}`,
+          }
         }
       }}
     >
@@ -192,9 +194,7 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
       <Divider />
-
       <DialogContent sx={{ pt: 2 }}>
         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip 
@@ -206,7 +206,9 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
               fontWeight: 'medium'
             }}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {notification.timestamp instanceof Date 
               ? notification.timestamp.toLocaleString('de-DE', {
                   day: '2-digit',
@@ -238,7 +240,6 @@ export const NotificationDetailModal: React.FC<NotificationDetailModalProps> = (
           </Box>
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} variant="contained">
           Schließen

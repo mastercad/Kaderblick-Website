@@ -13,7 +13,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -74,7 +74,9 @@ function OwnPresetRow({
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography fontWeight={600} noWrap>
+          <Typography noWrap sx={{
+            fontWeight: 600
+          }}>
             {preset.name}
           </Typography>
           {preset.isActive && (
@@ -89,11 +91,12 @@ function OwnPresetRow({
             />
           )}
         </Box>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           {preset.config.buttons?.length ?? 0} Buttons · Geändert {formatDate(preset.updatedAt)}
         </Typography>
       </Box>
-
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
         {preset.isActive ? (
           <Tooltip title="Deaktivieren">
@@ -167,14 +170,17 @@ function SharedPresetRow({
       sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography fontWeight={600} noWrap>
+        <Typography noWrap sx={{
+          fontWeight: 600
+        }}>
           {preset.name}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           {preset.config.buttons?.length ?? 0} Buttons · Geändert {formatDate(preset.updatedAt)}
         </Typography>
       </Box>
-
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
         <Tooltip title="Kopieren und bearbeiten (erstellt eine eigene Kopie)">
           <IconButton size="small" onClick={() => onEdit(preset)} aria-label={`Bearbeiten: ${preset.name}`}>
@@ -225,18 +231,27 @@ export function PresetList({
   if (ownPresets.length === 0 && sharedPresets.length === 0) {
     return (
       <Box
-        mt={4}
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        gap={2}
-        sx={{ color: 'text.secondary' }}
-      >
+        sx={{
+          mt: 4,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 2,
+          color: 'text.secondary'
+        }}>
         <TuneIcon sx={{ fontSize: 72, opacity: 0.25 }} />
-        <Typography variant="h6" color="text.secondary">
+        <Typography variant="h6" sx={{
+          color: "text.secondary"
+        }}>
           Noch keine Konfigurationen vorhanden
         </Typography>
-        <Typography variant="body2" color="text.disabled" textAlign="center" maxWidth={420}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.disabled",
+            textAlign: "center",
+            maxWidth: 420
+          }}>
           Erstelle deine erste Quick-Event-Konfiguration – lege Buttons für häufige Ereignisse fest und aktiviere sie für das Quick-Event-Panel.
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
@@ -260,11 +275,12 @@ export function PresetList({
           onCopy={onCopy}
         />
       ))}
-
       {sharedPresets.length > 0 && (
         <>
           <Divider sx={{ my: 1 }}>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               Mit mir geteilt
             </Typography>
           </Divider>

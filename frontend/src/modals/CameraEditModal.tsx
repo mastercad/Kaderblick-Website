@@ -74,7 +74,13 @@ const CameraEditModal: React.FC<CameraEditModalProps> = ({ openCameraEditModal, 
             title={cameraId ? "Kamera bearbeiten" : "Neue Kamera erstellen"}
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -83,7 +89,9 @@ const CameraEditModal: React.FC<CameraEditModalProps> = ({ openCameraEditModal, 
                 <form id="cameraEditForm" autoComplete="off" onSubmit={handleCameraEditSubmit}>
                     <input type="hidden" name="id" value={camera?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
+                        <Box sx={{
+                            mb: 2
+                        }}>
                             <TextField 
                                 label="Name" 
                                 name="name" 
@@ -96,7 +104,14 @@ const CameraEditModal: React.FC<CameraEditModalProps> = ({ openCameraEditModal, 
                             />
                         </Box>
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onCameraEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

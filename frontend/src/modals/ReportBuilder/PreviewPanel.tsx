@@ -30,8 +30,17 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={250} width="100%">
-        <Typography color="text.secondary">Lade Vorschau...</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 250,
+          width: "100%"
+        }}>
+        <Typography sx={{
+          color: "text.secondary"
+        }}>Lade Vorschau...</Typography>
       </Box>
     );
   }
@@ -39,22 +48,35 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
   if (!hasPreview) {
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        minHeight={250}
-        textAlign="center"
-        sx={{ p: 3, bgcolor: 'action.hover', borderRadius: 2, width: '100%' }}
-      >
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 250,
+          textAlign: "center",
+          p: 3,
+          bgcolor: 'action.hover',
+          borderRadius: 2,
+          width: '100%'
+        }}>
         <BarChartIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-        <Typography variant="body1" color="text.secondary" gutterBottom>
+        <Typography variant="body1" gutterBottom sx={{
+          color: "text.secondary"
+        }}>
           Noch keine Vorschau
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Wähle X- und Y-Achse im Schritt „Daten &amp; Chart"
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mt: 1
+          }}>
           Tipp: X-Achse = wer oder was (Spieler, Monat), Y-Achse = was gezählt wird (Tore, Vorlagen)
         </Typography>
       </Box>
@@ -82,28 +104,30 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
             </Box>
           </Alert>
         )}
-
         {/* eventsCount info when data is present */}
         {!isEmpty && eventsCount >= 0 && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: 'block',
+              mb: 0.5
+            }}>
             Basiert auf {eventsCount} Ereignis{eventsCount !== 1 ? 'sen' : ''}
           </Typography>
         )}
-
         {/* Backend meta messages */}
         {previewData.meta?.userMessage && (
           <Alert severity={eventsCount === 0 ? 'warning' : 'info'} sx={{ mb: 1 }}>
             {previewData.meta.userMessage}
           </Alert>
         )}
-
         {/* User-facing suggestions from backend */}
         {Array.isArray(previewData.meta?.userSuggestions) && previewData.meta.userSuggestions.length > 0 && (
           <Alert severity="info" sx={{ mb: 1 }}>
             {previewData.meta.userSuggestions.join(' ')}
           </Alert>
         )}
-
         {isSuperAdmin && (
           <Box sx={{ mt: 0.5, mb: 1 }}>
             <Button size="small" onClick={() => setShowAdvancedMeta(s => !s)}>
@@ -141,7 +165,6 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
             </Collapse>
           </Box>
         )}
-
         {!isEmpty && (
           <WidgetRefreshProvider>
             <ReportWidget config={previewData} previewMode />
@@ -154,18 +177,26 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
   if (previewError) {
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        minHeight={250}
-        textAlign="center"
-        sx={{ p: 3, bgcolor: 'action.hover', borderRadius: 2, width: '100%' }}
-      >
-        <Typography variant="body2" color="text.secondary" gutterBottom>
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 250,
+          textAlign: "center",
+          p: 3,
+          bgcolor: 'action.hover',
+          borderRadius: 2,
+          width: '100%'
+        }}>
+        <Typography variant="body2" gutterBottom sx={{
+          color: "text.secondary"
+        }}>
           Vorschau konnte nicht geladen werden.
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Bitte prüfe X- und Y-Achse oder speichere den Report und öffne ihn erneut.
         </Typography>
       </Box>
@@ -173,8 +204,17 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ state }) => {
   }
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minHeight={250} width="100%">
-      <Typography color="text.secondary">Vorschau wird vorbereitet…</Typography>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: 250,
+        width: "100%"
+      }}>
+      <Typography sx={{
+        color: "text.secondary"
+      }}>Vorschau wird vorbereitet…</Typography>
     </Box>
   );
 };

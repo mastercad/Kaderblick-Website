@@ -145,7 +145,6 @@ export const SeasonFilterControl: React.FC<SeasonFilterControlProps> = ({
           <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default' }} />
         </Tooltip>
       </Box>
-
       {/* Column layout so caption/inputs always appear below the button row */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <ToggleButtonGroup
@@ -164,7 +163,9 @@ export const SeasonFilterControl: React.FC<SeasonFilterControlProps> = ({
 
         {/* Current season: info caption */}
         {mode === 'current' && (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Immer die laufende Saison ({formatSeason(curYear)}) — wird nach dem Saisonwechsel automatisch aktualisiert.
           </Typography>
         )}
@@ -180,7 +181,13 @@ export const SeasonFilterControl: React.FC<SeasonFilterControlProps> = ({
             >
               <ChevronLeftIcon />
             </IconButton>
-            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 88, textAlign: 'center' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                minWidth: 88,
+                textAlign: 'center'
+              }}>
               Saison {formatSeason(fixedYear)}
             </Typography>
             <IconButton

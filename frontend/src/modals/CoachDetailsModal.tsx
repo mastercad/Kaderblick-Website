@@ -57,7 +57,11 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({ open, coachId, on
                 maxWidth="sm"
                 title={
                     coach && coach.permissions?.canView ? (
-                        <Box display="flex" alignItems="center">
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center"
+                            }}>
                             {coach.profilePicturePath ? (
                                 <Avatar src={coach.profilePicturePath} alt={`${coach.firstName} ${coach.lastName}`} sx={{ width: 48, height: 48, mr: 2, bgcolor: 'white', border: '1px solid #eee' }} />
                             ) : (
@@ -67,8 +71,12 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({ open, coachId, on
                             )}
                             <Box>
                                 <Typography variant="h5">{coach.firstName} {coach.lastName}</Typography>
-                                <Typography variant="body2" color="text.secondary">{coach.email}</Typography>
-                                <Typography variant="body2" color="text.secondary">Geburtsdatum: {coach.birthDate}</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>{coach.email}</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Geburtsdatum: {coach.birthDate}</Typography>
                             </Box>
                         </Box>
                     ) : undefined
@@ -95,37 +103,61 @@ const CoachDetailsModal: React.FC<CoachDetailsModalProps> = ({ open, coachId, on
                         <Stack spacing={3}>
                             {/* Teams */}
                             <Box>
-                                <Typography variant="subtitle1" fontWeight={600} gutterBottom>Teams</Typography>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                <Typography variant="subtitle1" gutterBottom sx={{
+                                    fontWeight: 600
+                                }}>Teams</Typography>
+                                <Stack direction="row" spacing={1} sx={{
+                                    flexWrap: "wrap"
+                                }}>
                                     {getTeams().length > 0 ? getTeams().map(team => (
                                         <Tooltip key={team.id} title={`Altersklasse: ${team.ageGroup?.name}, Liga: ${team.league?.name}`} arrow>
                                             <Chip label={team.name} color="primary" variant="outlined" sx={{ mb: 1 }} />
                                         </Tooltip>
-                                    )) : <Typography variant="body2" color="text.secondary">Keine Teams zugewiesen</Typography>}
+                                    )) : <Typography variant="body2" sx={{
+                                        color: "text.secondary"
+                                    }}>Keine Teams zugewiesen</Typography>}
                                 </Stack>
                             </Box>
                             {/* Lizenzen */}
                             <Box>
-                                <Typography variant="subtitle1" fontWeight={600} gutterBottom>Lizenzen</Typography>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                <Typography variant="subtitle1" gutterBottom sx={{
+                                    fontWeight: 600
+                                }}>Lizenzen</Typography>
+                                <Stack direction="row" spacing={1} sx={{
+                                    flexWrap: "wrap"
+                                }}>
                                     {getLicenses().length > 0 ? getLicenses().map((license, idx) => (
                                         <Chip key={license.name + idx} label={license.name} color="success" variant="outlined" sx={{ mb: 1 }} />
-                                    )) : <Typography variant="body2" color="text.secondary">Keine Lizenzen</Typography>}
+                                    )) : <Typography variant="body2" sx={{
+                                        color: "text.secondary"
+                                    }}>Keine Lizenzen</Typography>}
                                 </Stack>
                             </Box>
                             {/* Nationalitäten */}
                             <Box>
-                                <Typography variant="subtitle1" fontWeight={600} gutterBottom>Nationalitäten</Typography>
-                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                <Typography variant="subtitle1" gutterBottom sx={{
+                                    fontWeight: 600
+                                }}>Nationalitäten</Typography>
+                                <Stack direction="row" spacing={1} sx={{
+                                    flexWrap: "wrap"
+                                }}>
                                     {getNationalities().length > 0 ? getNationalities().map((nat, idx) => (
                                         <Chip key={nat.id + idx} label={nat.name} color="info" variant="outlined" sx={{ mb: 1 }} />
-                                    )) : <Typography variant="body2" color="text.secondary">Keine Nationalitäten</Typography>}
+                                    )) : <Typography variant="body2" sx={{
+                                        color: "text.secondary"
+                                    }}>Keine Nationalitäten</Typography>}
                                 </Stack>
                             </Box>
                         </Stack>
                     </>
                 ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 )}

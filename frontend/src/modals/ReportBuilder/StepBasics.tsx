@@ -7,7 +7,7 @@ import {
   FormControlLabel,
   Tooltip,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { ReportBuilderState } from './types';
 import { TemplateGrid } from './TemplateGrid';

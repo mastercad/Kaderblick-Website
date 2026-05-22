@@ -63,7 +63,7 @@ jest.mock('@mui/material/Divider', () => () => <hr />);
 
 jest.mock('@mui/icons-material/Add', () => () => <span>+</span>);
 jest.mock('@mui/icons-material/Edit', () => () => <span>✏️</span>);
-jest.mock('@mui/icons-material/DeleteOutline', () => () => <span>🗑️</span>);
+jest.mock('@mui/icons-material/DeleteOutlined', () => () => <span>🗑️</span>);
 jest.mock('@mui/icons-material/Save', () => () => <span>💾</span>);
 jest.mock('@mui/icons-material/Close', () => () => <span>✕</span>);
 jest.mock('@mui/icons-material/SportsSoccer', () => () => <span>⚽</span>);

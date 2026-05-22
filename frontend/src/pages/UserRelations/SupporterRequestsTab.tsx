@@ -181,8 +181,12 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       width: '28%',
       render: (request) => (
         <>
-          <Typography variant="body2" fontWeight={500}>{request.user.fullName}</Typography>
-          <Typography variant="caption" color="text.secondary">{request.user.email}</Typography>
+          <Typography variant="body2" sx={{
+            fontWeight: 500
+          }}>{request.user.fullName}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{request.user.email}</Typography>
         </>
       ),
     },
@@ -214,7 +218,9 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       }}
     >
       <CardContent sx={{ pb: 1 }}>
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "flex-start"
+        }}>
           <Box
             sx={{
               width: 44,
@@ -232,7 +238,9 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
             {initials(request.user.fullName)}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
+            <Typography variant="subtitle1" noWrap sx={{
+              fontWeight: 700
+            }}>
               {request.user.fullName}
             </Typography>
             <StatusChip status={request.status} />
@@ -242,22 +250,46 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={1.5}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
           <EmailIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              wordBreak: 'break-all'
+            }}>
             {request.user.email}
           </Typography>
         </Stack>
 
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={0.75}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 0.75
+          }}>
           <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-          <Typography variant="caption" color="text.secondary">{request.createdAt}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{request.createdAt}</Typography>
         </Stack>
 
         {request.note && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                whiteSpace: 'pre-wrap'
+              }}>
               {request.note}
             </Typography>
           </>
@@ -266,7 +298,9 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
         {request.status !== 'pending' && request.processedAt && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>
               {request.status === 'approved' ? 'Genehmigt' : 'Abgelehnt'} am {request.processedAt}
               {request.processedBy && ` von ${request.processedBy.name}`}
             </Typography>
@@ -305,7 +339,6 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           Diese Supporter-Anfrage wurde direkt aus einer Benachrichtigung geöffnet.
         </Alert>
       )}
-
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2, alignItems: 'center' }}>
         <ToggleButtonGroup
           value={statusFilter}
@@ -351,7 +384,6 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           />
         )}
       </Box>
-
       {requests.length === 0 ? (
         <AdminEmptyState
           icon={<HowToRegIcon />}
@@ -366,7 +398,9 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           data={requests}
           getKey={(request) => request.id}
           renderActions={(request) => request.status === 'pending' ? (
-            <Stack direction="row" spacing={0.5} justifyContent="center">
+            <Stack direction="row" spacing={0.5} sx={{
+              justifyContent: "center"
+            }}>
               <Tooltip title="Genehmigen">
                 <IconButton color="success" size="small" onClick={() => handleApprove(request)}>
                   <CheckIcon fontSize="small" />
@@ -388,11 +422,15 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           }}
         />
       )}
-
       <Dialog open={Boolean(rejectDialog?.open)} onClose={() => setRejectDialog(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Supporter-Anfrage ablehnen</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Optional kannst du einen Ablehnungsgrund angeben. Dieser wird dem Benutzer in der Benachrichtigung angezeigt.
           </Typography>
           <TextField

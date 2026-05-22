@@ -69,8 +69,8 @@ const VideoTimeline: React.FC<VideoTimelineProps> = ({
   onDragEnd
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragState, setDragState] = useState<null | {
     eventId: number;
     origSeconds: number;

@@ -47,11 +47,13 @@ export function TwoFactorDisableDialog({ open, code, loading, error, onClose, on
           label="Aktueller Authenticator-Code"
           value={code}
           onChange={e => onCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
           autoComplete="one-time-code"
           size="small"
           fullWidth
           helperText="Gib den 6-stelligen Code aus deiner Authenticator-App ein."
+          slotProps={{
+            htmlInput: { maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }
+          }}
         />
         {error && <Alert severity="error">{error}</Alert>}
       </Stack>

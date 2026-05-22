@@ -185,7 +185,9 @@ export default function QuickEventPresets() {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>
           Quick-Event-Konfigurationen
         </Typography>
         <Button
@@ -196,13 +198,11 @@ export default function QuickEventPresets() {
           Neue Konfiguration
         </Button>
       </Box>
-
       {(error || actionError) && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => { reload(); setActionError(''); }}>
           {error || actionError}
         </Alert>
       )}
-
       <PresetList
         ownPresets={ownPresets}
         sharedPresets={sharedPresets}
@@ -216,20 +216,17 @@ export default function QuickEventPresets() {
         onCopy={handleCopy}
         onRemoveShare={(p) => setRemoveShareTarget(p)}
       />
-
       <PresetEditDialog
         open={editTarget !== undefined}
         preset={editTarget ?? null}
         onSave={handleSave}
         onClose={() => setEditTarget(undefined)}
       />
-
       <SharePresetDialog
         preset={shareTarget}
         onClose={() => setShareTarget(null)}
         onShared={handleShared}
       />
-
       {/* Delete own preset dialog */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Konfiguration löschen</DialogTitle>
@@ -245,7 +242,6 @@ export default function QuickEventPresets() {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Remove share dialog */}
       <Dialog open={!!removeShareTarget} onClose={() => setRemoveShareTarget(null)}>
         <DialogTitle>Freigabe entfernen</DialogTitle>

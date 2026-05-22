@@ -6,7 +6,7 @@ import Tooltip from '@mui/material/Tooltip';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SaveIcon from '@mui/icons-material/Save';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 
 interface EventModalActionsProps {
   currentStep: number;

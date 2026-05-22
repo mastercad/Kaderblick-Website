@@ -74,7 +74,13 @@ const CoachLicenseEditModal: React.FC<CoachLicenseEditModalProps> = ({ openCoach
             title="Trainerlizenz bearbeiten"
         >
             {loading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 ) : error ? (
@@ -83,13 +89,22 @@ const CoachLicenseEditModal: React.FC<CoachLicenseEditModalProps> = ({ openCoach
                     <form id="coachLicenseEditForm" autoComplete="off" onSubmit={handleCoachLicenseEditSubmit}>
                         <input type="hidden" name="id" value={coachLicense?.id} />
                         <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                            <Box mb={2}>
+                            <Box sx={{
+                                mb: 2
+                            }}>
                                 <TextField label="Name" name="name" value={coachLicense?.name || ''} onChange={handleCoachLicenseEditChange} required fullWidth margin="normal" />
                                 <TextField label="Beschreibung" name="description" value={coachLicense?.description || ''} onChange={handleCoachLicenseEditChange} fullWidth margin="normal" />
                                 <TextField label="Länder Code" name="countryCode" value={coachLicense?.countryCode || ''} onChange={handleCoachLicenseEditChange} fullWidth margin="normal" />
                             </Box>
                         </Box>
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 3,
+                                mb: 1
+                            }}>
                             <Button onClick={onCoachLicenseEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

@@ -49,7 +49,9 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                 {option.fullName || `${option.firstName} ${option.lastName}`}
               </Typography>
               {option.context && (
-                <Typography variant="caption" color="text.secondary">{option.context}</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>{option.context}</Typography>
               )}
             </Box>
           </Box>
@@ -65,19 +67,16 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
         )}
         sx={{ mt: 2, mb: 2 }}
       />
-
       {userLoadError && (
         <Typography color="error" variant="body2" sx={{ mb: 2 }}>
           {userLoadError}
         </Typography>
       )}
-      
       {users.length === 0 && !userLoadError && (
         <div style={{ color: 'orange', margin: '8px 0 16px 0' }}>
           Keine Benutzer zur Auswahl vorhanden.
         </div>
       )}
-      
       <TextField
         label="Personen pro Aufgabe gleichzeitig"
         type="number"
@@ -85,11 +84,12 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
         onChange={e => handleChange('taskRotationCount', parseInt(e.target.value) || 1)}
         fullWidth
         margin="normal"
-        inputProps={{ min: 1, max: users.length || 99 }}
         error={!!fieldErrors?.rotationCount}
         helperText={fieldErrors?.rotationCount}
+        slotProps={{
+          htmlInput: { min: 1, max: users.length || 99 }
+        }}
       />
-      
       <FormControlLabel
         control={
           <Checkbox
@@ -99,13 +99,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
         }
         label="Wiederkehrend"
       />
-
       {(fieldErrors?.isRecurring || recurringHint) && (
         <Typography color={fieldErrors?.isRecurring ? 'error' : 'text.secondary'} variant="body2" sx={{ mt: 0.5, mb: 1.5 }}>
           {fieldErrors?.isRecurring || recurringHint}
         </Typography>
       )}
-      
       {formData.taskIsRecurring && (
         <>
           <TextField
@@ -115,9 +113,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
             onChange={e => handleChange('taskRecurrenceMode', e.target.value)}
             fullWidth
             margin="normal"
-            SelectProps={{ native: true }}
             error={!!fieldErrors?.recurrenceMode}
             helperText={fieldErrors?.recurrenceMode}
+            slotProps={{
+              select: { native: true }
+            }}
           >
             <option value="classic">Regelmäßig (z.B. wöchentlich)</option>
             <option value="per_match">Pro Spiel (laut Spielplan)</option>
@@ -132,9 +132,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                 onChange={e => handleChange('taskFreq', e.target.value)}
                 fullWidth
                 margin="normal"
-                SelectProps={{ native: true }}
                 error={!!fieldErrors?.freq}
                 helperText={fieldErrors?.freq}
+                slotProps={{
+                  select: { native: true }
+                }}
               >
                 <option value="DAILY">Täglich</option>
                 <option value="WEEKLY">Wöchentlich</option>
@@ -148,9 +150,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                 onChange={e => handleChange('taskInterval', parseInt(e.target.value) || 1)}
                 fullWidth
                 margin="normal"
-                inputProps={{ min: 1 }}
                 error={!!fieldErrors?.interval}
                 helperText={fieldErrors?.interval}
+                slotProps={{
+                  htmlInput: { min: 1 }
+                }}
               />
               
               {((formData.taskFreq || 'WEEKLY') === 'WEEKLY' ||
@@ -162,9 +166,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                   onChange={e => handleChange('taskByDay', e.target.value)}
                   fullWidth
                   margin="normal"
-                  SelectProps={{ native: true }}
                   error={!!fieldErrors?.byDay}
                   helperText={fieldErrors?.byDay}
+                  slotProps={{
+                    select: { native: true }
+                  }}
                 >
                   <option value="MO">Montag</option>
                   <option value="TU">Dienstag</option>
@@ -184,9 +190,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                   onChange={e => handleChange('taskByMonthDay', parseInt(e.target.value) || 1)}
                   fullWidth
                   margin="normal"
-                  inputProps={{ min: 1, max: 31 }}
                   error={!!fieldErrors?.byMonthDay}
                   helperText={fieldErrors?.byMonthDay}
+                  slotProps={{
+                    htmlInput: { min: 1, max: 31 }
+                  }}
                 />
               )}
             </>
@@ -202,9 +210,11 @@ const TaskEventFieldsComponent: React.FC<TaskEventFieldsProps> = ({
                 onChange={e => handleChange('taskOffset', parseInt(e.target.value) || 0)}
                 fullWidth
                 margin="normal"
-                inputProps={{ min: -365, max: 365 }}
                 error={!!fieldErrors?.offset}
                 helperText={fieldErrors?.offset}
+                slotProps={{
+                  htmlInput: { min: -365, max: 365 }
+                }}
               />
             </>
           )}

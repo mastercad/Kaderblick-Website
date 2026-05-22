@@ -139,7 +139,6 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
 
         <HelpDialog open={state.helpOpen} onClose={() => state.setHelpOpen(false)} />
       </BaseModal>
-
       {/* Speichern-Dialog: Name + Beschreibung erst beim Speichern abfragen */}
       <SaveDialog
         open={saveDialogOpen}
@@ -149,12 +148,13 @@ export const ReportBuilderModal: React.FC<ReportBuilderModalProps> = ({
         onSave={handleSaveConfirmed}
         onCancel={() => setSaveDialogOpen(false)}
       />
-
       {/* Schließen-Schutz: Bestätigung bei ungespeicherten Änderungen */}
       <Dialog open={confirmCloseOpen} onClose={() => setConfirmCloseOpen(false)} maxWidth="xs">
         <DialogTitle>Änderungen verwerfen?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Die Konfiguration dieser Auswertung wird nicht gespeichert. Trotzdem schließen?
           </Typography>
         </DialogContent>

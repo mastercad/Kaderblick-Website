@@ -43,7 +43,6 @@ const PermissionFieldsComponent: React.FC<PermissionFieldsProps> = ({
           <MenuItem value="user">Spezifische Nutzer</MenuItem>
         </Select>
       </FormControl>
-      
       {formData.permissionType === 'team' && (
         <Autocomplete
           multiple
@@ -60,7 +59,6 @@ const PermissionFieldsComponent: React.FC<PermissionFieldsProps> = ({
           )}
         />
       )}
-      
       {formData.permissionType === 'club' && (
         <Autocomplete
           multiple
@@ -79,7 +77,6 @@ const PermissionFieldsComponent: React.FC<PermissionFieldsProps> = ({
           )}
         />
       )}
-      
       {formData.permissionType === 'user' && (
         <Autocomplete
           multiple
@@ -98,7 +95,9 @@ const PermissionFieldsComponent: React.FC<PermissionFieldsProps> = ({
                   {option.fullName || `${option.firstName} ${option.lastName}`}
                 </Typography>
                 {option.context && (
-                  <Typography variant="caption" color="text.secondary">{option.context}</Typography>
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>{option.context}</Typography>
                 )}
               </Box>
             </Box>

@@ -136,7 +136,7 @@ jest.mock('@mui/icons-material/DoneAll',     () => ({ __esModule: true, default:
 jest.mock('@mui/icons-material/ExpandLess',  () => ({ __esModule: true, default: () => <span data-testid="expand-less-icon" /> }));
 jest.mock('@mui/icons-material/ExpandMore',  () => ({ __esModule: true, default: () => <span data-testid="expand-more-icon" /> }));
 jest.mock('@mui/icons-material/Forum',       () => ({ __esModule: true, default: () => <span data-testid="forum-icon" /> }));
-jest.mock('@mui/icons-material/MailOutline', () => ({ __esModule: true, default: () => <span data-testid="empty-icon" /> }));
+jest.mock('@mui/icons-material/MailOutlined', () => ({ __esModule: true, default: () => <span data-testid="empty-icon" /> }));
 jest.mock('@mui/icons-material/Search',      () => ({ __esModule: true, default: () => <span /> }));
 jest.mock('@mui/icons-material/ViewList',    () => ({ __esModule: true, default: () => <span data-testid="view-list-icon" /> }));
 

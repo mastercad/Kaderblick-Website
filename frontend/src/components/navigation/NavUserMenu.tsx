@@ -44,64 +44,69 @@ export default function NavUserMenu({
 
   return (
     <>
-    <Menu
-      id="menu-appbar"
-      anchorEl={anchorEl}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      keepMounted
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      open={Boolean(anchorEl)}
-      onClose={onClose}
-    >
-      <MenuItem disabled sx={{ opacity: '1 !important' }}>
-        <Box>
-          <Typography variant="subtitle2">{user?.name}</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{user?.email}</Typography>
-        </Box>
-      </MenuItem>
-      <Divider />
-
-      <MenuItem onClick={() => { onClose(); onOpenProfile(); }}>
-        <AccountCircleIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
-        Profil
-      </MenuItem>
-      {userRelations.length === 0 && (
-        <MenuItem onClick={() => { onClose(); onRequestLink(); }}>
-          <LinkIcon fontSize="small" sx={{ color: 'warning.main', mr: 1 }} />
-          Verknüpfung anfragen
+      <Menu
+        id="menu-appbar"
+        anchorEl={anchorEl}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        keepMounted
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        open={Boolean(anchorEl)}
+        onClose={onClose}
+      >
+        <MenuItem disabled sx={{ opacity: '1 !important' }}>
+          <Box>
+            <Typography variant="subtitle2">{user?.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{user?.email}</Typography>
+          </Box>
         </MenuItem>
-      )}
-      <MenuItem onClick={() => { onClose(); onOpenQRShare(); }}>
-        <QrCode2Icon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
-        Registrierungs-QR-Code
-      </MenuItem>
-      <MenuItem onClick={() => { onClose(); navigate('/mein-feedback'); }}>
-        <FeedbackIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
-        Mein Feedback
-      </MenuItem>
-      <MenuItem onClick={() => { onClose(); openMessages(); }}>
-        <Badge badgeContent={unreadMessageCount} color="error" sx={{ mr: 1 }}>
-          <MessageIcon fontSize="small" sx={{ color: 'text.primary' }} />
-        </Badge>
-        Nachrichten
-      </MenuItem>
-      <Divider />
-      <MenuItem onClick={() => { onClose(); setCookieDialogOpen(true); }}>
-        <CookieIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
-        Cookie-Einstellungen
-      </MenuItem>
-      <MenuItem onClick={handleLogout}>
-        <LogoutIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
-        Logout
-      </MenuItem>
-    </Menu>
-    <CookieSettingsDialog
-      open={cookieDialogOpen}
-      onClose={() => setCookieDialogOpen(false)}
-      onSave={cats => { handleSaveCustom(cats); setCookieDialogOpen(false); }}
-      onAcceptAll={() => { handleAcceptAll(); setCookieDialogOpen(false); }}
-      initialCategories={consentRecord?.categories ?? { necessary: true, functional: false, analytics: false }}
-    />
+        <Divider />
+
+        <MenuItem onClick={() => { onClose(); onOpenProfile(); }}>
+          <AccountCircleIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+          Profil
+        </MenuItem>
+        {userRelations.length === 0 && (
+          <MenuItem onClick={() => { onClose(); onRequestLink(); }}>
+            <LinkIcon
+              sx={{
+                fontSize: "small",
+                color: 'warning.main',
+                mr: 1
+              }} />
+            Verknüpfung anfragen
+          </MenuItem>
+        )}
+        <MenuItem onClick={() => { onClose(); onOpenQRShare(); }}>
+          <QrCode2Icon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+          Registrierungs-QR-Code
+        </MenuItem>
+        <MenuItem onClick={() => { onClose(); navigate('/mein-feedback'); }}>
+          <FeedbackIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+          Mein Feedback
+        </MenuItem>
+        <MenuItem onClick={() => { onClose(); openMessages(); }}>
+          <Badge badgeContent={unreadMessageCount} color="error" sx={{ mr: 1 }}>
+            <MessageIcon fontSize="small" sx={{ color: 'text.primary' }} />
+          </Badge>
+          Nachrichten
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => { onClose(); setCookieDialogOpen(true); }}>
+          <CookieIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+          Cookie-Einstellungen
+        </MenuItem>
+        <MenuItem onClick={handleLogout}>
+          <LogoutIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
+          Logout
+        </MenuItem>
+      </Menu>
+      <CookieSettingsDialog
+        open={cookieDialogOpen}
+        onClose={() => setCookieDialogOpen(false)}
+        onSave={cats => { handleSaveCustom(cats); setCookieDialogOpen(false); }}
+        onAcceptAll={() => { handleAcceptAll(); setCookieDialogOpen(false); }}
+        initialCategories={consentRecord?.categories ?? { necessary: true, functional: false, analytics: false }}
+      />
     </>
   );
 }

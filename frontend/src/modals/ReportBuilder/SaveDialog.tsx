@@ -70,7 +70,9 @@ export const SaveDialog: React.FC<SaveDialogProps> = ({
           onKeyDown={handleKeyDown}
           helperText={!name.trim() ? 'Pflichtfeld' : undefined}
           error={!name.trim()}
-          inputProps={{ maxLength: 120 }}
+          slotProps={{
+            htmlInput: { maxLength: 120 }
+          }}
         />
         <TextField
           fullWidth
@@ -80,7 +82,9 @@ export const SaveDialog: React.FC<SaveDialogProps> = ({
           multiline
           rows={2}
           placeholder="Kurze Notiz zum Zweck dieser Auswertung"
-          inputProps={{ maxLength: 500 }}
+          slotProps={{
+            htmlInput: { maxLength: 500 }
+          }}
         />
       </DialogContent>
       <DialogActions>

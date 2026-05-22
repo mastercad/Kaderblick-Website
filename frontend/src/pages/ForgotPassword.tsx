@@ -51,7 +51,13 @@ export default function ForgotPassword() {
           Passwort vergessen?
         </Typography>
         
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }} align="center">
+        <Typography
+          variant="body1"
+          align="center"
+          sx={{
+            color: "text.secondary",
+            mb: 3
+          }}>
           Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
         </Typography>
 

@@ -20,10 +20,10 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import { apiJson } from '../utils/api';
 
@@ -65,7 +65,9 @@ function SectionCard({ title, icon, children }: { title: string; icon?: React.Re
         borderBottom: '1px solid', borderColor: 'divider',
       }}>
         {icon && <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>}
-        <Typography variant="subtitle2" fontWeight={700}>{title}</Typography>
+        <Typography variant="subtitle2" sx={{
+          fontWeight: 700
+        }}>{title}</Typography>
       </Box>
       <Box sx={{ px: 2, py: 2 }}>{children}</Box>
     </Box>
@@ -88,7 +90,9 @@ function FeedUrlRow({ label, url, color }: { label: string; url: string; color?:
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, py: 1.25 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         {color && <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />}
-        <Typography variant="body2" fontWeight={600}>{label}</Typography>
+        <Typography variant="body2" sx={{
+          fontWeight: 600
+        }}>{label}</Typography>
       </Box>
       <Box sx={{
         display: 'flex', alignItems: 'center', gap: 0.5,
@@ -108,7 +112,12 @@ function FeedUrlRow({ label, url, color }: { label: string; url: string; color?:
           </IconButton>
         </Tooltip>
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ pl: 0.5 }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          pl: 0.5
+        }}>
         Webcal: <code style={{ fontSize: '0.7rem' }}>{webcalUrl}</code>
       </Typography>
     </Box>
@@ -270,10 +279,14 @@ const CalendarIntegrationsTab: React.FC = () => {
 
   return (
     <Box sx={{ py: 1 }}>
-
       {/* ── Export: Eigene Kalender in andere Apps einbinden ─────────────── */}
       <SectionCard title="Kalender exportieren" icon={<CalendarMonthIcon fontSize="small" />}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Binde deine Kalender in Google Calendar, Apple Calendar, Outlook und
           jede andere App ein, die iCal/Webcal-Abonnements unterstützt.
           Die Links funktionieren dauerhaft und werden automatisch aktualisiert.
@@ -293,7 +306,9 @@ const CalendarIntegrationsTab: React.FC = () => {
               <Typography variant="body2">
                 Feed-Links aktiv
                 {tokenStatus.createdAt && (
-                  <Typography component="span" variant="body2" color="text.secondary">
+                  <Typography component="span" variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     {' '}· generiert am{' '}
                     {new Date(tokenStatus.createdAt).toLocaleDateString('de-DE')}
                   </Typography>
@@ -368,10 +383,14 @@ const CalendarIntegrationsTab: React.FC = () => {
           </Box>
         )}
       </SectionCard>
-
       {/* ── Import: Externe Kalender einbinden ───────────────────────────── */}
       <SectionCard title="Externe Kalender einbinden" icon={<AddIcon fontSize="small" />}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Füge iCal-Feeds aus Google Calendar, Apple Calendar oder anderen
           Quellen hinzu – sie werden im Kalender farblich hervorgehoben angezeigt.
         </Typography>
@@ -404,13 +423,25 @@ const CalendarIntegrationsTab: React.FC = () => {
                   bgcolor: cal.color, flexShrink: 0,
                 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600} noWrap>{cal.name}</Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap
-                    sx={{ display: 'block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <Typography variant="body2" noWrap sx={{
+                    fontWeight: 600
+                  }}>{cal.name}</Typography>
+                  <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{
+                      color: "text.secondary",
+                      display: 'block',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
                     {cal.url}
                   </Typography>
                   {cal.lastFetchedAt && (
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       Zuletzt geladen: {new Date(cal.lastFetchedAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </Typography>
                   )}
@@ -435,7 +466,12 @@ const CalendarIntegrationsTab: React.FC = () => {
             ))}
           </Stack>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 1.5
+            }}>
             Noch keine externen Kalender konfiguriert.
           </Typography>
         )}
@@ -449,7 +485,6 @@ const CalendarIntegrationsTab: React.FC = () => {
           Kalender hinzufügen
         </Button>
       </SectionCard>
-
       {/* ── Add/Edit Dialog ───────────────────────────────────────────────── */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>

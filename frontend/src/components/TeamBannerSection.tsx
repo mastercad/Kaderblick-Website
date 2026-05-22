@@ -303,13 +303,15 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
                 }}
               >
                 <AddPhotoAlternateIcon sx={{ fontSize: 40 }} />
-                <Typography variant="body2" fontWeight={600}>Bild hier ablegen…</Typography>
+                <Typography variant="body2" sx={{
+                  fontWeight: 600
+                }}>Bild hier ablegen…</Typography>
               </Box>
             )}
           </>
         ) : (
           /* Empty state placeholder – only visible to editors */
-          <Box
+          (<Box
             sx={{
               display: 'flex',
               flexDirection: 'column',
@@ -326,7 +328,7 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
             <Typography variant="body2">
               {isDragOver ? 'Bild hier ablegen…' : 'Bild hierher ziehen oder per Button hochladen'}
             </Typography>
-          </Box>
+          </Box>)
         )}
 
         {/* Edit controls – only for editors */}
@@ -384,7 +386,6 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
           </Alert>
         )}
       </Box>
-
       {/* Hidden file input */}
       <input
         ref={inputRef}
@@ -393,7 +394,6 @@ export const TeamBannerSection: React.FC<TeamBannerSectionProps> = ({
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
-
       {/* Delete confirmation dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
         <DialogTitle>Banner wirklich löschen?</DialogTitle>

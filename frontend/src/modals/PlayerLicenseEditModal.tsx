@@ -74,7 +74,13 @@ const PlayerLicenseEditModal: React.FC<PlayerLicenseEditModalProps> = ({ openPla
             title="Trainerlizenz bearbeiten"
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -83,13 +89,22 @@ const PlayerLicenseEditModal: React.FC<PlayerLicenseEditModalProps> = ({ openPla
                 <form id="playerLicenseEditForm" autoComplete="off" onSubmit={handlePlayerLicenseEditSubmit}>
                     <input type="hidden" name="id" value={playerLicense?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
+                        <Box sx={{
+                            mb: 2
+                        }}>
                             <TextField label="Name" name="name" value={playerLicense?.name || ''} onChange={handlePlayerLicenseEditChange} required fullWidth margin="normal" />
                             <TextField label="Beschreibung" name="description" value={playerLicense?.description || ''} onChange={handlePlayerLicenseEditChange} fullWidth margin="normal" />
                             <TextField label="Länder Code" name="countryCode" value={playerLicense?.countryCode || ''} onChange={handlePlayerLicenseEditChange} fullWidth margin="normal" />
                         </Box>
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onPlayerLicenseEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

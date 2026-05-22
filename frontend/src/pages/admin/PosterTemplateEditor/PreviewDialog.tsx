@@ -61,14 +61,15 @@ export default function PreviewDialog({ open, onClose, template, activeFormat }:
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-        <Typography fontWeight={700} variant="h6" component="span">
+        <Typography variant="h6" component="span" sx={{
+          fontWeight: 700
+        }}>
           Vorschau mit Beispieldaten
         </Typography>
         <IconButton onClick={onClose} size="small" aria-label="schließen">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-
       <DialogContent sx={{ pb: 3 }}>
         {supportedFormats.length > 1 && (
           <Box sx={{ mb: 2 }}>
@@ -118,7 +119,14 @@ export default function PreviewDialog({ open, onClose, template, activeFormat }:
           </Box>
         </Box>
 
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', textAlign: 'center' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mt: 1.5,
+            display: 'block',
+            textAlign: 'center'
+          }}>
           Platzhalter werden mit generischen Beispieldaten befüllt.
         </Typography>
       </DialogContent>

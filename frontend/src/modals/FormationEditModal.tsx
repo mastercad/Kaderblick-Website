@@ -225,9 +225,13 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
       }
     >
       {editor.loading && (
-        <Box display="flex" justifyContent="center" mb={2}><CircularProgress /></Box>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mb: 2
+          }}><CircularProgress /></Box>
       )}
-
       {/* Error dialog – shown regardless of scroll position */}
       <Dialog
         open={Boolean(editor.error) && !errorDialogDismissed}
@@ -245,9 +249,14 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Name + Team */}
-      <Box display="flex" gap={2} mb={2} mt={1}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 2,
+          mt: 1
+        }}>
         <FormationNameField
           value={editor.name}
           onChange={editor.setName}
@@ -279,7 +288,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           )
         }
       </Box>
-
       <Paper
         variant="outlined"
         sx={{
@@ -313,13 +321,26 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
                 borderColor: 'divider',
               }}
             >
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: 'block',
+                  mb: 0.25
+                }}>
                 {item.label}
               </Typography>
-              <Typography variant="h6" fontWeight={800} lineHeight={1.1}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  lineHeight: 1.1
+                }}>
                 {item.value}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {item.hint}
               </Typography>
             </Box>
@@ -336,8 +357,16 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           }}
         >
           <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
-              <Typography variant="subtitle2" fontWeight={700}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1
+              }}>
+              <Typography variant="subtitle2" sx={{
+                fontWeight: 700
+              }}>
                 Nächster sinnvoller Schritt
               </Typography>
               <Button
@@ -350,12 +379,16 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
                 Vorlage wählen
               </Button>
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {nextStepLabel}
             </Typography>
 
           </Box>
-          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+          <Stack direction="row" spacing={0.75} useFlexGap sx={{
+            flexWrap: "wrap"
+          }}>
             <Chip size="small" color="primary" variant="outlined" label={`${assignedRealPlayers}/${squadCount || 0} Kaderspieler eingesetzt`} />
             {editor.hasPlaceholders && (
               <Chip size="small" color="warning" variant="outlined" label={`${editor.placeholderCount} Platzhalter offen`} />
@@ -375,8 +408,12 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           )}
           label={(
             <Box>
-              <Typography variant="body2" fontWeight={700}>Auto-Snap</Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="body2" sx={{
+                fontWeight: 700
+              }}>Auto-Snap</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {editor.autoSnapEnabled
                   ? 'Spieler rasten beim Loslassen auf passende Anker oder Vorlagen-Slots ein.'
                   : 'Nur Hinweise anzeigen. Spieler bleiben genau dort liegen, wo du sie ablegst.'}
@@ -386,7 +423,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           sx={{ mt: 1, ml: 0, alignItems: 'flex-start' }}
         />
       </Paper>
-
       {/* ── Auto-fill banner: shown when placeholders exist and squad is loaded ───── */}
       {editor.hasPlaceholders && editor.availablePlayers.length > 0 && (
         <Box
@@ -403,7 +439,14 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AutoAwesomeIcon fontSize="small" color="primary" sx={{ flexShrink: 0 }} />
-            <Typography variant="body2" fontWeight={600} color="primary.main" lineHeight={1.25} flex={1}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "primary.main",
+                lineHeight: 1.25,
+                flex: 1
+              }}>
               Spieler automatisch einsetzen
             </Typography>
             <Chip
@@ -414,7 +457,12 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
               sx={{ fontWeight: 700, fontSize: '0.7rem', flexShrink: 0 }}
             />
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ pl: 0.25 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              pl: 0.25
+            }}>
             {editor.placeholderCount} {editor.placeholderCount === 1 ? 'Platzhalter' : 'Platzhalter'} auf dem Feld
             {' · '}
             {editor.availablePlayers.length} {editor.availablePlayers.length === 1 ? 'Spieler' : 'Spieler'} im Kader
@@ -432,8 +480,13 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           </Tooltip>
         </Box>
       )}
-
-      <Box display="flex" gap={2} alignItems="flex-start" sx={{ flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          alignItems: "flex-start",
+          flexDirection: { xs: 'column', md: 'row' }
+        }}>
         {/* ── Pitch + Bench ──────────────────────────────────────────────────── */}
         <Box sx={{ flex: { xs: 'none', md: 2 }, width: '100%', minWidth: 0 }}>
           <Paper variant="outlined" sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: 3, mb: 1.25 }}>
@@ -449,7 +502,9 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             >
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                  <Typography variant="subtitle1" fontWeight={800}>
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: 800
+                  }}>
                     Spielfeld
                   </Typography>
                   {editor.isDirty && (
@@ -462,18 +517,33 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
                     />
                   )}
                 </Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Spieler verschieben, austauschen oder direkt aus dem Kader auf freie Positionen ziehen.
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  alignItems: "center",
+                  flexShrink: 0
+                }}>
                 <Chip size="small" label={`${fieldCount} auf dem Feld`} />
                 <Chip size="small" label={`${benchCount} auf der Bank`} />
               </Stack>
             </Box>
 
           {/* Undo / Redo – eigene zentrierte Zeile */}
-          <Stack direction="row" justifyContent="center" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              justifyContent: "center",
+              alignItems: "center",
+              mb: 1
+            }}>
             <Tooltip title="Rückgängig (Strg+Z)">
               <span>
                 <IconButton size="small" onClick={editor.undo} disabled={!editor.canUndo} sx={{ opacity: editor.canUndo ? 0.8 : 0.3 }}>
@@ -744,11 +814,12 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           onNotesChange={editor.setNotes}
         />
       </Box>
-
       <Dialog
         open={showCloseWarning}
         onClose={() => setShowCloseWarning(false)}
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        slotProps={{
+          paper: { sx: { borderRadius: 2 } }
+        }}
       >
         <DialogTitle>Ungespeicherte Änderungen</DialogTitle>
         <DialogContent>
@@ -782,7 +853,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Ghost-Token für Squad-Touch-Drag: folgt dem Finger über das Feld,
           wird direkt via DOM-Style positioniert (kein React re-render) */}
       {editor.squadDragPlayer && (
@@ -810,7 +880,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           {editor.squadDragPlayer.shirtNumber}
         </Box>
       )}
-
       {/* Ghost-Token für Bank-Drag aufs Feld: folgt dem Pointer,
           wird direkt via DOM-Style positioniert (kein React re-render) */}
       {(() => {
@@ -878,7 +947,6 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
           </Box>
         ) : null;
       })()}
-
       {/* Drag-Hint-Pill: position:fixed → immer sichtbar, unabhängig vom Scroll */}
       {isDraggingPlayer && dragGuideProfile && (
         <Box
@@ -903,7 +971,14 @@ const FormationEditModal: React.FC<FormationEditModalProps> = ({
             maxWidth: 'calc(100vw - 48px)',
           }}
         >
-          <Typography variant="body2" fontWeight={700} noWrap sx={{ fontSize: '0.8rem', letterSpacing: 0.1 }}>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              letterSpacing: 0.1
+            }}>
             {activeTemplate && bestFreeTemplateSlot
               ? `${getSlotHintLabel(bestFreeTemplateSlot.matchLevel)}: ${bestFreeTemplateSlot.slot.position} – ${activeTemplate.label}`
               : freeformGuideTargets.length > 0

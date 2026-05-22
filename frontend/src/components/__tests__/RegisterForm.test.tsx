@@ -14,10 +14,10 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 
 // ─── Icon mocks (SVG icons cause noise in jsdom) ──────────────────────────────
-jest.mock('@mui/icons-material/PersonOutline',         () => () => null);
+jest.mock('@mui/icons-material/PersonOutlined',         () => () => null);
 jest.mock('@mui/icons-material/EmailOutlined',         () => () => null);
 jest.mock('@mui/icons-material/LockOutlined',          () => () => null);
-jest.mock('@mui/icons-material/CheckCircleOutline',    () => () => null);
+jest.mock('@mui/icons-material/CheckCircleOutlined',    () => () => null);
 jest.mock('@mui/icons-material/MarkEmailReadOutlined', () => () => null);
 
 // ─── API mock ─────────────────────────────────────────────────────────────────

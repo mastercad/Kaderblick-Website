@@ -39,7 +39,6 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
         margin="normal"
         required={titleRequired}
       />
-      
       <TextField
         label="Datum *"
         type="date"
@@ -48,9 +47,10 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
         fullWidth
         margin="normal"
         required
-        InputLabelProps={{ shrink: true }}
+        slotProps={{
+          inputLabel: { shrink: true }
+        }}
       />
-      
       <TextField
         label="Uhrzeit"
         type="time"
@@ -58,9 +58,10 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
         onChange={e => handleChange('time', e.target.value)}
         fullWidth
         margin="normal"
-        InputLabelProps={{ shrink: true }}
+        slotProps={{
+          inputLabel: { shrink: true }
+        }}
       />
-      
       <TextField
         label="End-Datum"
         type="date"
@@ -68,9 +69,10 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
         onChange={e => handleChange('endDate', e.target.value)}
         fullWidth
         margin="normal"
-        InputLabelProps={{ shrink: true }}
+        slotProps={{
+          inputLabel: { shrink: true }
+        }}
       />
-      
       <TextField
         label="End-Uhrzeit"
         type="time"
@@ -78,9 +80,10 @@ const EventBaseFormComponent: React.FC<EventBaseFormProps> = ({
         onChange={e => handleChange('endTime', e.target.value)}
         fullWidth
         margin="normal"
-        InputLabelProps={{ shrink: true }}
+        slotProps={{
+          inputLabel: { shrink: true }
+        }}
       />
-      
       <FormControl fullWidth margin="normal" required>
         <InputLabel id="event-type-label">Event-Typ *</InputLabel>
         <Select

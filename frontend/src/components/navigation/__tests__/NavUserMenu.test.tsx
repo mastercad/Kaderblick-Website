@@ -38,14 +38,16 @@ jest.mock('../../../context/ConsentContext', () => ({
 }));
 
 jest.mock('../../CookieSettingsDialog', () =>
-  function MockCookieSettingsDialog({
-    open, onClose, onSave, onAcceptAll,
-  }: {
-    open: boolean;
-    onClose: () => void;
-    onSave: (cats: Record<string, boolean>) => void;
-    onAcceptAll: () => void;
-  }) {
+  (function MockCookieSettingsDialog(
+    {
+      open, onClose, onSave, onAcceptAll,
+    }: {
+      open: boolean;
+      onClose: () => void;
+      onSave: (cats: Record<string, boolean>) => void;
+      onAcceptAll: () => void;
+    }
+  ) {
     if (!open) return null;
     return (
       <div data-testid="cookie-settings-dialog">
@@ -54,7 +56,7 @@ jest.mock('../../CookieSettingsDialog', () =>
         <button onClick={onAcceptAll}>dialog-accept-all</button>
       </div>
     );
-  },
+  }),
 );
 
 const mockUseAuth          = useAuth          as jest.MockedFunction<typeof useAuth>;

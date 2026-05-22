@@ -193,9 +193,7 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
       <Typography variant="caption" sx={{ color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
         Aktuelle Taktik speichern
       </Typography>
-
       {err && <Alert severity="error" sx={{ mt: 0.5, py: 0, fontSize: '0.75rem' }}>{err}</Alert>}
-
       <TextField
         fullWidth
         size="small"
@@ -210,10 +208,10 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
           '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4b5563' },
           '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3b82f6' },
         }}
-        InputProps={{ sx: { fontSize: '0.8rem', color: '#e5e7eb' } }}
-        InputLabelProps={{ sx: { fontSize: '0.8rem', color: '#9ca3af' } }}
-      />
-
+        slotProps={{
+          input: { sx: { fontSize: '0.8rem', color: '#e5e7eb' } },
+          inputLabel: { sx: { fontSize: '0.8rem', color: '#9ca3af' } }
+        }} />
       <TextField
         select
         fullWidth
@@ -228,10 +226,11 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
           '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3b82f6' },
           '& .MuiSvgIcon-root': { color: '#9ca3af' },
         }}
-        InputProps={{ sx: { fontSize: '0.8rem', color: '#e5e7eb' } }}
-        InputLabelProps={{ sx: { fontSize: '0.8rem', color: '#9ca3af' } }}
-        SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#1f2937', color: '#e5e7eb' } } } }}
-      >
+        slotProps={{
+          input: { sx: { fontSize: '0.8rem', color: '#e5e7eb' } },
+          select: { MenuProps: { PaperProps: { sx: { bgcolor: '#1f2937', color: '#e5e7eb' } } } },
+          inputLabel: { sx: { fontSize: '0.8rem', color: '#9ca3af' } }
+        }}>
         {PRESET_CATEGORIES.map(cat => (
           <MenuItem key={cat} value={cat} sx={{ fontSize: '0.8rem', color: '#e5e7eb', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(59,130,246,0.2)' }, '&.Mui-selected:hover': { bgcolor: 'rgba(59,130,246,0.3)' } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -241,7 +240,6 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
           </MenuItem>
         ))}
       </TextField>
-
       <TextField
         fullWidth
         size="small"
@@ -256,10 +254,10 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
           '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4b5563' },
           '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3b82f6' },
         }}
-        InputProps={{ sx: { fontSize: '0.8rem', color: '#e5e7eb' } }}
-        InputLabelProps={{ sx: { fontSize: '0.8rem', color: '#9ca3af' } }}
-      />
-
+        slotProps={{
+          input: { sx: { fontSize: '0.8rem', color: '#e5e7eb' } },
+          inputLabel: { sx: { fontSize: '0.8rem', color: '#9ca3af' } }
+        }} />
       <FormControlLabel
         control={
           <Checkbox
@@ -276,7 +274,6 @@ function SaveForm({ onSave, onCancel }: SaveFormProps) {
         }
         sx={{ mt: 0.5 }}
       />
-
       <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
         <Button
           type="button"
@@ -366,17 +363,19 @@ export function PresetPicker({ anchorEl, onClose, onLoadPreset, currentTacticDat
       onClose={onClose}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      PaperProps={{
-        sx: {
-          width: 360,
-          maxHeight: 520,
-          bgcolor: '#111827',
-          border: '1px solid #1f2937',
-          borderRadius: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        },
+      slotProps={{
+        paper: {
+          sx: {
+            width: 360,
+            maxHeight: 520,
+            bgcolor: '#111827',
+            border: '1px solid #1f2937',
+            borderRadius: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          },
+        }
       }}
     >
       {/* ── Header ────────────────────────────────────────────────────── */}
@@ -399,7 +398,6 @@ export function PresetPicker({ anchorEl, onClose, onLoadPreset, currentTacticDat
           <CloseIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Box>
-
       {/* ── Category chips ────────────────────────────────────────────── */}
       <Box
         sx={{
@@ -431,7 +429,6 @@ export function PresetPicker({ anchorEl, onClose, onLoadPreset, currentTacticDat
           />
         ))}
       </Box>
-
       {/* ── Preset list ──────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, overflowY: 'auto', py: 0.5 }}>
         {loading && (
@@ -472,7 +469,6 @@ export function PresetPicker({ anchorEl, onClose, onLoadPreset, currentTacticDat
           </React.Fragment>
         ))}
       </Box>
-
       {/* ── Save section ─────────────────────────────────────────────── */}
       {currentTacticData !== undefined && (
         <Box sx={{ borderTop: '1px solid #1f2937', flexShrink: 0 }}>

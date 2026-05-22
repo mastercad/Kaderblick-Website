@@ -66,32 +66,33 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave
         {WIZARD_STEPS.map((step, idx) => (
           <Step key={step.label} completed={idx < activeStep}>
             <StepLabel
-              StepIconComponent={() => (
-                <Box
-                  onClick={() => setActiveStep(idx)}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    bgcolor: idx === activeStep ? 'primary.main' : idx < activeStep ? 'success.main' : 'action.disabledBackground',
-                    color: idx <= activeStep ? 'primary.contrastText' : 'text.disabled',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {idx < activeStep ? <CheckCircleIcon fontSize="small" /> : step.icon}
-                </Box>
-              )}
+              slots={{
+                stepIcon: () => (
+                  <Box
+                    onClick={() => setActiveStep(idx)}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      bgcolor: idx === activeStep ? 'primary.main' : idx < activeStep ? 'success.main' : 'action.disabledBackground',
+                      color: idx <= activeStep ? 'primary.contrastText' : 'text.disabled',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {idx < activeStep ? <CheckCircleIcon fontSize="small" /> : step.icon}
+                  </Box>
+                )
+              }}
             >
               {step.label}
             </StepLabel>
           </Step>
         ))}
       </Stepper>
-
       {/* Step content */}
       <Box
         sx={{
@@ -104,7 +105,6 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave
       >
         {stepComponents[activeStep]}
       </Box>
-
       {/* Navigation buttons — fixed bottom */}
       <Paper
         elevation={8}
@@ -134,7 +134,11 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave
           Zurück
         </Button>
 
-        <Box display="flex" gap={1}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1
+          }}>
           {activeStep < WIZARD_STEPS.length - 1 ? (
             <Button
               variant="contained"
@@ -156,7 +160,6 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave
           )}
         </Box>
       </Paper>
-
       {/* Floating preview button */}
       {hasPreview && (
         <Fab
@@ -175,25 +178,32 @@ export const MobileWizard: React.FC<MobileWizardProps> = ({ state, onRequestSave
           </Badge>
         </Fab>
       )}
-
       {/* Preview Drawer — slides up from bottom */}
       <Drawer
         anchor="bottom"
         open={previewDrawerOpen}
         onClose={() => setPreviewDrawerOpen(false)}
-        PaperProps={{
-          sx: {
-            maxHeight: '85vh',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-          },
-        }}
         ModalProps={{
           sx: { zIndex: (theme) => theme.zIndex.modal + 3 },
         }}
+        slotProps={{
+          paper: {
+            sx: {
+              maxHeight: '85vh',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+            },
+          }
+        }}
       >
         <Box sx={{ p: 2 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1
+            }}>
             <Typography variant="h6">Vorschau</Typography>
             <IconButton onClick={() => setPreviewDrawerOpen(false)}>
               <CloseIcon />

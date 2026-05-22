@@ -12,7 +12,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import EventIcon from '@mui/icons-material/Event';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTheme } from '@mui/material/styles';
 import { apiJson } from '../utils/api';
@@ -109,19 +109,27 @@ const EventRow: React.FC<EventRowProps> = ({ event, row, statuses, onRespond, on
           minHeight: 40,
         }}
       />
-
       <Box sx={{ flex: 1, minWidth: 0 }}>
         {/* Title row */}
-        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mb: 0.25
+          }}>
           <Box sx={{ color: typeColor, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <EventTypeIcon event={event} />
           </Box>
           <Typography
             variant="body2"
-            fontWeight={700}
             noWrap
-            sx={{ flex: 1, minWidth: 0, lineHeight: 1.4 }}
-          >
+            sx={{
+              fontWeight: 700,
+              flex: 1,
+              minWidth: 0,
+              lineHeight: 1.4
+            }}>
             {event.title}
           </Typography>
           {/* Edit-Button wenn schon geantwortet */}
@@ -140,9 +148,11 @@ const EventRow: React.FC<EventRowProps> = ({ event, row, statuses, onRespond, on
         {/* Date */}
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mb: showButtons ? 1 : 0 }}
-        >
+          sx={{
+            color: "text.secondary",
+            display: 'block',
+            mb: showButtons ? 1 : 0
+          }}>
           {formatDate(event.start)}
         </Typography>
 
@@ -173,7 +183,14 @@ const EventRow: React.FC<EventRowProps> = ({ event, row, statuses, onRespond, on
 
         {/* Action buttons (wenn pending oder expanded zum Ändern) */}
         {showButtons && (
-          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
+          <Stack
+            direction="row"
+            spacing={0.75}
+            useFlexGap
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "center"
+            }}>
             <ParticipationButtons
               statuses={statuses.filter(
                 s => s.code !== 'suspended' || !!event.game || event.type?.name?.toLowerCase().includes('turnier'),
@@ -325,15 +342,20 @@ export const QuickRsvpWidget: React.FC = () => {
     >
       <Stack
         direction="row"
-        alignItems="center"
         spacing={1}
-        sx={{ mb: 1, px: 0.5 }}
-      >
+        sx={{
+          alignItems: "center",
+          mb: 1,
+          px: 0.5
+        }}>
         <Typography
           variant="caption"
-          fontWeight={700}
-          sx={{ textTransform: 'uppercase', letterSpacing: 0.8, color: 'text.secondary' }}
-        >
+          sx={{
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 0.8,
+            color: 'text.secondary'
+          }}>
           Deine Zusage fehlt noch
         </Typography>
         <Chip
@@ -343,7 +365,6 @@ export const QuickRsvpWidget: React.FC = () => {
           sx={{ height: 18, fontSize: 11, fontWeight: 700, '& .MuiChip-label': { px: 0.75 } }}
         />
       </Stack>
-
       <Stack divider={<Divider />} spacing={0}>
         {visibleEvents.map(event => (
           <EventRow

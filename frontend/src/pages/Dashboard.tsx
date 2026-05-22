@@ -219,10 +219,9 @@ function DashboardContent() {
   };
 
   return (
-  <Box sx={{ width: '100%', height: '100%', minWidth: 320, p: { xs: 1, md: 3 } }}>
+    <Box sx={{ width: '100%', height: '100%', minWidth: 320, p: { xs: 1, md: 3 } }}>
       {/* ── Quick RSVP: nur für Spieler und Trainer ── */}
       {(user?.isPlayer || user?.isCoach) && <QuickRsvpWidget />}
-
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" component="h1">
           Dashboard{user?.firstName ? ` – ${user.firstName}` : ''}
@@ -297,7 +296,6 @@ function DashboardContent() {
         </div>
       </SelectReportModal>
       </Box>
-
       {/* ── Empty dashboard state ── */}
       {!loading && widgets.length === 0 && (
         <Paper
@@ -315,7 +313,13 @@ function DashboardContent() {
           <Typography variant="h6" gutterBottom>
             Dein Dashboard ist noch leer
           </Typography>
-          <Typography color="text.secondary" sx={{ mb: 4, maxWidth: 480, mx: 'auto' }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              mb: 4,
+              maxWidth: 480,
+              mx: 'auto'
+            }}>
             Füge dein erstes Widget hinzu. Erstelle eine eigene Statistik-Auswertung oder wähle ein Standard-Widget wie Kalender oder Nachrichten.
           </Typography>
 
@@ -333,8 +337,12 @@ function DashboardContent() {
               <CardActionArea onClick={() => handleOpenCreateReport('guided')} sx={{ height: '100%' }}>
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
                   <AutoFixHighIcon color="primary" sx={{ fontSize: 40 }} />
-                  <Typography variant="subtitle1" fontWeight={700}>Einfacher Assistent</Typography>
-                  <Typography variant="body2" color="text.secondary" align="center">
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: 700
+                  }}>Einfacher Assistent</Typography>
+                  <Typography variant="body2" align="center" sx={{
+                    color: "text.secondary"
+                  }}>
                     Geführt in wenigen Schritten eine Auswertung erstellen
                   </Typography>
                 </CardContent>
@@ -353,8 +361,12 @@ function DashboardContent() {
               <CardActionArea onClick={() => handleOpenCreateReport('builder')} sx={{ height: '100%' }}>
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
                   <BuildIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
-                  <Typography variant="subtitle1" fontWeight={700}>Detaillierter Builder</Typography>
-                  <Typography variant="body2" color="text.secondary" align="center">
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: 700
+                  }}>Detaillierter Builder</Typography>
+                  <Typography variant="body2" align="center" sx={{
+                    color: "text.secondary"
+                  }}>
                     Volle Kontrolle mit allen Einstellungen – für erfahrene Nutzer
                   </Typography>
                 </CardContent>
@@ -368,13 +380,11 @@ function DashboardContent() {
           </Button>
         </Paper>
       )}
-
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       )}
-
       <DashboardDndKitWrapper
         widgets={[...widgets].sort((a, b) => a.position - b.position)}
         onReorder={async (newOrder) => {
@@ -419,7 +429,6 @@ function DashboardContent() {
           </DashboardWidget>
         )}
       />
-
       <DynamicConfirmationModal
         open={deleteModalOpen}
         onClose={handleDeleteCancel}
@@ -437,7 +446,6 @@ function DashboardContent() {
         confirmText="Löschen"
         confirmColor="error"
       />
-
       <WidgetSettingsModal
         open={settingsOpen}
         currentWidth={(() => {
@@ -458,7 +466,6 @@ function DashboardContent() {
         onClose={handleSettingsClose}
         onSave={handleSettingsSave}
       />
-
       {/* Report edit modal */}
       <ReportBuilderModal
         open={editReportOpen}
@@ -470,7 +477,6 @@ function DashboardContent() {
         onSave={handleEditReportSave}
         report={editReport}
       />
-
       {/* Report create modal (new report → new widget) */}
       <ReportBuilderModal
         open={createReportOpen}

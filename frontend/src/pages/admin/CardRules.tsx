@@ -28,7 +28,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import StyleIcon from '@mui/icons-material/Style';
 import { apiJson, getApiErrorMessage } from '../../utils/api';
@@ -185,14 +185,18 @@ function RuleDialog({ open, initial, title, onClose, onSave }: RuleDialogProps) 
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <Box>
-            <Typography variant="caption" color="text.secondary" gutterBottom>Wettbewerbstyp *</Typography>
+            <Typography variant="caption" gutterBottom sx={{
+              color: "text.secondary"
+            }}>Wettbewerbstyp *</Typography>
             <Select value={form.competitionType} onChange={e => set('competitionType', e.target.value)}
               size="small" fullWidth>
               {COMPETITION_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
             </Select>
           </Box>
           <Box>
-            <Typography variant="caption" color="text.secondary" gutterBottom>Gilt für *</Typography>
+            <Typography variant="caption" gutterBottom sx={{
+              color: "text.secondary"
+            }}>Gilt für *</Typography>
             <Select value={form.personType} onChange={e => set('personType', e.target.value)}
               size="small" fullWidth>
               {PERSON_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
@@ -212,19 +216,25 @@ function RuleDialog({ open, initial, title, onClose, onSave }: RuleDialogProps) 
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
           <TextField
-            label="Warnung ab (Gelb)" type="number" size="small" inputProps={{ min: 0, max: 99 }}
-            value={form.yellowWarningThreshold}
+            label="Warnung ab (Gelb)" type="number" size="small" value={form.yellowWarningThreshold}
             onChange={e => set('yellowWarningThreshold', Number(e.target.value))}
+            slotProps={{
+              htmlInput: { min: 0, max: 99 }
+            }}
           />
           <TextField
-            label="Sperre ab (Gelb)" type="number" size="small" inputProps={{ min: 0, max: 99 }}
-            value={form.yellowSuspensionThreshold}
+            label="Sperre ab (Gelb)" type="number" size="small" value={form.yellowSuspensionThreshold}
             onChange={e => set('yellowSuspensionThreshold', Number(e.target.value))}
+            slotProps={{
+              htmlInput: { min: 0, max: 99 }
+            }}
           />
           <TextField
-            label="Spiele gesperrt" type="number" size="small" inputProps={{ min: 1, max: 99 }}
-            value={form.suspensionGames}
+            label="Spiele gesperrt" type="number" size="small" value={form.suspensionGames}
             onChange={e => set('suspensionGames', Number(e.target.value))}
+            slotProps={{
+              htmlInput: { min: 1, max: 99 }
+            }}
           />
         </Box>
 
@@ -241,15 +251,19 @@ function RuleDialog({ open, initial, title, onClose, onSave }: RuleDialogProps) 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <TextField
             label="Spiele gesperrt – Rote Karte 🟥"
-            type="number" size="small" inputProps={{ min: 0, max: 99 }}
-            value={form.redCardSuspensionGames}
+            type="number" size="small" value={form.redCardSuspensionGames}
             onChange={e => set('redCardSuspensionGames', Number(e.target.value))}
+            slotProps={{
+              htmlInput: { min: 0, max: 99 }
+            }}
           />
           <TextField
             label="Spiele gesperrt – Gelb-Rot 🟨🟥"
-            type="number" size="small" inputProps={{ min: 0, max: 99 }}
-            value={form.yellowRedCardSuspensionGames}
+            type="number" size="small" value={form.yellowRedCardSuspensionGames}
             onChange={e => set('yellowRedCardSuspensionGames', Number(e.target.value))}
+            slotProps={{
+              htmlInput: { min: 0, max: 99 }
+            }}
           />
         </Box>
 
@@ -257,17 +271,23 @@ function RuleDialog({ open, initial, title, onClose, onSave }: RuleDialogProps) 
 
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           <TextField
-            label="Gültig ab" type="date" size="small" InputLabelProps={{ shrink: true }}
-            value={form.validFrom ?? ''}
+            label="Gültig ab" type="date" size="small" value={form.validFrom ?? ''}
             onChange={e => set('validFrom', e.target.value || null)}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
           <TextField
-            label="Gültig bis" type="date" size="small" InputLabelProps={{ shrink: true }}
-            value={form.validUntil ?? ''}
+            label="Gültig bis" type="date" size="small" value={form.validUntil ?? ''}
             onChange={e => set('validUntil', e.target.value || null)}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Box>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Leer = kein Start- bzw. Enddatum. Regeln mit abgelaufenem Enddatum erscheinen automatisch
           im Tab „Historische Regeln".
         </Typography>
@@ -333,7 +353,12 @@ function RuleTable({ rules, onEdit, onDelete }: RuleTableProps) {
                 <TableCell>
                   {rule.competitionId !== null
                     ? <Typography variant="body2">#{rule.competitionId}</Typography>
-                    : <Typography variant="body2" color="text.secondary" fontStyle="italic">alle</Typography>}
+                    : <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      fontStyle: "italic"
+                    }}>alle</Typography>}
                 </TableCell>
                 <TableCell>
                   <Chip label={personLabelShort(rule.personType)} size="small"
@@ -457,21 +482,25 @@ export default function CardRules() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <StyleIcon color="primary" />
-          <Typography variant="h5" fontWeight={600}>Karten-Sperr-Regeln</Typography>
+          <Typography variant="h5" sx={{
+            fontWeight: 600
+          }}>Karten-Sperr-Regeln</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
           Neue Regel
         </Button>
       </Box>
-
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 3
+        }}>
         Legt fest, ab wie vielen Gelben Karten ein Spieler oder Trainer verwarnt/gesperrt wird,
         sowie wie viele Spiele bei Roter oder Gelb-Roter Karte gesperrt werden — je Wettbewerbstyp.
         Abgelaufene Regeln sind im Tab „Historisch" archiviert.
       </Typography>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
       <Paper variant="outlined">
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={`Aktuelle Regeln (${currentRules.length})`} />
@@ -486,7 +515,9 @@ export default function CardRules() {
         ) : tab === 1 ? (
           <>
             <Box sx={{ px: 2, py: 1.5, bgcolor: 'info.50', borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Diese Regeln treten erst in Kraft, wenn ihr „Gültig ab"-Datum erreicht ist.
                 Sie überschreiben dann die aktuellen Regeln für denselben Wettbewerbstyp.
               </Typography>
@@ -496,7 +527,9 @@ export default function CardRules() {
         ) : (
           <>
             <Box sx={{ px: 2, py: 1.5, bgcolor: 'grey.50', borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Abgelaufene Regelversionen (Gültig-bis in der Vergangenheit). Zur Nachvollziehbarkeit
                 archiviert — können bearbeitet oder reaktiviert werden.
               </Typography>
@@ -505,7 +538,6 @@ export default function CardRules() {
           </>
         )}
       </Paper>
-
       <RuleDialog
         open={dialogOpen}
         initial={initialForm}
@@ -513,7 +545,6 @@ export default function CardRules() {
         onClose={() => setDialogOpen(false)}
         onSave={editingRule ? handleUpdate : handleCreate}
       />
-
       <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Regel löschen?</DialogTitle>
         <DialogContent>

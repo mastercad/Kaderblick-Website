@@ -310,7 +310,6 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
 
   return (
     <Box sx={{ width: '100%' }}>
-
       {/* Primary: Teilen – mobil native, desktop lädt herunter */}
       <Button
         variant="contained"
@@ -324,7 +323,6 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
       >
         {loading ? loadingMsg : 'Auf Sozialen Medien teilen'}
       </Button>
-
       {/* Platform icon buttons */}
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 1.5 }}>
         {PLATFORMS.map((platform) => (
@@ -351,7 +349,6 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
           </Tooltip>
         ))}
       </Box>
-
       {/* Secondary: copy + download */}
       <Box sx={{ display: 'flex', gap: 1 }}>
         <Button
@@ -377,7 +374,6 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
           Herunterladen
         </Button>
       </Box>
-
       {/* Feedback snackbars */}
       <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
         <Alert severity="error" onClose={() => setError(null)} data-testid="export-error">
@@ -389,7 +385,6 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
           {notice}
         </Alert>
       </Snackbar>
-
       {/* X / Twitter Preview Dialog */}
       <Dialog
         open={xPreviewOpen}
@@ -399,7 +394,9 @@ export function ExportActions({ posterRef, filename = 'poster.png', format = '1:
         data-testid="x-preview-dialog"
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-          <Typography fontWeight={700} component="span">Vorschau für X</Typography>
+          <Typography component="span" sx={{
+            fontWeight: 700
+          }}>Vorschau für X</Typography>
           <IconButton size="small" aria-label="schließen" onClick={closeXPreview}>
             <CloseIcon fontSize="small" />
           </IconButton>

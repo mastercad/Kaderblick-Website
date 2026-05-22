@@ -24,11 +24,11 @@ jest.mock('@mui/material/styles', () => ({
 }));
 
 jest.mock('@mui/icons-material/ArrowBack',       () => () => <span>back</span>);
-jest.mock('@mui/icons-material/DeleteOutline',   () => () => <span>delete-icon</span>);
+jest.mock('@mui/icons-material/DeleteOutlined',   () => () => <span>delete-icon</span>);
 jest.mock('@mui/icons-material/ForwardToInbox',  () => () => <span>forward-icon</span>);
 jest.mock('@mui/icons-material/Group',           () => () => <span>group-icon</span>);
 jest.mock('@mui/icons-material/Mail',            () => () => <span>mail-big-icon</span>);
-jest.mock('@mui/icons-material/MailOutline',     () => () => <span>mail-icon</span>);
+jest.mock('@mui/icons-material/MailOutlined',     () => () => <span>mail-icon</span>);
 jest.mock('@mui/icons-material/MarkEmailUnread', () => () => <span>unread-icon</span>);
 jest.mock('@mui/icons-material/Person',          () => () => <span>person-icon</span>);
 jest.mock('@mui/icons-material/Reply',           () => () => <span>reply-icon</span>);

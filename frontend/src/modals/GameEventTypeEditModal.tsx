@@ -76,7 +76,13 @@ const GameEventTypeEditModal: React.FC<GameEventTypeEditModalProps> = ({ openGam
             </DialogTitle>
             <DialogContent>
                 {loading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 ) : error ? (
@@ -85,20 +91,37 @@ const GameEventTypeEditModal: React.FC<GameEventTypeEditModalProps> = ({ openGam
                     <form id="gameEventTypeEditForm" autoComplete="off" onSubmit={handleGameEventTypeEditSubmit}>
                         <input type="hidden" name="id" value={gameEventType?.id} />
                         <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                            <Box mb={2}>
+                            <Box sx={{
+                                mb: 2
+                            }}>
                                 <TextField label="Name" name="name" value={gameEventType?.name || ''} onChange={handleGameEventTypeEditChange} required fullWidth margin="normal" />
                                 <TextField label="Code" name="code" value={gameEventType?.code || ''} onChange={handleGameEventTypeEditChange} fullWidth margin="normal" />
-                                <Box display="flex" alignItems="center" gap={2} mt={1} mb={1}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 2,
+                                        mt: 1,
+                                        mb: 1
+                                    }}>
                                     <TextField label="Farbe" name="color" value={gameEventType?.color || ''} onChange={handleGameEventTypeEditChange} fullWidth margin="normal" type="color"
-                                        InputLabelProps={{ shrink: true }}
                                         sx={{ width: 120 }}
+                                        slotProps={{
+                                            inputLabel: { shrink: true }
+                                        }}
                                     />
                                     <Box sx={{ ml: 1 }}>
                                         <span style={{ display: 'inline-block', width: 32, height: 32, borderRadius: 4, background: gameEventType?.color || '#eee', border: '1px solid #ccc' }} />
                                     </Box>
                                 </Box>
                                 <TextField label="Icon (FontAwesome)" name="icon" value={gameEventType?.icon || ''} onChange={handleGameEventTypeEditChange} fullWidth margin="normal" placeholder="z.B. fas fa-futbol" />
-                                <Box display="flex" alignItems="center" gap={1} mt={1}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                        mt: 1
+                                    }}>
                                     <label style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                         <span style={{ flex: 1 }}>Systemtyp</span>
                                         <input
@@ -112,7 +135,14 @@ const GameEventTypeEditModal: React.FC<GameEventTypeEditModalProps> = ({ openGam
                                 </Box>
                             </Box>
                         </Box>
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 3,
+                                mb: 1
+                            }}>
                             <Button onClick={onGameEventTypeEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

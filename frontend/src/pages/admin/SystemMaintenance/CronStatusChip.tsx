@@ -2,7 +2,7 @@ import React from 'react';
 import { Chip, CircularProgress } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import type { CronJob } from './types';
 

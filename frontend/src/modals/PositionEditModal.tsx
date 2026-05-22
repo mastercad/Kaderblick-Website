@@ -74,7 +74,13 @@ const PositionEditModal: React.FC<PositionEditModalProps> = ({ openPositionEditM
             title="Position bearbeiten"
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -83,13 +89,22 @@ const PositionEditModal: React.FC<PositionEditModalProps> = ({ openPositionEditM
                 <form id="positionEditForm" autoComplete="off" onSubmit={handlePositionEditSubmit}>
                     <input type="hidden" name="id" value={position?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
+                        <Box sx={{
+                            mb: 2
+                        }}>
                             <TextField label="Name" name="name" value={position?.name || ''} onChange={handlePositionEditChange} required fullWidth margin="normal" />
                             <TextField label="Kurzname" name="shortName" value={position?.shortName || ''} onChange={handlePositionEditChange} fullWidth margin="normal" />
                             <TextField label="Beschreibung" name="description" value={position?.description || ''} onChange={handlePositionEditChange} fullWidth margin="normal" multiline minRows={2} />
                         </Box>
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onPositionEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

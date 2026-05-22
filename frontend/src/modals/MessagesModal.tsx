@@ -570,7 +570,9 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
             <Badge badgeContent={unreadCount} color="error" max={99}>
               <MailIcon color="primary" />
             </Badge>
-            <Typography variant="subtitle1" fontWeight={700}>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 700
+            }}>
               Nachrichten
             </Typography>
           </Box>
@@ -630,35 +632,30 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ open, onClose, ini
         <Box sx={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
           {isMobile ? (
             /* Mobile: single active view */
-            <>
+            (<>
               {view === 'list'    && listPane}
               {view === 'detail'  && detailPane}
               {view === 'compose' && composePane}
-            </>
+            </>)
           ) : (
             /* Desktop: always two-column (list + right panel)
                Right panel shows detail OR compose – list stays visible */
-            filtered.length === 0 && view !== 'compose' && !selected ? (
-              /* Empty-state: no messages in active folder → expand list full width */
-              <Box sx={{ width: '100%' }}>{listPane}</Box>
-            ) : (
-              <Box sx={{ display: 'flex', width: '100%', height: '100%', minHeight: 0 }}>
-                <Box sx={{
-                  width: { sm: 300, md: 340 }, flexShrink: 0,
-                  borderRight: '1px solid', borderColor: 'divider',
-                  display: 'flex', flexDirection: 'column', minHeight: 0,
-                }}>
-                  {listPane}
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  {view === 'compose' ? composePane : detailPane}
-                </Box>
+            (filtered.length === 0 && view !== 'compose' && !selected ? /* Empty-state: no messages in active folder → expand list full width */
+            (<Box sx={{ width: '100%' }}>{listPane}</Box>) : (<Box sx={{ display: 'flex', width: '100%', height: '100%', minHeight: 0 }}>
+              <Box sx={{
+                width: { sm: 300, md: 340 }, flexShrink: 0,
+                borderRight: '1px solid', borderColor: 'divider',
+                display: 'flex', flexDirection: 'column', minHeight: 0,
+              }}>
+                {listPane}
               </Box>
-            )
+              <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                {view === 'compose' ? composePane : detailPane}
+              </Box>
+            </Box>))
           )}
         </Box>
       </Box>
-
       {/* Discard-confirmation dialog */}
       <Dialog open={discardConfirmOpen} onClose={cancelDiscard} maxWidth="xs" fullWidth>
         <DialogTitle>Entwurf verwerfen?</DialogTitle>

@@ -11,8 +11,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // ─── Icon mocks ──────────────────────────────────────────────────────────────
-jest.mock('@mui/icons-material/CheckCircleOutline', () => () => <span data-testid="CheckCircleOutlineIcon" />);
-jest.mock('@mui/icons-material/ErrorOutline',       () => () => <span data-testid="ErrorOutlineIcon" />);
+jest.mock('@mui/icons-material/CheckCircleOutlined', () => () => <span data-testid="CheckCircleOutlineIcon" />);
+jest.mock('@mui/icons-material/ErrorOutlined',       () => () => <span data-testid="ErrorOutlineIcon" />);
 
 // ─── API mock ─────────────────────────────────────────────────────────────────
 const mockApiJson = jest.fn();

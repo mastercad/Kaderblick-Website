@@ -109,7 +109,13 @@ const ReportCard: React.FC<ReportCardProps> = ({
     >
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
         {/* Header: Type chip + template badge */}
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1
+          }}>
           <Chip
             icon={meta.icon}
             label={meta.label}
@@ -133,28 +139,31 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </Box>
 
         {/* Title */}
-        <Typography variant="subtitle1" fontWeight={700} gutterBottom noWrap>
+        <Typography variant="subtitle1" gutterBottom noWrap sx={{
+          fontWeight: 700
+        }}>
           {report.name}
         </Typography>
 
         {/* Description */}
         <Typography
           variant="body2"
-          color="text.secondary"
           sx={{
+            color: "text.secondary",
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            minHeight: '2.5em',
-          }}
-        >
+            minHeight: '2.5em'
+          }}>
           {report.description || 'Keine Beschreibung'}
         </Typography>
 
         {/* Inline preview toggle */}
         {report.id && (
-          <Box mt={1}>
+          <Box sx={{
+            mt: 1
+          }}>
             <Button
               size="small"
               startIcon={previewOpen ? <PreviewOffIcon /> : <PreviewIcon />}
@@ -179,9 +188,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
           </Box>
         )}
       </CardContent>
-
       <Divider />
-
       {/* Actions */}
       <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
         <Tooltip title="Zum Dashboard hinzufügen">
@@ -460,12 +467,27 @@ const ReportsOverviewInner = () => {
   return (
     <Box sx={{ width: '100%', px: { xs: 2, md: 4 }, py: { xs: 2, md: 4 } }}>
       {/* ── Header ── */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={1}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 1
+        }}>
         <Box>
-          <Typography variant="h4" component="h1" fontWeight={700}>
+          <Typography variant="h4" component="h1" sx={{
+            fontWeight: 700
+          }}>
             Auswertungen
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5
+            }}>
             Erstelle Diagramme und Auswertungen, die du als Widget auf deinem Dashboard nutzen kannst.
           </Typography>
         </Box>
@@ -480,20 +502,24 @@ const ReportsOverviewInner = () => {
           Neue Auswertung
         </Button>
       </Box>
-
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
-
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" p={8}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            p: 8
+          }}>
           <CircularProgress />
         </Box>
       ) : reports.length === 0 ? (
         /* ── Empty state ── */
-        <Paper
+        (<Paper
           sx={{
             p: 6,
             textAlign: 'center',
@@ -507,7 +533,12 @@ const ReportsOverviewInner = () => {
           <Typography variant="h6" gutterBottom>
             Noch keine Auswertungen vorhanden
           </Typography>
-          <Typography variant="body2" color="text.secondary" mb={3}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 3
+            }}>
             Erstelle deine erste Auswertung — wähle einen Diagrammtyp, Datenfelder und Filter,
             <br />
             und füge das Ergebnis direkt als Widget zu deinem Dashboard hinzu.
@@ -521,17 +552,26 @@ const ReportsOverviewInner = () => {
           >
             Erste Auswertung erstellen
           </Button>
-        </Paper>
+        </Paper>)
       ) : null}
-
       {/* ── Meine Auswertungen ── */}
       {!loading && (
-        <Box mb={2}>
+        <Box sx={{
+          mb: 2
+        }}>
           {reports.length > 0 && (
             <>
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mb: 2
+                }}>
                 <BarChartIcon color="primary" />
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{
+                  fontWeight: 600
+                }}>
                   Meine Auswertungen
                 </Typography>
                 <Chip label={reports.length} size="small" color="primary" variant="outlined" />
@@ -553,7 +593,6 @@ const ReportsOverviewInner = () => {
           )}
         </Box>
       )}
-
       {/* ── Context modal (team/player selection for presets & templates) ── */}
       <Dialog
         open={contextModal.open}
@@ -563,7 +602,12 @@ const ReportsOverviewInner = () => {
       >
         <DialogTitle sx={{ fontWeight: 700 }}>Auswertung anpassen</DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2" color="text.secondary" mb={2}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Diese Vorlage zeigt Daten
             {contextModal.needsPlayer && contextModal.needsTeam
               ? ' nach Spielern und Teams':
@@ -573,9 +617,19 @@ const ReportsOverviewInner = () => {
             {' '}Du kannst die Auswertung jetzt auf bestimmte Einträge einschränken – oder sie ohne Filter übernehmen.
           </Typography>
           {contextDataLoading ? (
-            <Box display="flex" justifyContent="center" p={2}><CircularProgress size={28} /></Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                p: 2
+              }}><CircularProgress size={28} /></Box>
           ) : (
-            <Box display="flex" flexDirection="column" gap={2}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2
+              }}>
               {contextModal.needsTeam && (
                 <Autocomplete
                   options={contextTeams}
@@ -629,7 +683,6 @@ const ReportsOverviewInner = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* ── Modals ── */}
       <ReportBuilderModal
         open={builderModalOpen}
@@ -640,7 +693,6 @@ const ReportsOverviewInner = () => {
         onSave={handleSaveReport}
         report={editingReport || undefined}
       />
-
       <DynamicConfirmationModal
         open={confirmationModalOpen}
         onClose={handleCancelDelete}
@@ -651,7 +703,6 @@ const ReportsOverviewInner = () => {
         cancelText="Abbrechen"
         confirmColor="error"
       />
-
       {/* ── Snackbar ── */}
       <Snackbar
         open={snackbar.open}

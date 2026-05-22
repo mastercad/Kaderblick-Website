@@ -161,11 +161,15 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
     <Box sx={{ mt: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <FitnessCenterIcon color="success" fontSize="small" />
-        <Typography variant="subtitle2" color="success.main" fontWeight="bold">
+        <Typography
+          variant="subtitle2"
+          sx={{
+            color: "success.main",
+            fontWeight: "bold"
+          }}>
           Training
         </Typography>
       </Box>
-
       <FormControl fullWidth margin="normal" size="small">
         <InputLabel id="training-team-label">Team *</InputLabel>
         <Select
@@ -180,7 +184,6 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
           ))}
         </Select>
       </FormControl>
-
       {/* Time + Duration */}
       <Box sx={{
         p: 2, mt: 1, mb: 1,
@@ -191,7 +194,9 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
           <AccessTimeIcon fontSize="small" color="action" />
-          <Typography variant="body2" fontWeight="medium">Uhrzeit &amp; Dauer</Typography>
+          <Typography variant="body2" sx={{
+            fontWeight: "medium"
+          }}>Uhrzeit &amp; Dauer</Typography>
         </Box>
 
         <Stack direction="row" spacing={2}>
@@ -201,24 +206,29 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
             value={formData.time || ''}
             onChange={e => handleTimeChange(e.target.value)}
             size="small"
-            InputLabelProps={{ shrink: true }}
             sx={{ flex: 1 }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
           <TextField
             label="Ende"
             type="time"
             value={formData.endTime || ''}
             size="small"
-            InputLabelProps={{ shrink: true }}
-            InputProps={{ readOnly: true }}
             sx={{ flex: 1, '& input': { color: 'text.secondary' } }}
-          />
+            slotProps={{
+              input: { readOnly: true },
+              inputLabel: { shrink: true }
+            }} />
         </Stack>
 
         <Box sx={{ mt: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
             <TimerIcon fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">Dauer (Minuten)</Typography>
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>Dauer (Minuten)</Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {DURATION_PRESETS.map(d => (
@@ -240,13 +250,14 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
                 if (v > 0 && v <= 480) handleDurationChange(v);
               }}
               size="small"
-              inputProps={{ min: 15, max: 480, step: 5 }}
               sx={{ width: 80 }}
+              slotProps={{
+                htmlInput: { min: 15, max: 480, step: 5 }
+              }}
             />
           </Box>
         </Box>
       </Box>
-
       <FormControlLabel
         control={
           <Switch
@@ -263,7 +274,6 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
         }
         sx={{ mt: 1, mb: 1 }}
       />
-
       {isRecurring && (
         <Box sx={{
           p: 2,
@@ -296,25 +306,27 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
             onChange={e => handleChange('trainingEndDate', e.target.value)}
             fullWidth
             size="small"
-            InputLabelProps={{ shrink: true }}
-            inputProps={{
-              min: formData.date || undefined,
-            }}
-          />
+            slotProps={{
+              htmlInput: {
+                min: formData.date || undefined,
+              },
+
+              inputLabel: { shrink: true }
+            }} />
 
           {occurrenceCount > 0 && !formData.trainingSeriesId && (
             // Create mode: show how many events will be created
-            <Alert severity="info" sx={{ mt: 2 }} icon={<RepeatIcon />}>
-              <strong>{occurrenceCount} Trainings</strong> werden erstellt
-              {formData.date && formData.trainingEndDate && (
+            (<Alert severity="info" sx={{ mt: 2 }} icon={<RepeatIcon />}>
+              <strong>{occurrenceCount} Trainings</strong>werden erstellt
+                            {formData.date && formData.trainingEndDate && (
                 <> ({formData.date} bis {formData.trainingEndDate})</>
               )}
-            </Alert>
+            </Alert>)
           )}
 
           {seriesDiff && (
             // Edit mode: show exact added + removed counts independently
-            <Alert
+            (<Alert
               severity={seriesDiff.removed > 0 && seriesDiff.added === 0 ? 'warning' : 'info'}
               sx={{ mt: 2 }}
               icon={<RepeatIcon />}
@@ -327,7 +339,7 @@ const TrainingEventFieldsComponent: React.FC<TrainingEventFieldsProps> = ({
                 <><strong>−{seriesDiff.removed} Trainings</strong> werden entfernt</>
               )}
               <> (insgesamt dann: {seriesDiff.total})</>
-            </Alert>
+            </Alert>)
           )}
 
           {isRecurring && selectedWeekdays.length === 0 && (

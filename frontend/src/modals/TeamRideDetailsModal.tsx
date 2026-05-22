@@ -158,16 +158,35 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           <Alert severity="error" sx={{ mb: 2 }}>{bookingError}</Alert>
         )}
         {loading ? (
-          <Box display="flex" justifyContent="center" my={2}><CircularProgress /></Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              my: 2
+            }}><CircularProgress /></Box>
         ) : (
           <>
             {rides.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">Keine Mitfahrgelegenheiten gefunden.</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>Keine Mitfahrgelegenheiten gefunden.</Typography>
             ) : (
               <Stack spacing={2}>
                 {rides.map(ride => (
-                  <Box key={ride.id} border={1} borderRadius={2} p={2} borderColor="divider">
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box
+                    key={ride.id}
+                    sx={{
+                      border: 1,
+                      borderRadius: 2,
+                      p: 2,
+                      borderColor: "divider"
+                    }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
                       <Typography variant="subtitle2">Fahrer: {ride.driver}</Typography>
                       {!cancelled && isUserDriver(ride) && (
                         <Tooltip title="Mitfahrgelegenheit zurückziehen">
@@ -185,14 +204,29 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
                     <Typography variant="body2">
                       Plätze: {ride.seats} | Frei: {ride.availableSeats} | Belegt: {ride.seats - ride.availableSeats}
                     </Typography>
-                    {ride.note && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Notiz: {ride.note}</Typography>}
+                    {ride.note && <Typography
+                      variant="body2"
+                      sx={{
+                        color: "text.secondary",
+                        mt: 0.5
+                      }}>Notiz: {ride.note}</Typography>}
 
                     {ride.passengers.length > 0 && (
-                      <Box mt={1}>
-                        <Typography variant="body2" fontWeight="bold" gutterBottom>Mitfahrer:</Typography>
+                      <Box sx={{
+                        mt: 1
+                      }}>
+                        <Typography variant="body2" gutterBottom sx={{
+                          fontWeight: "bold"
+                        }}>Mitfahrer:</Typography>
                         <Stack spacing={0.5}>
                           {ride.passengers.map(p => (
-                            <Box key={p.id} display="flex" alignItems="center" justifyContent="space-between">
+                            <Box
+                              key={p.id}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between"
+                              }}>
                               <Chip label={p.name} size="small" variant="outlined" />
                               {/* Passenger can cancel their own booking */}
                               {!cancelled && p.id === user?.id && (
@@ -227,7 +261,12 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
                     )}
 
                     {ride.passengers.length === 0 && (
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Noch keine Mitfahrer.</Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 1
+                        }}>Noch keine Mitfahrer.</Typography>
                     )}
 
                     {/* Show book button only if user is not already a passenger and not the driver */}
@@ -262,7 +301,6 @@ const TeamRideDetailsModal: React.FC<TeamRideDetailsModalProps> = ({ open, onClo
           </>
         )}
       </BaseModal>
-
       <AddTeamRideModal open={addTeamRideModalOpen} onClose={() => setAddTeamRideModalOpen(false)} eventId={eventId} onAdded={() => { refreshRides(); notifyUpdated(); }} />
     </>
   );

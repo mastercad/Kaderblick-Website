@@ -112,8 +112,20 @@ function StatCard({ icon, label, value, color, bgcolor }: StatCardProps) {
           {icon}
         </Box>
         <Box>
-          <Typography variant="h5" fontWeight={700} color="text.primary" lineHeight={1}>{value}</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>{label}</Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary",
+              lineHeight: 1
+            }}>{value}</Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5,
+              display: 'block'
+            }}>{label}</Typography>
         </Box>
       </CardContent>
     </Card>
@@ -207,22 +219,29 @@ const AdminTitleXpOverview: React.FC = () => {
 
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
-
       {/* ── Header ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
         <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'primary.main', color: 'white', display: 'flex' }}>
           <EmojiEventsIcon sx={{ fontSize: 32 }} />
         </Box>
         <Box>
-          <Typography variant="h4" fontWeight={700} color="text.primary">Titel & XP Übersicht</Typography>
-          <Typography variant="body2" color="text.secondary">Rang-Übersicht aller vergebenen Titel und Spieler-Fortschritte</Typography>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary"
+            }}>Titel & XP Übersicht</Typography>
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>Rang-Übersicht aller vergebenen Titel und Spieler-Fortschritte</Typography>
         </Box>
       </Box>
-
       {loading ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, my: 8 }}>
           <CircularProgress size={48} />
-          <Typography color="text.secondary">Daten werden geladen …</Typography>
+          <Typography sx={{
+            color: "text.secondary"
+          }}>Daten werden geladen …</Typography>
         </Box>
       ) : error ? (
         <Alert severity="error" variant="filled" sx={{ borderRadius: 2 }}>{error}</Alert>
@@ -257,7 +276,9 @@ const AdminTitleXpOverview: React.FC = () => {
               borderRadius: '8px 8px 0 0',
             }}>
               <EmojiEventsIcon color="primary" />
-              <Typography variant="h6" fontWeight={600}>Vergebene Titel</Typography>
+              <Typography variant="h6" sx={{
+                fontWeight: 600
+              }}>Vergebene Titel</Typography>
               <Chip label={titles.length} size="small" color="primary" sx={{ ml: 'auto' }} />
             </Box>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderTop: 0, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
@@ -286,12 +307,16 @@ const AdminTitleXpOverview: React.FC = () => {
                         sx={{ '&:last-child td': { border: 0 } }}
                       >
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>{t.titleCategory || '-'}</Typography>
+                          <Typography variant="body2" sx={{
+                            fontWeight: 500
+                          }}>{t.titleCategory || '-'}</Typography>
                         </TableCell>
                         <TableCell><ScopeChip scope={t.titleScope} /></TableCell>
                         <TableCell><RankChip rank={t.titleRank} /></TableCell>
                         <TableCell>
-                          <Typography variant="body2" color="text.secondary">{name}</Typography>
+                          <Typography variant="body2" sx={{
+                            color: "text.secondary"
+                          }}>{name}</Typography>
                         </TableCell>
                         <TableCell align="center">
                           <Tooltip title="Spieler anzeigen" arrow>
@@ -337,7 +362,9 @@ const AdminTitleXpOverview: React.FC = () => {
               flexWrap: 'wrap', rowGap: 1,
             }}>
               <StarIcon color="primary" />
-              <Typography variant="h6" fontWeight={600}>Spieler – Level & XP</Typography>
+              <Typography variant="h6" sx={{
+                fontWeight: 600
+              }}>Spieler – Level & XP</Typography>
               <Chip label={users.length} size="small" color="primary" />
               <TextField
                 size="small"
@@ -345,12 +372,14 @@ const AdminTitleXpOverview: React.FC = () => {
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 sx={{ ml: 'auto', minWidth: 220 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                  }
                 }}
               />
             </Box>
@@ -380,16 +409,22 @@ const AdminTitleXpOverview: React.FC = () => {
                             <Avatar sx={{ width: 36, height: 36, fontSize: '0.85rem', bgcolor: 'primary.main', fontWeight: 700 }}>
                               {initials}
                             </Avatar>
-                            <Typography variant="body2" fontWeight={500}>{name}</Typography>
+                            <Typography variant="body2" sx={{
+                              fontWeight: 500
+                            }}>{name}</Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" color="text.secondary">{u.email || '–'}</Typography>
+                          <Typography variant="body2" sx={{
+                            color: "text.secondary"
+                          }}>{u.email || '–'}</Typography>
                         </TableCell>
                         <TableCell>
                           {u.title
                             ? <Chip label={u.title} size="small" variant="outlined" color="primary" />
-                            : <Typography variant="body2" color="text.disabled">–</Typography>
+                            : <Typography variant="body2" sx={{
+                            color: "text.disabled"
+                          }}>–</Typography>
                           }
                         </TableCell>
                         <TableCell align="center">
@@ -419,7 +454,15 @@ const AdminTitleXpOverview: React.FC = () => {
                                 }}
                               />
                             </Box>
-                            <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ whiteSpace: 'nowrap', minWidth: 48, textAlign: 'right' }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: 600,
+                                color: "text.secondary",
+                                whiteSpace: 'nowrap',
+                                minWidth: 48,
+                                textAlign: 'right'
+                              }}>
                               {xp.toLocaleString()} XP
                             </Typography>
                           </Box>
@@ -441,12 +484,19 @@ const AdminTitleXpOverview: React.FC = () => {
           </Box>
 
           {/* ── Modal ── */}
-          <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <Dialog open={modalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth slotProps={{
+            paper: { sx: { borderRadius: 3 } }
+          }}>
             <DialogTitle sx={{ pr: 6, pb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 {modalTitle && <RankChip rank={modalTitle.titleRank} />}
                 {modalTitle && <ScopeChip scope={modalTitle.titleScope} />}
-                <Typography component="span" fontWeight={600} sx={{ ml: 0.5 }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontWeight: 600,
+                    ml: 0.5
+                  }}>
                   {modalTitle?.titleCategory || 'Titel'}
                 </Typography>
               </Box>
@@ -461,7 +511,13 @@ const AdminTitleXpOverview: React.FC = () => {
             </DialogTitle>
             <Divider />
             <DialogContent sx={{ pt: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: 'block',
+                  mb: 2
+                }}>
                 {modalUsers.length === 0
                   ? 'Noch kein Spieler hat diesen Titel erhalten.'
                   : `${modalUsers.length} Spieler ${modalUsers.length === 1 ? 'hat' : 'haben'} diesen Titel erhalten.`}
@@ -486,8 +542,12 @@ const AdminTitleXpOverview: React.FC = () => {
                     >
                       <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontWeight: 700 }}>{initials}</Avatar>
                       <Box>
-                        <Typography variant="body2" fontWeight={600}>{name}</Typography>
-                        <Typography variant="caption" color="text.secondary">{u.email}</Typography>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>{name}</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>{u.email}</Typography>
                       </Box>
                     </Box>
                   );

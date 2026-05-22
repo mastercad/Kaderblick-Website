@@ -68,7 +68,9 @@ export default function VerifyEmail() {
               <Typography variant="h5" gutterBottom>
                 E-Mail wird verifiziert...
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" sx={{
+                color: "text.secondary"
+              }}>
                 Bitte warten Sie einen Moment.
               </Typography>
             </>
@@ -79,7 +81,9 @@ export default function VerifyEmail() {
               <CheckCircleIcon 
                 sx={{ fontSize: 80, color: 'success.main', mb: 2 }} 
               />
-              <Typography variant="h5" gutterBottom color="success.main">
+              <Typography variant="h5" gutterBottom sx={{
+                color: "success.main"
+              }}>
                 Erfolgreich verifiziert!
               </Typography>
               <Alert severity="success" sx={{ mt: 2, mb: 2, textAlign: 'left' }}>
@@ -104,7 +108,9 @@ export default function VerifyEmail() {
               <ErrorIcon 
                 sx={{ fontSize: 80, color: 'error.main', mb: 2 }} 
               />
-              <Typography variant="h5" gutterBottom color="error.main">
+              <Typography variant="h5" gutterBottom sx={{
+                color: "error.main"
+              }}>
                 Verifizierung fehlgeschlagen
               </Typography>
               <Alert severity="error" sx={{ mt: 2, mb: 3, textAlign: 'left' }}>

@@ -44,14 +44,25 @@ function CategoryRow({ category, checked, onChange }: CategoryRowProps) {
     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
       <Stack
         direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ px: 2, py: 1.5, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setExpanded(prev => !prev)}
-      >
-        <Stack direction="row" alignItems="center" gap={1}>
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 2,
+          py: 1.5,
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: "center",
+            gap: 1
+          }}>
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          <Typography variant="subtitle2" fontWeight={600}>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 600
+          }}>
             {category.label}
           </Typography>
         </Stack>
@@ -59,9 +70,16 @@ function CategoryRow({ category, checked, onChange }: CategoryRowProps) {
         <Box onClick={e => e.stopPropagation()}>
           {category.required ? (
             <Tooltip title="Technisch notwendig – kann nicht deaktiviert werden">
-              <Stack direction="row" alignItems="center" gap={0.5}>
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  gap: 0.5
+                }}>
                 <LockIcon fontSize="small" color="disabled" />
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Immer aktiv
                 </Typography>
               </Stack>
@@ -74,7 +92,9 @@ function CategoryRow({ category, checked, onChange }: CategoryRowProps) {
                   onChange={e => onChange(category.key, e.target.checked)}
                   size="small"
                   color="primary"
-                  inputProps={{ 'aria-label': `${category.label} ${checked ? 'deaktivieren' : 'aktivieren'}` }}
+                  slotProps={{
+                    input: { 'aria-label': `${category.label} ${checked ? 'deaktivieren' : 'aktivieren'}` }
+                  }}
                 />
               }
               label=""
@@ -83,14 +103,20 @@ function CategoryRow({ category, checked, onChange }: CategoryRowProps) {
           )}
         </Box>
       </Stack>
-
       <Collapse in={expanded}>
         <Divider />
         <Box sx={{ px: 2, py: 1.5 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 1
+            }}>
             {category.description}
           </Typography>
-          <Typography variant="caption" color="text.secondary" component="div">
+          <Typography variant="caption" component="div" sx={{
+            color: "text.secondary"
+          }}>
             <strong>Beispiele:</strong>
             <Box component="ul" sx={{ mt: 0.5, pl: 2.5, mb: 0 }}>
               {category.examples.map(ex => (
@@ -157,7 +183,12 @@ export default function CookieSettingsDialog({
       aria-labelledby="cookie-settings-dialog-title"
     >
       <DialogTitle id="cookie-settings-dialog-title" sx={{ pr: 6 }}>
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: "center",
+            gap: 1
+          }}>
           <CookieIcon color="primary" />
           <span>Cookie-Einstellungen</span>
         </Stack>
@@ -169,16 +200,22 @@ export default function CookieSettingsDialog({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
       <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Hier kannst du individuell festlegen, welche Cookie-Kategorien du erlaubst. Technisch
           notwendige Cookies können nicht deaktiviert werden, da sie für den Betrieb der Webseite
           unerlässlich sind. Deine Einwilligung gilt ab dem heutigen Tag und kann jederzeit
           widerrufen werden – entweder hier oder über den Cookie-Link im Footer.
         </Typography>
 
-        <Stack gap={1.5}>
+        <Stack sx={{
+          gap: 1.5
+        }}>
           {COOKIE_CATEGORIES.map(cat => (
             <CategoryRow
               key={cat.key}
@@ -189,7 +226,13 @@ export default function CookieSettingsDialog({
           ))}
         </Stack>
 
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            display: 'block',
+            mt: 2
+          }}>
           Weitere Informationen findest du in unserer{' '}
           <Link component={RouterLink} to="/privacy" onClick={onClose} underline="hover">
             Datenschutzerklärung
@@ -197,13 +240,14 @@ export default function CookieSettingsDialog({
           .
         </Typography>
       </DialogContent>
-
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        gap={1}
-        sx={{ px: 2, py: 1.5 }}
-        justifyContent="flex-end"
-      >
+        sx={{
+          gap: 1,
+          justifyContent: "flex-end",
+          px: 2,
+          py: 1.5
+        }}>
         <Button variant="outlined" size="small" onClick={handleSave}>
           Auswahl speichern
         </Button>

@@ -53,8 +53,10 @@ export const TournamentConfig: React.FC<TournamentConfigProps> = ({
           value={formData.tournamentRoundDuration || 10}
           onChange={e => onChange('tournamentRoundDuration', parseInt(e.target.value) || 10)}
           size="small"
-          inputProps={{ min: 1, max: 120 }}
           style={{ width: 140 }}
+          slotProps={{
+            htmlInput: { min: 1, max: 120 }
+          }}
         />
         
         <TextField
@@ -63,8 +65,10 @@ export const TournamentConfig: React.FC<TournamentConfigProps> = ({
           value={formData.tournamentBreakTime || 2}
           onChange={e => onChange('tournamentBreakTime', parseInt(e.target.value) || 2)}
           size="small"
-          inputProps={{ min: 0, max: 30 }}
           style={{ width: 140 }}
+          slotProps={{
+            htmlInput: { min: 0, max: 30 }
+          }}
         />
         
         <FormControl size="small" style={{ width: 200 }}>
@@ -86,8 +90,10 @@ export const TournamentConfig: React.FC<TournamentConfigProps> = ({
             value={formData.tournamentNumberOfGroups || 2}
             onChange={e => onChange('tournamentNumberOfGroups', parseInt(e.target.value) || 2)}
             size="small"
-            inputProps={{ min: 2, max: 4 }}
             style={{ width: 140 }}
+            slotProps={{
+              htmlInput: { min: 2, max: 4 }
+            }}
           />
         )}
       </div>

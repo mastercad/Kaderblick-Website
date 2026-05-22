@@ -5,10 +5,10 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import { apiJson, ApiError } from '../utils/api';
 
@@ -65,10 +65,14 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     return (
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' }}>
         <MarkEmailReadOutlinedIcon sx={{ fontSize: 64, color: 'success.main' }} />
-        <Typography variant="h6" fontWeight={600}>
+        <Typography variant="h6" sx={{
+          fontWeight: 600
+        }}>
           Fast geschafft!
         </Typography>
-        <Typography color="text.secondary">
+        <Typography sx={{
+          color: "text.secondary"
+        }}>
           Wir haben dir eine Bestätigungs-E-Mail an <strong>{email}</strong> gesendet.
           Bitte klicke auf den Link in der E-Mail, um deinen Account zu aktivieren.
         </Typography>
@@ -87,7 +91,6 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       onSubmit={handleSubmit}
     >
       {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
-
       <TextField
         label="Vollständiger Name"
         variant="outlined"
@@ -97,7 +100,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         onChange={e => setFullName(e.target.value)}
         required
         autoComplete="name"
-        InputProps={{ startAdornment: <InputAdornment position="start"><PersonOutlineIcon fontSize="small" color="action" /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><PersonOutlineIcon fontSize="small" color="action" /></InputAdornment> }
+        }}
       />
       <TextField
         label="E-Mail-Adresse"
@@ -109,7 +114,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         onChange={e => setEmail(e.target.value)}
         required
         autoComplete="email"
-        InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" color="action" /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" color="action" /></InputAdornment> }
+        }}
       />
       <TextField
         label="Passwort"
@@ -122,7 +129,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         required
         autoComplete="new-password"
         helperText="Mindestens 8 Zeichen"
-        InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" color="action" /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" color="action" /></InputAdornment> }
+        }}
       />
       <TextField
         label="Passwort bestätigen"
@@ -136,7 +145,9 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         autoComplete="new-password"
         error={passwordConfirm.length > 0 && password !== passwordConfirm}
         helperText={passwordConfirm.length > 0 && password !== passwordConfirm ? 'Passwörter stimmen nicht überein' : ''}
-        InputProps={{ startAdornment: <InputAdornment position="start"><CheckCircleOutlineIcon fontSize="small" color={passwordConfirm.length > 0 && password === passwordConfirm ? 'success' : 'action'} /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><CheckCircleOutlineIcon fontSize="small" color={passwordConfirm.length > 0 && password === passwordConfirm ? 'success' : 'action'} /></InputAdornment> }
+        }}
       />
       <Button
         type="submit"

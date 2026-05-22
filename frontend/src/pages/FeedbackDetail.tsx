@@ -90,7 +90,9 @@ function ResolveDialog({ open, item, onClose, onConfirm }: {
   useEffect(() => { if (open) setNote(item?.adminNote ?? ''); }, [open, item]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{
+      paper: { sx: { borderRadius: 3 } }
+    }}>
       <DialogTitle sx={{ pr: 6 }}>
         Feedback erledigen
         <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 12 }} size="small"><CloseIcon /></IconButton>
@@ -126,7 +128,14 @@ function CommentBubble({ c }: { c: FeedbackComment }) {
       </Avatar>
       <Box sx={{ maxWidth: '72%' }}>
         {!isMine && (
-          <Typography variant="caption" color="text.disabled" sx={{ ml: 0.5, display: 'block', mb: 0.25 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.disabled",
+              ml: 0.5,
+              display: 'block',
+              mb: 0.25
+            }}>
             {c.authorName}
           </Typography>
         )}
@@ -140,8 +149,16 @@ function CommentBubble({ c }: { c: FeedbackComment }) {
         }}>
           <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.55 }}>{c.content}</Typography>
         </Box>
-        <Typography variant="caption" color="text.disabled"
-          sx={{ mt: 0.3, display: 'block', textAlign: isMine ? 'right' : 'left', mr: isMine ? 0.5 : 0, ml: isMine ? 0 : 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            mt: 0.3,
+            display: 'block',
+            textAlign: isMine ? 'right' : 'left',
+            mr: isMine ? 0.5 : 0,
+            ml: isMine ? 0 : 0.5
+          }}>
           {fmtDate(c.createdAt)}
           {isMine && !c.isReadByRecipient && (
             <Tooltip title="Noch nicht vom Nutzer gelesen"><span style={{ marginLeft: 4, opacity: 0.7 }}>· ungelesen</span></Tooltip>
@@ -257,10 +274,14 @@ const FeedbackDetailPage: React.FC = () => {
           <FeedbackIcon sx={{ fontSize: 22 }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h5" fontWeight={700} noWrap>
+          <Typography variant="h5" noWrap sx={{
+            fontWeight: 700
+          }}>
             Feedback #{item.id}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {item.userName} · {fmtDate(item.createdAt)}
           </Typography>
         </Box>
@@ -287,7 +308,6 @@ const FeedbackDetailPage: React.FC = () => {
           )}
         </Box>
       </Box>
-
       {/* Metadata card */}
       <Card elevation={0} sx={{
         border: '1px solid', borderColor: 'divider',
@@ -301,7 +321,9 @@ const FeedbackDetailPage: React.FC = () => {
               {initials}
             </Avatar>
             <Box>
-              <Typography variant="body1" fontWeight={700}>{item.userName}</Typography>
+              <Typography variant="body1" sx={{
+                fontWeight: 700
+              }}>{item.userName}</Typography>
             </Box>
             <Chip
               icon={React.cloneElement(m.icon as React.ReactElement<any>, { style: { color: m.color, fontSize: 16 } })}
@@ -322,16 +344,31 @@ const FeedbackDetailPage: React.FC = () => {
           {item.url && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
               <PublicIcon sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
-              <Typography variant="caption" color="text.disabled"
-                component="a" href={item.url} target="_blank"
-                sx={{ wordBreak: 'break-all', color: 'inherit', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+              <Typography
+                variant="caption"
+                component="a"
+                href={item.url}
+                target="_blank"
+                sx={{
+                  color: "text.disabled",
+                  wordBreak: 'break-all',
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' }
+                }}>
                 {item.url} <OpenInNewIcon sx={{ fontSize: 11, verticalAlign: 'middle' }} />
               </Typography>
             </Box>
           )}
 
           {item.userAgent && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                display: 'block',
+                mt: 0.5
+              }}>
               Browser: {item.userAgent}
             </Typography>
           )}
@@ -345,7 +382,12 @@ const FeedbackDetailPage: React.FC = () => {
 
           {item.adminNote && (
             <Box sx={{ mt: 2, p: 1.5, bgcolor: '#e8f5e9', borderRadius: 1.5, borderLeft: '3px solid', borderLeftColor: 'success.main' }}>
-              <Typography variant="caption" fontWeight={700} color="success.dark">Abschluss-Notiz:</Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "success.dark"
+                }}>Abschluss-Notiz:</Typography>
               <Typography variant="body2" sx={{ mt: 0.25, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
                 {item.adminNote}
               </Typography>
@@ -353,14 +395,24 @@ const FeedbackDetailPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Comment thread */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              mb: 2
+            }}>
             Konversation
             {item.comments.length > 0 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <Typography
+                component="span"
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  ml: 1
+                }}>
                 ({item.comments.length} Nachricht{item.comments.length !== 1 ? 'en' : ''})
               </Typography>
             )}
@@ -403,15 +455,19 @@ const FeedbackDetailPage: React.FC = () => {
               </span>
             </Tooltip>
           </Box>
-          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.disabled",
+              mt: 0.5,
+              display: 'block'
+            }}>
             Der Nutzer erhält eine Push-Benachrichtigung.
           </Typography>
         </CardContent>
       </Card>
-
       {/* Dialogs */}
       <ResolveDialog open={resolveOpen} item={item} onClose={() => setResolveOpen(false)} onConfirm={handleResolve} />
-
       <Dialog open={!!screenshot} onClose={() => setScreenshot(null)} maxWidth="md">
         <DialogTitle>
           Screenshot
@@ -421,7 +477,6 @@ const FeedbackDetailPage: React.FC = () => {
           {screenshot && <img src={`${BACKEND_URL}${screenshot}`} alt="Screenshot" style={{ maxWidth: '100%', borderRadius: 8 }} />}
         </DialogContent>
       </Dialog>
-
       <Snackbar open={snack.open} autoHideDuration={5000}
         onClose={() => setSnack(s => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

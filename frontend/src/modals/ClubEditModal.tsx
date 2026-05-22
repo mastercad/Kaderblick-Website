@@ -111,7 +111,13 @@ const ClubEditModal: React.FC<ClubEditModalProps> = ({ openClubEditModal, clubId
                 title="Verein bearbeiten"
             >
                 {loading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 ) : (
@@ -124,42 +130,100 @@ const ClubEditModal: React.FC<ClubEditModalProps> = ({ openClubEditModal, clubId
                     <form id="clubEditForm" autoComplete="off" onSubmit={handleClubEditSubmit}>
                         <input type="hidden" name="id" value={club?.id} />
                         <Box className="modal-body" sx={{ bgcolor: 'background.default', p: 0 }}>
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Stammdaten
                                 </Typography>
-                                <Box flex={1} minWidth={250} display="flex" alignItems="center">
+                                <Box
+                                    sx={{
+                                        flex: 1,
+                                        minWidth: 250,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     <FormControlLabel
                                         control={<Switch checked={!!club?.active} onChange={e => setClub((prev: any) => ({ ...prev, active: e.target.checked }))} name="active" color="success" />}
                                         label="Aktiv"
                                     />
                                 </Box>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Name" name="name" value={club?.name || ''} onChange={handleClubEditChange} required fullWidth margin="normal"
                                             error={!!fieldErrors.name}
                                             helperText={fieldErrors.name}
                                         />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Kurzname" name="shortName" value={club?.shortName || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Ausstattung" name="abbreviation" value={club?.abbreviation || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Stadion" name="stadiumName" value={club?.stadiumName || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Vereinsfarben" name="clubColors" value={club?.clubColors || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Ansprechpartner" name="contactPerson" value={club?.contactPerson || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Gründungsjahr" name="foundingYear" type="number" inputProps={{ min: 1800, max: 2100 }} value={club?.foundingYear || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="Gründungsjahr" name="foundingYear" type="number" value={club?.foundingYear || ''} onChange={handleClubEditChange} fullWidth margin="normal" slotProps={{
+                                            htmlInput: { min: 1800, max: 2100 }
+                                        }} />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <Autocomplete
                                             options={(() => {
                                                 const filtered = locations;
@@ -217,39 +281,109 @@ const ClubEditModal: React.FC<ClubEditModalProps> = ({ openClubEditModal, clubId
                                 </Box>
                             </Box>
 
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Kontakt & Web
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Website" name="website" value={club?.website || ''} onChange={handleClubEditChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">🌐</InputAdornment> }} />
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="Website" name="website" value={club?.website || ''} onChange={handleClubEditChange} fullWidth margin="normal" slotProps={{
+                                            input: { startAdornment: <InputAdornment position="start">🌐</InputAdornment> }
+                                        }} />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="E-Mail" name="email" value={club?.email || ''} onChange={handleClubEditChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">✉️</InputAdornment> }} />
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="E-Mail" name="email" value={club?.email || ''} onChange={handleClubEditChange} fullWidth margin="normal" slotProps={{
+                                            input: { startAdornment: <InputAdornment position="start">✉️</InputAdornment> }
+                                        }} />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Telefon" name="phone" value={club?.phone || ''} onChange={handleClubEditChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">📞</InputAdornment> }} />
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="Telefon" name="phone" value={club?.phone || ''} onChange={handleClubEditChange} fullWidth margin="normal" slotProps={{
+                                            input: { startAdornment: <InputAdornment position="start">📞</InputAdornment> }
+                                        }} />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Logo-URL" name="logoUrl" value={club?.logoUrl || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
                                 </Box>
                             </Box>
 
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     fussball.de Optionen
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="fussball.de ID" name="fussballDeId" value={club?.fussballDeId || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="fussball.de URL" name="fussballDeUrl" value={club?.fussballDeUrl || ''} onChange={handleClubEditChange} fullWidth margin="normal" />
                                     </Box>
                                 </Box>
-                                <Box mt={2} mb={1}>
+                                <Box
+                                    sx={{
+                                        mt: 2,
+                                        mb: 1
+                                    }}>
                                     <Button type="button" variant="outlined" color="info" startIcon={null}>
                                         fussball.de-Daten laden
                                     </Button>
@@ -258,7 +392,14 @@ const ClubEditModal: React.FC<ClubEditModalProps> = ({ openClubEditModal, clubId
                             </Box>
                         </Box>
                         <Divider />
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={2} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 2,
+                                mb: 1
+                            }}>
                             <Button onClick={onClubEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

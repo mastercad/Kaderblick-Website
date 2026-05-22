@@ -436,11 +436,19 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
               Jetzt
             </Button>
             <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-              <Typography variant="body1" fontWeight="bold" sx={{ lineHeight: 1.2, letterSpacing: 1 }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: "bold",
+                  lineHeight: 1.2,
+                  letterSpacing: 1
+                }}>
                 {currentTime.toLocaleTimeString()}
               </Typography>
               {elapsedSeconds > 0 && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   {Math.floor(elapsedSeconds / 60)} min
                 </Typography>
               )}
@@ -449,7 +457,12 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
 
           {/* Zeile 2: Minuten-Stepper + Vorschau */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                flexShrink: 0
+              }}>
               Min.
             </Typography>
             <Button
@@ -470,15 +483,17 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
                 const v = e.target.value.replace(/\D/g, '');
                 setFormData(prev => ({ ...prev, minute: v, stoppage: '0' }));
               }}
-              inputProps={{
-                min: 1,
-                max: 200,
-                inputMode: 'numeric',
-                style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', padding: '6px 4px' },
-              }}
               placeholder="–"
               required
               sx={{ width: 68 }}
+              slotProps={{
+                htmlInput: {
+                  min: 1,
+                  max: 200,
+                  inputMode: 'numeric',
+                  style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', padding: '6px 4px' },
+                }
+              }}
             />
             <Button
               size="small"
@@ -492,7 +507,13 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
               +
             </Button>
             <Box sx={{ flex: 1 }} />
-            <Typography variant="h6" fontWeight="bold" color={isTimeValid ? 'primary.main' : 'text.disabled'} sx={{ flexShrink: 0 }}>
+            <Typography
+              variant="h6"
+              color={isTimeValid ? 'primary.main' : 'text.disabled'}
+              sx={{
+                fontWeight: "bold",
+                flexShrink: 0
+              }}>
               {isTimeValid ? timeDisplay : '–'}
             </Typography>
           </Box>
@@ -500,7 +521,13 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           {/* Zeile 3: Nachspielzeit – nur wenn relevant */}
           {showStoppageChips && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.25, flexWrap: 'wrap' }}>
-              <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, mr: 0.25 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  flexShrink: 0,
+                  mr: 0.25
+                }}>
                 +NSZ
               </Typography>
               {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
@@ -518,7 +545,9 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           )}
         </Box>
 
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        <Typography variant="subtitle2" gutterBottom sx={{
+          color: "text.secondary"
+        }}>
           {game.homeTeam.name} vs {game.awayTeam.name}
         </Typography>
 

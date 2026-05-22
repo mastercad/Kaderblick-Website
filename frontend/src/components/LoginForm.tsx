@@ -105,7 +105,9 @@ export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
         onChange={(e) => setEmail(e.target.value)}
         autoComplete="email"
         required
-        InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" color="action" /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><EmailOutlinedIcon fontSize="small" color="action" /></InputAdornment> }
+        }}
       />
       <TextField
         label="Passwort"
@@ -117,7 +119,9 @@ export default function LoginForm({ onSuccess, onClose }: LoginFormProps) {
         onChange={(e) => setPassword(e.target.value)}
         autoComplete="current-password"
         required
-        InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" color="action" /></InputAdornment> }}
+        slotProps={{
+          input: { startAdornment: <InputAdornment position="start"><LockOutlinedIcon fontSize="small" color="action" /></InputAdornment> }
+        }}
       />
       {error && (
         <Alert severity="error" sx={{ borderRadius: 2 }}>

@@ -100,7 +100,7 @@ jest.mock('@mui/material', () => {
 
 jest.mock('@mui/icons-material/Person', () => () => <span>PersonIcon</span>);
 jest.mock('@mui/icons-material/SportsSoccer', () => () => <span>SportsSoccerIcon</span>);
-jest.mock('@mui/icons-material/CheckCircleOutline', () => () => <span data-testid="CheckCircleOutlineIcon">✓</span>);
+jest.mock('@mui/icons-material/CheckCircleOutlined', () => () => <span data-testid="CheckCircleOutlineIcon">✓</span>);
 jest.mock('@mui/icons-material/Close', () => () => null);
 
 // ────── API Mock ──────

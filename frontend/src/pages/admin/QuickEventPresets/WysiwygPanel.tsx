@@ -14,7 +14,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CloseIcon from '@mui/icons-material/Close';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import { getGameEventIconByCode } from '../../../constants/gameEventIcons';
 import { apiJson } from '../../../utils/api';
@@ -273,7 +273,6 @@ export function WysiwygPanel({ buttons, onChange }: WysiwygPanelProps) {
         </Box>
         )}
       </Box>
-
       {/* ══════════════════════════════════════════════════════════════════
           Inline-Editor klappt unterhalb des Panels auf
           ════════════════════════════════════════════════════════════════ */}
@@ -292,7 +291,12 @@ export function WysiwygPanel({ buttons, onChange }: WysiwygPanelProps) {
             <Box sx={{ p: 2 }}>
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 0.5 }}>
-              <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 700,
+                  flex: 1
+                }}>
                 Button bearbeiten
               </Typography>
               <Tooltip title="Nach oben">
@@ -354,7 +358,12 @@ export function WysiwygPanel({ buttons, onChange }: WysiwygPanelProps) {
 
             {/* ── Long-Press-Optionen ───────────────────────────────────── */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.25 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  flex: 1
+                }}>
                 Long-Press-Optionen &nbsp;·&nbsp; {selected.radialItems?.length ?? 0} Einträge
               </Typography>
               <Tooltip title="Option hinzufügen">
@@ -457,9 +466,12 @@ export function WysiwygPanel({ buttons, onChange }: WysiwygPanelProps) {
                 >
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', mb: 1.5, fontWeight: 600 }}
-                  >
+                    sx={{
+                      color: "text.secondary",
+                      display: 'block',
+                      mb: 1.5,
+                      fontWeight: 600
+                    }}>
                     Long-Press-Option bearbeiten
                   </Typography>
                   <TextField

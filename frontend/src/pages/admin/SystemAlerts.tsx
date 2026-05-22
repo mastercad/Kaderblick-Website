@@ -8,7 +8,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import LockIcon from '@mui/icons-material/Lock';
 import SecurityIcon from '@mui/icons-material/Security';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import StorageIcon from '@mui/icons-material/Storage';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -107,8 +107,21 @@ function AlertCard({ item, onResolve, onReopen }: {
       <CardActionArea component="div" onClick={() => navigate(`/admin/system-alerts/${item.id}`)}>
 
         <CardContent sx={{ pb: '8px !important' }}>
-          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "flex-start",
+              justifyContent: "space-between"
+            }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                minWidth: 0,
+                flex: 1
+              }}>
               <Chip
                 icon={<CategoryIcon category={item.category} />}
                 label={item.categoryLabel}
@@ -149,14 +162,27 @@ function AlertCard({ item, onResolve, onReopen }: {
 
           <Stack direction="row" spacing={2} sx={{ mt: 0.75 }}>
             {item.clientIp && (
-              <Typography variant="caption" color="text.secondary">IP: {item.clientIp}</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>IP: {item.clientIp}</Typography>
             )}
             {item.requestUri && (
-              <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 280 }}>
+              <Typography
+                variant="caption"
+                noWrap
+                sx={{
+                  color: "text.secondary",
+                  maxWidth: 280
+                }}>
                 {item.httpMethod} {item.requestUri}
               </Typography>
             )}
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto !important' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                ml: 'auto !important'
+              }}>
               zuletzt: {fmtDate(item.lastOccurrenceAt)}
             </Typography>
           </Stack>
@@ -235,7 +261,14 @@ export default function SystemAlerts() {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" mt={6}><CircularProgress /></Box>;
+  if (loading) return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        mt: 6
+      }}><CircularProgress /></Box>
+  );
   if (error)   return <Alert severity="error" sx={{ m: 2 }}>{error}</Alert>;
   if (!data)   return null;
 
@@ -250,10 +283,22 @@ export default function SystemAlerts() {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 900, mx: 'auto' }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 2,
+          flexWrap: "wrap",
+          gap: 1
+        }}>
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <SecurityIcon color="error" />
-          <Typography variant="h5" fontWeight={700}>System-Alerts</Typography>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>System-Alerts</Typography>
         </Stack>
         <Button
           variant="outlined"
@@ -264,11 +309,22 @@ export default function SystemAlerts() {
           Trend-Analyse
         </Button>
       </Stack>
-
       {/* Category summary chips – als Filter nutzbar */}
       {data.stats.total > 0 && (
-        <Stack direction="row" spacing={1} flexWrap="wrap" mb={2} alignItems="center">
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Filter:</Typography>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            flexWrap: "wrap",
+            mb: 2,
+            alignItems: "center"
+          }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mr: 0.5
+            }}>Filter:</Typography>
           {Object.entries(data.stats.byCategory).map(([cat, cnt]) => {
             const hidden = hiddenCategories.has(cat);
             return (
@@ -295,11 +351,9 @@ export default function SystemAlerts() {
           )}
         </Stack>
       )}
-
       {data.stats.total === 0 && (
         <Alert severity="success" sx={{ mb: 2 }}>Keine offenen Alerts – alles grün! 🎉</Alert>
       )}
-
       {/* Tabs */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         {tabs.map((t, i) => (
@@ -316,9 +370,13 @@ export default function SystemAlerts() {
           />
         ))}
       </Tabs>
-
       {filteredItems.length === 0 ? (
-        <Typography color="text.secondary" textAlign="center" mt={4}>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+            mt: 4
+          }}>
           {currentItems.length === 0
             ? 'Keine Einträge in dieser Kategorie.'
             : 'Alle Typen ausgeblendet – Filter anpassen, um Alerts zu sehen.'}
@@ -333,7 +391,6 @@ export default function SystemAlerts() {
           />
         ))
       )}
-
       {/* Resolve dialog */}
       <Dialog open={resolveId !== null} onClose={() => setResolveId(null)} maxWidth="sm" fullWidth>
         <DialogTitle>Alert als erledigt markieren</DialogTitle>
@@ -356,7 +413,6 @@ export default function SystemAlerts() {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Snackbar
         open={snack !== null}
         autoHideDuration={3000}

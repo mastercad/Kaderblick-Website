@@ -82,7 +82,12 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   children,
 }) => {
   return (
-    <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={maxWidth} mx="auto">
+    <Box
+      sx={{
+        p: { xs: 1, sm: 2, md: 3 },
+        maxWidth: maxWidth,
+        mx: "auto"
+      }}>
       {/* Sticky Header */}
       <Box
         sx={{
@@ -99,15 +104,27 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           mb: 2,
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={filterControls && !loading ? 1 : 0} flexWrap="wrap" gap={1}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: filterControls && !loading ? 1 : 0,
+            flexWrap: "wrap",
+            gap: 1
+          }}>
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             {React.cloneElement(icon, { sx: { fontSize: 32, color: 'primary.main', ...((icon as any).props?.sx || {}) } })}
             <Typography variant="h4" sx={{ fontWeight: 700 }}>{title}</Typography>
             {!loading && itemCount != null && (
               <Chip label={itemCount} size="small" color="primary" variant="outlined" />
             )}
           </Stack>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             {onSearchChange != null && (
               <TextField
                 size="small"
@@ -142,10 +159,8 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           <Box sx={{ pb: 1.5 }}>{filterControls}</Box>
         )}
       </Box>
-
       {/* Error */}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
       {/* Loading skeleton */}
       {loading && (
         <Stack spacing={1}>
@@ -155,10 +170,8 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           ))}
         </Stack>
       )}
-
       {/* Content */}
       {!loading && !error && children}
-
       {/* Snackbar */}
       {snackbar && onSnackbarClose && (
         <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={onSnackbarClose}>
@@ -192,9 +205,17 @@ export const AdminEmptyState: React.FC<AdminEmptyStateProps> = ({
 }) => (
   <Paper sx={{ p: 5, textAlign: 'center' }} elevation={0}>
     {React.cloneElement(icon, { sx: { fontSize: 56, color: 'grey.400', mb: 1, ...((icon as any).props?.sx || {}) } })}
-    <Typography variant="h6" color="text.secondary">{title}</Typography>
+    <Typography variant="h6" sx={{
+      color: "text.secondary"
+    }}>{title}</Typography>
     {description && (
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>{description}</Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mt: 0.5,
+          mb: 2
+        }}>{description}</Typography>
     )}
     {onCreate && createLabel && (
       <Button variant="outlined" startIcon={<AddIcon />} onClick={onCreate} sx={{ mt: 1 }}>
@@ -375,7 +396,9 @@ export const AdminActions: React.FC<AdminActionsProps> = ({
   deleteLabel = 'Löschen',
   detailsLabel = 'Details',
 }) => (
-  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+  <Stack direction="row" spacing={0.5} sx={{
+    justifyContent: "flex-end"
+  }}>
     {onDetails && (
       <Tooltip title={detailsLabel}>
         <IconButton size="small" color="info" onClick={onDetails}>

@@ -120,7 +120,9 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {!builderData ? (
-        <Typography color="text.secondary">Lade Filterdaten...</Typography>
+        <Typography sx={{
+          color: "text.secondary"
+        }}>Lade Filterdaten...</Typography>
       ) : (
         <>
           {/* Saison-Filter */}
@@ -210,9 +212,13 @@ export const StepFilters: React.FC<StepFiltersProps> = ({ state }) => {
                 )}
                 renderInput={(params) => (
                   <TextField {...params} label="Spieler hinzufügen" placeholder="Name eintippen…"
-                    slotProps={{ input: { ...params.InputProps,
-                      endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</>)
-                    }}}
+                    slotProps={{
+                      ...params.slotProps,
+
+                      input: { ...params.slotProps.input,
+                        endAdornment: (<>{multiPlayerLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.slotProps.input.endAdornment}</>)
+                      }
+                    }}
                   />
                 )}
               />

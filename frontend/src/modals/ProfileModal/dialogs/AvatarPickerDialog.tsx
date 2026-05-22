@@ -104,11 +104,18 @@ export function AvatarPickerDialog({
                   size="small"
                 />
               }
-              label={<Typography variant="body2" fontWeight={600}>Google-Profilbild verwenden</Typography>}
+              label={<Typography variant="body2" sx={{
+                fontWeight: 600
+              }}>Google-Profilbild verwenden</Typography>}
               sx={{ m: 0 }}
             />
             {useGoogleAvatar && (
-              <Typography variant="caption" color="text.secondary" textAlign="center">
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  textAlign: "center"
+                }}>
                 Dein Google-Profilbild wird als Avatar angezeigt.
               </Typography>
             )}

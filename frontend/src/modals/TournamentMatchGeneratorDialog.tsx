@@ -264,9 +264,11 @@ const TournamentMatchGeneratorDialog: React.FC<TournamentMatchGeneratorDialogPro
               type="number"
               value={numberOfGroups}
               onChange={(e) => setNumberOfGroups(Math.max(2, parseInt(e.target.value) || 2))}
-              inputProps={{ min: 2, max: 4 }}
               helperText="Empfohlen: 2 Gruppen für optimales Finale"
               fullWidth
+              slotProps={{
+                htmlInput: { min: 2, max: 4 }
+              }}
             />
           )}
 
@@ -276,9 +278,11 @@ const TournamentMatchGeneratorDialog: React.FC<TournamentMatchGeneratorDialogPro
             type="number"
             value={roundDuration}
             onChange={(e) => setRoundDuration(Math.max(1, parseInt(e.target.value) || 10))}
-            inputProps={{ min: 1, max: 120 }}
             helperText="Standard: 10 Minuten, üblich sind auch 12 oder 15 Minuten"
             fullWidth
+            slotProps={{
+              htmlInput: { min: 1, max: 120 }
+            }}
           />
 
           {/* Break Time */}
@@ -287,9 +291,11 @@ const TournamentMatchGeneratorDialog: React.FC<TournamentMatchGeneratorDialogPro
             type="number"
             value={breakTime}
             onChange={(e) => setBreakTime(Math.max(0, parseInt(e.target.value) || 2))}
-            inputProps={{ min: 0, max: 30 }}
             helperText="Zeit für Teamwechsel und Aufstellung (Standard: 2 Minuten)"
             fullWidth
+            slotProps={{
+              htmlInput: { min: 0, max: 30 }
+            }}
           />
 
           <Divider sx={{ my: 2 }} />
@@ -314,16 +320,24 @@ const TournamentMatchGeneratorDialog: React.FC<TournamentMatchGeneratorDialogPro
           </Box>
 
           {selectedTeams.length < 2 ? (
-            <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            <Typography
+              sx={{
+                color: "text.secondary",
+                fontStyle: 'italic'
+              }}>
               Wählen Sie mindestens 2 Teams aus, um eine Vorschau zu sehen.
             </Typography>
           ) : (
             <>
               <Box sx={{ display: 'flex', gap: 3, mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   <strong>Gesamtdauer:</strong> {formatDuration(totalDuration)}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   <strong>Anzahl Spiele:</strong> {previewMatches.length}
                 </Typography>
               </Box>

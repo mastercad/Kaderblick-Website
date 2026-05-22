@@ -41,7 +41,6 @@ export function TemplateSelector({
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
         Vorlage
       </Typography>
-
       <ToggleButtonGroup
         exclusive
         value={selectedTemplate}
@@ -65,11 +64,12 @@ export function TemplateSelector({
               },
             }}
           >
-            <Typography variant="caption" fontWeight={700}>{t.label}</Typography>
+            <Typography variant="caption" sx={{
+              fontWeight: 700
+            }}>{t.label}</Typography>
           </ToggleButton>
         ))}
       </ToggleButtonGroup>
-
       {currentTemplate && (
         <>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>

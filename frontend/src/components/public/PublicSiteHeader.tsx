@@ -54,7 +54,6 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
           <span className="public-home-logo-aderblick">ADERBLICK</span>
         </Typography>
       </Link>
-
       <Stack component="nav" direction="row" spacing={0.5} className="public-home-nav">
         {navItems.map((item) => (
           <Button
@@ -67,7 +66,6 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
           </Button>
         ))}
       </Stack>
-
       <Stack direction="row" spacing={1.25} className="public-home-header-actions">
         <Button
           variant="outlined"
@@ -86,7 +84,6 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
           Demo anfragen
         </Button>
       </Stack>
-
       <IconButton
         className="public-home-hamburger"
         aria-label="Menü öffnen"
@@ -100,17 +97,18 @@ export default function PublicSiteHeader({ onOpenAuth = defaultOpenAuth, onOpenD
       >
         <MenuRoundedIcon />
       </IconButton>
-
       <Drawer
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        PaperProps={{
-          className: 'public-home-mobile-drawer',
-          sx: {
-            bgcolor: '#0b0e0c',
-            color: '#ffffff',
-          },
+        slotProps={{
+          paper: {
+            className: 'public-home-mobile-drawer',
+            sx: {
+              bgcolor: '#0b0e0c',
+              color: '#ffffff',
+            },
+          }
         }}
       >
         <Box className="public-home-mobile-drawer-header">

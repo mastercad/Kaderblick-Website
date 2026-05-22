@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import { apiJson } from '../utils/api';
 
@@ -183,7 +183,6 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                     <CloseIcon fontSize="small" />
                 </IconButton>
             </DialogTitle>
-
             <DialogContent>
                 {loading && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -197,7 +196,9 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                         <Typography variant="h6" gutterBottom>
                             Antrag eingereicht!
                         </Typography>
-                        <Typography color="text.secondary">
+                        <Typography sx={{
+                            color: "text.secondary"
+                        }}>
                             Ein Administrator wird deinen Antrag prüfen und dich entsprechend zuordnen.
                             Du wirst benachrichtigt, sobald dein Antrag bearbeitet wurde.
                         </Typography>
@@ -206,7 +207,12 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
 
                 {!loading && !submitted && (
                     <>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: "text.secondary",
+                                mb: 2
+                            }}>
                             Damit wir wissen, wem wir dich im Verein zuordnen sollen, kannst du hier
                             freiwillig angeben, ob du selbst Spieler/Trainer bist, oder im Verhältnis zu einem stehst.
                             Ein Admin prüft den Antrag noch einmal, bevor er aktiviert wird.
@@ -276,7 +282,9 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                             <Box>
                                                 <Typography variant="body2">{option.fullName}</Typography>
                                                 {option.teams && option.teams.length > 0 && (
-                                                    <Typography variant="caption" color="text.secondary">
+                                                    <Typography variant="caption" sx={{
+                                                        color: "text.secondary"
+                                                    }}>
                                                         {option.teams.join(' · ')}
                                                     </Typography>
                                                 )}
@@ -298,14 +306,18 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                                     ? 'Mindestens 2 Buchstaben eingeben, um die Suche zu starten'
                                                     : undefined
                                             }
-                                            InputProps={{
-                                                ...params.InputProps,
-                                                endAdornment: (
-                                                    <>
-                                                        {searchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                                                        {params.InputProps.endAdornment}
-                                                    </>
-                                                ),
+                                            slotProps={{
+                                                ...params.slotProps,
+
+                                                input: {
+                                                    ...params.slotProps.input,
+                                                    endAdornment: (
+                                                        <>
+                                                            {searchLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                                                            {params.slotProps.input.endAdornment}
+                                                        </>
+                                                    ),
+                                                }
                                             }}
                                         />
                                     )}
@@ -368,7 +380,12 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                 <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
                                     <Stack spacing={1}>
                                         <Box sx={{ display: 'flex', gap: 1 }}>
-                                            <Typography variant="body2" color="text.secondary" sx={{ width: 130 }}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "text.secondary",
+                                                    width: 130
+                                                }}>
                                                 Typ:
                                             </Typography>
                                             <Chip
@@ -378,20 +395,35 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                                             />
                                         </Box>
                                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                            <Typography variant="body2" color="text.secondary" sx={{ width: 130 }}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "text.secondary",
+                                                    width: 130
+                                                }}>
                                                 Person:
                                             </Typography>
                                             <Typography variant="body2">{selectedEntity?.fullName}</Typography>
                                         </Box>
                                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                            <Typography variant="body2" color="text.secondary" sx={{ width: 130 }}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "text.secondary",
+                                                    width: 130
+                                                }}>
                                                 Meine Beziehung:
                                             </Typography>
                                             <Typography variant="body2">{selectedRelationType?.name}</Typography>
                                         </Box>
                                         {note && (
                                             <Box sx={{ display: 'flex', gap: 1 }}>
-                                                <Typography variant="body2" color="text.secondary" sx={{ width: 130 }}>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        color: "text.secondary",
+                                                        width: 130
+                                                    }}>
                                                     Anmerkung:
                                                 </Typography>
                                                 <Typography variant="body2">{note}</Typography>
@@ -407,7 +439,6 @@ export default function RegistrationContextDialog({ open, onClose }: Props) {
                     </>
                 )}
             </DialogContent>
-
             <DialogActions>
                 {submitted ? (
                     <Button onClick={handleClose} variant="contained">

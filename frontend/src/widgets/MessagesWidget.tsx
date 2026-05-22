@@ -48,7 +48,11 @@ export const MessagesWidget: React.FC<{ config?: any; widgetId?: string }> = ({ 
 
   if (loading) return <CircularProgress size={24} />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (!messages.length) return <Typography variant="body2" color="text.secondary">Keine Nachrichten vorhanden.</Typography>;
+  if (!messages.length) return (
+    <Typography variant="body2" sx={{
+      color: "text.secondary"
+    }}>Keine Nachrichten vorhanden.</Typography>
+  );
 
   const handleClick = (id: number) => {
     setSearchParams({ modal: 'messages', messageId: String(id) });
@@ -63,7 +67,9 @@ export const MessagesWidget: React.FC<{ config?: any; widgetId?: string }> = ({ 
               primary={msg.subject}
               secondary={
                 <>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     {msg.sender?.fullName || 'Unbekannt'} &ndash; {new Date(msg.sentAt).toLocaleString()}
                   </Typography>
                 </>

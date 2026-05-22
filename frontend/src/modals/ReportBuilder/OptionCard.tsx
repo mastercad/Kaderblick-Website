@@ -69,12 +69,19 @@ export function OptionCard<T extends string>({ option, selected, onSelect }: Opt
           <Box>
             <Typography
               variant="subtitle2"
-              fontWeight={600}
-              sx={{ fontSize: { xs: '0.9rem', sm: '0.95rem' }, lineHeight: 1.3 }}
-            >
+              sx={{
+                fontWeight: 600,
+                fontSize: { xs: '0.9rem', sm: '0.95rem' },
+                lineHeight: 1.3
+              }}>
               {option.title}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.3 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                lineHeight: 1.3
+              }}>
               {option.desc}
             </Typography>
           </Box>

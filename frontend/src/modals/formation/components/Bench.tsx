@@ -110,17 +110,26 @@ const Bench: React.FC<BenchProps> = ({
       }}
     >
       <Box>
-        <Typography variant="subtitle2" fontWeight={800}>
+        <Typography variant="subtitle2" sx={{
+          fontWeight: 800
+        }}>
           Ersatzbank
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           ⚽-Button setzt auf Feld · Avatar ziehen für gezieltes Platzieren.
         </Typography>
       </Box>
       <Chip size="small" label={`${benchPlayers.length} bereit`} />
     </Box>
 
-    <Box display="flex" flexDirection="column" gap={0.5}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5
+      }}>
       {benchPlayers.map(player => (
         <Tooltip key={player.id} title={buildBenchTooltip(player)} placement="top">
           <Box
@@ -145,7 +154,9 @@ const Bench: React.FC<BenchProps> = ({
 
             {/* Name + Gesperrt-Badge */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap>
+              <Typography variant="body2" noWrap sx={{
+                fontWeight: 600
+              }}>
                 {player.name}
               </Typography>
               {player.isSuspended && (
@@ -200,7 +211,12 @@ const Bench: React.FC<BenchProps> = ({
       ))}
 
       {benchPlayers.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            alignSelf: 'center'
+          }}>
           Noch keine Bankspieler. Schicke Spieler per Drag oder über den Bank-Button hierhin.
         </Typography>
       )}

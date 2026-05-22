@@ -220,7 +220,9 @@ export const MobileChartSummary: React.FC<MobileChartSummaryProps> = ({
           textAlign: 'center',
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Auf Mobilgeräten nur im Vollbild verfügbar.
         </Typography>
         <Button
@@ -237,7 +239,6 @@ export const MobileChartSummary: React.FC<MobileChartSummaryProps> = ({
 
   return (
     <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-
       {/* ── Header row ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
 
@@ -248,27 +249,40 @@ export const MobileChartSummary: React.FC<MobileChartSummaryProps> = ({
 
         {isTimeSeries ? (
           /* Time-series: peak value + when */
-          <Box sx={{ textAlign: 'right', flex: 1 }}>
+          (<Box sx={{ textAlign: 'right', flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
               {trendIcon(primaryValues)}
-              <Typography variant="h5" fontWeight={700} lineHeight={1}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  lineHeight: 1
+                }}>
                 {peakVal !== undefined ? formatValue(peakVal) : '–'}
               </Typography>
             </Box>
             {peakLabel && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Höchstwert · {peakLabel}
               </Typography>
             )}
             {primary?.label && (
-              <Typography variant="caption" color="text.disabled" fontStyle="italic" sx={{ display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.disabled",
+                  fontStyle: "italic",
+                  display: 'block'
+                }}>
                 {primary.label}
               </Typography>
             )}
-          </Box>
+          </Box>)
         ) : (
           /* Categorical: top-3 ranking list */
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+          (<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
             {top3.map((entry, i) => (
               <Box
                 key={i}
@@ -277,34 +291,50 @@ export const MobileChartSummary: React.FC<MobileChartSummaryProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, minWidth: 0 }}>
                   <Typography
                     variant="caption"
-                    color="text.disabled"
-                    sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums', width: '1.4em' }}
-                  >
+                    sx={{
+                      color: "text.disabled",
+                      flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
+                      width: '1.4em'
+                    }}>
                     {RANK_LABELS[i]}
                   </Typography>
                   <Typography
                     variant="caption"
-                    color="text.secondary"
                     noWrap
-                    sx={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis' }}
-                  >
+                    sx={{
+                      color: "text.secondary",
+                      maxWidth: 110,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
                     {entry.label}
                   </Typography>
                 </Box>
-                <Typography variant="caption" fontWeight={700} sx={{ flexShrink: 0 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    flexShrink: 0
+                  }}>
                   {formatValue(entry.value)}
                 </Typography>
               </Box>
             ))}
             {primary?.label && (
-              <Typography variant="caption" color="text.disabled" fontStyle="italic" sx={{ mt: 0.25 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.disabled",
+                  fontStyle: "italic",
+                  mt: 0.25
+                }}>
                 {primary.label}
               </Typography>
             )}
-          </Box>
+          </Box>)
         )}
       </Box>
-
       {/* ── Chips ── */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', px: 0.5 }}>
         {isTimeSeries ? (
@@ -331,13 +361,16 @@ export const MobileChartSummary: React.FC<MobileChartSummaryProps> = ({
           </>
         )}
       </Box>
-
       {datasets.length > 1 && (
-        <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            px: 0.5
+          }}>
           + {datasets.length - 1} weitere{datasets.length - 1 === 1 ? ' Datenreihe' : ' Datenreihen'}
         </Typography>
       )}
-
       {/* ── Open fullscreen button ── */}
       <Box sx={{ px: 0.5 }}>
         <Button

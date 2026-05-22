@@ -135,22 +135,19 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      // scrollbar-gutter: stable verhindert das Flackern auf Desktop:
-      // Das MUI-Paper hat overflow-y: auto. Wenn der Inhalt die max-height
-      // überschreitet, erscheint ein Scrollbar und entzieht dem Inhalt ~15px
-      // Breite. Der ResizeObserver reagiert → previewHeight ändert sich →
-      // Scrollbar verschwindet → Breite nimmt zu → loop. Mit stable wird
-      // der Scrollbar-Bereich immer reserviert – die Innenbreite bleibt konstant.
-      PaperProps={{ style: { scrollbarGutter: 'stable' } }}
       data-testid="share-poster-dialog"
+      slotProps={{
+        paper: { style: { scrollbarGutter: 'stable' } }
+      }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-        <Typography fontWeight={700} variant="h6" component="span">Poster teilen</Typography>
+        <Typography variant="h6" component="span" sx={{
+          fontWeight: 700
+        }}>Poster teilen</Typography>
         <IconButton onClick={onClose} size="small" aria-label="schließen">
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-
       <DialogContent sx={{ pb: 0, overflow: 'visible', pt: 1.5 }}>
         {templatesError && (
           <Alert severity="error" sx={{ mb: 2 }}>{templatesError}</Alert>
@@ -252,7 +249,6 @@ export function SharePosterDialog({ open, onClose, payload }: SharePosterDialogP
         </Box>
 
       </DialogContent>
-
       <DialogActions sx={{ px: 3, py: 2 }}>
         <ExportActions posterRef={posterRef} format={format} />
       </DialogActions>

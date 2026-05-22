@@ -81,10 +81,14 @@ export const NotificationToast: React.FC = () => {
           padding: 0,
         }
       }}
-      TransitionComponent={Slide}
-      TransitionProps={{
-        direction: isMobile ? 'down' : 'left'
-      } as any}
+      slots={{
+        transition: Slide
+      }}
+      slotProps={{
+        transition: {
+          direction: isMobile ? 'down' : 'left'
+        } as any
+      }}
     >
       <Alert 
         severity={getNotificationColor(currentNotification.type) as any}

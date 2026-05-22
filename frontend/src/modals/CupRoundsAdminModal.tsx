@@ -104,7 +104,13 @@ const CupRoundsAdminModal: React.FC<CupRoundsAdminModalProps> = ({ open, onClose
     return (
         <BaseModal open={open} onClose={onClose} maxWidth="sm" title="Rundennamen verwalten">
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={150}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 150
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : (
@@ -195,7 +201,13 @@ const CupRoundsAdminModal: React.FC<CupRoundsAdminModalProps> = ({ open, onClose
                         </Button>
                     </Box>
 
-                    <Box display="flex" justifyContent="flex-end" mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onClose} variant="contained">Schließen</Button>
                     </Box>
                 </>

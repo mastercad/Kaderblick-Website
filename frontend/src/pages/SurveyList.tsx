@@ -81,7 +81,9 @@ const SurveyCard: React.FC<{
       }}
     >
       <CardContent sx={{ pb: '12px !important' }}>
-        <Stack direction="row" spacing={2} alignItems="flex-start">
+        <Stack direction="row" spacing={2} sx={{
+          alignItems: "flex-start"
+        }}>
           {/* Icon */}
           <Avatar
             sx={{
@@ -99,8 +101,21 @@ const SurveyCard: React.FC<{
           {/* Content */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Title row */}
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start"
+              }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  flex: 1,
+                  minWidth: 0
+                }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.3 }} noWrap>
                   {survey.title}
                 </Typography>
@@ -124,7 +139,9 @@ const SurveyCard: React.FC<{
                   arrow
                 >
                   <IconButton size="small" color="primary" onClick={e => { e.stopPropagation(); onCopyLink(); }}>
-                    <LinkIcon fontSize="small" />
+                    <LinkIcon sx={{
+                      fontSize: "small"
+                    }} />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Bearbeiten">
@@ -144,21 +161,28 @@ const SurveyCard: React.FC<{
             {survey.description && (
               <Typography
                 variant="body2"
-                color="text.secondary"
                 sx={{
+                  color: "text.secondary",
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  mb: 1,
-                }}
-              >
+                  mb: 1
+                }}>
                 {survey.description}
               </Typography>
             )}
 
             {/* Meta info */}
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ gap: 0.5, mb: 1.5 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 0.5,
+                mb: 1.5
+              }}>
               {survey.questionCount != null && (
                 <Chip size="small" icon={<QuizIcon fontSize="small" />} label={`${survey.questionCount} Fragen`} variant="outlined" />
               )}
@@ -177,7 +201,9 @@ const SurveyCard: React.FC<{
             </Stack>
 
             {/* Action buttons */}
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{
+              alignItems: "center"
+            }}>
               {!isExpired && !answered && (
                 <Button
                   variant="contained"
@@ -284,10 +310,19 @@ const SurveyList: React.FC = () => {
   const openCount = surveys.filter(s => !s.hasAnswered).length;
 
   return (
-    <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
+    <Box
+      sx={{
+        p: { xs: 1, sm: 2, md: 3 },
+        maxWidth: 900,
+        mx: "auto"
+      }}>
       {/* Header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}
+      <Stack
+        direction="row"
         sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 1,
           position: 'sticky',
           top: 'var(--app-header-height)',
           zIndex: 10,
@@ -298,9 +333,11 @@ const SurveyList: React.FC = () => {
           mx: { xs: -1.5, sm: -3 },
           px: { xs: 1.5, sm: 3 },
           borderBottom: '1px solid',
-          borderColor: 'divider',
+          borderColor: 'divider'
         }}>
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "center"
+        }}>
           <PollIcon sx={{ fontSize: 32, color: 'primary.main' }} />
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Umfragen</Typography>
         </Stack>
@@ -308,7 +345,6 @@ const SurveyList: React.FC = () => {
           Neue Umfrage
         </Button>
       </Stack>
-
       {/* Quick stats */}
       {!loading && surveys.length > 0 && (
         <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
@@ -316,39 +352,51 @@ const SurveyList: React.FC = () => {
             <PollIcon color="primary" />
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{surveys.length}</Typography>
-              <Typography variant="caption" color="text.secondary">Gesamt</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>Gesamt</Typography>
             </Box>
           </Paper>
           <Paper sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1, flex: 1 }} elevation={1}>
             <RadioButtonUncheckedIcon color="warning" />
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{openCount}</Typography>
-              <Typography variant="caption" color="text.secondary">Offen</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>Offen</Typography>
             </Box>
           </Paper>
           <Paper sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1, flex: 1 }} elevation={1}>
             <CheckCircleIcon color="success" />
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{answeredCount}</Typography>
-              <Typography variant="caption" color="text.secondary">Beantwortet</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>Beantwortet</Typography>
             </Box>
           </Paper>
         </Stack>
       )}
-
       {/* Loading */}
       {loading && (
         <Stack spacing={2}>
           {[1, 2, 3].map(i => <Skeleton key={i} variant="rounded" height={110} />)}
         </Stack>
       )}
-
       {/* Empty state */}
       {!loading && surveys.length === 0 && !error && (
         <Paper sx={{ p: 5, textAlign: 'center' }} elevation={0}>
           <PollIcon sx={{ fontSize: 56, color: 'grey.400', mb: 1 }} />
-          <Typography variant="h6" color="text.secondary">Keine Umfragen verfügbar</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+          <Typography variant="h6" sx={{
+            color: "text.secondary"
+          }}>Keine Umfragen verfügbar</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5,
+              mb: 2
+            }}>
             Erstelle eine Umfrage, um Feedback von deinem Team einzuholen.
           </Typography>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setWizardOpen(true)}>
@@ -356,12 +404,10 @@ const SurveyList: React.FC = () => {
           </Button>
         </Paper>
       )}
-
       {/* Error */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       )}
-
       {/* Survey list */}
       {!loading && surveys.length > 0 && (
         <Stack spacing={1.5}>
@@ -379,7 +425,6 @@ const SurveyList: React.FC = () => {
           ))}
         </Stack>
       )}
-
       {/* Delete confirmation */}
       <ConfirmationModal
         open={!!deleteSurveyId}
@@ -405,7 +450,6 @@ const SurveyList: React.FC = () => {
         confirmColor="error"
         cancelText="Abbrechen"
       />
-
       {/* Status dialog */}
       <SurveyStatusDialog
         surveyId={selectedSurveyId}
@@ -413,7 +457,6 @@ const SurveyList: React.FC = () => {
         onClose={() => setStatusDialogOpen(false)}
         canViewStats={surveys.find(s => s.id === selectedSurveyId)?.canViewStats}
       />
-
       {/* Create/Edit wizard */}
       <SurveyCreateWizard
         open={wizardOpen}
@@ -421,7 +464,6 @@ const SurveyList: React.FC = () => {
         onSurveyCreated={() => { setWizardOpen(false); setEditSurvey(null); setReloadFlag(f => f + 1); }}
         editSurvey={editSurvey}
       />
-
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar(s => ({ ...s, open: false }))}>

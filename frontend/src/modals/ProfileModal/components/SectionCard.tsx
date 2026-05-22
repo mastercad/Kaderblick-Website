@@ -25,10 +25,13 @@ export function SectionCard({ title, icon, children }: SectionCardProps) {
           {icon && <Box sx={{ color: 'primary.main', display: 'flex', alignItems: 'center' }}>{icon}</Box>}
           <Typography
             variant="subtitle2"
-            fontWeight={700}
-            color="primary.main"
-            sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}
-          >
+            sx={{
+              fontWeight: 700,
+              color: "primary.main",
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              fontSize: '0.7rem'
+            }}>
             {title}
           </Typography>
         </Box>

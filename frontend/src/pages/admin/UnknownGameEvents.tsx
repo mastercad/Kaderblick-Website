@@ -105,15 +105,17 @@ function EventRow({ event, onAssigned }: EventRowProps) {
               error={!!error}
               helperText={error ?? undefined}
               slotProps={{
+                ...params.slotProps,
+
                 input: {
-                  ...params.InputProps,
+                  ...params.slotProps.input,
                   endAdornment: (
                     <>
                       {playersLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
+                      {params.slotProps.input.endAdornment}
                     </>
                   ),
-                },
+                }
               }}
             />
           )}
@@ -159,27 +161,28 @@ export default function UnknownGameEvents() {
       <Typography variant="h5" gutterBottom>
         Spielereignisse ohne Spielerzuweisung
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 3
+        }}>
         Hier werden Spielereignisse angezeigt, bei denen kein Spieler zugewiesen wurde. Weise jedem
         Ereignis den richtigen Spieler zu, um die Datenqualität sicherzustellen.
       </Typography>
-
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
       )}
-
       {!loading && error && (
         <Alert severity="error">{error}</Alert>
       )}
-
       {!loading && !error && events.length === 0 && (
         <Alert severity="success">
           Alle Spielereignisse haben einen zugewiesenen Spieler. Keine offenen Einträge.
         </Alert>
       )}
-
       {!loading && !error && events.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small">
@@ -202,7 +205,6 @@ export default function UnknownGameEvents() {
           </Table>
         </TableContainer>
       )}
-
       <Snackbar
         open={successOpen}
         autoHideDuration={3000}

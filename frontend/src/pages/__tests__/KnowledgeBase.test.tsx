@@ -28,7 +28,7 @@ jest.mock('@mui/icons-material/Favorite', () => () => <span data-testid="Favorit
 jest.mock('@mui/icons-material/FavoriteBorder', () => () => <span data-testid="FavoriteBorderIcon">♡</span>);
 jest.mock('@mui/icons-material/Comment', () => () => <span>CommentIcon</span>);
 jest.mock('@mui/icons-material/PushPin', () => () => <span>PushPinIcon</span>);
-jest.mock('@mui/icons-material/PlayCircleOutline', () => () => <span>PlayCircleOutlineIcon</span>);
+jest.mock('@mui/icons-material/PlayCircleOutlined', () => () => <span>PlayCircleOutlineIcon</span>);
 jest.mock('@mui/icons-material/MusicNote', () => () => <span>MusicNoteIcon</span>);
 jest.mock('@mui/icons-material/Link', () => () => <span>LinkIcon</span>);
 jest.mock('@mui/icons-material/Delete', () => () => <span>DeleteIcon</span>);

@@ -19,7 +19,7 @@ import AddIcon from '@mui/icons-material/AddCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import BlockIcon from '@mui/icons-material/Block';
 import { getPositionColor } from '../helpers';
 import type { Player, PlayerData } from '../types';
@@ -179,7 +179,9 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
     <>
       <Box sx={{ mb: 1.25 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
-          <Typography variant="subtitle2" fontWeight={800}>Kader</Typography>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 800
+          }}>Kader</Typography>
           <Chip
             size="small"
             label={`${remainingPlayersCount} offen`}
@@ -187,7 +189,12 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
             variant="outlined"
           />
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            lineHeight: 1.4
+          }}>
           Spieler antippen oder ziehen. Bereits eingesetzte Spieler sind markiert und nicht erneut auswählbar.
         </Typography>
       </Box>
@@ -197,14 +204,16 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
         placeholder="Spieler suchen…"
         value={searchQuery}
         onChange={event => onSearchChange(event.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon fontSize="small" />
-            </InputAdornment>
-          ),
-        }}
         sx={{ mb: 1.25 }}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }
+        }}
       />
 
       <List dense disablePadding>
@@ -223,10 +232,10 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
               sx={{ py: 0.2 }}
             >
               <Box
-                display="flex"
-                alignItems="center"
-                gap={1}
                 sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
                   width: '100%',
                   px: 0.75,
                   py: 0.5,
@@ -234,9 +243,8 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
                   opacity: isActive ? 0.55 : 1,
                   bgcolor: isActive ? 'action.selected' : isSuspended ? 'rgba(211,47,47,0.08)' : 'transparent',
                   cursor: notInteractable ? 'default' : 'grab',
-                  '&:hover': notInteractable ? {} : { bgcolor: 'action.hover' },
-                }}
-              >
+                  '&:hover': notInteractable ? {} : { bgcolor: 'action.hover' }
+                }}>
                 {/* Avatar – drag handle for touch (touchAction:none only here) */}
                 <SquadPlayerAvatar
                   player={player}
@@ -246,11 +254,15 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
 
                 {/* Name + meta */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600} noWrap>
+                  <Typography variant="body2" noWrap sx={{
+                    fontWeight: 600
+                  }}>
                     {player.name}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Typography variant="caption" color="text.secondary" noWrap>
+                    <Typography variant="caption" noWrap sx={{
+                      color: "text.secondary"
+                    }}>
                       {[player.shirtNumber != null ? `#${player.shirtNumber}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
                     </Typography>
                     {isSuspended && (
@@ -275,14 +287,22 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
                   <CheckCircleOutlineIcon fontSize="small" sx={{ color: 'success.main', flexShrink: 0 }} />
                 ) : isSuspended ? (
                   <Tooltip title="Gesperrt – kann nicht eingesetzt werden">
-                    <Box display="flex" flexShrink={0}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexShrink: 0
+                      }}>
                       <IconButton size="small" disabled aria-label="Gesperrt">
                         <BlockIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Box>
                   </Tooltip>
                 ) : (
-                  <Box display="flex" flexShrink={0}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexShrink: 0
+                    }}>
                     <Tooltip title="Auf Spielfeld setzen">
                       <IconButton size="small" onClick={() => onAddToField(player)}>
                         <SportsSoccerIcon sx={{ fontSize: 18 }} />
@@ -301,7 +321,14 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
         })}
 
         {filtered.length === 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ px: 0.5, display: 'block', py: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              px: 0.5,
+              display: 'block',
+              py: 1
+            }}>
             {searchQuery ? 'Kein Spieler passt zur Suche.' : 'Wähle ein Team, um Spieler zu sehen.'}
           </Typography>
         )}
@@ -323,10 +350,17 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
     <>
       <Box sx={{ mb: 1.25 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
-          <Typography variant="subtitle2" fontWeight={800}>Startelf</Typography>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 800
+          }}>Startelf</Typography>
           <Chip size="small" label={`${fieldPlayers.length} gesetzt`} />
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            lineHeight: 1.4
+          }}>
           Hier siehst du die aktuelle Belegung des Spielfelds und kannst Spieler direkt auf die Bank schicken oder entfernen.
         </Typography>
       </Box>
@@ -335,17 +369,16 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
         {fieldPlayers.map(player => (
           <ListItem key={player.id} disablePadding sx={{ py: 0.2 }}>
             <Box
-              display="flex"
-              alignItems="center"
-              gap={1}
               sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
                 width: '100%',
                 px: 0.75,
                 py: 0.5,
                 borderRadius: 2,
-                '&:hover': { bgcolor: 'action.hover' },
-              }}
-            >
+                '&:hover': { bgcolor: 'action.hover' }
+              }}>
               <Box sx={{
                 width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
                 bgcolor: getPositionColor(player.position ?? null),
@@ -356,8 +389,16 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
                 {player.position ?? '?'}
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" fontWeight={600} noWrap>{player.name}</Typography>
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                <Typography variant="body2" noWrap sx={{
+                  fontWeight: 600
+                }}>{player.name}</Typography>
+                <Typography
+                  variant="caption"
+                  noWrap
+                  sx={{
+                    color: "text.secondary",
+                    display: 'block'
+                  }}>
                   {[player.number != null ? `#${player.number}` : null, player.alternativePositions?.join(', ')].filter(Boolean).join(' · ')}
                 </Typography>
               </Box>
@@ -376,10 +417,17 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
     </>
   ) : (
     <>
-      <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 0.5 }}>
+      <Typography
+        variant="subtitle2"
+        sx={{
+          fontWeight: 800,
+          mb: 0.5
+        }}>
         Startelf
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         Noch keine Spieler auf dem Feld. Ziehe Spieler aus dem Kader auf das Spielfeld oder nutze die Buttons neben dem Namen.
       </Typography>
     </>
@@ -388,10 +436,20 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
   const notesSection = (
     <>
       <Box sx={{ mb: 1.25 }}>
-        <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 0.5 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 800,
+            mb: 0.5
+          }}>
           Taktische Notizen
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            lineHeight: 1.4
+          }}>
           Kurz notieren, was für das Spiel wichtig ist: Pressinghöhe, Standards, Wechselidee oder besondere Matchups.
         </Typography>
       </Box>
@@ -409,18 +467,17 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
 
   return (
     <Box
-      flex={1}
-      minWidth={200}
-      display="flex"
-      flexDirection="column"
-      gap={1.25}
       sx={{
+        flex: 1,
+        minWidth: 200,
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.25,
         width: '100%',
         maxHeight: { xs: 'none', md: 680 },
         overflowY: { xs: 'visible', md: 'auto' },
-        pr: { xs: 0, md: 0.5 },
-      }}
-    >
+        pr: { xs: 0, md: 0.5 }
+      }}>
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', display: { xs: 'block', md: 'none' } }}>
         <Tabs
           value={mobileTab}
@@ -438,15 +495,12 @@ const SquadListPanel: React.FC<SquadListPanelProps> = ({
           {mobileTab === 2 && notesSection}
         </Box>
       </Paper>
-
       <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 3, display: { xs: 'none', md: 'block' } }}>
         {squadSection}
       </Paper>
-
       <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 3, display: { xs: 'none', md: 'block' } }}>
         {lineupSection}
       </Paper>
-
       <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 3, display: { xs: 'none', md: 'block' } }}>
         {notesSection}
       </Paper>

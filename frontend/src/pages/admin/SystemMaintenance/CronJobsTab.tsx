@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import StopIcon from '@mui/icons-material/Stop';
@@ -102,22 +102,30 @@ export default function CronJobsTab() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            flex: 1
+          }}>
           Heartbeat-Status aller bekannten Cron-Jobs. Status basiert auf dem letzten gespeicherten Heartbeat.
         </Typography>
         <IconButton onClick={load} disabled={loading} size="small">
           <RefreshIcon />
         </IconButton>
       </Stack>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {runMsg && (
         <Alert severity={runMsg.ok ? 'success' : 'error'} sx={{ mb: 2 }} onClose={() => setRunMsg(null)}>
           {runMsg.text}
         </Alert>
       )}
-
       {loading && jobs.length === 0 ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
@@ -141,83 +149,88 @@ export default function CronJobsTab() {
                 const isProblematic = job.status === 'error' || job.status === 'late' || !!job.lastError;
                 const rowBg = job.status === 'error' || !!job.lastError ? 'error.50' : job.status === 'late' ? 'warning.50' : undefined;
                 return (
-                <TableRow key={job.command} sx={rowBg ? { bgcolor: rowBg } : undefined}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>{job.label}</Typography>
-                  </TableCell>
-                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', display: 'block' }}>
-                      {job.command}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{formatDateTime(job.lastRunAt)}</TableCell>
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{formatDuration(job.ageMinutes)}</TableCell>
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                    {job.maxAgeMin !== null
-                      ? formatDuration(job.maxAgeMin)
-                      : <Typography variant="caption" color="text.secondary">manuell</Typography>
-                    }
-                  </TableCell>
-                  <TableCell align="center">
-                    <CronStatusChip status={job.status} />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" justifyContent="center" spacing={0.5}>
-                      {isProblematic && (
-                        <Tooltip title={job.status === 'late' ? 'Überfällig – Details anzeigen' : 'Fehler anzeigen'}>
-                          <IconButton
-                            size="small"
-                            color={job.status === 'late' && !job.lastError ? 'warning' : 'error'}
-                            aria-label={`Details: ${job.label}`}
-                            onClick={() => setErrorModalJob(job)}
-                          >
-                            {job.status === 'late' && !job.lastError
-                              ? <WarningAmberIcon fontSize="small" />
-                              : <ErrorOutlineIcon fontSize="small" />
-                            }
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      <Tooltip title="Jetzt ausführen">
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            aria-label={`Ausführen: ${job.command}`}
-                            onClick={() => handleRun(job.command)}
-                            disabled={job.running || localRunning !== null}
-                          >
-                            {localRunning === job.command
-                              ? <CircularProgress size={16} />
-                              : <PlayArrowIcon fontSize="small" />
-                            }
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      {job.running && (
-                        <Tooltip title="Job stoppen">
+                  <TableRow key={job.command} sx={rowBg ? { bgcolor: rowBg } : undefined}>
+                    <TableCell>
+                      <Typography variant="body2" sx={{
+                        fontWeight: 500
+                      }}>{job.label}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', display: 'block' }}>
+                        {job.command}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{formatDateTime(job.lastRunAt)}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{formatDuration(job.ageMinutes)}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                      {job.maxAgeMin !== null
+                        ? formatDuration(job.maxAgeMin)
+                        : <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>manuell</Typography>
+                      }
+                    </TableCell>
+                    <TableCell align="center">
+                      <CronStatusChip status={job.status} />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} sx={{
+                        justifyContent: "center"
+                      }}>
+                        {isProblematic && (
+                          <Tooltip title={job.status === 'late' ? 'Überfällig – Details anzeigen' : 'Fehler anzeigen'}>
+                            <IconButton
+                              size="small"
+                              color={job.status === 'late' && !job.lastError ? 'warning' : 'error'}
+                              aria-label={`Details: ${job.label}`}
+                              onClick={() => setErrorModalJob(job)}
+                            >
+                              {job.status === 'late' && !job.lastError
+                                ? <WarningAmberIcon fontSize="small" />
+                                : <ErrorOutlineIcon fontSize="small" />
+                              }
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Jetzt ausführen">
                           <span>
                             <IconButton
                               size="small"
-                              color="error"
-                              aria-label={`Stoppen: ${job.command}`}
-                              onClick={() => handleKill(job.command)}
+                              color="primary"
+                              aria-label={`Ausführen: ${job.command}`}
+                              onClick={() => handleRun(job.command)}
+                              disabled={job.running || localRunning !== null}
                             >
-                              <StopIcon fontSize="small" />
+                              {localRunning === job.command
+                                ? <CircularProgress size={16} />
+                                : <PlayArrowIcon fontSize="small" />
+                              }
                             </IconButton>
                           </span>
                         </Tooltip>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
+                        {job.running && (
+                          <Tooltip title="Job stoppen">
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                aria-label={`Stoppen: ${job.command}`}
+                                onClick={() => handleKill(job.command)}
+                              >
+                                <StopIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
             </TableBody>
           </Table>
         </TableContainer>
       )}
-
       {/* ── Fehler-Detail-Modal ── */}
       <Dialog
         open={errorModalJob !== null}
@@ -239,7 +252,14 @@ export default function CronJobsTab() {
         <DialogContent dividers>
           <Stack spacing={2}>
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
+              <Typography
+                variant="caption"
+                gutterBottom
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  display: "block"
+                }}>
                 Command
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace', wordBreak: 'break-all', bgcolor: 'action.hover', px: 1.5, py: 1, borderRadius: 1 }}>
@@ -250,7 +270,14 @@ export default function CronJobsTab() {
             <Divider />
 
             <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
+              <Typography
+                variant="caption"
+                gutterBottom
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  display: "block"
+                }}>
                 Status
               </Typography>
               {errorModalJob && <CronStatusChip status={errorModalJob.status} />}
@@ -258,7 +285,14 @@ export default function CronJobsTab() {
 
             {errorModalJob?.lastRunAt && (
               <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
+                <Typography
+                  variant="caption"
+                  gutterBottom
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 600,
+                    display: "block"
+                  }}>
                   Letzter Lauf
                 </Typography>
                 <Typography variant="body2">{formatDateTime(errorModalJob.lastRunAt)}</Typography>
@@ -267,10 +301,22 @@ export default function CronJobsTab() {
 
             {errorModalJob?.maxAgeMin != null && errorModalJob.ageMinutes != null && (
               <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
+                <Typography
+                  variant="caption"
+                  gutterBottom
+                  sx={{
+                    color: "text.secondary",
+                    fontWeight: 600,
+                    display: "block"
+                  }}>
                   Überfällig seit
                 </Typography>
-                <Typography variant="body2" color="warning.main" fontWeight={600}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "warning.main",
+                    fontWeight: 600
+                  }}>
                   {formatDuration(errorModalJob.ageMinutes)} (Max: {formatDuration(errorModalJob.maxAgeMin)})
                 </Typography>
               </Box>
@@ -280,7 +326,14 @@ export default function CronJobsTab() {
               <>
                 <Divider />
                 <Box>
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" gutterBottom>
+                  <Typography
+                    variant="caption"
+                    gutterBottom
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 600,
+                      display: "block"
+                    }}>
                     Fehlermeldung
                   </Typography>
                   <Paper
@@ -295,9 +348,12 @@ export default function CronJobsTab() {
                   >
                     <Typography
                       variant="body2"
-                      color="error.main"
-                      sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                    >
+                      sx={{
+                        color: "error.main",
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
                       {errorModalJob.lastError}
                     </Typography>
                   </Paper>

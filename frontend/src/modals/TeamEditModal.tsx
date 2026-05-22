@@ -134,7 +134,13 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                 title="Team bearbeiten"
             >
                 {loading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 ) : (
@@ -148,7 +154,9 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                         <input type="hidden" name="id" value={team?.id} />
                         <Box className="modal-body" sx={{ bgcolor: 'background.default', p: 0 }}>
                             {teamId && (
-                                <Box mb={3}>
+                                <Box sx={{
+                                    mb: 3
+                                }}>
                                     <TeamBannerSection
                                         teamId={teamId}
                                         bannerImage={bannerImage}
@@ -157,18 +165,44 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                                     />
                                 </Box>
                             )}
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Stammdaten
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Name" name="name" value={team?.name || ''} onChange={handleTeamEditChange} required fullWidth margin="normal"
                                             error={!!fieldErrors.name}
                                             helperText={fieldErrors.name}
                                         />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <Autocomplete
                                             options={(() => {
                                                 const filtered = ageGroups;
@@ -223,7 +257,11 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                                             noOptionsText="Keine Altersgruppe gefunden (mind. 2 Zeichen)"
                                         />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <Autocomplete
                                             options={(() => {
                                                 const filtered = leagues;
@@ -282,19 +320,49 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                                 </Box>
                             </Box>
 
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     fussball.de Optionen
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="fussball.de ID" name="fussballDeId" value={team?.fussballDeId || ''} onChange={handleTeamEditChange} fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="fussball.de URL" name="fussballDeUrl" value={team?.fussballDeUrl || ''} onChange={handleTeamEditChange} fullWidth margin="normal" />
                                     </Box>
                                 </Box>
-                                <Box mt={2} mb={1}>
+                                <Box
+                                    sx={{
+                                        mt: 2,
+                                        mb: 1
+                                    }}>
                                     <Button type="button" variant="outlined" color="info" startIcon={null}>
                                         fussball.de-Daten laden
                                     </Button>
@@ -302,47 +370,87 @@ const TeamEditModal: React.FC<TeamEditModalProps> = ({ openTeamEditModal, teamId
                                 </Box>
                             </Box>
 
-                            <Box mb={4} pb={2}>
-                                <Typography variant="h6" color="primary" mb={1} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 1,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Spielzeiten-Vorgaben
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary" mb={2}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: "text.secondary",
+                                        mb: 2
+                                    }}>
                                     Diese Werte werden beim Erstellen neuer Spiele vorausgefüllt. Leer lassen für Standard (45 / 15 Min.).
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={200}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 200
+                                        }}>
                                         <TextField
                                             label="Halbzeit-Dauer (Min.)"
                                             name="defaultHalfDuration"
                                             type="number"
                                             value={team?.defaultHalfDuration ?? ''}
                                             onChange={handleTeamEditChange}
-                                            inputProps={{ min: 1, max: 90, step: 1 }}
                                             fullWidth
                                             margin="normal"
                                             placeholder="45"
                                             helperText="Standard: 45 Min."
+                                            slotProps={{
+                                                htmlInput: { min: 1, max: 90, step: 1 }
+                                            }}
                                         />
                                     </Box>
-                                    <Box flex={1} minWidth={200}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 200
+                                        }}>
                                         <TextField
                                             label="Halbzeit-Pause (Min.)"
                                             name="defaultHalftimeBreakDuration"
                                             type="number"
                                             value={team?.defaultHalftimeBreakDuration ?? ''}
                                             onChange={handleTeamEditChange}
-                                            inputProps={{ min: 0, max: 60, step: 1 }}
                                             fullWidth
                                             margin="normal"
                                             placeholder="15"
                                             helperText="Standard: 15 Min."
+                                            slotProps={{
+                                                htmlInput: { min: 0, max: 60, step: 1 }
+                                            }}
                                         />
                                     </Box>
                                 </Box>
                             </Box>
                         </Box>
                         <Divider />
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={2} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 2,
+                                mb: 1
+                            }}>
                             <Button onClick={onTeamEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

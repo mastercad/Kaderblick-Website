@@ -118,7 +118,9 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsId, open, onClose
     : VISIBILITY_CONFIG.platform;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth slotProps={{
+      paper: { sx: { borderRadius: 3, overflow: 'hidden' } }
+    }}>
       {/* ── Hero Header ─────────────────────────────────────────────────── */}
       <Box
         sx={{
@@ -165,7 +167,9 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsId, open, onClose
             >
               {news.title}
             </Typography>
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            <Stack direction="row" spacing={1.5} sx={{
+              alignItems: "center"
+            }}>
               <Avatar sx={{ width: 36, height: 36, bgcolor: alpha('#fff', 0.25), color: 'white', fontSize: 13, fontWeight: 700 }}>
                 {initials(news.createdByUserName)}
               </Avatar>
@@ -185,7 +189,6 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsId, open, onClose
           <Typography sx={{ color: 'white', opacity: 0.9 }}>{error}</Typography>
         )}
       </Box>
-
       {/* ── Content ─────────────────────────────────────────────────────── */}
       {news && (
         <>
@@ -194,7 +197,13 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ newsId, open, onClose
           </DialogContent>
           <Divider />
           <Box sx={{ px: { xs: 2.5, sm: 4 }, py: 2 }}>
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.75 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                flexWrap: "wrap",
+                gap: 0.75
+              }}>
               <Chip size="small" icon={<PersonIcon fontSize="small" />} label={`Von ${news.createdByUserName}`} variant="outlined" />
               <Chip
                 size="small"

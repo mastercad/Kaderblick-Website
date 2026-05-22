@@ -21,7 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -125,14 +125,16 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
     >
       {/* ── Top row ───────────────────────────────────────────────────────── */}
       <Box
-        display="flex"
-        alignItems="center"
-        px={2}
-        py={1.2}
-        gap={1}
-        sx={{ cursor: 'pointer', userSelect: 'none' }}
         onClick={() => !editing && setExpanded(e => !e)}
-      >
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 2,
+          py: 1.2,
+          gap: 1,
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}>
         {/* toggle */}
         <Tooltip title={rule.enabled ? 'Aktion deaktivieren' : 'Aktion aktivieren'}>
           <span onClick={e => e.stopPropagation()}>
@@ -146,9 +148,24 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
         </Tooltip>
 
         {/* label */}
-        <Box flex={1} minWidth={0}>
-          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-            <Typography fontWeight={600} noWrap sx={{ maxWidth: 260 }}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0
+          }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "wrap"
+            }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 600,
+                maxWidth: 260
+              }}>
               {rule.label}
             </Typography>
             <Chip
@@ -179,7 +196,9 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
             )}
           </Box>
           {rule.description && !expanded && (
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography variant="caption" noWrap sx={{
+              color: "text.secondary"
+            }}>
               {rule.description}
             </Typography>
           )}
@@ -197,31 +216,64 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
             py: 0.3,
           }}
         >
-          <Typography fontWeight={700} color={meta.color} fontSize={18} lineHeight={1.1}>
+          <Typography
+            color={meta.color}
+            sx={{
+              fontWeight: 700,
+              fontSize: 18,
+              lineHeight: 1.1
+            }}>
             {rule.xpValue}
           </Typography>
-          <Typography fontSize={10} color={meta.color} lineHeight={1}>XP</Typography>
+          <Typography
+            color={meta.color}
+            sx={{
+              fontSize: 10,
+              lineHeight: 1
+            }}>XP</Typography>
         </Box>
 
         {/* limits summary */}
-        <Box textAlign="right" minWidth={90} display={{ xs: 'none', sm: 'block' }}>
-          <Typography variant="caption" color="text.secondary">
+        <Box
+          sx={{
+            textAlign: "right",
+            minWidth: 90,
+            display: { xs: 'none', sm: 'block' }
+          }}>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {cooldownLabel(rule.cooldownMinutes)}
           </Typography>
           {rule.dailyLimit !== null && (
-            <Typography variant="caption" color="text.secondary" display="block">
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block"
+              }}>
               Max. {rule.dailyLimit}×/Tag
             </Typography>
           )}
           {rule.monthlyLimit !== null && (
-            <Typography variant="caption" color="text.secondary" display="block">
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block"
+              }}>
               Max. {rule.monthlyLimit}×/Monat
             </Typography>
           )}
         </Box>
 
         {/* actions */}
-        <Box display="flex" alignItems="center" onClick={e => e.stopPropagation()}>
+        <Box
+          onClick={e => e.stopPropagation()}
+          sx={{
+            display: "flex",
+            alignItems: "center"
+          }}>
           <Tooltip title="Bearbeiten">
             <IconButton
               size="small"
@@ -245,46 +297,63 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
           </IconButton>
         </Box>
       </Box>
-
       {/* ── Expanded detail / edit form ───────────────────────────────────── */}
       <Collapse in={expanded}>
         <Divider />
-        <Box px={2} py={2}>
+        <Box
+          sx={{
+            px: 2,
+            py: 2
+          }}>
           {!editing ? (
             // ── Read view
-            <Grid container spacing={2}>
+            (<Grid container spacing={2}>
               {rule.description && (
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="body2" color="text.secondary">{rule.description}</Typography>
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>{rule.description}</Typography>
                 </Grid>
               )}
               <Grid size={{ xs: 6, sm: 3 }}>
-                <Typography variant="caption" color="text.secondary">Kategorie</Typography>
-                <Typography variant="body2" fontWeight={600}>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Kategorie</Typography>
+                <Typography variant="body2" sx={{
+                  fontWeight: 600
+                }}>
                   {CATEGORY_META[rule.category as Category]?.label ?? rule.category}
                 </Typography>
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <Typography variant="caption" color="text.secondary">Cooldown</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Cooldown</Typography>
                 <Typography variant="body2">{cooldownLabel(rule.cooldownMinutes)}</Typography>
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <Typography variant="caption" color="text.secondary">Tages-Limit</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Tages-Limit</Typography>
                 <Typography variant="body2">{rule.dailyLimit ?? '–'}</Typography>
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
-                <Typography variant="caption" color="text.secondary">Monats-Limit</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Monats-Limit</Typography>
                 <Typography variant="body2">{rule.monthlyLimit ?? '–'}</Typography>
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Zuletzt geändert: {new Date(rule.updatedAt).toLocaleString('de-DE')}
                 </Typography>
               </Grid>
-            </Grid>
+            </Grid>)
           ) : (
             // ── Edit form
-            <Grid container spacing={2}>
+            (<Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Bezeichnung"
@@ -299,19 +368,23 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   type="number"
                   value={draft.xpValue}
                   onChange={e => setDraft(d => ({ ...d, xpValue: parseInt(e.target.value) || 0 }))}
-                  fullWidth size="small"
-                  InputProps={{ endAdornment: <InputAdornment position="end">XP</InputAdornment> }}
-                  inputProps={{ min: 0 }}
-                />
+                  fullWidth
+                  size="small"
+                  slotProps={{
+                    input: { endAdornment: <InputAdornment position="end">XP</InputAdornment> },
+                    htmlInput: { min: 0 }
+                  }} />
               </Grid>
               <Grid size={{ xs: 6, sm: 3 }}>
                 <TextField
                   label="Kategorie"
                   select
-                  SelectProps={{ native: true }}
                   value={draft.category}
                   onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}
-                  fullWidth size="small"
+                  fullWidth
+                  size="small" slotProps={{
+                  select: { native: true }
+                }}
                 >
                   {ALL_CATEGORIES.map(c => (
                     <option key={c} value={c}>{CATEGORY_META[c].label}</option>
@@ -326,15 +399,15 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   fullWidth size="small" multiline rows={2}
                 />
               </Grid>
-
               <Grid size={{ xs: 12 }}>
                 <Divider>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Anti-Missbrauch / Limits
                   </Typography>
                 </Divider>
               </Grid>
-
               <Grid size={{ xs: 6, sm: 4 }}>
                 <TextField
                   label="Cooldown (Minuten)"
@@ -343,14 +416,16 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   onChange={e => setDraft(d => ({ ...d, cooldownMinutes: parseInt(e.target.value) ?? 0 }))}
                   fullWidth size="small"
                   helperText="0 = einmalig je Event · -1 = kein Dedup · >0 = N Minuten"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Tooltip title="0 = strenge Dedup per (User+EventID). -1 = kein Dedup, nur Limits greifen. >0 = Cooldown in Minuten, bevor derselbe Event erneut XP gibt.">
-                          <InfoOutlinedIcon fontSize="small" color="action" />
-                        </Tooltip>
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Tooltip title="0 = strenge Dedup per (User+EventID). -1 = kein Dedup, nur Limits greifen. >0 = Cooldown in Minuten, bevor derselbe Event erneut XP gibt.">
+                            <InfoOutlinedIcon fontSize="small" color="action" />
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                    }
                   }}
                 />
               </Grid>
@@ -365,7 +440,9 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   }))}
                   fullWidth size="small"
                   helperText="Leer = unbegrenzt"
-                  inputProps={{ min: 1 }}
+                  slotProps={{
+                    htmlInput: { min: 1 }
+                  }}
                 />
               </Grid>
               <Grid size={{ xs: 6, sm: 4 }}>
@@ -379,12 +456,18 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   }))}
                   fullWidth size="small"
                   helperText="Leer = unbegrenzt"
-                  inputProps={{ min: 1 }}
+                  slotProps={{
+                    htmlInput: { min: 1 }
+                  }}
                 />
               </Grid>
-
               <Grid size={{ xs: 12 }}>
-                <Box display="flex" gap={1} justifyContent="flex-end">
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    justifyContent: "flex-end"
+                  }}>
                   <Button size="small" onClick={() => { setEditing(false); setDraft(rule); }}>
                     Abbrechen
                   </Button>
@@ -399,7 +482,7 @@ function RuleRow({ rule, onSave, onDelete, gameEventTypes }: RuleRowProps) {
                   </Button>
                 </Box>
               </Grid>
-            </Grid>
+            </Grid>)
           )}
         </Box>
       </Collapse>
@@ -461,14 +544,35 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
     >
       {/* ── Top row ─────────────────────────────────────────────────────── */}
       <Box
-        display="flex" alignItems="center" px={2} py={1.2} gap={1}
-        sx={{ cursor: 'pointer', userSelect: 'none' }}
         onClick={() => !editing && setExpanded(e => !e)}
-      >
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 2,
+          py: 1.2,
+          gap: 1,
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}>
         {/* Label + chips */}
-        <Box flex={1} minWidth={0}>
-          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-            <Typography fontWeight={600} noWrap sx={{ maxWidth: 260 }}>{type.name}</Typography>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0
+          }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexWrap: "wrap"
+            }}>
+            <Typography
+              noWrap
+              sx={{
+                fontWeight: 600,
+                maxWidth: 260
+              }}>{type.name}</Typography>
             {!hasCustomRule && (
               <Chip
                 label={`Standard: ${fallbackXp} XP`}
@@ -486,14 +590,30 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
           border: `1px solid ${hasCustomRule ? meta.borderColor : '#ddd'}`,
           borderRadius: 1.5, px: 1, py: 0.3,
         }}>
-          <Typography fontWeight={700} color={hasCustomRule ? meta.color : 'text.disabled'} fontSize={18} lineHeight={1.1}>
+          <Typography
+            color={hasCustomRule ? meta.color : 'text.disabled'}
+            sx={{
+              fontWeight: 700,
+              fontSize: 18,
+              lineHeight: 1.1
+            }}>
             {xpValue}
           </Typography>
-          <Typography fontSize={10} color={hasCustomRule ? meta.color : 'text.disabled'} lineHeight={1}>XP</Typography>
+          <Typography
+            color={hasCustomRule ? meta.color : 'text.disabled'}
+            sx={{
+              fontSize: 10,
+              lineHeight: 1
+            }}>XP</Typography>
         </Box>
 
         {/* Actions */}
-        <Box display="flex" alignItems="center" onClick={e => e.stopPropagation()}>
+        <Box
+          onClick={e => e.stopPropagation()}
+          sx={{
+            display: "flex",
+            alignItems: "center"
+          }}>
           <Tooltip title={hasCustomRule ? 'XP-Wert ändern' : 'Eigenen XP-Wert für diesen Typ festlegen'}>
             <IconButton size="small" onClick={() => { setEditing(e => !e); setExpanded(true); }}>
               <EditIcon fontSize="small" />
@@ -514,26 +634,40 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
           </IconButton>
         </Box>
       </Box>
-
       {/* ── Expanded detail / edit ───────────────────────────────────────── */}
       <Collapse in={expanded}>
         <Divider />
-        <Box px={2} py={2}>
+        <Box
+          sx={{
+            px: 2,
+            py: 2
+          }}>
           {!editing ? (
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="caption" color="text.secondary">XP-Quelle</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>XP-Quelle</Typography>
                 <Typography variant="body2">
                   {hasCustomRule ? 'Eigener Wert' : `Standard-Wert: ${fallbackXp} XP (aus Regel „Spielereignis hinterlegt")`}
                 </Typography>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="caption" color="text.secondary">Interner Typ-Code</Typography>
-                <Typography variant="body2" fontFamily="monospace" fontSize={12}>{`game_event_type_${type.code}`}</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Interner Typ-Code</Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "monospace",
+                    fontSize: 12
+                  }}>{`game_event_type_${type.code}`}</Typography>
               </Grid>
               {rule && (
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Zuletzt geändert: {new Date(rule.updatedAt).toLocaleString('de-DE')}
                   </Typography>
                 </Grid>
@@ -547,13 +681,21 @@ function GameEventTypeRow({ type, rule, fallbackXp, onSave, onCreate, onDelete }
                   type="number"
                   value={editXp}
                   onChange={e => setEditXp(parseInt(e.target.value) || 0)}
-                  fullWidth size="small" autoFocus
-                  InputProps={{ endAdornment: <InputAdornment position="end">XP</InputAdornment> }}
-                  inputProps={{ min: 0 }}
-                />
+                  fullWidth
+                  size="small"
+                  autoFocus
+                  slotProps={{
+                    input: { endAdornment: <InputAdornment position="end">XP</InputAdornment> },
+                    htmlInput: { min: 0 }
+                  }} />
               </Grid>
               <Grid size={{ xs: 12 }}>
-                <Box display="flex" gap={1} justifyContent="flex-end">
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    justifyContent: "flex-end"
+                  }}>
                   <Button size="small" onClick={() => { setEditing(false); setEditXp(rule?.xpValue ?? fallbackXp); }}>
                     Abbrechen
                   </Button>
@@ -621,7 +763,12 @@ function GameEventTypeSection({ gameEventTypes, rulesMap, fallbackXp, onSave, on
         />
       ))}
       {filtered.length === 0 && (
-        <Typography color="text.secondary" textAlign="center" mt={4}>Keine Treffer.</Typography>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+            mt: 4
+          }}>Keine Treffer.</Typography>
       )}
     </Box>
   );
@@ -745,17 +892,43 @@ export default function XpConfig() {
   );
 
   if (loading) {
-    return <Box display="flex" justifyContent="center" mt={10}><CircularProgress /></Box>;
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 10
+        }}><CircularProgress /></Box>
+    );
   }
 
   return (
-    <Box maxWidth={900} mx="auto" mt={4} px={2} pb={6}>
+    <Box
+      sx={{
+        maxWidth: 900,
+        mx: "auto",
+        mt: 4,
+        px: 2,
+        pb: 6
+      }}>
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          mb: 1
+        }}>
         <EmojiEventsIcon color="warning" fontSize="large" />
-        <Box flex={1}>
-          <Typography variant="h5" fontWeight={700}>XP-Konfiguration</Typography>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{
+          flex: 1
+        }}>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>XP-Konfiguration</Typography>
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Verwalte alle XP-Regeln: Werte, Limits und Spielereignis-Typen — ohne Code-Änderungen.
           </Typography>
         </Box>
@@ -765,14 +938,25 @@ export default function XpConfig() {
           variant="outlined"
         />
       </Box>
-
       {/* ── Alerts ─────────────────────────────────────────────────────── */}
       {error   && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-
       {/* ── Toolbar ────────────────────────────────────────────────────── */}
-      <Box display="flex" gap={1} mb={3} flexWrap="wrap" alignItems="center">
-        <Box display="flex" gap={0.5} flexWrap="wrap" flex={1}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          mb: 3,
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 0.5,
+            flexWrap: "wrap",
+            flex: 1
+          }}>
           <Chip
             label="Alle"
             variant={filterCategory === 'all' ? 'filled' : 'outlined'}
@@ -804,11 +988,18 @@ export default function XpConfig() {
         </Tooltip>
 
       </Box>
-
       {/* ── Rules grouped by category ──────────────────────────────────── */}
       {filterCategory !== 'game_event' && grouped.map(([cat, catRules]) => (
-        <Box key={cat} mb={4}>
-          <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+        <Box key={cat} sx={{
+          mb: 4
+        }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mb: 1.5
+            }}>
             <Chip
               label={CATEGORY_META[cat].label}
               sx={{
@@ -818,7 +1009,9 @@ export default function XpConfig() {
                 border: `1px solid ${CATEGORY_META[cat].borderColor}`,
               }}
             />
-            <Typography variant="caption" color="text.secondary">{catRules.length} Regeln</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>{catRules.length} Regeln</Typography>
           </Box>
           {catRules.map(rule => (
             <RuleRow
@@ -831,18 +1024,29 @@ export default function XpConfig() {
           ))}
         </Box>
       ))}
-
       {filterCategory !== 'game_event' && filteredRules.length === 0 && (
-        <Typography color="text.secondary" textAlign="center" mt={4}>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+            mt: 4
+          }}>
           Keine Regeln in dieser Kategorie.
         </Typography>
       )}
-
       {/* ── Spielereignistypen ────────────────────────────────────────── */}
       {(filterCategory === 'game_event' || filterCategory === 'all') && (
-        <Box mb={4}>
+        <Box sx={{
+          mb: 4
+        }}>
           {filterCategory === 'all' && (
-            <Box display="flex" alignItems="center" gap={1} mb={1.5}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 1.5
+              }}>
               <Chip
                 label={CATEGORY_META['game_event'].label}
                 sx={{
@@ -852,7 +1056,9 @@ export default function XpConfig() {
                   border: `1px solid ${CATEGORY_META['game_event'].borderColor}`,
                 }}
               />
-              <Typography variant="caption" color="text.secondary">{gameEventTypes.length} Typen</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>{gameEventTypes.length} Typen</Typography>
             </Box>
           )}
           <GameEventTypeSection
@@ -865,7 +1071,6 @@ export default function XpConfig() {
           />
         </Box>
       )}
-
       {/* ── Reset confirm dialog ───────────────────────────────────────── */}
       <Dialog open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Standardwerte zurücksetzen?</DialogTitle>

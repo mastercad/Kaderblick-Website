@@ -48,27 +48,34 @@ export const EventGameMatchup: React.FC<EventGameMatchupProps> = ({ game, typeCo
           sx={{ position: 'absolute', top: 8, left: 8, fontSize: '0.7rem' }}
         />
       )}
-
       {/* Home team */}
       <Box sx={{ textAlign: 'center', flex: 1 }}>
         <Avatar sx={{ bgcolor: typeColor, mx: 'auto', mb: 0.5, width: 36, height: 36 }}>
           <SportsSoccerIcon sx={{ fontSize: 20 }} />
         </Avatar>
-        <Typography variant="body2" fontWeight={700}>
+        <Typography variant="body2" sx={{
+          fontWeight: 700
+        }}>
           {game.homeTeam?.name || '–'}
         </Typography>
       </Box>
-
-      <Typography variant="h6" fontWeight={800} color="text.secondary" sx={{ userSelect: 'none' }}>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 800,
+          color: "text.secondary",
+          userSelect: 'none'
+        }}>
         vs
       </Typography>
-
       {/* Away team */}
       <Box sx={{ textAlign: 'center', flex: 1 }}>
         <Avatar sx={{ bgcolor: 'text.disabled', mx: 'auto', mb: 0.5, width: 36, height: 36 }}>
           <SportsSoccerIcon sx={{ fontSize: 20 }} />
         </Avatar>
-        <Typography variant="body2" fontWeight={700}>
+        <Typography variant="body2" sx={{
+          fontWeight: 700
+        }}>
           {game.awayTeam?.name || '–'}
         </Typography>
       </Box>

@@ -168,10 +168,7 @@ export default function ManualMatchesEditor({
   const isPlaceholder = (val: string) => {
     if (!val) return false;
     // Erlaube typische Platzhalter: Großbuchstaben+Zahl, "Sieger ...", "Verlierer ...", "Platz ...", "HF", "Finale", "Halbfinale"
-    return (
-      /^[A-Z]\d$/.test(val) ||
-      /Sieger|Verlierer|Platz|Finale|Halbfinale|HF|VF|AF|Spiel um|tbd/.test(val)
-    );
+    return (/^[A-Z]\d$/.test(val) || /Sieger|Verlierer|Platz|Finale|Halbfinale|HF|VF|AF|Spiel um|tbd/.test(val));
   };
 
   const submit = async () => {
@@ -240,14 +237,21 @@ export default function ManualMatchesEditor({
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         Begegnungen manuell anlegen
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 1
+          }}>
           Legen Sie die Turnier-Begegnungen in der gewünschten Reihenfolge an. Die Slot-Nummer wird automatisch vergeben.
         </Typography>
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 1 }}>
           <Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {hasGroups ? (
                 <>Gruppenphase | Finale/Platzierungsspiele</>
               ) : (
@@ -260,7 +264,6 @@ export default function ManualMatchesEditor({
                   label="Anzahl Gruppen"
                   type="number"
                   size="small"
-                  inputProps={{ min: 1, max: 12 }}
                   value={groupCount}
                   onChange={e => {
                     let val = Number(e.target.value);
@@ -271,8 +274,13 @@ export default function ManualMatchesEditor({
                     setMatches(prev => prev.map(m => groupNames.includes(m.group || '') ? m : { ...m, group: '' }));
                   }}
                   sx={{ width: 140 }}
+                  slotProps={{
+                    htmlInput: { min: 1, max: 12 }
+                  }}
                 />
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Gruppen werden automatisch als A, B, C, ... benannt
                 </Typography>
               </Box>
@@ -341,7 +349,9 @@ export default function ManualMatchesEditor({
                             updateMatch(idx, { scheduledAt: newDateTime });
                           }}
                           size="small"
-                          InputLabelProps={{ shrink: true }}
+                          slotProps={{
+                            inputLabel: { shrink: true }
+                          }}
                         />
                         <Autocomplete
                           freeSolo

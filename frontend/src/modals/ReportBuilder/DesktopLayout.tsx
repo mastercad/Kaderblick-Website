@@ -47,9 +47,21 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
   const activeSection = sections.find(s => s.id === activeTab) ?? sections[0];
 
   return (
-    <Box display="flex" gap={3} sx={{ height: '70vh', minHeight: 500 }}>
+    <Box
+      sx={{
+        display: "flex",
+        gap: 3,
+        height: '70vh',
+        minHeight: 500
+      }}>
       {/* Config column */}
-      <Box flex={1} sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0
+        }}>
         {/* Tab bar */}
         <Tabs
           value={activeTab}
@@ -86,7 +98,9 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
               onClose={handleDismissIntro}
               sx={{ mb: 2 }}
             >
-              <Typography variant="body2" fontWeight={600} gutterBottom>
+              <Typography variant="body2" gutterBottom sx={{
+                fontWeight: 600
+              }}>
                 So funktioniert der manuelle Builder:
               </Typography>
               <Box component="ul" sx={{ m: 0, pl: 2 }}>
@@ -102,21 +116,21 @@ export const DesktopLayout: React.FC<DesktopLayoutProps> = ({ state }) => {
           {activeSection.content}
         </Box>
       </Box>
-
       {/* Preview column — sticky */}
       <Box
-        flex={1}
-        display="flex"
-        flexDirection="column"
         sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
           position: 'sticky',
           top: 0,
           alignSelf: 'flex-start',
           maxHeight: '70vh',
-          overflowY: 'auto',
-        }}
-      >
-        <Typography variant="h6" mb={1}>Vorschau</Typography>
+          overflowY: 'auto'
+        }}>
+        <Typography variant="h6" sx={{
+          mb: 1
+        }}>Vorschau</Typography>
         <Paper
           variant="outlined"
           sx={{

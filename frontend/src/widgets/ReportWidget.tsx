@@ -27,7 +27,7 @@ import { apiJson } from '../utils/api';
 import { useWidgetRefresh } from '../context/WidgetRefreshContext';
 
 // Side-effect import: registers Chart.js components & plugins globally
-import './report/chartPlugins';
+import './report/chartPlugins.js';
 
 import type { ReportData, FacetedPanel } from './report/reportTypes';
 import { defaultColors, rgbaColors, applyMovingAverage } from './report/chartHelpers';
@@ -125,7 +125,11 @@ export const ReportWidget: React.FC<{
 
   // ── Early returns (AFTER all hooks) ──
   if (!reportId && !config) {
-    return <Typography color="text.secondary">Kein Report ausgewählt.</Typography>;
+    return (
+      <Typography sx={{
+        color: "text.secondary"
+      }}>Kein Report ausgewählt.</Typography>
+    );
   }
   if (loading) {
     return (
@@ -142,7 +146,11 @@ export const ReportWidget: React.FC<{
     Array.isArray((data as any)?.panels) &&
     (data as any).panels.length > 0;
   if (!data || (!isFaceted && (!data.labels || !data.datasets || !data.datasets.length))) {
-    return <Typography color="text.secondary">Keine Daten für diesen Report.</Typography>;
+    return (
+      <Typography sx={{
+        color: "text.secondary"
+      }}>Keine Daten für diesen Report.</Typography>
+    );
   }
 
   // ── Build chart data ──
@@ -325,15 +333,15 @@ export const ReportWidget: React.FC<{
 
         {isMobile && !previewMode ? (
           /* Mobile (dashboard only): compact summary card */
-          <MobileChartSummary
+          (<MobileChartSummary
             labels={data!.labels}
             datasets={data!.datasets as any}
             diagramType={type}
             onOpenFullscreen={() => setFullscreen(true)}
-          />
+          />)
         ) : (
           /* Tablet / Desktop / preview mode: full chart with optional toolbar */
-          <>
+          (<>
             {showOrientationToggle && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                 <Tooltip title={effectiveHorizontalBar ? 'Vertikal anzeigen' : 'Horizontal anzeigen'}>
@@ -352,16 +360,17 @@ export const ReportWidget: React.FC<{
               </Box>
             )}
             {renderChartContent()}
-          </>
+          </>)
         )}
       </Box>
-
       {/* ── Fullscreen dialog (dashboard only, suppressed in preview mode) ── */}
       {!previewMode && <Dialog
         fullScreen
         open={fullscreen}
         onClose={() => { setFullscreen(false); setWideMode(false); }}
-        PaperProps={{ sx: { bgcolor: 'background.default' } }}
+        slotProps={{
+          paper: { sx: { bgcolor: 'background.default' } }
+        }}
       >
         <AppBar position="static" color="transparent" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Toolbar variant="dense" sx={{ justifyContent: 'space-between' }}>

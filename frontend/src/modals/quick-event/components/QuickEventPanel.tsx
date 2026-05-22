@@ -339,15 +339,17 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
         handleClose('Dialog-onClose reason=' + reason);
       }}
       fullScreen
-      PaperProps={{
-        sx: {
-          bgcolor: '#0d0d0d',
-          overflow: 'hidden',
-          // Verhindert Text-Selektion bei Long-Press auf dem gesamten Panel
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          touchAction: 'pan-y',
-        },
+      slotProps={{
+        paper: {
+          sx: {
+            bgcolor: '#0d0d0d',
+            overflow: 'hidden',
+            // Verhindert Text-Selektion bei Long-Press auf dem gesamten Panel
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            touchAction: 'pan-y',
+          },
+        }
       }}
     >
       {/* Zentrierter Content-Wrapper für Desktop */}

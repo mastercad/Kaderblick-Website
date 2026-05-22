@@ -29,16 +29,22 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
       </Button>
     }
   >
-    <Typography variant="body2" color="text.secondary" mb={3}>
+    <Typography
+      variant="body2"
+      sx={{
+        color: "text.secondary",
+        mb: 3
+      }}>
       Wähle eine Formation als Startpunkt. Alle Spieler sind danach frei verschiebbar
       und können mit echten Spielern aus dem Kader belegt werden.
     </Typography>
 
     <Box
-      display="grid"
-      sx={{ gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' } }}
-      gap={2}
-    >
+      sx={{
+        display: "grid",
+        gap: 2,
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' }
+      }}>
       {FOOTBALL_TEMPLATES.map(template => (
         <Paper
           key={template.code}
@@ -61,8 +67,12 @@ const TemplatePicker: React.FC<TemplatePickerProps> = ({
         >
           <MiniField players={template.players} />
           <Box sx={{ p: 1.5, textAlign: 'center' }}>
-            <Typography variant="h6" fontWeight={700}>{template.label}</Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="h6" sx={{
+              fontWeight: 700
+            }}>{template.label}</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {template.description}
             </Typography>
           </Box>

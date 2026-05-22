@@ -31,7 +31,9 @@ const FeedbackResolveModal: React.FC<FeedbackResolveModalProps> = ({ open, onClo
       }
     >
       <Typography variant="subtitle1" gutterBottom>Feedback:</Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>{feedbackText}</Typography>
+      <Typography variant="body2" gutterBottom sx={{
+        color: "text.secondary"
+      }}>{feedbackText}</Typography>
       <Typography variant="subtitle2" sx={{ mt: 2 }}>Kommentar (optional):</Typography>
       <textarea
         value={comment}

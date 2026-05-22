@@ -194,9 +194,13 @@ function CompletenessBar({ completeness }: { completeness: MatchdayData['complet
         sx={{ height: 8, borderRadius: 4, mb: 1.5 }}
         color={progress === 100 ? 'success' : 'primary'}
       />
-      <Stack direction="row" spacing={2} flexWrap="wrap">
+      <Stack direction="row" spacing={2} sx={{
+        flexWrap: "wrap"
+      }}>
         {steps.map(step => (
-          <Stack key={step.label} direction="row" alignItems="center" spacing={0.5}>
+          <Stack key={step.label} direction="row" spacing={0.5} sx={{
+            alignItems: "center"
+          }}>
             {step.done
               ? <CheckCircleIcon fontSize="small" color="success" />
               : <RadioButtonUncheckedIcon fontSize="small" color="disabled" />}
@@ -251,9 +255,21 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
   return (
     <Box sx={{ mb: 2.5 }}>
       {/* Team header */}
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          flexWrap: "wrap",
+          mb: 1
+        }}>
         <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: tl.color, flexShrink: 0 }} />
-        <Typography variant="subtitle2" fontWeight={700} sx={{ flexGrow: 1 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 700,
+            flexGrow: 1
+          }}>
           {team.teamName}
         </Typography>
         <Chip
@@ -262,14 +278,25 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
           sx={{ bgcolor: tl.color, color: '#fff', fontWeight: 600 }}
         />
       </Stack>
-
       {/* Progress bar */}
       <Box sx={{ mb: 1.5 }}>
-        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-          <Typography variant="caption" color="text.secondary">
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            mb: 0.5
+          }}>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Kaderbesetzung – {tl.label}
           </Typography>
-          <Typography variant="caption" fontWeight={700} sx={{ color: tl.color }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: tl.color
+            }}>
             {team.completionPercent}%
           </Typography>
         </Stack>
@@ -279,13 +306,20 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
           sx={{ height: 8, borderRadius: 4, '& .MuiLinearProgress-bar': progressSx }}
         />
       </Box>
-
       {/* ── Formation-based view (matchPlan exists and has players) ── */}
       {team.hasMatchPlan && team.startingXI && team.startingXI.length > 0 && (
         <>
           {/* Startelf */}
-          <Typography variant="caption" fontWeight={700} color="text.secondary"
-            sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              display: 'block',
+              mb: 0.5
+            }}>
             Startelf ({team.startingXI.filter(s => s.isConfirmed).length} / {team.startingXI.length})
           </Typography>
           <Box sx={{ mb: 1.5 }}>
@@ -293,9 +327,18 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
               const isOpen = !slot.playerName;
               return (
                 <Box key={idx} sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Typography variant="caption" fontWeight={700}
-                      sx={{ minWidth: 30, fontFamily: 'monospace', color: 'text.secondary', flexShrink: 0 }}>
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        minWidth: 30,
+                        fontFamily: 'monospace',
+                        color: 'text.secondary',
+                        flexShrink: 0
+                      }}>
                       {slot.slot ?? '—'}
                     </Typography>
                     <Typography variant="body2" sx={{ flexGrow: 1, color: isOpen ? 'text.disabled' : 'text.primary', fontStyle: isOpen ? 'italic' : 'normal' }}>
@@ -306,7 +349,13 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
                   {/* Suggestions: for unconfirmed real players OR open slots */}
                   {(!slot.isConfirmed) && slot.suggestions.length > 0 && (
                     <Box sx={{ pl: 5, pt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5, alignSelf: 'center' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "text.secondary",
+                          mr: 0.5,
+                          alignSelf: 'center'
+                        }}>
                         {isOpen ? 'Mögliche Besetzung:' : 'Vorschlag:'}
                       </Typography>
                       {slot.suggestions.map((s, si) => (
@@ -333,8 +382,16 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
           {/* Bank */}
           {team.bench && team.bench.length > 0 && (
             <>
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  display: 'block',
+                  mb: 0.5
+                }}>
                 Bank ({team.bench.filter(s => s.isConfirmed).length} / {team.bench.length})
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
@@ -361,8 +418,16 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
           {/* Nicht im Plan */}
           {team.unplanned && team.unplanned.length > 0 && (
             <>
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  display: 'block',
+                  mb: 0.5
+                }}>
                 Nicht im Plan ({team.unplanned.length})
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -393,13 +458,20 @@ function SquadReadinessCard({ team }: { team: SquadTeam }) {
           )}
         </>
       )}
-
       {/* ── Position-grouped fallback (no matchPlan) ── */}
       {!team.hasMatchPlan && team.playersByPosition && (
         Object.entries(team.playersByPosition).map(([posName, players]) => (
           <Box key={posName} sx={{ mb: 1.5 }}>
-            <Typography variant="caption" fontWeight={700} color="text.secondary"
-              sx={{ textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "text.secondary",
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                display: 'block',
+                mb: 0.5
+              }}>
               {posName}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -538,10 +610,17 @@ export default function Matchday() {
     return (
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 3, py: 6, textAlign: 'center' }}>
         <SportsSoccerIcon sx={{ fontSize: 72, color: 'text.disabled', mb: 2 }} />
-        <Typography variant="h5" fontWeight={700} gutterBottom>
+        <Typography variant="h5" gutterBottom sx={{
+          fontWeight: 700
+        }}>
           Keine Spiele in Sicht
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+        <Typography
+          variant="body1"
+          sx={{
+            color: "text.secondary",
+            mb: 4
+          }}>
           Für den nächsten Zeitraum von {lookaheadDays} Tagen stehen keine Spiele an.
         </Typography>
         <Button
@@ -558,7 +637,9 @@ export default function Matchday() {
   if (error || !data) {
     return (
       <Box sx={{ px: 3, py: 6, textAlign: 'center' }}>
-        <Typography variant="h6" color="text.secondary" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{
+          color: "text.secondary"
+        }}>
           Spieltag konnte nicht geladen werden.
         </Typography>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
@@ -606,11 +687,12 @@ export default function Matchday() {
         <IconButton onClick={() => navigate(-1)} size="small">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Mein Spieltag
         </Typography>
       </Box>
-
       {/* ── Upcoming games tabs (only if multiple in 7-day window) ── */}
       {upcomingGames.length > 1 && (
         <Paper variant="outlined" sx={{ mb: 2 }}>
@@ -640,7 +722,6 @@ export default function Matchday() {
           </Tabs>
         </Paper>
       )}
-
       {/* ── Cancelled banner ── */}
       {event.cancelled && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -649,7 +730,6 @@ export default function Matchday() {
           {event.cancelledBy ? ` (von ${event.cancelledBy})` : ''}
         </Alert>
       )}
-
       {/* ── Unread notifications for this event ── */}
       {unreadNotifications.length > 0 && (
         <Alert
@@ -667,23 +747,43 @@ export default function Matchday() {
           ))}
         </Alert>
       )}
-
       {/* ── Event header ── */}
       <Paper sx={{ p: 2.5, mb: 2 }}>
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "flex-start"
+        }}>
           <SportsSoccerIcon color="primary" sx={{ mt: 0.25 }} />
           <Box>
-            <Typography variant="h5" fontWeight={700}>{event.title}</Typography>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }} flexWrap="wrap">
+            <Typography variant="h5" sx={{
+              fontWeight: 700
+            }}>{event.title}</Typography>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                mt: 0.5
+              }}>
               <EventIcon fontSize="small" color="action" />
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 {formatDateTime(event.start)}
               </Typography>
             </Stack>
             {event.location?.name && (
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.25 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  mt: 0.25
+                }}>
                 <PlaceIcon fontSize="small" color="action" />
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {event.location.name}
                   {event.location.address ? `, ${event.location.address}` : ''}
                   {event.location.city ? `, ${event.location.city}` : ''}
@@ -692,20 +792,26 @@ export default function Matchday() {
             )}
             {event.game && (
               <Box sx={{ mt: 1 }}>
-                <Typography variant="body1" fontWeight={600}>
+                <Typography variant="body1" sx={{
+                  fontWeight: 600
+                }}>
                   {event.game.homeTeam?.name ?? '–'} vs. {event.game.awayTeam?.name ?? '–'}
                 </Typography>
               </Box>
             )}
             {event.description && (
-              <Typography variant="body2" sx={{ mt: 1 }} color="text.secondary">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mt: 1
+                }}>
                 {event.description}
               </Typography>
             )}
           </Box>
         </Stack>
       </Paper>
-
       {/* ── Meeting point ── */}
       {(event.meetingPoint || event.meetingTime) && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: 'primary.main' }}>
@@ -714,7 +820,9 @@ export default function Matchday() {
           </Typography>
           <Stack spacing={0.5}>
             {event.meetingPoint && (
-              <Stack direction="row" spacing={1} alignItems="flex-start">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "flex-start"
+              }}>
                 {event.meetingLocation ? (
                   <Location
                     id={event.meetingLocation.id}
@@ -732,7 +840,9 @@ export default function Matchday() {
               </Stack>
             )}
             {event.meetingTime && (
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <AccessTimeIcon fontSize="small" color="action" />
                 <Typography variant="body2">
                   Treffzeit: <strong>{formatTime(event.meetingTime)}</strong>
@@ -742,33 +852,47 @@ export default function Matchday() {
           </Stack>
         </Paper>
       )}
-
       {/* ── Vollständigkeit ── */}
       <Box sx={{ mb: 2 }}>
         <CompletenessBar completeness={completeness} />
       </Box>
-
       {/* ── Participation ── */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+        <Typography variant="subtitle1" gutterBottom sx={{
+          fontWeight: 600
+        }}>
           <PeopleIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
           Teilnahme
         </Typography>
 
         {/* Status summary chips */}
-        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 1.5 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            flexWrap: "wrap",
+            mb: 1.5
+          }}>
           {Object.entries(participationSummary).map(([name, count]) => (
             <Chip key={name} label={`${name}: ${count}`} size="small" variant="outlined" />
           ))}
           {Object.keys(participationSummary).length === 0 && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Noch keine Rückmeldungen
             </Typography>
           )}
         </Stack>
 
         {/* My participation quick-toggle */}
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            display: "block",
+            mb: 0.5
+          }}>
           Meine Rückmeldung:
         </Typography>
         <ParticipationButtons
@@ -782,7 +906,13 @@ export default function Matchday() {
         {isCoachOrAdmin && participants.length > 0 && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block",
+                mb: 1
+              }}>
               Alle Rückmeldungen ({participants.length}):
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -806,11 +936,12 @@ export default function Matchday() {
           </>
         )}
       </Paper>
-
       {/* ── Attending players (player role) ── */}
       {!isCoachOrAdmin && attendingPlayers.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" gutterBottom sx={{
+            fontWeight: 600
+          }}>
             <GroupIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
             Wer ist dabei? ({attendingPlayers.length})
           </Typography>
@@ -827,11 +958,12 @@ export default function Matchday() {
           </Box>
         </Paper>
       )}
-
       {/* ── Squad readiness ── */}
       {squadReadiness && squadReadiness.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" gutterBottom sx={{
+            fontWeight: 600
+          }}>
             <GroupIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
             Kaderbesetzung
           </Typography>
@@ -840,11 +972,18 @@ export default function Matchday() {
           ))}
         </Paper>
       )}
-
       {/* ── Rides ── */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1
+          }}>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 600
+          }}>
             <DirectionsCarIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
             Fahrgemeinschaften
           </Typography>
@@ -858,7 +997,9 @@ export default function Matchday() {
           </Button>
         </Stack>
         {rides.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Noch keine Fahrgemeinschaften eingetragen.
           </Typography>
         ) : (
@@ -874,9 +1015,16 @@ export default function Matchday() {
                   bgcolor: ride.isMyRide ? 'action.selected' : 'background.paper',
                 }}
               >
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                <Stack
+                  direction="row"
+                  sx={{
+                    justifyContent: "space-between",
+                    alignItems: "flex-start"
+                  }}>
                   <Box>
-                    <Typography variant="body2" fontWeight={600}>
+                    <Typography variant="body2" sx={{
+                      fontWeight: 600
+                    }}>
                       {ride.driver}
                       {myRide?.rideId === ride.id && (
                         <Chip
@@ -888,12 +1036,19 @@ export default function Matchday() {
                       )}
                     </Typography>
                     {ride.note && (
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {ride.note}
                       </Typography>
                     )}
                     {ride.passengers.length > 0 && (
-                      <Typography variant="caption" display="block" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          color: "text.secondary"
+                        }}>
                         Mitfahrer: {ride.passengers.map(p => p.name).join(', ')}
                       </Typography>
                     )}
@@ -911,24 +1066,29 @@ export default function Matchday() {
           </Stack>
         )}
       </Paper>
-
       {/* ── My Tasks ── */}
       {(myTasks.length > 0 || isCoachOrAdmin) && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          <Typography variant="subtitle1" gutterBottom sx={{
+            fontWeight: 600
+          }}>
             <AssignmentIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
             {isCoachOrAdmin ? 'Aufgaben am Spieltag' : 'Meine Aufgaben'}
           </Typography>
 
           {/* Own tasks */}
           {myTasks.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Keine Aufgaben für dich an diesem Tag.
             </Typography>
           ) : (
             <Stack spacing={0.75} sx={{ mb: isCoachOrAdmin && allTasks.length > 0 ? 1.5 : 0 }}>
               {myTasks.map(t => (
-                <Stack key={t.assignmentId} direction="row" spacing={1} alignItems="center">
+                <Stack key={t.assignmentId} direction="row" spacing={1} sx={{
+                  alignItems: "center"
+                }}>
                   {t.isDone
                     ? <CheckCircleIcon fontSize="small" color="success" />
                     : <RadioButtonUncheckedIcon fontSize="small" color="action" />}
@@ -950,19 +1110,29 @@ export default function Matchday() {
           {isCoachOrAdmin && allTasks.length > 0 && (
             <>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                  mb: 0.75
+                }}>
                 Alle ({allTasks.length}):
               </Typography>
               <Stack spacing={0.5}>
                 {allTasks.map(t => (
-                  <Stack key={t.assignmentId} direction="row" spacing={1} alignItems="center">
+                  <Stack key={t.assignmentId} direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     {t.isDone
                       ? <CheckCircleIcon fontSize="small" color="success" />
                       : <RadioButtonUncheckedIcon fontSize="small" color="disabled" />}
                     <Typography variant="body2" color={t.isDone ? 'text.secondary' : 'text.primary'}>
                       {t.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       → {t.assignedTo}
                     </Typography>
                   </Stack>

@@ -141,8 +141,15 @@ export default function PosterTemplates() {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700}>Poster-Vorlagen</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>Poster-Vorlagen</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5
+            }}>
             Erstelle und verwalte Vorlagen für Spielankündigungen, Ergebnisse und Events.
           </Typography>
         </Box>
@@ -155,9 +162,7 @@ export default function PosterTemplates() {
           Neue Vorlage
         </Button>
       </Box>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
           <CircularProgress />
@@ -173,8 +178,16 @@ export default function PosterTemplates() {
           }}
         >
           <ImageIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">Noch keine Vorlagen</Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 1, mb: 3 }}>
+          <Typography variant="h6" sx={{
+            color: "text.secondary"
+          }}>Noch keine Vorlagen</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.disabled",
+              mt: 1,
+              mb: 3
+            }}>
             Erstelle deine erste Vorlage mit dem visuellen Editor.
           </Typography>
           <Button
@@ -204,21 +217,22 @@ export default function PosterTemplates() {
                   sx={{ flexGrow: 1, p: 2 }}
                 >
                   <TemplatePreviewThumb template={tpl} />
-                  <Typography variant="subtitle1" fontWeight={700} noWrap>
+                  <Typography variant="subtitle1" noWrap sx={{
+                    fontWeight: 700
+                  }}>
                     {tpl.name}
                   </Typography>
                   {tpl.description && (
                     <Typography
                       variant="body2"
-                      color="text.secondary"
                       sx={{
+                        color: "text.secondary",
                         mt: 0.5,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
+                        overflow: 'hidden'
+                      }}>
                       {tpl.description}
                     </Typography>
                   )}
@@ -260,7 +274,6 @@ export default function PosterTemplates() {
           ))}
         </Grid>
       )}
-
       {/* Löschen-Dialog */}
       <Dialog open={deleteId !== null} onClose={() => !deleting && setDeleteId(null)}>
         <DialogTitle>Vorlage löschen?</DialogTitle>

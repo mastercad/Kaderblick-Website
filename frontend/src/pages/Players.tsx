@@ -178,8 +178,10 @@ const Players = () => {
   const filterControls = (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}
-      alignItems={{ xs: 'stretch', sm: 'center' }}
       spacing={{ xs: 1.5, sm: 2 }}
+      sx={{
+        alignItems: { xs: 'stretch', sm: 'center' }
+      }}
     >
       {/* Season selector */}
       <FormControl size="small" sx={{ width: { xs: '100%', sm: 200 } }}>
@@ -198,7 +200,9 @@ const Players = () => {
 
       {/* Team selector */}
       {teams.length > 1 && (
-        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} spacing={{ xs: 1, sm: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1, sm: 2 }} sx={{
+          alignItems: { xs: 'stretch', sm: 'center' }
+        }}>
           <FilterListIcon color="action" fontSize="small" sx={{ display: { xs: 'none', sm: 'block' } }} />
           <FormControl size="small" sx={{ width: { xs: '100%', sm: 250 } }}>
             <InputLabel id="team-filter-label">Team filtern</InputLabel>
@@ -220,7 +224,9 @@ const Players = () => {
         </Stack>
       )}
       {teams.length === 1 && (
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <FilterListIcon color="action" fontSize="small" />
           <Chip label={teams[0].name} size="small" color="primary" />
           <Chip label={`${totalCount} Spieler`} size="small" color="primary" variant="outlined" />
@@ -258,7 +264,9 @@ const Players = () => {
           }}
           onRowClick={p => { setPlayerId(p.id); setPlayerDetailsModalOpen(true); }}
           renderActions={p => (
-            <Stack direction="row" alignItems="center" spacing={0}>
+            <Stack direction="row" spacing={0} sx={{
+              alignItems: "center"
+            }}>
               <SharePosterButton
                 payload={{ templateId: 'player-highlight', data: { player: p } }}
                 label="Spieler-Highlight teilen"
@@ -281,7 +289,6 @@ const Players = () => {
           )}
         />
       )}
-
       <PlayerDetailsModal open={playerDetailsModalOpen} loadPlayeres={() => loadPlayers()} playerId={playerId} onClose={() => setPlayerDetailsModalOpen(false)} />
       <PlayerEditModal openPlayerEditModal={playerEditModalOpen} playerId={playerId} onPlayerEditModalClose={() => setPlayerEditModalOpen(false)} onPlayerSaved={() => { setPlayerEditModalOpen(false); loadPlayers(); }} />
       <PlayerDeleteConfirmationModal open={deleteModalOpen} playerName={deletePlayer ? `${deletePlayer.firstName} ${deletePlayer.lastName}` : ''} onClose={() => setDeleteModalOpen(false)} onConfirm={async () => handleDelete(deletePlayer!.id)} />

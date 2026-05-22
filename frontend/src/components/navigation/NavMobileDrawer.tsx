@@ -48,8 +48,15 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
   const primary = theme.palette.primary.main;
 
   const TileLabel = ({ label, isActive, activeColor }: { label: string; isActive: boolean; activeColor?: string }) => (
-    <Typography variant="caption" fontWeight={isActive ? 700 : 400}
-      textAlign="center" sx={{ lineHeight: 1.2, fontSize: '0.7rem', color: isActive && activeColor ? activeColor : (isActive ? 'primary.main' : 'text.primary') }}>
+    <Typography
+      variant="caption"
+      sx={{
+        fontWeight: isActive ? 700 : 400,
+        textAlign: "center",
+        lineHeight: 1.2,
+        fontSize: '0.7rem',
+        color: isActive && activeColor ? activeColor : (isActive ? 'primary.main' : 'text.primary')
+      }}>
       {label}
     </Typography>
   );
@@ -57,8 +64,17 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
   const SectionHeader = ({ title }: { title: string }) => (
     <Box sx={{ display: 'flex', alignItems: 'center', my: 1.5 }}>
       <Divider sx={{ flex: 1 }} />
-      <Typography variant="caption" fontWeight={700} color="text.secondary"
-        sx={{ mx: 1.5, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem', whiteSpace: 'nowrap' }}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: "text.secondary",
+          mx: 1.5,
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+          fontSize: '0.65rem',
+          whiteSpace: 'nowrap'
+        }}>
         {title}
       </Typography>
       <Divider sx={{ flex: 1 }} />
@@ -84,7 +100,6 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1, pb: 0.5 }}>
         <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
       </Box>
-
       <Box sx={{ px: 2, pb: 3 }}>
         {/* Standard-Items */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
@@ -132,8 +147,18 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
             <SectionHeader title="Administration" />
             {adminMenuSections.map((section) => (
               <Box key={section.section} sx={{ mb: 1.5 }}>
-                <Typography variant="caption" fontWeight={700} color="text.disabled"
-                  sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem', px: 0.5, display: 'block', mb: 0.75 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    color: "text.disabled",
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    fontSize: '0.62rem',
+                    px: 0.5,
+                    display: 'block',
+                    mb: 0.75
+                  }}>
                   {section.section}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5 }}>

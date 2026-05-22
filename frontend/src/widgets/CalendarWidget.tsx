@@ -265,12 +265,12 @@ export const CalendarWidget: React.FC<{ config?: CalendarWidgetConfig; widgetId?
     };
   };
 
-  const calendarComponents = useMemo(() => ({
+  const calendarComponents = useMemo(() => (({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     month: {
       dateHeader: CompactDateHeader,
-    },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }) as any, []);
+    }
+  }) as any), []);
 
   // Compute scrollToTime: jump to the nearest current/upcoming event or current time
   const scrollToTime = useMemo(() => {

@@ -12,7 +12,7 @@ import BugReportIcon from '@mui/icons-material/BugReport';
 import LockIcon from '@mui/icons-material/Lock';
 import SecurityIcon from '@mui/icons-material/Security';
 import PolicyIcon from '@mui/icons-material/Policy';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import StorageIcon from '@mui/icons-material/Storage';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import { useNavigate } from 'react-router-dom';
@@ -130,23 +130,45 @@ function TrendCard({ categoryKey, label, color, trend, total }: {
       variant="outlined"
       sx={{ p: 2, borderTop: `3px solid ${color}` }}
     >
-      <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1
+        }}>
         <CategoryIcon category={categoryKey} />
-        <Typography variant="subtitle2" fontWeight={700}>{label}</Typography>
+        <Typography variant="subtitle2" sx={{
+          fontWeight: 700
+        }}>{label}</Typography>
       </Stack>
-
-      <Typography variant="h4" fontWeight={700} sx={{ color, mb: 0.5 }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          color,
+          mb: 0.5
+        }}>
         {total}
       </Typography>
-      <Typography variant="caption" color="text.secondary">Total im Zeitraum</Typography>
-
+      <Typography variant="caption" sx={{
+        color: "text.secondary"
+      }}>Total im Zeitraum</Typography>
       {trend && (
-        <Stack direction="row" alignItems="center" spacing={0.5} mt={1}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            alignItems: "center",
+            mt: 1
+          }}>
           <TrendIcon direction={trend.direction} />
           <Typography
             variant="body2"
             color={trend.direction === 'up' ? 'error' : trend.direction === 'down' ? 'success.main' : 'text.secondary'}
-            fontWeight={600}
+            sx={{
+              fontWeight: 600
+            }}
           >
             {trend.direction !== 'neutral'
               ? `${trend.changePercent > 0 ? '+' : ''}${trend.changePercent}% vs. Vorperiode`
@@ -155,7 +177,9 @@ function TrendCard({ categoryKey, label, color, trend, total }: {
         </Stack>
       )}
       {trend && (
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Vorperiode: {trend.previous} · Aktuell: {trend.current}
         </Typography>
       )}
@@ -222,14 +246,27 @@ export default function SystemAlertStats() {
         >
           System-Wartung
         </Link>
-        <Typography variant="body2" color="text.primary">Trend-Analyse</Typography>
+        <Typography variant="body2" sx={{
+          color: "text.primary"
+        }}>Trend-Analyse</Typography>
       </Breadcrumbs>
-
       {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={1}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 1
+        }}>
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <TrendingUpIcon color="primary" />
-          <Typography variant="h5" fontWeight={700}>Trend-Analyse</Typography>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>Trend-Analyse</Typography>
         </Stack>
         <ToggleButtonGroup
           value={period}
@@ -242,10 +279,21 @@ export default function SystemAlertStats() {
           <ToggleButton value="30d">30 Tage</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
-
       {/* Category filter chips */}
-      <Stack direction="row" spacing={1} flexWrap="wrap" mb={3} alignItems="center">
-        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Filter:</Typography>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          flexWrap: "wrap",
+          mb: 3,
+          alignItems: "center"
+        }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mr: 0.5
+          }}>Filter:</Typography>
         {CATEGORIES.map(cat => {
           const hidden = hiddenCategories.has(cat.key);
           return (
@@ -278,14 +326,19 @@ export default function SystemAlertStats() {
           />
         )}
       </Stack>
-
-      {loading && <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>}
+      {loading && <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 4
+        }}><CircularProgress /></Box>}
       {error   && <Alert severity="error">{error}</Alert>}
-
       {!loading && data && (
         <>
           {/* Trend summary cards */}
-          <Grid container spacing={2} mb={3}>
+          <Grid container spacing={2} sx={{
+            mb: 3
+          }}>
             {visibleCategories.map(cat => (
               <Grid size={{ xs: 12, sm: 4 }} key={cat.key}>
                 <TrendCard
@@ -301,7 +354,12 @@ export default function SystemAlertStats() {
 
           {/* Line chart */}
           <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={700} mb={2}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 700,
+                mb: 2
+              }}>
               Verlauf
               <Chip
                 label={period === '24h' ? 'pro Stunde' : 'pro Tag'}
@@ -312,7 +370,12 @@ export default function SystemAlertStats() {
             </Typography>
 
             {!hasData ? (
-              <Typography color="text.secondary" textAlign="center" py={4}>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  textAlign: "center",
+                  py: 4
+                }}>
                 Keine Daten für diesen Zeitraum.
               </Typography>
             ) : (
@@ -347,21 +410,34 @@ export default function SystemAlertStats() {
 
           {/* Interpretation hint */}
           <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'info.50' }}>
-            <Typography variant="subtitle2" fontWeight={700} gutterBottom>So liest du die Trends</Typography>
+            <Typography variant="subtitle2" gutterBottom sx={{
+              fontWeight: 700
+            }}>So liest du die Trends</Typography>
             <Stack spacing={0.5}>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <TrendingUpIcon color="error" fontSize="small" />
                 <Typography variant="body2">Anstieg &gt;10% gegenüber der Vorperiode → aktives Problem, sofortige Aktion empfohlen</Typography>
               </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <TrendingFlatIcon color="action" fontSize="small" />
                 <Typography variant="body2">Stabil innerhalb ±10% → Grundrauschen / Bot-Aktivität, Beobachten</Typography>
               </Stack>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <TrendingDownIcon color="success" fontSize="small" />
                 <Typography variant="body2">Rückgang &gt;10% → Maßnahmen greifen oder natürliches Abebben</Typography>
               </Stack>
-              <Typography variant="body2" mt={0.5} color="text.secondary">
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 0.5,
+                  color: "text.secondary"
+                }}>
                 Tipp: Konstant hohe Login-Fehler bei stabiler Kurve = Bot-Aktivität. Spike bei Server-Fehlern = echter Code-Fehler.
               </Typography>
             </Stack>

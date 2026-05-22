@@ -55,7 +55,11 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
             maxWidth="md"
             title={
                 club && permissions?.canView ? (
-                    <Box display="flex" alignItems="center">
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center"
+                        }}>
                         {club.logoUrl ? (
                             <Avatar src={club.logoUrl} alt={`Logo ${club.name}`} sx={{ width: 32, height: 32, mr: 2, bgcolor: 'white', border: '1px solid #eee' }} />
                         ) : (
@@ -64,7 +68,13 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
                         <Box>
                             <Typography variant="h5" component="span">{club.name}</Typography>
                             {club.shortName && (
-                                <Typography variant="body2" color="text.secondary" component="span" sx={{ ml: 1 }}>
+                                <Typography
+                                    variant="body2"
+                                    component="span"
+                                    sx={{
+                                        color: "text.secondary",
+                                        ml: 1
+                                    }}>
                                     ({club.shortName})
                                 </Typography>
                             )}
@@ -119,7 +129,9 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
         >
             {club && permissions?.canView ? (
                 <>
-                        <Box mb={3}>
+                        <Box sx={{
+                            mb: 3
+                        }}>
                             <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                 <InfoIcon sx={{ mr: 1 }} /> Vereinsinfo
                             </Typography>
@@ -142,7 +154,9 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
                                         <Typography component="dd" variant="body2" sx={{ ml: '35%' }}>
                                             {club.location.name}
                                             {(club.location.address || club.location.city) && (
-                                                <><br /><Typography variant="caption" color="text.secondary">
+                                                <><br /><Typography variant="caption" sx={{
+                                                    color: "text.secondary"
+                                                }}>
                                                     {club.location.address}{club.location.city ? `, ${club.location.city}` : ''}
                                                 </Typography></>
                                             )}
@@ -169,7 +183,9 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
                             )}
                         </Box>
                         <Divider sx={{ mb: 3 }} />
-                        <Box mb={3}>
+                        <Box sx={{
+                            mb: 3
+                        }}>
                             <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                 <LinkIcon sx={{ mr: 1 }} /> Kontakt & Web
                             </Typography>
@@ -209,7 +225,13 @@ const Clubs: React.FC<ClubDetailsModalProps> = ({ open, clubId, onClose, loadClu
                         </Box>
                     </>
             ) : (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             )}

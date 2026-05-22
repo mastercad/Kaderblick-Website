@@ -47,29 +47,36 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-
       {/* ── Progress bar (hidden on confirm step) ── */}
       {step < 4 && (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               Schritt {wiz.visibleStep + 1} von {wiz.totalSteps} — {wiz.stepLabels[step] ?? ''}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {Math.round(wiz.progress)}%
             </Typography>
           </Box>
           <LinearProgress variant="determinate" value={wiz.progress} sx={{ borderRadius: 1, height: 5 }} />
         </Box>
       )}
-
       {/* ── Step 0: Subject ── */}
       {step === 0 && (
         <Box>
           <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
             Über wen soll der Bericht sein?
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Einfach antippen — es geht danach automatisch weiter.
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -84,7 +91,6 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           </Box>
         </Box>
       )}
-
       {/* ── Step 1: Context selection ── */}
       {step === 1 && subject && (
         <StepContext
@@ -105,14 +111,18 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           linkedTeams={wiz.linkedTeams}
         />
       )}
-
       {/* ── Step 2: Topic ── */}
       {step === 2 && subject && (
         <Box>
           <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
             Was möchtest du wissen?
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Einfach antippen — es geht danach automatisch weiter.
           </Typography>
           <Box
@@ -133,14 +143,18 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           </Box>
         </Box>
       )}
-
       {/* ── Step 3: Time range ── */}
       {step === 3 && (
         <Box>
           <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
             Wie weit zurückschauen?
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Einfach antippen — es geht danach automatisch weiter.
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -155,7 +169,6 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           </Box>
         </Box>
       )}
-
       {/* ── Step 4: Confirm ── */}
       {step === 4 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -163,7 +176,9 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
             <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
               ✅ Fast fertig!
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Gib deiner Auswertung noch einen Namen und tippe auf „Speichern".
             </Typography>
           </Box>
@@ -180,7 +195,13 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           {/* ── Chart-Typ Auswahl: nur sinnvolle Alternativen ── */}
           {subject && topic && (
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mb: 0.75,
+                  display: 'block'
+                }}>
                 Darstellungsart
               </Typography>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -228,7 +249,9 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
                   />
                 }
                 label={
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Einträge ohne Wert ausblenden
                   </Typography>
                 }
@@ -250,7 +273,6 @@ export const GuidedWizard: React.FC<GuidedWizardProps> = (props) => {
           </Box>
         </Box>
       )}
-
       {/* ── Sticky bottom nav ── */}
       <Box
         sx={{

@@ -44,19 +44,27 @@ export const ParticipationList: React.FC<ParticipationListProps> = ({
       {/* Header row */}
       <Stack
         direction="row"
-        alignItems="center"
         spacing={1}
-        mb={1}
-        sx={{ flexWrap: 'wrap', gap: 0.5 }}
-      >
+        sx={{
+          alignItems: "center",
+          mb: 1,
+          flexWrap: 'wrap',
+          gap: 0.5
+        }}>
         <Stack
           direction="row"
           spacing={0.75}
-          alignItems="center"
           onClick={() => setExpanded(e => !e)}
-          sx={{ cursor: 'pointer', userSelect: 'none', flex: 1, minWidth: 0 }}
-        >
-          <Typography variant="subtitle2" fontWeight={600}>
+          sx={{
+            alignItems: "center",
+            cursor: 'pointer',
+            userSelect: 'none',
+            flex: 1,
+            minWidth: 0
+          }}>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 600
+          }}>
             Teilnehmer ({participations.length})
           </Typography>
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -80,17 +88,27 @@ export const ParticipationList: React.FC<ParticipationListProps> = ({
           Übersicht
         </Button>
       </Stack>
-
       <Collapse in={expanded}>
         {participations.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              py: 1
+            }}>
             Noch keine Rückmeldungen.
           </Typography>
         ) : (
           <Stack spacing={1.5}>
             {Object.values(grouped).map(group => (
               <Box key={group.statusName}>
-                <Stack direction="row" spacing={0.75} alignItems="center" mb={0.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.75}
+                  sx={{
+                    alignItems: "center",
+                    mb: 0.5
+                  }}>
                   <Box
                     sx={{
                       width: 10,
@@ -102,9 +120,11 @@ export const ParticipationList: React.FC<ParticipationListProps> = ({
                   />
                   <Typography
                     variant="caption"
-                    fontWeight={700}
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                  >
+                    sx={{
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5
+                    }}>
                     {group.statusName} ({group.participants.length})
                   </Typography>
                 </Stack>
@@ -133,9 +153,12 @@ export const ParticipationList: React.FC<ParticipationListProps> = ({
                       {p.note && (
                         <Typography
                           variant="caption"
-                          color="text.secondary"
-                          sx={{ fontStyle: 'italic', lineHeight: 1.4, wordBreak: 'break-word' }}
-                        >
+                          sx={{
+                            color: "text.secondary",
+                            fontStyle: 'italic',
+                            lineHeight: 1.4,
+                            wordBreak: 'break-word'
+                          }}>
                           {p.note}
                         </Typography>
                       )}

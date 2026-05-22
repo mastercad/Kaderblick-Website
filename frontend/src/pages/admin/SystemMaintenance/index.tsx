@@ -32,18 +32,26 @@ export default function SystemMaintenance() {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', py: 3, px: { xs: 2, md: 3 } }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          mb: 3
+        }}>
         <BuildIcon color="primary" sx={{ fontSize: 28 }} />
         <Box>
-          <Typography variant="h5" fontWeight={700}>System-Wartung</Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>System-Wartung</Typography>
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Inkonsistenzen prüfen, Stats neu berechnen, Cron-Jobs überwachen, Datenbank sichern
           </Typography>
         </Box>
       </Stack>
-
       <Divider sx={{ mb: 3 }} />
-
       <Paper variant="outlined" sx={{ mb: 3 }}>
         <Tabs
           value={tab}

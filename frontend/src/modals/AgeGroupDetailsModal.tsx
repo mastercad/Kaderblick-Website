@@ -86,35 +86,58 @@ const AgeGroupDetailsModal: React.FC<AgeGroupDetailsModalProps> = ({ ageGroupDet
             >
                 {ageGroup && ageGroup.permissions?.canView ? (
                     <Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Beschreibung</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: "text.secondary",
+                                mb: 0.5
+                            }}>Beschreibung</Typography>
                         <Typography variant="body1" sx={{ mb: 2 }}>{ageGroup.description}</Typography>
                         <Divider sx={{ mb: 2 }} />
-                        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: 2
+                            }}>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Code</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Code</Typography>
                                 <Typography variant="body1">{ageGroup.code}</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Stichtag</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Stichtag</Typography>
                                 <Typography variant="body1">{ageGroup.referenceDate}</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Mindestalter</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Mindestalter</Typography>
                                 <Typography variant="body1">{ageGroup.minAge} Jahre</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Höchstalter</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Höchstalter</Typography>
                                 <Typography variant="body1">{ageGroup.maxAge} Jahre</Typography>
                             </Box>
                         </Box>
                     </Box>
                 ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 )}
             </BaseModal>
-
             <AgeGroupDeleteConfirmationModal
                 open={deleteModalOpen}
                 ageGroupName={deleteAgeGroup?.name}

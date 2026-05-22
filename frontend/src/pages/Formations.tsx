@@ -168,11 +168,22 @@ const FormationCard: React.FC<FormationCardProps> = ({
       <CardActionArea onClick={onEdit} sx={{ flexShrink: 0 }}>
         <CardPitchPreview formation={formation} />
       </CardActionArea>
-
       <CardContent sx={{ pb: 1.5, pt: 1.25, flex: 1 }}>
         {/* Title row */}
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Typography variant="subtitle1" fontWeight={700} lineHeight={1.25} sx={{ flex: 1, mr: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start"
+          }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              lineHeight: 1.25,
+              flex: 1,
+              mr: 1
+            }}>
             {formation.name}
           </Typography>
           <IconButton
@@ -186,7 +197,14 @@ const FormationCard: React.FC<FormationCardProps> = ({
         </Box>
 
         {/* Meta chips */}
-        <Box display="flex" flexWrap="wrap" gap={0.75} mt={1} mb={notes ? 1 : 0}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 0.75,
+            mt: 1,
+            mb: notes ? 1 : 0
+          }}>
           {code && (
             <Chip
               label={code}
@@ -210,15 +228,20 @@ const FormationCard: React.FC<FormationCardProps> = ({
 
         {/* Taktik-Notizen preview */}
         {notes && (
-          <Typography variant="caption" color="text.secondary" sx={{
-            overflow: 'hidden', textOverflow: 'ellipsis',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-          }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical'
+            }}>
             {notes}
           </Typography>
         )}
       </CardContent>
-
       <CardActions sx={{ pt: 0, pb: 1, px: 1, gap: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
         <Tooltip title="Bearbeiten">
           <IconButton size="small" onClick={onEdit} color="primary" sx={{ flex: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'primary.main', color: 'white' } }}>
@@ -246,7 +269,6 @@ const FormationCard: React.FC<FormationCardProps> = ({
           </IconButton>
         </Tooltip>
       </CardActions>
-
       {/* Context menu */}
       <Menu
         anchorEl={menuAnchor}
@@ -385,16 +407,24 @@ const Formations: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box mb={2}>
-        <Typography variant="h4" fontWeight={700}>Meine Aufstellungen</Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.5}>
+      <Box sx={{
+        mb: 2
+      }}>
+        <Typography variant="h4" sx={{
+          fontWeight: 700
+        }}>Meine Aufstellungen</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mt: 0.5
+          }}>
           {activeTab === 0
             ? (formations.length > 0 ? `${formations.length} Aufstellung${formations.length !== 1 ? 'en' : ''} aktiv` : 'Keine aktiven Aufstellungen')
             : (archivedFormations.length > 0 ? `${archivedFormations.length} archivierte Aufstellung${archivedFormations.length !== 1 ? 'en' : ''}` : 'Archiv ist leer')
           }
         </Typography>
       </Box>
-
       {/* Sticky-Leiste: Team-Filter + Button */}
       <Box
         sx={{
@@ -446,13 +476,17 @@ const Formations: React.FC = () => {
           </Button>
         )}
       </Box>
-
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v as 0 | 1)}>
           <Tab
             label={
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1
+                }}>
                 Aktiv
                 {formations.length > 0 && (
                   <Chip label={formations.length} size="small" sx={{ height: 18, fontSize: '0.7rem' }} />
@@ -462,7 +496,12 @@ const Formations: React.FC = () => {
           />
           <Tab
             label={
-              <Box display="flex" alignItems="center" gap={1}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1
+                }}>
                 <ArchiveIcon sx={{ fontSize: 16 }} />
                 Archiv
                 {archivedFormations.length > 0 && (
@@ -473,26 +512,44 @@ const Formations: React.FC = () => {
           />
         </Tabs>
       </Box>
-
       {/* Tab: Aktiv */}
       {activeTab === 0 && (
       <>{loading ? (
-        <Typography color="text.secondary">Lade Aufstellungen…</Typography>
+        <Typography sx={{
+          color: "text.secondary"
+        }}>Lade Aufstellungen…</Typography>
       ) : formations.length > 0 ? (
         <>
           {multipleTeams ? teamGroups.map(group => (
-            <Box key={group.teamId ?? 'none'} mb={4}>
+            <Box key={group.teamId ?? 'none'} sx={{
+              mb: 4
+            }}>
               {/* Team-Überschrift */}
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mb: 2
+                }}>
                 <GroupsIcon color="action" />
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" sx={{
+                  fontWeight: 700
+                }}>
                   {group.teamName ?? 'Kein Team'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   ({group.formations.length} Aufstellung{group.formations.length !== 1 ? 'en' : ''})
                 </Typography>
               </Box>
-              <Box display="flex" flexWrap="wrap" gap={3}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 3
+                }}>
                 {group.formations.map(formation => (
                   <FormationCard
                     key={formation.id}
@@ -508,7 +565,12 @@ const Formations: React.FC = () => {
               <Divider sx={{ mt: 4 }} />
             </Box>
           )) : (
-            <Box display="flex" flexWrap="wrap" gap={3}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 3
+              }}>
               {formations.map(formation => (
                 <FormationCard
                   key={formation.id}
@@ -525,15 +587,27 @@ const Formations: React.FC = () => {
         </>
       ) : (
         <Box
-          mt={4}
-          display="flex" flexDirection="column" alignItems="center" gap={2}
-          sx={{ color: 'text.secondary' }}
-        >
+          sx={{
+            mt: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+            color: 'text.secondary'
+          }}>
           <SportsIcon sx={{ fontSize: 72, opacity: 0.25 }} />
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" sx={{
+            color: "text.secondary"
+          }}>
             Noch keine Aufstellungen vorhanden
           </Typography>
-          <Typography variant="body2" color="text.disabled" textAlign="center" maxWidth={400}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.disabled",
+              textAlign: "center",
+              maxWidth: 400
+            }}>
             Erstelle deine erste taktische Aufstellung – wähle eine Formation, platziere Spieler aus deinem Kader und notiere deine Taktik.
           </Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>
@@ -542,13 +616,19 @@ const Formations: React.FC = () => {
         </Box>
       )}
       </> )}
-
       {/* Tab: Archiv */}
       {activeTab === 1 && (
         <>{loading ? (
-          <Typography color="text.secondary">Lade Aufstellungen…</Typography>
+          <Typography sx={{
+            color: "text.secondary"
+          }}>Lade Aufstellungen…</Typography>
         ) : archivedFormations.length > 0 ? (
-          <Box display="flex" flexWrap="wrap" gap={3}>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 3
+            }}>
             {archivedFormations.map(formation => (
               <Card key={formation.id} sx={{
                 width: 300,
@@ -559,13 +639,31 @@ const Formations: React.FC = () => {
               }}>
                 <CardPitchPreview formation={formation} />
                 <CardContent sx={{ pb: 1, pt: 1.25, flex: 1 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                    <Typography variant="subtitle1" fontWeight={700} lineHeight={1.25} sx={{ flex: 1, mr: 1 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start"
+                    }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 700,
+                        lineHeight: 1.25,
+                        flex: 1,
+                        mr: 1
+                      }}>
                       {formation.name}
                     </Typography>
                   </Box>
                   {formation.archivedAt && (
-                    <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.disabled",
+                        display: "block",
+                        mt: 0.5
+                      }}>
                       Archiviert am {new Date(formation.archivedAt).toLocaleDateString('de-DE')}
                     </Typography>
                   )}
@@ -596,17 +694,32 @@ const Formations: React.FC = () => {
             ))}
           </Box>
         ) : (
-          <Box mt={4} display="flex" flexDirection="column" alignItems="center" gap={2} sx={{ color: 'text.secondary' }}>
+          <Box
+            sx={{
+              mt: 4,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 2,
+              color: 'text.secondary'
+            }}>
             <ArchiveIcon sx={{ fontSize: 72, opacity: 0.25 }} />
-            <Typography variant="h6" color="text.secondary">Archiv ist leer</Typography>
-            <Typography variant="body2" color="text.disabled" textAlign="center" maxWidth={400}>
+            <Typography variant="h6" sx={{
+              color: "text.secondary"
+            }}>Archiv ist leer</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.disabled",
+                textAlign: "center",
+                maxWidth: 400
+              }}>
               Archivierte Aufstellungen erscheinen hier. Du kannst sie jederzeit wiederherstellen.
             </Typography>
           </Box>
         )}
         </>
       )}
-
       {/* Modals */}
       <FormationEditModal
         open={editModalOpen}
@@ -621,7 +734,6 @@ const Formations: React.FC = () => {
           });
         }}
       />
-
       <FormationDeleteConfirmationModal
         open={deleteModalOpen}
         formationName={deleteFormation?.name}
@@ -638,7 +750,6 @@ const Formations: React.FC = () => {
           }
         }}
       />
-
       {/* Taktik-Board */}
       <TacticsBoardModal
         open={Boolean(tacticsFormation)}
@@ -649,14 +760,15 @@ const Formations: React.FC = () => {
           setTacticsFormation(saved);
         }}
       />
-
       {/* Duplizieren – Namens-Dialog */}
       <Dialog
         open={duplicateDialog.open}
         onClose={() => setDuplicateDialog(prev => ({ ...prev, open: false }))}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ component: 'form', onSubmit: (e: React.FormEvent) => { e.preventDefault(); void confirmDuplicate(); } }}
+        slotProps={{
+          paper: { component: 'form', onSubmit: (e: React.FormEvent) => { e.preventDefault(); void confirmDuplicate(); } }
+        }}
       >
         <DialogTitle>Aufstellung duplizieren</DialogTitle>
         <DialogContent sx={{ pt: '12px !important' }}>
@@ -667,7 +779,9 @@ const Formations: React.FC = () => {
             value={duplicateDialog.name}
             onChange={e => setDuplicateDialog(prev => ({ ...prev, name: e.target.value }))}
             onFocus={e => e.target.select()}
-            inputProps={{ maxLength: 120 }}
+            slotProps={{
+              htmlInput: { maxLength: 120 }
+            }}
           />
         </DialogContent>
         <DialogActions>

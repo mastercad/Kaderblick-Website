@@ -20,7 +20,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ForumIcon from '@mui/icons-material/Forum';
 import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import MailOutlineIcon from '@mui/icons-material/MailOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -210,31 +210,31 @@ export const MessageListPane: React.FC<Props> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflowX: 'hidden' }}>
-
       {/* Search */}
       <Box sx={{ px: 1.5, pt: 1.5, pb: 1, flexShrink: 0 }}>
         <TextField
           size="small" fullWidth placeholder="Suchen…"
           value={search}
           onChange={e => onSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-              </InputAdornment>
-            ),
-            endAdornment: search ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => onSearch('')}>
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : undefined,
-          }}
           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                </InputAdornment>
+              ),
+              endAdornment: search ? (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => onSearch('')}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined,
+            }
+          }}
         />
       </Box>
-
       {/* Toolbar: mark-all-read + view-mode toggle */}
       <Box sx={{ px: 1.5, pb: 0.75, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {folder === 0 && unreadCount > 0 ? (
@@ -276,9 +276,7 @@ export const MessageListPane: React.FC<Props> = ({
           </Tooltip>
         </Box>
       </Box>
-
       <Divider sx={{ flexShrink: 0 }} />
-
       {/* List */}
       <Box ref={listScrollRef} sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         {loading ? (
@@ -420,9 +418,12 @@ export const MessageListPane: React.FC<Props> = ({
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
                               <Typography
-                                variant="body2" noWrap sx={{ flex: 1 }}
-                                fontWeight={isUnread ? 700 : 400}
-                              >
+                                variant="body2"
+                                noWrap
+                                sx={{
+                                  fontWeight: isUnread ? 700 : 400,
+                                  flex: 1
+                                }}>
                                 {(() => {
                                   const senderLabel = isMine ? 'Ich' : msg.sender;
                                   if (viewMode === 'thread') {
@@ -464,7 +465,12 @@ export const MessageListPane: React.FC<Props> = ({
                                 </Tooltip>
                               )}
                             </Box>
-                            <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.disabled",
+                                flexShrink: 0
+                              }}>
                               {relativeTime(msg.sentAt)}
                             </Typography>
                           </Box>
@@ -472,23 +478,31 @@ export const MessageListPane: React.FC<Props> = ({
                         secondary={
                           <Box component="span" sx={{ display: 'block', overflow: 'hidden', minWidth: 0 }}>
                             <Typography
-                              variant="body2" noWrap
-                              fontWeight={isUnread ? 600 : 400}
-                              sx={{ display: 'block' }}
-                            >
+                              variant="body2"
+                              noWrap
+                              sx={{
+                                fontWeight: isUnread ? 600 : 400,
+                                display: 'block'
+                              }}>
                               {msg.subject}
                             </Typography>
                             {msg.snippet && (
                               <Typography
-                                variant="caption" color="text.disabled" noWrap
-                                sx={{ display: 'block', mt: 0.1 }}
-                              >
+                                variant="caption"
+                                noWrap
+                                sx={{
+                                  color: "text.disabled",
+                                  display: 'block',
+                                  mt: 0.1
+                                }}>
                                 {msg.snippet}
                               </Typography>
                             )}
                           </Box>
                         }
-                        secondaryTypographyProps={{ component: 'div' }}
+                        slotProps={{
+                          secondary: { component: 'div' }
+                        }}
                       />
                     </ListItemButton>
                     {idx < rows.length - 1 && <Divider component="li" />}

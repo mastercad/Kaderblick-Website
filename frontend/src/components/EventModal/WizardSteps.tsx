@@ -8,7 +8,7 @@ import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -60,7 +60,9 @@ export const WizardStep2Tournament: React.FC<WizardStep2TournamentProps> = ({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SportsSoccerIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 600
+          }}>
             Begegnungen
           </Typography>
           {matches.length > 0 && (
@@ -90,7 +92,6 @@ export const WizardStep2Tournament: React.FC<WizardStep2TournamentProps> = ({
           Neue Begegnung
         </Button>
       </Box>
-
       {matches.length === 0 && (
         <Paper
           variant="outlined"
@@ -103,12 +104,13 @@ export const WizardStep2Tournament: React.FC<WizardStep2TournamentProps> = ({
           }}
         >
           <SportsSoccerIcon sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
-          <Typography color="text.secondary" variant="body2">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Noch keine Begegnungen. Klicke auf "Neue Begegnung" oder generiere sie automatisch im vorherigen Schritt.
           </Typography>
         </Paper>
       )}
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {matches.map((m: any, index: number) => (
           <Paper
@@ -199,8 +201,10 @@ const MatchEditForm: React.FC<{
         size="small"
         value={draft?.scheduledAt ? draft.scheduledAt.slice(0, 16) : ''}
         onChange={e => onChange((d: any) => ({ ...d, scheduledAt: e.target.value ? `${e.target.value}:00` : '' }))}
-        InputLabelProps={{ shrink: true }}
         sx={{ flex: 1, minWidth: 200 }}
+        slotProps={{
+          inputLabel: { shrink: true }
+        }}
       />
     </Box>
 
@@ -260,19 +264,21 @@ const MatchDisplay: React.FC<{
       >
         {index + 1}
       </Typography>
-
       {/* Match info */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" noWrap fontWeight={500}>
+        <Typography variant="body2" noWrap sx={{
+          fontWeight: 500
+        }}>
           {match.homeTeamName || 'TBD'}
           <Box component="span" sx={{ mx: 0.75, color: 'text.secondary', fontWeight: 400 }}>vs</Box>
           {match.awayTeamName || 'TBD'}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           {label}{time ? ` · ${time} Uhr` : ''}
         </Typography>
       </Box>
-
       {/* Actions */}
       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
         <Tooltip title="Bearbeiten">

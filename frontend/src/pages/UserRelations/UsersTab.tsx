@@ -157,18 +157,24 @@ const UsersTab: React.FC = () => {
     {
       header: 'Name',
       width: '18%',
-      render: u => <Typography variant="body2" fontWeight={500}>{u.fullName}</Typography>,
+      render: u => <Typography variant="body2" sx={{
+        fontWeight: 500
+      }}>{u.fullName}</Typography>,
     },
     {
       header: 'E-Mail',
       width: '22%',
-      render: u => <Typography variant="body2" color="text.secondary">{u.email}</Typography>,
+      render: u => <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>{u.email}</Typography>,
     },
     {
       header: 'Status',
       width: '18%',
       render: u => (
-        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+        <Stack direction="row" spacing={0.5} sx={{
+          flexWrap: "wrap"
+        }}>
           <VerifiedChip user={u} onClick={() => setResendVerificationModal({ open: true, user: u })} />
           {u.isEnabled
             ? <Chip label="Aktiv"       color="success" size="small" />
@@ -183,13 +189,17 @@ const UsersTab: React.FC = () => {
         u.userRelations?.length > 0 ? (
           <Stack spacing={0.25}>
             {u.userRelations.map((r, i) => (
-              <Typography key={i} variant="caption" color="text.secondary">
+              <Typography key={i} variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {r.relationType?.name} von {r.entity}
               </Typography>
             ))}
           </Stack>
         ) : (
-          <Typography variant="caption" color="text.disabled">Keine</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.disabled"
+          }}>Keine</Typography>
         ),
     },
   ];
@@ -211,7 +221,9 @@ const UsersTab: React.FC = () => {
     >
       <CardContent sx={{ pb: 1 }}>
         {/* Header row: avatar + name + status */}
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "flex-start"
+        }}>
           <Avatar
             sx={{
               bgcolor: avatarColor(u.fullName),
@@ -225,11 +237,19 @@ const UsersTab: React.FC = () => {
             {initials(u.fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
+            <Typography variant="subtitle1" noWrap sx={{
+              fontWeight: 700
+            }}>
               {u.fullName}
             </Typography>
             {/* Status chips */}
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" mt={0.5}>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              sx={{
+                flexWrap: "wrap",
+                mt: 0.5
+              }}>
               <VerifiedChip user={u} onClick={() => setResendVerificationModal({ open: true, user: u })} />
               {u.isEnabled
                 ? <Chip label="Aktiv"       color="success" size="small" />
@@ -240,9 +260,20 @@ const UsersTab: React.FC = () => {
         </Stack>
 
         {/* Email */}
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={1.5}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
           <EmailIcon sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              wordBreak: 'break-all'
+            }}>
             {u.email}
           </Typography>
         </Stack>
@@ -252,13 +283,22 @@ const UsersTab: React.FC = () => {
           <>
             <Divider sx={{ my: 1.25 }} />
             <Box>
-              <Stack direction="row" alignItems="center" spacing={0.5} mb={0.75}>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 0.75
+                }}>
                 <AccountTreeIcon sx={{ fontSize: 13, color: 'primary.main' }} />
                 <Typography
                   variant="caption"
-                  fontWeight={700}
-                  sx={{ textTransform: 'uppercase', letterSpacing: '0.07em', color: 'primary.main' }}
-                >
+                  sx={{
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                    color: 'primary.main'
+                  }}>
                   Zuordnungen
                 </Typography>
               </Stack>
@@ -287,11 +327,28 @@ const UsersTab: React.FC = () => {
                         flexShrink: 0,
                       }}
                     />
-                    <Typography variant="caption" fontWeight={700} color="primary.dark" sx={{ flexShrink: 0 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 700,
+                        color: "primary.dark",
+                        flexShrink: 0
+                      }}>
                       {r.relationType?.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>von</Typography>
-                    <Typography variant="caption" fontWeight={500} color="text.primary" noWrap>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        flexShrink: 0
+                      }}>von</Typography>
+                    <Typography
+                      variant="caption"
+                      noWrap
+                      sx={{
+                        fontWeight: 500,
+                        color: "text.primary"
+                      }}>
                       {r.entity}
                     </Typography>
                   </Box>
@@ -391,7 +448,6 @@ const UsersTab: React.FC = () => {
           sx={{ width: { xs: '100%', sm: 340 } }}
         />
       </Box>
-
       {usersLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
@@ -402,21 +458,25 @@ const UsersTab: React.FC = () => {
         <AdminEmptyState icon={<ManageAccountsIcon />} title="Keine Benutzer vorhanden" />
       ) : isMobile ? (
         /* ── Mobile: card list ── */
-        <Box sx={{ px: 0.5, pt: 1 }}>
+        (<Box sx={{ px: 0.5, pt: 1 }}>
           {users.map(u => renderMobileCard(u))}
-        </Box>
+        </Box>)
       ) : (
         /* ── Desktop: table ── */
-        <AdminTable<UserRow>
+        (<AdminTable<UserRow>
           columns={columns}
           data={users}
           getKey={u => u.id}
           pagination
           renderActions={u => (
-            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Stack direction="row" spacing={0.5} sx={{
+              justifyContent: "flex-end"
+            }}>
               <Tooltip title="Zuordnung bearbeiten">
                 <IconButton size="small" color="primary" onClick={() => setEditModal({ open: true, user: u })}>
-                  <LinkIcon fontSize="small" />
+                  <LinkIcon sx={{
+                    fontSize: "small"
+                  }} />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Rollen bearbeiten">
@@ -452,25 +512,21 @@ const UsersTab: React.FC = () => {
               </Tooltip>
             </Stack>
           )}
-        />
+        />)
       )}
-
       {/* ── Modals ── */}
-
       <UserRelationEditModal
         open={!!editModal?.open}
         onClose={() => setEditModal(null)}
         onSaved={loadUsers}
         user={editModal?.user ?? { id: 0, fullName: '' }}
       />
-
       <UserRelationDeleteModal
         open={!!deleteModal?.open}
         onClose={() => setDeleteModal(null)}
         onConfirm={() => setDeleteModal(null)}
         userRelation={deleteModal?.relation}
       />
-
       <EditUserRolesModal
         open={!!rolesModal?.open}
         onClose={() => setRolesModal(null)}
@@ -495,14 +551,12 @@ const UsersTab: React.FC = () => {
           }
         }}
       />
-
       <DeleteUserModal
         open={!!deleteUserModal?.open}
         onClose={() => setDeleteUserModal(null)}
         onConfirm={() => { if (deleteUserModal?.user) handleDeleteUser(deleteUserModal.user); }}
         user={deleteUserModal?.user}
       />
-
       <ResendVerificationModal
         open={!!resendVerificationModal?.open}
         onClose={() => setResendVerificationModal(null)}

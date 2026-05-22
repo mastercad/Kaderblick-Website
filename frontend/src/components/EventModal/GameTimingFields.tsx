@@ -47,14 +47,17 @@ export const GameTimingFields: React.FC<GameTimingFieldsProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-      <Typography variant="subtitle1" fontWeight={600} color="primary">
+      <Typography variant="subtitle1" color="primary" sx={{
+        fontWeight: 600
+      }}>
         Spielzeiten konfigurieren
       </Typography>
-
       {hasTeamDefault && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <InfoOutlinedIcon fontSize="small" color="info" />
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Team-Standard:
           </Typography>
           {teamDefaultHalfDuration != null && (
@@ -75,69 +78,97 @@ export const GameTimingFields: React.FC<GameTimingFieldsProps> = ({
           )}
         </Box>
       )}
-
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Box flex={1} minWidth={180}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 180
+          }}>
           <TextField
             label="Halbzeit-Dauer (Min.)"
             type="number"
             value={halfDuration}
             onChange={e => onChange('gameHalfDuration', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-            inputProps={{ min: 1, max: 90, step: 1 }}
             fullWidth
             margin="normal"
             helperText={`Standard: ${defaultHalf} Min. pro Halbzeit`}
+            slotProps={{
+              htmlInput: { min: 1, max: 90, step: 1 }
+            }}
           />
         </Box>
-        <Box flex={1} minWidth={180}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 180
+          }}>
           <TextField
             label="Halbzeit-Pause (Min.)"
             type="number"
             value={halftimeBreakDuration}
             onChange={e => onChange('gameHalftimeBreakDuration', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-            inputProps={{ min: 0, max: 60, step: 1 }}
             fullWidth
             margin="normal"
             helperText={`Standard: ${defaultBreak} Min. Pause`}
+            slotProps={{
+              htmlInput: { min: 0, max: 60, step: 1 }
+            }}
           />
         </Box>
       </Box>
-
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Box flex={1} minWidth={180}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 180
+          }}>
           <TextField
             label="Nachspielzeit 1. Halbzeit (Min.)"
             type="number"
             value={formData.gameFirstHalfExtraTime ?? ''}
             onChange={e => onChange('gameFirstHalfExtraTime', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-            inputProps={{ min: 0, max: 30, step: 1 }}
             fullWidth
             margin="normal"
             placeholder="Optional"
+            slotProps={{
+              htmlInput: { min: 0, max: 30, step: 1 }
+            }}
           />
         </Box>
-        <Box flex={1} minWidth={180}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 180
+          }}>
           <TextField
             label="Nachspielzeit 2. Halbzeit (Min.)"
             type="number"
             value={formData.gameSecondHalfExtraTime ?? ''}
             onChange={e => onChange('gameSecondHalfExtraTime', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-            inputProps={{ min: 0, max: 30, step: 1 }}
             fullWidth
             margin="normal"
             placeholder="Optional"
+            slotProps={{
+              htmlInput: { min: 0, max: 30, step: 1 }
+            }}
           />
         </Box>
       </Box>
-
       <Box sx={{ bgcolor: 'action.hover', borderRadius: 1, p: 1.5, mt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           <strong>Voraussichtliche Spieldauer:</strong>{' '}
           {2 * halfDuration + halftimeBreakDuration} Min.
           {' '}({halfDuration} + {halftimeBreakDuration} + {halfDuration} Min.)
         </Typography>
         {!formData.endDate && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5
+            }}>
             Ist keine Endzeit angegeben, wird diese automatisch aus der Spieldauer berechnet.
           </Typography>
         )}

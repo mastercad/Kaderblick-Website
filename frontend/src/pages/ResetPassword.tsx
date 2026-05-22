@@ -136,7 +136,13 @@ export default function ResetPassword() {
           Neues Passwort setzen
         </Typography>
         
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }} align="center">
+        <Typography
+          variant="body1"
+          align="center"
+          sx={{
+            color: "text.secondary",
+            mb: 3
+          }}>
           Bitte geben Sie Ihr neues Passwort ein.
         </Typography>
 
@@ -164,17 +170,19 @@ export default function ResetPassword() {
               sx={{ mb: 2 }}
               disabled={isLoading}
               helperText="Mindestens 8 Zeichen"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }
               }}
             />
 

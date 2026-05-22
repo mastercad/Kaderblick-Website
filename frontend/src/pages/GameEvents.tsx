@@ -142,7 +142,6 @@ export default function GameEvents({ gameId }: GameEventsProps) {
           />
         )}
       </Box>
-
       {/* Game Info Card */}
       <Card sx={{ mb: 3, textAlign: 'center' }}>
         <CardContent>
@@ -159,19 +158,22 @@ export default function GameEvents({ gameId }: GameEventsProps) {
           </Box>
 
           {game.calendarEvent?.startDate && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {formatDateTime(game.calendarEvent.startDate)}
             </Typography>
           )}
 
           {game.location && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               📍 {game.location.name}
             </Typography>
           )}
         </CardContent>
       </Card>
-
       {/* Events List */}
       <Card>
         <CardContent>
@@ -201,7 +203,9 @@ export default function GameEvents({ gameId }: GameEventsProps) {
                           color="primary"
                           variant="filled"
                         />
-                        <Typography variant="body1" fontWeight="bold">
+                        <Typography variant="body1" sx={{
+                          fontWeight: "bold"
+                        }}>
                           {event.gameEventType.name}
                         </Typography>
                         {event.player && (
@@ -237,7 +241,6 @@ export default function GameEvents({ gameId }: GameEventsProps) {
           )}
         </CardContent>
       </Card>
-
       {/* Add Event FAB */}
       {isGameActive() && (
         <Fab
@@ -254,7 +257,6 @@ export default function GameEvents({ gameId }: GameEventsProps) {
           <AddIcon />
         </Fab>
       )}
-
       {/* Game Event Modal */}
       <GameEventModal
         open={eventModalOpen}

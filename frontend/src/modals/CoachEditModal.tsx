@@ -234,7 +234,13 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                 title="Trainer bearbeiten"
             >
                 {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
                 ) : (
@@ -248,34 +254,97 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                         <input type="hidden" name="id" value={coach?.id} />
                         <Box className="modal-body" sx={{ bgcolor: 'background.default', p: 0 }}>
                             {/* Stammdaten zuerst */}
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Stammdaten
                                 </Typography>
-                                <Box display="flex" flexWrap="wrap" gap={2}>
-                                    <Box flex={1} minWidth={250}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 2
+                                    }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Vorname" name="firstName" value={coach?.firstName || ''} onChange={handleCoachEditChange} required fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
                                         <TextField label="Nachname" name="lastName" value={coach?.lastName || ''} onChange={handleCoachEditChange} required fullWidth margin="normal" />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="E-Mail" name="email" value={coach?.email || ''} onChange={handleCoachEditChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">✉️</InputAdornment> }} />
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="E-Mail" name="email" value={coach?.email || ''} onChange={handleCoachEditChange} fullWidth margin="normal" slotProps={{
+                                            input: { startAdornment: <InputAdornment position="start">✉️</InputAdornment> }
+                                        }} />
                                     </Box>
-                                    <Box flex={1} minWidth={250}>
-                                        <TextField label="Geburtsdatum" name="birthDate" type="date" value={coach?.birthDate || ''} onChange={handleCoachEditChange} fullWidth margin="normal" InputLabelProps={{ shrink: true }} />
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 250
+                                        }}>
+                                        <TextField label="Geburtsdatum" name="birthDate" type="date" value={coach?.birthDate || ''} onChange={handleCoachEditChange} fullWidth margin="normal" slotProps={{
+                                            inputLabel: { shrink: true }
+                                        }} />
                                     </Box>
                                 </Box>
                             </Box>
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Zugehörigkeiten
                                 </Typography>
                                 <Stack spacing={2}>
                                     <Box>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Verein-Zuordnungen</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Verein-Zuordnungen</Typography>
                                         {(coach?.clubAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}>
+                                        <Box
+                                            key={assignment.id}
+                                            sx={{
+                                                display: "flex",
+                                                gap: 2,
+                                                alignItems: "center",
+                                                mb: 1
+                                            }}>
                                             <Autocomplete
                                                 options={[...allClubs, { id: 'new', name: 'Neuen Verein anlegen...' }]}
                                                 getOptionLabel={(option) => option.name}
@@ -313,17 +382,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                                 type="date"
                                                 value={assignment.startDate || ''}
                                                 onChange={e => handleClubAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
                                                 required
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <TextField
                                                 label="Ende"
                                                 type="date"
                                                 value={assignment.endDate || ''}
                                                 onChange={e => handleClubAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <IconButton onClick={() => handleRemoveClubAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
                                         </Box>
@@ -332,9 +405,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                     </Box>
 
                                     <Box>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Team-Zuordnungen</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Team-Zuordnungen</Typography>
                                         {(coach?.teamAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}><Autocomplete
+                                        <Box
+                                            key={assignment.id}
+                                            sx={{
+                                                display: "flex",
+                                                gap: 2,
+                                                alignItems: "center",
+                                                mb: 1
+                                            }}><Autocomplete
                                                 options={allTeams}
                                                 getOptionLabel={(option) => option.name}
                                                 value={assignment.team || null}
@@ -350,8 +435,10 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                                 label="Typ"
                                                 value={assignment.type ? String(assignment.type) : ''}
                                                 onChange={e => handleTeamAssignmentChange(assignment.id, 'type', e.target.value)}
-                                                SelectProps={{ native: true }}
                                                 sx={{ minWidth: 140 }}
+                                                slotProps={{
+                                                    select: { native: true }
+                                                }}
                                             >
                                                 <option value="">Typ wählen...</option>
                                                 {allCoachTeamAssignmentTypes.map(assignmentType => (
@@ -363,17 +450,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                                 type="date"
                                                 value={assignment.startDate || ''}
                                                 onChange={e => handleTeamAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
                                                 required
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <TextField
                                                 label="Ende"
                                                 type="date"
                                                 value={assignment.endDate || ''}
                                                 onChange={e => handleTeamAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <IconButton onClick={() => handleRemoveTeamAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
                                         </Box>
@@ -382,9 +473,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                     </Box>
 
                                     <Box>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Lizenzen</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Lizenzen</Typography>
                                         {(coach?.licenseAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}>
+                                        <Box
+                                            key={assignment.id}
+                                            sx={{
+                                                display: "flex",
+                                                gap: 2,
+                                                alignItems: "center",
+                                                mb: 1
+                                            }}>
                                             <Autocomplete
                                                 options={[...allLicenses, { id: 'new', name: 'Neue Lizenz anlegen...' }]}
                                                 getOptionLabel={(option) => option.name}
@@ -422,17 +525,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                                 type="date"
                                                 value={assignment.startDate || ''}
                                                 onChange={e => handleLicenseAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
                                                 required
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <TextField
                                                 label="Ende"
                                                 type="date"
                                                 value={assignment.endDate || ''}
                                                 onChange={e => handleLicenseAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <IconButton onClick={() => handleRemoveLicenseAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
                                         </Box>
@@ -440,9 +547,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                         <Button onClick={handleAddLicenseAssignment} startIcon={<AddIcon />} size="small" sx={{ mt: 1 }}>Lizenz hinzufügen</Button>
                                     </Box>
                                     <Box>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Nationalitäten</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Nationalitäten</Typography>
                                         {(coach?.nationalityAssignments ?? []).map((assignment: any) => (
-                                        <Box key={assignment.id} display="flex" gap={2} alignItems="center" mb={1}>
+                                        <Box
+                                            key={assignment.id}
+                                            sx={{
+                                                display: "flex",
+                                                gap: 2,
+                                                alignItems: "center",
+                                                mb: 1
+                                            }}>
                                             <Autocomplete
                                                 options={[...allNationalities, { id: 'new', name: 'Neue Nationalität anlegen...' }]}
                                                 getOptionLabel={(option) => option.name}
@@ -480,17 +599,21 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                                 type="date"
                                                 value={assignment.startDate || ''}
                                                 onChange={e => handleNationalityAssignmentChange(assignment.id, 'startDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
                                                 required
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <TextField
                                                 label="Ende"
                                                 type="date"
                                                 value={assignment.endDate || ''}
                                                 onChange={e => handleNationalityAssignmentChange(assignment.id, 'endDate', e.target.value)}
-                                                InputLabelProps={{ shrink: true }}
                                                 sx={{ minWidth: 120 }}
+                                                slotProps={{
+                                                    inputLabel: { shrink: true }
+                                                }}
                                             />
                                             <IconButton onClick={() => handleRemoveNationalityAssignment(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
                                         </Box>
@@ -500,7 +623,14 @@ const CoachEditModal: React.FC<CoachEditModalProps> = ({ openCoachEditModal, coa
                                 </Stack>
                             </Box>
                         </Box>
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={2} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 2,
+                                mb: 1
+                            }}>
                             <Button onClick={onCoachEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

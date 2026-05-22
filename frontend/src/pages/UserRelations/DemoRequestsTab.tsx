@@ -171,8 +171,12 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       width: '25%',
       render: (r) => (
         <>
-          <Typography variant="body2" fontWeight={500}>{r.name}</Typography>
-          <Typography variant="caption" color="text.secondary">{r.email}</Typography>
+          <Typography variant="body2" sx={{
+            fontWeight: 500
+          }}>{r.name}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{r.email}</Typography>
         </>
       ),
     },
@@ -182,15 +186,24 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
         <>
           {r.clubName && <Typography variant="body2">{r.clubName}</Typography>}
           {(r.league || r.ageGroup) && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               {[r.league, r.ageGroup].filter(Boolean).join(' · ')}
             </Typography>
           )}
           {r.phone && (
-            <Typography variant="caption" color="text.secondary" display="block">{r.phone}</Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block"
+              }}>{r.phone}</Typography>
           )}
           {!r.clubName && !r.league && !r.ageGroup && !r.phone && (
-            <Typography variant="body2" color="text.disabled">-</Typography>
+            <Typography variant="body2" sx={{
+              color: "text.disabled"
+            }}>-</Typography>
           )}
         </>
       ),
@@ -206,7 +219,9 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       width: 180,
       align: 'center',
       render: (r) => r.status === 'pending' ? (
-        <Stack direction="row" spacing={0.5} justifyContent="center">
+        <Stack direction="row" spacing={0.5} sx={{
+          justifyContent: "center"
+        }}>
           <Button size="small" startIcon={<SendIcon />} variant="contained" color="primary" onClick={() => handleContact(r)} sx={{ fontSize: '0.72rem' }}>
             Demo-Zugang senden
           </Button>
@@ -215,7 +230,9 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           </Button>
         </Stack>
       ) : (
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           {r.processedAt}<br />
           {r.processedBy ? `von ${r.processedBy.name}` : ''}
         </Typography>
@@ -236,9 +253,13 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       }}
     >
       <CardContent sx={{ pb: 1 }}>
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "flex-start"
+        }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>{r.name}</Typography>
+            <Typography variant="subtitle1" noWrap sx={{
+              fontWeight: 700
+            }}>{r.name}</Typography>
             <Chip label={statusLabel(r.status)} color={statusColor(r.status)} size="small" sx={{ mt: 0.5 }} />
             {highlightedRequestId === r.id && (
               <Chip label="Aus Benachrichtigung" size="small" color="info" sx={{ mt: 0.75, ml: 0.5 }} />
@@ -246,14 +267,33 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           </Box>
         </Stack>
 
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={1.5}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
           <EmailIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{r.email}</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              wordBreak: 'break-all'
+            }}>{r.email}</Typography>
         </Stack>
 
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={0.75}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 0.75
+          }}>
           <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-          <Typography variant="caption" color="text.secondary">{r.createdAt}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{r.createdAt}</Typography>
         </Stack>
 
         {(r.clubName || r.league || r.ageGroup) && (
@@ -261,7 +301,9 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
             <Divider sx={{ my: 1 }} />
             {r.clubName && <Typography variant="body2">{r.clubName}</Typography>}
             {(r.league || r.ageGroup) && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {[r.league, r.ageGroup].filter(Boolean).join(' · ')}
               </Typography>
             )}
@@ -271,14 +313,21 @@ const DemoRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
         {r.message && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{r.message}</Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                whiteSpace: 'pre-wrap'
+              }}>{r.message}</Typography>
           </>
         )}
 
         {r.status !== 'pending' && r.processedAt && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>
               {statusLabel(r.status)} am {r.processedAt}
               {r.processedBy ? ` von ${r.processedBy.name}` : ''}
             </Typography>

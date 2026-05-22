@@ -192,13 +192,11 @@ export default function PosterTemplateEditor() {
         onSave={handleSave}
         onBack={handleBack}
       />
-
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ borderRadius: 0 }}>
           {error}
         </Alert>
       )}
-
       {confirmLeave && (
         <Dialog open>
           <DialogTitle>Ungespeicherte Änderungen</DialogTitle>
@@ -213,7 +211,6 @@ export default function PosterTemplateEditor() {
           </DialogActions>
         </Dialog>
       )}
-
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Box sx={{ width: 240, flexShrink: 0, borderRight: 1, borderColor: 'divider', bgcolor: 'background.paper', overflow: 'hidden' }}>
           <Toolbox
@@ -253,14 +250,15 @@ export default function PosterTemplateEditor() {
             />
           ) : (
             <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 Element auf dem Canvas anklicken zum Bearbeiten.
               </Typography>
             </Box>
           )}
         </Box>
       </Box>
-
       <PreviewDialog
         open={showPreview}
         onClose={() => setShowPreview(false)}

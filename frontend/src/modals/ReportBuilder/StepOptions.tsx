@@ -34,7 +34,12 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Moving Average */}
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -61,7 +66,12 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           </Tooltip>
         </Box>
         {!maApplicable && (
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 4 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              ml: 4
+            }}>
             Nicht für diesen Diagrammtyp verfügbar
           </Typography>
         )}
@@ -115,7 +125,6 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           </Box>
         </Collapse>
       </Paper>
-
       {/* Heatmap options */}
       {diag === 'pitchheatmap' && (
         <Paper variant="outlined" sx={{ p: 2 }}>
@@ -156,12 +165,17 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
               <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary', cursor: 'default', flexShrink: 0 }} />
             </Tooltip>
           </Box>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: "block",
+              ml: 4
+            }}>
             Versucht X/Y-Koordinaten für Events zu verwenden
           </Typography>
         </Paper>
       )}
-
       {/* Radar options */}
       {(diag === 'radar' || diag === 'radaroverlay') && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -184,7 +198,6 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           </Tooltip>
         </Box>
       )}
-
       {/* Legend & Labels */}
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2" gutterBottom>Anzeige</Typography>
@@ -247,7 +260,6 @@ export const StepOptions: React.FC<StepOptionsProps> = ({ state }) => {
           </Tooltip>
         </Box>
       </Paper>
-
     </Box>
   );
 };

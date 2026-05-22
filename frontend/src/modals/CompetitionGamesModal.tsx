@@ -315,19 +315,38 @@ export const CompetitionGamesModal: React.FC<CompetitionGamesModalProps> = ({
         maxWidth="sm"
       >
         {loading && (
-          <Box display="flex" justifyContent="center" py={4}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              py: 4
+            }}>
             <CircularProgress />
           </Box>
         )}
         {!loading && error && (
-          <Typography color="error" px={2} py={2}>
+          <Typography
+            color="error"
+            sx={{
+              px: 2,
+              py: 2
+            }}>
             {error}
           </Typography>
         )}
         {!loading && !error && games.length === 0 && (
-          <Box display="flex" flexDirection="column" alignItems="center" py={4} gap={1}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              py: 4,
+              gap: 1
+            }}>
             <SportsIcon sx={{ fontSize: 48, opacity: 0.3 }} />
-            <Typography color="text.secondary">Keine Spiele vorhanden</Typography>
+            <Typography sx={{
+              color: "text.secondary"
+            }}>Keine Spiele vorhanden</Typography>
           </Box>
         )}
         {!loading && !error && games.length > 0 && (
@@ -345,8 +364,16 @@ export const CompetitionGamesModal: React.FC<CompetitionGamesModalProps> = ({
                 )}
                 <ListItemText
                   primary={
-                    <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                      <Typography variant="body2" fontWeight={600}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        flexWrap: "wrap"
+                      }}>
+                      <Typography variant="body2" sx={{
+                        fontWeight: 600
+                      }}>
                         {g.homeTeamName ?? '?'} vs. {g.awayTeamName ?? '?'}
                       </Typography>
                       {g.isFinished ? (
@@ -363,7 +390,6 @@ export const CompetitionGamesModal: React.FC<CompetitionGamesModalProps> = ({
           </List>
         )}
       </BaseModal>
-
       <EventDetailsModal
         open={!!selectedEvent}
         onClose={closeEventDetails}
@@ -373,7 +399,6 @@ export const CompetitionGamesModal: React.FC<CompetitionGamesModalProps> = ({
         onCancelled={() => { closeEventDetails(); loadGames(); }}
         onUpdated={loadGames}
       />
-
       <EventModal
         open={editModalOpen}
         onClose={() => {

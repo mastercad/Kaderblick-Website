@@ -171,8 +171,12 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       width: '22%',
       render: r => (
         <>
-          <Typography variant="body2" fontWeight={500}>{r.user.fullName}</Typography>
-          <Typography variant="caption" color="text.secondary">{r.user.email}</Typography>
+          <Typography variant="body2" sx={{
+            fontWeight: 500
+          }}>{r.user.fullName}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{r.user.email}</Typography>
         </>
       ),
     },
@@ -182,7 +186,9 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       render: r => (
         <>
           <Typography variant="body2">{r.entityName ?? '–'}</Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {r.entityType === 'player' ? 'Spieler' : r.entityType === 'coach' ? 'Trainer' : ''}
           </Typography>
         </>
@@ -226,7 +232,9 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
     >
       <CardContent sx={{ pb: 1 }}>
         {/* Header: avatar + name + status */}
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Stack direction="row" spacing={1.5} sx={{
+          alignItems: "flex-start"
+        }}>
           <Avatar
             sx={{
               bgcolor: avatarColor(r.user.fullName),
@@ -240,7 +248,9 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
             {initials(r.user.fullName)}
           </Avatar>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={700} noWrap>
+            <Typography variant="subtitle1" noWrap sx={{
+              fontWeight: 700
+            }}>
               {r.user.fullName}
             </Typography>
             <StatusChip status={r.status} />
@@ -248,21 +258,46 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
         </Stack>
 
         {/* Email */}
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={1.5}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
           <EmailIcon sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              wordBreak: 'break-all'
+            }}>
             {r.user.email}
           </Typography>
         </Stack>
 
         {/* Bezugsperson */}
         {r.entityName && (
-          <Stack direction="row" spacing={0.75} alignItems="center" mt={0.75}>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{
+              alignItems: "center",
+              mt: 0.75
+            }}>
             <PersonIcon sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               {r.entityName}
               {r.entityType && (
-                <Typography component="span" variant="caption" color="text.disabled" sx={{ ml: 0.5 }}>
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{
+                    color: "text.disabled",
+                    ml: 0.5
+                  }}>
                   ({r.entityType === 'player' ? 'Spieler' : 'Trainer'})
                 </Typography>
               )}
@@ -272,23 +307,44 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
 
         {/* Beziehungstyp */}
         {r.relationType?.name && (
-          <Stack direction="row" spacing={0.75} alignItems="center" mt={0.75}>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{
+              alignItems: "center",
+              mt: 0.75
+            }}>
             <AccountTreeIcon sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
-            <Typography variant="body2" color="text.secondary">{r.relationType.name}</Typography>
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>{r.relationType.name}</Typography>
           </Stack>
         )}
 
         {/* Datum */}
-        <Stack direction="row" spacing={0.75} alignItems="center" mt={0.75}>
+        <Stack
+          direction="row"
+          spacing={0.75}
+          sx={{
+            alignItems: "center",
+            mt: 0.75
+          }}>
           <AccessTimeIcon sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
-          <Typography variant="caption" color="text.secondary">{r.createdAt}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{r.createdAt}</Typography>
         </Stack>
 
         {/* Anmerkung */}
         {r.note && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                whiteSpace: 'pre-wrap'
+              }}>
               {r.note}
             </Typography>
           </>
@@ -298,7 +354,9 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
         {r.status !== 'pending' && r.processedAt && (
           <>
             <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>
               {r.status === 'approved' ? 'Genehmigt' : 'Abgelehnt'} am {r.processedAt}
               {r.processedBy && ` von ${r.processedBy.name}`}
             </Typography>
@@ -401,11 +459,20 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
           />
         ) : isMobile ? (
           /* ── Mobile: card list ── */
-          <Box sx={{ px: 0.5, pt: 1 }}>
+          (<Box sx={{ px: 0.5, pt: 1 }}>
             {requests.map(r => renderMobileCard(r))}
             {/* Simple pagination for mobile */}
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1, px: 0.5 }}>
-              <Typography variant="caption" color="text.secondary">
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mt: 1,
+                px: 0.5
+              }}>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, total)} von {total}
               </Typography>
               <Stack direction="row" spacing={1}>
@@ -417,10 +484,10 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
                 </Button>
               </Stack>
             </Stack>
-          </Box>
+          </Box>)
         ) : (
           /* ── Desktop: table with server-side pagination ── */
-          <AdminTable<RegistrationRequestRow>
+          (<AdminTable<RegistrationRequestRow>
             columns={columns}
             data={requests}
             getKey={r => r.id}
@@ -433,7 +500,9 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
             }}
             renderActions={r =>
               r.status === 'pending' ? (
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                <Stack direction="row" spacing={0.5} sx={{
+                  justifyContent: "flex-end"
+                }}>
                   <Tooltip title="Genehmigen">
                     <IconButton size="small" color="success" onClick={() => handleApproveRequest(r)}>
                       <CheckIcon fontSize="small" />
@@ -451,17 +520,21 @@ const RequestsTab: React.FC<Props> = ({ onCountsChange }) => {
                 </Stack>
               ) : (
                 r.processedAt ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      whiteSpace: 'nowrap'
+                    }}>
                     {r.processedAt}
                     {r.processedBy && <><br />{r.processedBy.name}</>}
                   </Typography>
                 ) : null
               )
             }
-          />
+          />)
         )}
       </Box>
-
       {/* ── Reject reason dialog ── */}
       <Dialog open={!!rejectDialog?.open} onClose={() => setRejectDialog(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Antrag ablehnen</DialogTitle>

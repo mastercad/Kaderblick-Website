@@ -74,7 +74,13 @@ const LeagueEditModal: React.FC<LeagueEditModalProps> = ({ openLeagueEditModal, 
             title="Liga bearbeiten"
         >
             {loading ? (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 ) : error ? (
@@ -83,12 +89,21 @@ const LeagueEditModal: React.FC<LeagueEditModalProps> = ({ openLeagueEditModal, 
                     <form id="leagueEditForm" autoComplete="off" onSubmit={handleLeagueEditSubmit}>
                         <input type="hidden" name="id" value={league?.id} />
                         <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                            <Box mb={2}>
+                            <Box sx={{
+                                mb: 2
+                            }}>
                                 <TextField label="Name" name="name" value={league?.name || ''} onChange={handleLeagueEditChange} required fullWidth margin="normal" />
                                 <TextField label="Kurzname" name="code" value={league?.code || ''} onChange={handleLeagueEditChange} fullWidth margin="normal" />
                             </Box>
                         </Box>
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 3,
+                                mb: 1
+                            }}>
                             <Button onClick={onLeagueEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

@@ -153,7 +153,9 @@ const Coaches = () => {
   ];
 
   const teamFilter = teams.length > 1 ? (
-    <Stack direction="row" alignItems="center" spacing={2}>
+    <Stack direction="row" spacing={2} sx={{
+      alignItems: "center"
+    }}>
       <FilterListIcon color="action" fontSize="small" />
       <FormControl size="small" sx={{ minWidth: 250 }}>
         <InputLabel id="coach-team-filter-label">Team filtern</InputLabel>
@@ -174,7 +176,9 @@ const Coaches = () => {
       )}
     </Stack>
   ) : teams.length === 1 ? (
-    <Stack direction="row" alignItems="center" spacing={1}>
+    <Stack direction="row" spacing={1} sx={{
+      alignItems: "center"
+    }}>
       <FilterListIcon color="action" fontSize="small" />
       <Chip label={teams[0].name} size="small" color="primary" />
       <Chip label={`${totalCount} Trainer`} size="small" color="primary" variant="outlined" />
@@ -210,7 +214,9 @@ const Coaches = () => {
           }}
           onRowClick={c => { setCoachId(c.id); setCoachDetailsModalOpen(true); }}
           renderActions={c => (
-            <Stack direction="row" alignItems="center" spacing={0}>
+            <Stack direction="row" spacing={0} sx={{
+              alignItems: "center"
+            }}>
               <Tooltip title={watchedCoachIds.has(c.id) ? 'Beobachtung beenden' : 'Beobachten'}>
                 <IconButton
                   size="small"
@@ -229,7 +235,6 @@ const Coaches = () => {
           )}
         />
       )}
-
       <CoachDetailsModal open={coachDetailsModalOpen} loadCoaches={() => loadCoaches()} coachId={coachId} onClose={() => setCoachDetailsModalOpen(false)} />
       <CoachEditModal openCoachEditModal={coachEditModalOpen} coachId={coachId} onCoachEditModalClose={() => setCoachEditModalOpen(false)} onCoachSaved={() => { setCoachEditModalOpen(false); loadCoaches(); }} />
       <CoachDeleteConfirmationModal open={deleteModalOpen} coachName={deleteCoach ? `${deleteCoach.firstName} ${deleteCoach.lastName}` : ''} onClose={() => setDeleteModalOpen(false)} onConfirm={async () => handleDelete(deleteCoach!.id)} />

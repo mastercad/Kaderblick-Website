@@ -51,7 +51,9 @@ export const NavigationMessagesButton: React.FC<NavigationMessagesButtonProps> =
             }
           }}
         >
-          <Typography variant="body2" color="inherit">
+          <Typography variant="body2" sx={{
+            color: "inherit"
+          }}>
             {text}
             {unreadMessageCount > 0 && (
               <Badge 
@@ -87,7 +89,9 @@ export const NavigationMessagesButton: React.FC<NavigationMessagesButtonProps> =
         <Badge badgeContent={unreadMessageCount} color="error">
           <MailIcon />
         </Badge>
-        <Typography variant="body2" color="inherit">
+        <Typography variant="body2" sx={{
+          color: "inherit"
+        }}>
           {text}
         </Typography>
       </ButtonBase>

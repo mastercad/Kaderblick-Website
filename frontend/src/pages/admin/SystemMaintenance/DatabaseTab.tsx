@@ -191,13 +191,19 @@ export default function DatabaseTab() {
     <Box>
       {error      && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {successMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg(null)}>{successMsg}</Alert>}
-
       {/* ── Backup erstellen ── */}
       <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 3 }}>
-        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+        <Typography variant="subtitle1" gutterBottom sx={{
+          fontWeight: 600
+        }}>
           Neues Backup erstellen
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Erstellt einen vollständigen MySQL-Dump der gesamten Datenbank (mysqldump).
           Je nach Datenbankgröße kann dies einige Sekunden dauern.
         </Typography>
@@ -210,7 +216,6 @@ export default function DatabaseTab() {
           {creating ? 'Backup wird erstellt …' : 'Backup jetzt erstellen'}
         </Button>
       </Paper>
-
       {/* ── Backup hochladen ── */}
       <Paper
         variant="outlined"
@@ -243,21 +248,25 @@ export default function DatabaseTab() {
         ) : (
           <>
             <CloudUploadIcon color="action" sx={{ fontSize: 36, mb: 1 }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               .sql-Datei hier ablegen oder klicken zur Dateiauswahl
             </Typography>
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>
               Backup wird in die Liste aufgenommen und kann danach wiederhergestellt werden.
             </Typography>
           </>
         )}
       </Paper>
-
       {/* ── Vorhandene Backups ── */}
-      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+      <Typography variant="subtitle1" gutterBottom sx={{
+        fontWeight: 600
+      }}>
         Vorhandene Backups
       </Typography>
-
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress />
@@ -341,14 +350,12 @@ export default function DatabaseTab() {
           </Table>
         </TableContainer>
       )}
-
       <Stack direction="row" sx={{ mt: 1 }}>
         <Box sx={{ flex: 1 }} />
         <IconButton onClick={loadBackups} disabled={loading} size="small">
           <RefreshIcon />
         </IconButton>
       </Stack>
-
       {/* ── Bestätigungs-Dialog Löschen ── */}
       <Dialog open={confirmDelete !== null} onClose={() => setConfirmDelete(null)}>
         <DialogTitle>Backup löschen?</DialogTitle>
@@ -368,7 +375,6 @@ export default function DatabaseTab() {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* ── Bestätigungs-Dialog Wiederherstellen ── */}
       <Dialog open={confirmRestore !== null} onClose={() => setConfirmRestore(null)}>
         <DialogTitle>Datenbank wiederherstellen?</DialogTitle>

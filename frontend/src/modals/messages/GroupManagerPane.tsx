@@ -155,9 +155,9 @@ export const GroupManagerPane: React.FC<Props> = ({
                 onChange={(_, v) => setForm((f) => ({ ...f, members: v }))}
                 isOptionEqualToValue={(a, b) => a.id === b.id}
                 renderInput={(params) => <TextField {...params} label="Mitglieder" size="small" />}
-                renderTags={(tags, getTagProps) =>
+                renderValue={(tags, getItemProps) =>
                   tags.map((o, i) => (
-                    <Chip {...getTagProps({ index: i })} key={o.id} size="small" label={o.fullName} />
+                    <Chip {...getItemProps({ index: i })} key={o.id} size="small" label={o.fullName} />
                   ))
                 }
               />
@@ -177,7 +177,9 @@ export const GroupManagerPane: React.FC<Props> = ({
         )}
 
         {groups.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Noch keine Gruppen vorhanden.
           </Typography>
         ) : (

@@ -65,9 +65,17 @@ function TeamCard({ team }: { team: TeamSeasonData }) {
   return (
     <Card variant="outlined" sx={{ mb: 2 }}>
       <CardContent>
-        <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 1
+          }}>
           <GroupsIcon fontSize="small" color="action" />
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 600
+          }}>
             {team.name}
           </Typography>
           {team.ageGroup && (
@@ -79,39 +87,104 @@ function TeamCard({ team }: { team: TeamSeasonData }) {
         </Stack>
 
         {/* Stats row */}
-        <Stack direction="row" spacing={3} mb={1.5} flexWrap="wrap">
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">Sp</Typography>
-            <Typography variant="body2" fontWeight={600}>{stats.played}</Typography>
+        <Stack
+          direction="row"
+          spacing={3}
+          sx={{
+            mb: 1.5,
+            flexWrap: "wrap"
+          }}>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Sp</Typography>
+            <Typography variant="body2" sx={{
+              fontWeight: 600
+            }}>{stats.played}</Typography>
           </Box>
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">S</Typography>
-            <Typography variant="body2" fontWeight={600} color="success.main">{stats.won}</Typography>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>S</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "success.main"
+              }}>{stats.won}</Typography>
           </Box>
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">U</Typography>
-            <Typography variant="body2" fontWeight={600} color="warning.main">{stats.drawn}</Typography>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>U</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "warning.main"
+              }}>{stats.drawn}</Typography>
           </Box>
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">N</Typography>
-            <Typography variant="body2" fontWeight={600} color="error.main">{stats.lost}</Typography>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>N</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "error.main"
+              }}>{stats.lost}</Typography>
           </Box>
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">Tore</Typography>
-            <Typography variant="body2" fontWeight={600}>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Tore</Typography>
+            <Typography variant="body2" sx={{
+              fontWeight: 600
+            }}>
               {stats.goalsFor}:{stats.goalsAgainst}
             </Typography>
           </Box>
-          <Box textAlign="center">
-            <Typography variant="caption" color="text.secondary">Pkt</Typography>
-            <Typography variant="body2" fontWeight={700} color="primary.main">{stats.points}</Typography>
+          <Box sx={{
+            textAlign: "center"
+          }}>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Pkt</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                color: "primary.main"
+              }}>{stats.points}</Typography>
           </Box>
         </Stack>
 
         {/* Form streak */}
         {team.form.length > 0 && (
-          <Stack direction="row" spacing={0.5} alignItems="center" mb={1}>
-            <Typography variant="caption" color="text.secondary" mr={0.5}>Form:</Typography>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            sx={{
+              alignItems: "center",
+              mb: 1
+            }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mr: 0.5
+              }}>Form:</Typography>
             {team.form.map((r, i) => (
               <Chip
                 key={i}
@@ -125,9 +198,13 @@ function TeamCard({ team }: { team: TeamSeasonData }) {
         )}
 
         {/* Next game */}
-        <Stack direction="row" alignItems="center" spacing={0.5}>
+        <Stack direction="row" spacing={0.5} sx={{
+          alignItems: "center"
+        }}>
           <SportsSoccerIcon fontSize="inherit" color="disabled" />
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Nächstes Spiel: {nextGameText}
           </Typography>
         </Stack>
@@ -139,9 +216,13 @@ function TeamCard({ team }: { team: TeamSeasonData }) {
 function TopScorerList({ scorers }: { scorers: TopScorer[] }) {
   if (scorers.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-        Keine Tore in dieser Saison.
-      </Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mt: 1
+        }}>Keine Tore in dieser Saison.
+              </Typography>
     );
   }
 
@@ -162,11 +243,15 @@ function TopScorerList({ scorers }: { scorers: TopScorer[] }) {
               {idx === 0 ? (
                 <EmojiEventsIcon fontSize="small" sx={{ color: 'gold' }} />
               ) : (
-                <Typography variant="body2" color="text.disabled">{idx + 1}</Typography>
+                <Typography variant="body2" sx={{
+                  color: "text.disabled"
+                }}>{idx + 1}</Typography>
               )}
             </TableCell>
             <TableCell>
-              <Stack direction="row" alignItems="center" spacing={1}>
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <Avatar sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>
                   {scorer.firstName[0]}{scorer.lastName[0]}
                 </Avatar>
@@ -176,10 +261,14 @@ function TopScorerList({ scorers }: { scorers: TopScorer[] }) {
               </Stack>
             </TableCell>
             <TableCell>
-              <Typography variant="body2" color="text.secondary">{scorer.teamName}</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>{scorer.teamName}</Typography>
             </TableCell>
             <TableCell align="right">
-              <Typography variant="body2" fontWeight={700}>{scorer.goals}</Typography>
+              <Typography variant="body2" sx={{
+                fontWeight: 700
+              }}>{scorer.goals}</Typography>
             </TableCell>
           </TableRow>
         ))}
@@ -217,7 +306,12 @@ export default function ClubSeason() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={6}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 6
+        }}>
         <CircularProgress />
       </Box>
     );
@@ -242,7 +336,14 @@ export default function ClubSeason() {
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 4 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={2} mb={3} mt={2}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          mb: 3,
+          mt: 2
+        }}>
         {data.club.logoUrl ? (
           <Avatar src={data.club.logoUrl} sx={{ width: 48, height: 48 }} />
         ) : (
@@ -251,15 +352,21 @@ export default function ClubSeason() {
           </Avatar>
         )}
         <Box>
-          <Typography variant="h5" fontWeight={700}>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>
             {data.club.name}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Saison-Übersicht
           </Typography>
         </Box>
 
-        <Box ml="auto">
+        <Box sx={{
+          ml: "auto"
+        }}>
           <FormControl size="small" sx={{ minWidth: 130 }}>
             <InputLabel id="season-label">Saison</InputLabel>
             <Select
@@ -277,14 +384,16 @@ export default function ClubSeason() {
           </FormControl>
         </Box>
       </Stack>
-
       <Divider sx={{ mb: 3 }} />
-
       {/* Teams */}
-      <Typography variant="h6" fontWeight={600} mb={2}>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 600,
+          mb: 2
+        }}>
         Teams ({data.teams.length})
       </Typography>
-
       {data.teams.length === 0 ? (
         <EmptyStateHint
           icon={<GroupsIcon />}
@@ -295,17 +404,22 @@ export default function ClubSeason() {
       ) : (
         data.teams.map((team) => <TeamCard key={team.id} team={team} />)
       )}
-
       <Divider sx={{ my: 3 }} />
-
       {/* Top Scorers */}
-      <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
         <EmojiEventsIcon color="warning" />
-        <Typography variant="h6" fontWeight={600}>
+        <Typography variant="h6" sx={{
+          fontWeight: 600
+        }}>
           Torschützen – Saison {data.season}
         </Typography>
       </Stack>
-
       <TopScorerList scorers={data.topScorers} />
     </Box>
   );

@@ -199,12 +199,20 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
         }}
       >
         {/* Title + arrows */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+        <Stack
+          direction="row"
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1
+          }}>
           <IconButton onClick={goBack} size="small">
             <ArrowBackIcon fontSize="small" />
           </IconButton>
 
-          <Typography variant="h6" fontWeight={700}>
+          <Typography variant="h6" sx={{
+            fontWeight: 700
+          }}>
             {dayjs(date).format('MMMM YYYY')}
           </Typography>
 
@@ -214,7 +222,13 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
         </Stack>
 
         {/* Today button + view row (rendered by Calendar.tsx but hidden here — kept minimal) */}
-        <Stack direction="row" spacing={1} justifyContent="center" mb={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            justifyContent: "center",
+            mb: 1
+          }}>
           <IconButton size="small" onClick={goToday} title="Heute">
             <TodayIcon fontSize="small" />
           </IconButton>
@@ -319,9 +333,15 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
                     {day.getDate()}
                   </Typography>
                 </Box>
-
                 {/* Event dots */}
-                <Stack direction="row" spacing={0.25} mt={0.35} alignItems="center" sx={{ minHeight: 8 }}>
+                <Stack
+                  direction="row"
+                  spacing={0.25}
+                  sx={{
+                    mt: 0.35,
+                    alignItems: "center",
+                    minHeight: 8
+                  }}>
                   {dotColors.map((color, i) => (
                     <Box
                       key={i}
@@ -347,18 +367,22 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
           })}
         </Box>
       </Paper>
-
       {/* ── Selected day event list ── */}
       <Box ref={listRef}>
         {/* Day header */}
         <Stack
           direction="row"
           spacing={1}
-          alignItems="center"
-          sx={{ px: 1, pt: 1.5, pb: 0.75 }}
-        >
+          sx={{
+            alignItems: "center",
+            px: 1,
+            pt: 1.5,
+            pb: 0.75
+          }}>
           <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="subtitle2" fontWeight={700}>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 700
+          }}>
             {dayjs(selectedDay).format('dddd, D. MMMM')}
           </Typography>
           {isSameDay(selectedDay, today) && (
@@ -375,13 +399,16 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
 
         {selectedDayEvents.length === 0 ? (
           <Stack
-            alignItems="center"
             spacing={1}
-            sx={{ py: 4 }}
             onClick={() => canCreate && onDateClick?.(selectedDay)}
-          >
+            sx={{
+              alignItems: "center",
+              py: 4
+            }}>
             <EventBusyIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Keine Termine
             </Typography>
             {canCreate && (
@@ -427,19 +454,17 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
                       minHeight: 36,
                     }}
                   />
-
                   {/* Content */}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
                       variant="body2"
-                      fontWeight={600}
                       sx={{
+                        fontWeight: 600,
                         textDecoration: ev.cancelled ? 'line-through' : 'none',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                        whiteSpace: 'nowrap'
+                      }}>
                       {ev.cancelled && '❌ '}
                       {ev.title}
                       {ev.participation_status?.code === 'suspended' && (
@@ -462,31 +487,39 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
                       )}
                     </Typography>
 
-                    <Stack direction="row" spacing={0.75} alignItems="center" mt={0.25}>
+                    <Stack
+                      direction="row"
+                      spacing={0.75}
+                      sx={{
+                        alignItems: "center",
+                        mt: 0.25
+                      }}>
                       <AccessTimeIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {timeStr}
                       </Typography>
                       {ev.location?.name && (
                         <>
-                          <Typography variant="caption" color="text.disabled">·</Typography>
+                          <Typography variant="caption" sx={{
+                            color: "text.disabled"
+                          }}>·</Typography>
                           <Typography
                             variant="caption"
-                            color="text.secondary"
                             sx={{
+                              color: "text.secondary",
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              maxWidth: 120,
-                            }}
-                          >
+                              maxWidth: 120
+                            }}>
                             {ev.location.name}
                           </Typography>
                         </>
                       )}
                     </Stack>
                   </Box>
-
                   {/* Event type chip */}
                   {ev.eventType?.name && (
                     <Chip

@@ -90,7 +90,13 @@ const AgeGroupEditModal: React.FC<AgeGroupEditModalProps> = ({ openAgeGroupEditM
             }
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : (
@@ -103,16 +109,27 @@ const AgeGroupEditModal: React.FC<AgeGroupEditModalProps> = ({ openAgeGroupEditM
                     <form id="ageGroupEditForm" autoComplete="off" onSubmit={handleAgeGroupEditSubmit}>
                         <input type="hidden" name="id" value={ageGroup?.id} />
                         <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                            <Box mb={2}>
+                            <Box sx={{
+                                mb: 2
+                            }}>
                                 <TextField label="Name" name="name" value={ageGroup?.name || ''} onChange={handleAgeGroupEditChange} required fullWidth margin="normal" />
                                 <TextField label="Englischer Name" name="englishName" value={ageGroup?.englishName || ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" />
                                 <TextField label="Code" name="code" value={ageGroup?.code || ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" />
                                 <TextField label="Beschreibung" name="description" value={ageGroup?.description || ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" multiline minRows={2} />
                             </Box>
                             <Divider sx={{ mb: 2 }} />
-                            <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
-                                <TextField label="Mindestalter" name="minAge" type="number" value={ageGroup?.minAge ?? ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" inputProps={{ min: 0 }} />
-                                <TextField label="Höchstalter" name="maxAge" type="number" value={ageGroup?.maxAge ?? ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" inputProps={{ min: 0 }} />
+                            <Box
+                                sx={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr 1fr",
+                                    gap: 2
+                                }}>
+                                <TextField label="Mindestalter" name="minAge" type="number" value={ageGroup?.minAge ?? ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" slotProps={{
+                                    htmlInput: { min: 0 }
+                                }} />
+                                <TextField label="Höchstalter" name="maxAge" type="number" value={ageGroup?.maxAge ?? ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" slotProps={{
+                                    htmlInput: { min: 0 }
+                                }} />
                                 <TextField label="Stichtag (MM-TT)" name="referenceDate" value={ageGroup?.referenceDate || ''} onChange={handleAgeGroupEditChange} fullWidth margin="normal" placeholder="01-01" />
                             </Box>
                         </Box>

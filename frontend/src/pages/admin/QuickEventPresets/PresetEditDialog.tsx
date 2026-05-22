@@ -66,7 +66,6 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
       <DialogContent
         dividers
         sx={{ display: 'flex', flexDirection: 'column', gap: 2, overflowX: 'hidden' }}
@@ -89,10 +88,11 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
           </Typography>
         )}
       </DialogContent>
-
       <DialogActions>
         <Box sx={{ flex: 1, pl: 1 }}>
-          <Typography variant="caption" color="text.disabled">
+          <Typography variant="caption" sx={{
+            color: "text.disabled"
+          }}>
             {buttons.length} Button{buttons.length !== 1 ? 's' : ''}
           </Typography>
         </Box>

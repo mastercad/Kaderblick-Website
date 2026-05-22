@@ -67,7 +67,7 @@ jest.mock('@mui/material', () => ({
 }));
 
 jest.mock('@mui/icons-material/Add',             () => () => null);
-jest.mock('@mui/icons-material/DeleteOutline',   () => () => null);
+jest.mock('@mui/icons-material/DeleteOutlined',   () => () => null);
 jest.mock('@mui/icons-material/SportsSoccer',    () => () => null);
 jest.mock('@mui/icons-material/Sports',          () => () => null);
 jest.mock('@mui/icons-material/PersonAddAlt1',   () => () => null);

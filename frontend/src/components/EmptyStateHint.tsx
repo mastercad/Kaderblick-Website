@@ -27,11 +27,15 @@ export default function EmptyStateHint({ icon, title, description, compact = fal
       >
         {icon}
       </Box>
-      <Typography variant={compact ? 'subtitle1' : 'h5'} color="text.secondary" gutterBottom>
+      <Typography variant={compact ? 'subtitle1' : 'h5'} gutterBottom sx={{
+        color: "text.secondary"
+      }}>
         {title}
       </Typography>
       {description && (
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{
+          color: "text.secondary"
+        }}>
           {description}
         </Typography>
       )}

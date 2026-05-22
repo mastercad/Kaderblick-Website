@@ -53,7 +53,15 @@ export const SelectReportModal: React.FC<SelectReportModalProps> = ({
       {/* ── Neue Auswertung erstellen ── */}
       {onCreateNew && (
         <Box sx={{ mb: hasReports ? 3 : 0 }}>
-          <Typography variant="subtitle1" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="subtitle1"
+            gutterBottom
+            sx={{
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
             <BarChartIcon fontSize="small" color="primary" />
             Neue Auswertung erstellen
           </Typography>
@@ -65,8 +73,12 @@ export const SelectReportModal: React.FC<SelectReportModalProps> = ({
               <CardActionArea onClick={() => onCreateNew('guided')} sx={{ height: '100%' }}>
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 2.5 }}>
                   <AutoFixHighIcon color="primary" sx={{ fontSize: 36 }} />
-                  <Typography variant="subtitle2" fontWeight={700}>Einfacher Assistent</Typography>
-                  <Typography variant="body2" color="text.secondary" align="center">
+                  <Typography variant="subtitle2" sx={{
+                    fontWeight: 700
+                  }}>Einfacher Assistent</Typography>
+                  <Typography variant="body2" align="center" sx={{
+                    color: "text.secondary"
+                  }}>
                     Geführt in wenigen Schritten – ideal für den schnellen Einstieg
                   </Typography>
                 </CardContent>
@@ -80,8 +92,12 @@ export const SelectReportModal: React.FC<SelectReportModalProps> = ({
               <CardActionArea onClick={() => onCreateNew('builder')} sx={{ height: '100%' }}>
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 2.5 }}>
                   <BuildIcon sx={{ fontSize: 36, color: 'text.secondary' }} />
-                  <Typography variant="subtitle2" fontWeight={700}>Detaillierter Builder</Typography>
-                  <Typography variant="body2" color="text.secondary" align="center">
+                  <Typography variant="subtitle2" sx={{
+                    fontWeight: 700
+                  }}>Detaillierter Builder</Typography>
+                  <Typography variant="body2" align="center" sx={{
+                    color: "text.secondary"
+                  }}>
                     Volle Kontrolle über alle Optionen – für erfahrene Nutzer
                   </Typography>
                 </CardContent>
@@ -90,7 +106,6 @@ export const SelectReportModal: React.FC<SelectReportModalProps> = ({
           </Box>
         </Box>
       )}
-
       {/* ── Vorhandene Auswertung wählen ── */}
       {loading ? (
         <Box sx={{ textAlign: 'center', my: 3 }}>
@@ -103,7 +118,12 @@ export const SelectReportModal: React.FC<SelectReportModalProps> = ({
         </>
       ) : (
         !onCreateNew && (
-          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              textAlign: 'center',
+              py: 4
+            }}>
             Noch keine Auswertungen vorhanden.
           </Typography>
         )

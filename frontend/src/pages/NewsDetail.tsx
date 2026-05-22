@@ -167,7 +167,12 @@ const NewsDetail: React.FC = () => {
             <Typography variant="h4" color="error" gutterBottom sx={{ fontWeight: 500 }}>
               Nachricht nicht verfügbar
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "text.secondary",
+                mb: 3
+              }}>
               {error || 'Die gewünschte Nachricht wurde nicht gefunden oder ist nicht mehr verfügbar.'}
             </Typography>
             <Button variant="contained" startIcon={<ArrowBackIcon />} onClick={() => navigate('/news')}>
@@ -192,7 +197,6 @@ const NewsDetail: React.FC = () => {
       >
         Alle Neuigkeiten
       </Button>
-
       <Card elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
         {/* ── Hero Header ─────────────────────────────────────────────────── */}
         <Box
@@ -255,7 +259,9 @@ const NewsDetail: React.FC = () => {
           </Typography>
 
           {/* Author Row */}
-          <Stack direction="row" spacing={1.5} alignItems="center">
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <Avatar
               sx={{
                 width: 36,
@@ -287,7 +293,13 @@ const NewsDetail: React.FC = () => {
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <Divider />
         <Box sx={{ px: { xs: 2.5, sm: 4 }, py: 2 }}>
-          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.75 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              flexWrap: "wrap",
+              gap: 0.75
+            }}>
             <Chip size="small" icon={<PersonIcon fontSize="small" />} label={`Von ${news.createdByUserName}`} variant="outlined" />
             <Chip
               size="small"
@@ -298,7 +310,6 @@ const NewsDetail: React.FC = () => {
           </Stack>
         </Box>
       </Card>
-
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       {news && (
         <>

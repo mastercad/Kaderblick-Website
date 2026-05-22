@@ -116,20 +116,28 @@ export default function TwoFactorChallengeForm({
         >
           {isEmail ? <EmailOutlinedIcon sx={{ color: 'white', fontSize: 30 }} /> : <SecurityIcon sx={{ color: 'white', fontSize: 30 }} />}
         </Box>
-        <Typography variant="h6" fontWeight={700} textAlign="center">
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            textAlign: "center"
+          }}>
           Zwei-Faktor-Bestätigung
         </Typography>
-        <Typography variant="body2" color="text.secondary" textAlign="center">
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            textAlign: "center"
+          }}>
           {descriptionText()}
         </Typography>
       </Box>
-
       {isEmail && emailSending && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
           <CircularProgress size={28} />
         </Box>
       )}
-
       {(!isEmail || emailSent) && (
         <TextField
           inputRef={inputRef}
@@ -140,26 +148,26 @@ export default function TwoFactorChallengeForm({
           fullWidth
           required
           autoComplete="one-time-code"
-          inputProps={{
-            maxLength: useBackup ? 9 : 6,
-            inputMode: useBackup ? 'text' : 'numeric',
-            pattern: useBackup ? undefined : '[0-9]*',
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockIcon fontSize="small" color="action" />
-              </InputAdornment>
-            ),
-          }}
           helperText={useBackup
             ? 'Format: XXXX-XXXX — jeder Code kann nur einmal verwendet werden.'
             : isEmail ? 'Der Code ist 10 Minuten gültig.' : 'Der Code wechselt alle 30 Sekunden.'}
-        />
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LockIcon fontSize="small" color="action" />
+                </InputAdornment>
+              ),
+            },
+
+            htmlInput: {
+              maxLength: useBackup ? 9 : 6,
+              inputMode: useBackup ? 'text' : 'numeric',
+              pattern: useBackup ? undefined : '[0-9]*',
+            }
+          }} />
       )}
-
       {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
-
       {(!isEmail || emailSent) && (
         <Button
           type="submit"
@@ -173,7 +181,6 @@ export default function TwoFactorChallengeForm({
             : 'Bestätigen & Einloggen'}
         </Button>
       )}
-
       <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
         {isEmail ? (
           <Link component="button" type="button" variant="body2"
@@ -186,8 +193,15 @@ export default function TwoFactorChallengeForm({
             {useBackup ? (method === 'email' ? 'E-Mail-Code verwenden' : 'Authenticator-App verwenden') : 'Backup-Code verwenden'}
           </Link>
         )}
-        <Link component="button" type="button" variant="body2" color="text.secondary"
-          onClick={onBackToLogin} sx={{ cursor: 'pointer' }}>
+        <Link
+          component="button"
+          type="button"
+          variant="body2"
+          onClick={onBackToLogin}
+          sx={{
+            color: "text.secondary",
+            cursor: 'pointer'
+          }}>
           Zurück zum Login
         </Link>
       </Box>

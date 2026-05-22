@@ -278,8 +278,10 @@ import BaseModal from './BaseModal';
           type="date"
           value={form.dueDate}
           onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-          InputLabelProps={{ shrink: true }}
           fullWidth
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
         />
         <TextField
           select
@@ -289,10 +291,12 @@ import BaseModal from './BaseModal';
             const value = typeof e.target.value === 'string' ? e.target.value.split(',').map(Number) : e.target.value;
             setForm(f => ({ ...f, teamIds: value, clubIds: [], platform: false }));
           }}
-          SelectProps={{ multiple: true }}
           fullWidth
           helperText="Wähle die Teams, für die die Umfrage gilt"
           disabled={form.clubIds.length > 0 || form.platform}
+          slotProps={{
+            select: { multiple: true }
+          }}
         >
           {Array.isArray(availableTeams) && availableTeams.length > 0
             ? availableTeams.map(team => (
@@ -309,10 +313,12 @@ import BaseModal from './BaseModal';
             const value = typeof e.target.value === 'string' ? e.target.value.split(',').map(Number) : e.target.value;
             setForm(f => ({ ...f, clubIds: value, teamIds: [], platform: false }));
           }}
-          SelectProps={{ multiple: true }}
           fullWidth
           helperText="Wähle die Vereine, für die die Umfrage gilt"
           disabled={form.teamIds.length > 0 || form.platform}
+          slotProps={{
+            select: { multiple: true }
+          }}
         >
           {Array.isArray(availableClubs) && availableClubs.length > 0
             ? availableClubs.map(club => (
@@ -321,7 +327,12 @@ import BaseModal from './BaseModal';
             : <MenuItem disabled value="">Keine Vereine verfügbar</MenuItem>
           }
         </TextField>
-        <Box display="flex" alignItems="center" gap={2}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2
+          }}>
           <label>
             <input
               type="checkbox"
@@ -413,7 +424,9 @@ import BaseModal from './BaseModal';
 
     const renderQuestionsStep = () => (
       <Box>
-        <Stack spacing={2} mb={2}>
+        <Stack spacing={2} sx={{
+          mb: 2
+        }}>
           <TextField
             label="Fragetext"
             value={questionDraft.questionText}
@@ -454,44 +467,60 @@ import BaseModal from './BaseModal';
                   setQuestionDraft(d => ({ ...d, options: value }));
                 }}
                 fullWidth
-                SelectProps={{
-                  multiple: true,
-                  renderValue: (selected: unknown) => {
-                    const ids = selected as number[];
-                    return (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {ids.map(id => {
-                          const opt = availableOptions.find(o => o.id === id);
-                          return opt ? (
-                            <Chip
-                              key={id}
-                              label={opt.optionText}
-                              size="small"
-                              onDelete={(e) => {
-                                e.stopPropagation();
-                                setQuestionDraft(d => ({
-                                  ...d,
-                                  options: d.options.filter(o => o !== id),
-                                }));
-                              }}
-                              onMouseDown={e => e.stopPropagation()}
-                            />
-                          ) : null;
-                        })}
-                      </Box>
-                    );
-                  },
-                }}
                 helperText="Wähle die erlaubten Antwortoptionen für diese Frage"
+                slotProps={{
+                  select: {
+                    multiple: true,
+                    renderValue: (selected: unknown) => {
+                      const ids = selected as number[];
+                      return (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {ids.map(id => {
+                            const opt = availableOptions.find(o => o.id === id);
+                            return opt ? (
+                              <Chip
+                                key={id}
+                                label={opt.optionText}
+                                size="small"
+                                onDelete={(e) => {
+                                  e.stopPropagation();
+                                  setQuestionDraft(d => ({
+                                    ...d,
+                                    options: d.options.filter(o => o !== id),
+                                  }));
+                                }}
+                                onMouseDown={e => e.stopPropagation()}
+                              />
+                            ) : null;
+                          })}
+                        </Box>
+                      );
+                    },
+                  }
+                }}
               >
                 {availableOptions.map(opt => {
                   const selectedIds = questionDraft.options.filter((o): o is number => typeof o === 'number');
                   return (
                     <MenuItem key={opt.id} value={opt.id} dense>
                       <Checkbox size="small" checked={selectedIds.includes(opt.id)} sx={{ p: 0.5, mr: 1 }} />
-                      <Box display="flex" alignItems="center" justifyContent="space-between" width="100%" minWidth={0}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          minWidth: 0
+                        }}>
                         <Typography noWrap sx={{ flex: 1, minWidth: 0 }}>{opt.optionText}</Typography>
-                        <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexShrink={0}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            ml: 0.5,
+                            flexShrink: 0
+                          }}>
                           {opt.isSystem && <Chip label="System" size="small" variant="outlined" color="default" sx={{ fontSize: 11, height: 20 }} />}
                           {opt.isOwn && (
                             <IconButton
@@ -533,20 +562,22 @@ import BaseModal from './BaseModal';
                     onClick={e => e.stopPropagation()}
                     disabled={isCreatingOption}
                     fullWidth
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={(e) => { e.stopPropagation(); handleCreateOption(); }}
-                            disabled={!newOptionText.trim() || isCreatingOption}
-                            title="Option erstellen"
-                          >
-                            <AddIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={(e) => { e.stopPropagation(); handleCreateOption(); }}
+                              disabled={!newOptionText.trim() || isCreatingOption}
+                              title="Option erstellen"
+                            >
+                              <AddIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }
                     }}
                   />
                 </MenuItem>
@@ -555,12 +586,21 @@ import BaseModal from './BaseModal';
           )}
           {(questionDraft.type === 'scale_1_5' || questionDraft.type === 'scale_1_10') && (
             <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mt: 1
+                }}>
                 Optionen: {questionDraft.options.join(', ')}
               </Typography>
             </Box>
           )}
-          <Box display="flex" gap={2}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2
+            }}>
             <Button variant="contained" onClick={handleAddOrUpdateQuestion}>
               {editQuestionId ? 'Frage aktualisieren' : 'Frage hinzufügen'}
             </Button>
@@ -572,12 +612,19 @@ import BaseModal from './BaseModal';
           </Box>
         </Stack>
         <Stack spacing={1}>
-          {form.questions.length === 0 && <Typography color="text.secondary">Noch keine Fragen hinzugefügt.</Typography>}
+          {form.questions.length === 0 && <Typography sx={{
+            color: "text.secondary"
+          }}>Noch keine Fragen hinzugefügt.</Typography>}
           {form.questions.map((q, idx) => (
             <Box key={q.id} sx={{ p: 2, border: '1px solid #eee', borderRadius: 1, mb: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography sx={{ flex: 1 }}>{idx + 1}. {q.questionText} <span style={{ color: '#888', fontSize: 13 }}>({getTypeName(q.type)})</span></Typography>
               {(q.type === 'single_choice' || q.type === 'multiple_choice') && q.options.length > 0 && (
-                <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    ml: 2
+                  }}>
                   Optionen: {q.options.map(id => typeof id === 'number' ? availableOptions.find(o => o.id === id)?.optionText : id).filter(Boolean).join(', ')}
                 </Typography>
               )}
@@ -663,19 +710,34 @@ import BaseModal from './BaseModal';
     // Zusammenfassung mit Absenden-Button
     const renderSummaryStep = () => (
       <Box>
-        <Typography variant="h6" mb={2}>Zusammenfassung</Typography>
+        <Typography variant="h6" sx={{
+          mb: 2
+        }}>Zusammenfassung</Typography>
         <Typography variant="subtitle1">Titel:</Typography>
-        <Typography mb={1}>{form.title || <span style={{color:'#888'}}>Kein Titel</span>}</Typography>
+        <Typography sx={{
+          mb: 1
+        }}>{form.title || <span style={{color:'#888'}}>Kein Titel</span>}</Typography>
         <Typography variant="subtitle1">Beschreibung:</Typography>
-        <Typography mb={2}>{form.description || <span style={{color:'#888'}}>Keine Beschreibung</span>}</Typography>
+        <Typography sx={{
+          mb: 2
+        }}>{form.description || <span style={{color:'#888'}}>Keine Beschreibung</span>}</Typography>
         <Typography variant="subtitle1">Fragen:</Typography>
-        <Stack spacing={2} mt={1} mb={2}>
-          {form.questions.length === 0 && <Typography color="text.secondary">Noch keine Fragen hinzugefügt.</Typography>}
+        <Stack
+          spacing={2}
+          sx={{
+            mt: 1,
+            mb: 2
+          }}>
+          {form.questions.length === 0 && <Typography sx={{
+            color: "text.secondary"
+          }}>Noch keine Fragen hinzugefügt.</Typography>}
           {form.questions.map((q, idx) => (
             <Box key={q.id} sx={{ p: 2, border: '1px solid #eee', borderRadius: 1 }}>
               <Typography><b>{idx + 1}. {q.questionText}</b> <span style={{ color: '#888', fontSize: 13 }}>({getTypeName(q.type)})</span></Typography>
               {(q.type === 'single_choice' || q.type === 'multiple_choice') && q.options.length > 0 && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Optionen: {q.options.map(id => typeof id === 'number' ? availableOptions.find(o => o.id === id)?.optionText : id).filter(Boolean).join(', ')}
                 </Typography>
               )}

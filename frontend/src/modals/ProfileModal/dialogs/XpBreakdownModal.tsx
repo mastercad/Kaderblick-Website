@@ -85,14 +85,20 @@ export function XpBreakdownModal({ open, onClose }: { open: boolean; onClose: ()
               ))}
             </Box>
             {breakdown.length === 0 ? (
-              <Typography color="text.secondary" textAlign="center">Keine XP-Daten gefunden.</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  textAlign: "center"
+                }}>Keine XP-Daten gefunden.</Typography>
             ) : (
               <Stack spacing={1.5}>
                 {breakdown.map(item => (
                   <Box key={item.actionType}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
                       <Typography variant="body2">{item.label}</Typography>
-                      <Typography variant="body2" fontWeight={700}>{item.xp.toLocaleString()} XP</Typography>
+                      <Typography variant="body2" sx={{
+                        fontWeight: 700
+                      }}>{item.xp.toLocaleString()} XP</Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"

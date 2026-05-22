@@ -35,7 +35,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BuildIcon from '@mui/icons-material/Build';
 import StyleIcon from '@mui/icons-material/Style';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────

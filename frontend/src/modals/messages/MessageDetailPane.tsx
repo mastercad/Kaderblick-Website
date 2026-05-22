@@ -15,11 +15,11 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ForwardToInboxIcon from '@mui/icons-material/ForwardToInbox';
 import GroupIcon from '@mui/icons-material/Group';
 import MailIcon from '@mui/icons-material/Mail';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import MailOutlineIcon from '@mui/icons-material/MailOutlined';
 import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread';
 import PersonIcon from '@mui/icons-material/Person';
 import ReplyIcon from '@mui/icons-material/Reply';
@@ -129,7 +129,6 @@ export const MessageDetailPane: React.FC<Props> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-
       {/* Mobile back button */}
       {isMobile && (
         <Box sx={{ px: 1.5, py: 1, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -138,7 +137,6 @@ export const MessageDetailPane: React.FC<Props> = ({
           </Button>
         </Box>
       )}
-
       {/* Empty state */}
       {!message ? (
         <Box sx={{
@@ -147,7 +145,9 @@ export const MessageDetailPane: React.FC<Props> = ({
           height: '100%', color: 'text.disabled', gap: 1.5,
         }}>
           <MailIcon sx={{ fontSize: 64, opacity: 0.25 }} />
-          <Typography variant="body1" fontWeight={500}>Nachricht auswählen</Typography>
+          <Typography variant="body1" sx={{
+            fontWeight: 500
+          }}>Nachricht auswählen</Typography>
           <Typography variant="caption" sx={{ maxWidth: 220, textAlign: 'center', opacity: 0.8 }}>
             Wähle eine Nachricht aus der Liste aus, um sie hier zu lesen.
           </Typography>
@@ -170,17 +170,29 @@ export const MessageDetailPane: React.FC<Props> = ({
               : alpha(theme.palette.primary.main, 0.05),
             borderBottom: '1px solid', borderColor: 'divider',
           }}>
-            <Typography variant="h6" fontWeight={700} sx={{ mb: 1, fontSize: { xs: '1rem', sm: '1.1rem' } }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                mb: 1,
+                fontSize: { xs: '1rem', sm: '1.1rem' }
+              }}>
               {message.subject}
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} alignItems={{ sm: 'center' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 0.5, sm: 2 }} sx={{
+              alignItems: { sm: 'center' }
+            }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: avatarColor(message.sender) }}>
                   {senderInitials(message.sender)}
                 </Avatar>
-                <Typography variant="body2" fontWeight={600}>{message.sender}</Typography>
+                <Typography variant="body2" sx={{
+                  fontWeight: 600
+                }}>{message.sender}</Typography>
               </Box>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {new Date(message.sentAt).toLocaleString('de-DE', {
                   day: '2-digit', month: '2-digit', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
@@ -191,17 +203,23 @@ export const MessageDetailPane: React.FC<Props> = ({
               <Box sx={{ mt: 0.75 }}>
                 {message.recipientLabels && message.recipientLabels.length > 0 ? (
                   /* Modern path: show contextual send-target labels */
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>An:</Typography>
+                  (<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        mr: 0.5
+                      }}>An:</Typography>
                     {message.recipientLabels.map((rl, i) => (
                       <RecipientLabelChip key={i} label={rl} />
                     ))}
-                  </Box>
+                  </Box>)
                 ) : (
                   /* Legacy fallback for messages sent before context-persistence */
-                  <Typography variant="caption" color="text.secondary">
-                    An: {message.recipients.map(r => r.name).join(', ')}
-                  </Typography>
+                  (<Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>An: {message.recipients.map(r => r.name).join(', ')}
+                  </Typography>)
                 )}
               </Box>
             )}
@@ -286,7 +304,6 @@ export const MessageDetailPane: React.FC<Props> = ({
           </Box>
         </>
       )}
-
       {/* Confirm delete dialog */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Nachricht löschen?</DialogTitle>

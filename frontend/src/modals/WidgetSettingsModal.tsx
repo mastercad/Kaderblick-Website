@@ -90,7 +90,6 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
           ))}
         </Select>
       </FormControl>
-
       {widgetType === 'calendar' && (
         <>
           <Divider sx={{ my: 2 }} />
@@ -127,7 +126,9 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
                     : `Zeigt ${Math.abs(offset)} ${offsetUnitLabel} in der Vergangenheit`}
               </Box>
             }
-            inputProps={{ min: -52, max: 52 }}
+            slotProps={{
+              htmlInput: { min: -52, max: 52 }
+            }}
           />
         </>
       )}

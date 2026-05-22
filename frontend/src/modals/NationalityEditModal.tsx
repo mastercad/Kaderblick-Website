@@ -74,7 +74,13 @@ const NationalityEditModal: React.FC<NationalityEditModalProps> = ({ openNationa
             title="Nationalität bearbeiten"
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -83,12 +89,21 @@ const NationalityEditModal: React.FC<NationalityEditModalProps> = ({ openNationa
                 <form id="nationalityEditForm" autoComplete="off" onSubmit={handleNationalityEditSubmit}>
                     <input type="hidden" name="id" value={nationality?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
+                        <Box sx={{
+                            mb: 2
+                        }}>
                             <TextField label="Name" name="name" value={nationality?.name || ''} onChange={handleNationalityEditChange} required fullWidth margin="normal" />
                             <TextField label="ISO Code" name="isoCode" value={nationality?.isoCode || ''} onChange={handleNationalityEditChange} fullWidth margin="normal" />
                         </Box>
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onNationalityEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

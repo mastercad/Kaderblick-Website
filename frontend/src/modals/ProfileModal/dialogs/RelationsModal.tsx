@@ -34,14 +34,20 @@ export function RelationsModal({ open, relations, onClose, onRequestNew }: Relat
     >
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
         {relations.length === 0 ? (
-          <Typography color="text.secondary">Keine Verknüpfungen vorhanden.</Typography>
+          <Typography sx={{
+            color: "text.secondary"
+          }}>Keine Verknüpfungen vorhanden.</Typography>
         ) : (
           <Stack spacing={1.5}>
             {relations.map(rel => (
               <Card key={rel.id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography variant="subtitle2" fontWeight={700}>{rel.fullName}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="subtitle2" sx={{
+                    fontWeight: 700
+                  }}>{rel.fullName}</Typography>
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     {rel.name} ({rel.category === 'player' ? 'Spieler' : rel.category === 'coach' ? 'Trainer' : rel.category})
                   </Typography>
                 </CardContent>

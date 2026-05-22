@@ -9,8 +9,8 @@ import {
   Alert,
   Button,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import { apiJson } from '../utils/api';
 
 export default function UnlockAccount() {
@@ -55,7 +55,9 @@ export default function UnlockAccount() {
         {status === 'success' && (
           <>
             <CheckCircleOutlineIcon sx={{ fontSize: 56, color: 'success.main', mb: 2 }} />
-            <Typography variant="h6" fontWeight={700} gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{
+              fontWeight: 700
+            }}>
               Konto entsperrt
             </Typography>
             <Alert severity="success" sx={{ mb: 3, textAlign: 'left' }}>{message}</Alert>
@@ -72,7 +74,9 @@ export default function UnlockAccount() {
         {status === 'error' && (
           <>
             <ErrorOutlineIcon sx={{ fontSize: 56, color: 'error.main', mb: 2 }} />
-            <Typography variant="h6" fontWeight={700} gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{
+              fontWeight: 700
+            }}>
               Fehler beim Entsperren
             </Typography>
             <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>{message}</Alert>

@@ -5,7 +5,7 @@ import {
 	CircularProgress, Alert, Paper, Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
 import SportsIcon from '@mui/icons-material/Sports';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
@@ -174,7 +174,7 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 		const entityLabel = isPlayer ? 'Spieler auswählen' : 'Trainer auswählen';
 
 		return (
-			<Paper
+            <Paper
 				variant="outlined"
 				sx={{
 					p: 2,
@@ -185,8 +185,8 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 					position: 'relative',
 				}}
 			>
-				{/* Löschen-Button */}
-				<IconButton
+                {/* Löschen-Button */}
+                <IconButton
 					size="small"
 					color="error"
 					onClick={() => handleRemove(category, idx)}
@@ -195,8 +195,7 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 				>
 					<DeleteOutlineIcon fontSize="small" />
 				</IconButton>
-
-				<Stack spacing={2} sx={{ pr: 4 }}>
+                <Stack spacing={2} sx={{ pr: 4 }}>
 					{/* Verhältnis / Rolle */}
 					<TextField
 						select
@@ -246,7 +245,13 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 					{/* Berechtigungen */}
 					{allPermissions.length > 0 && (
 						<Box>
-							<Typography variant="body2" fontWeight={600} gutterBottom sx={{ color: 'text.secondary' }}>
+							<Typography
+                                variant="body2"
+                                gutterBottom
+                                sx={{
+                                    fontWeight: 600,
+                                    color: 'text.secondary'
+                                }}>
 								Was darf {rel.entity ? rel.entity.fullName : 'diese Person'} sehen?
 							</Typography>
 							<FormGroup>
@@ -274,8 +279,8 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 						</Box>
 					)}
 				</Stack>
-			</Paper>
-		);
+            </Paper>
+        );
 	};
 
 	/** Abschnitt mit Karten + Hinzufügen-Button */
@@ -299,8 +304,12 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 			<Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
 				{icon}
 				<Box>
-					<Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-					<Typography variant="caption" color="text.secondary">{subtitle}</Typography>
+					<Typography variant="subtitle1" sx={{
+                        fontWeight: 700
+                    }}>{title}</Typography>
+					<Typography variant="caption" sx={{
+                        color: "text.secondary"
+                    }}>{subtitle}</Typography>
 				</Box>
 				{relations.length > 0 && (
 					<Chip label={relations.length} size="small" sx={{ ml: 'auto' }} />
@@ -333,7 +342,7 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 	);
 
 	return (
-		<BaseModal
+        <BaseModal
 			open={open}
 			onClose={onClose}
 			maxWidth="sm"
@@ -341,10 +350,17 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
 					<PersonAddAlt1Icon color="primary" />
 					<Box>
-						<Typography variant="h6" fontWeight={700} lineHeight={1.2}>
+						<Typography
+                            variant="h6"
+                            sx={{
+                                fontWeight: 700,
+                                lineHeight: 1.2
+                            }}>
 							Zuordnungen verwalten
 						</Typography>
-						<Typography variant="caption" color="text.secondary">
+						<Typography variant="caption" sx={{
+                            color: "text.secondary"
+                        }}>
 							{user.fullName}
 						</Typography>
 					</Box>
@@ -376,10 +392,12 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 				</Stack>
 			}
 		>
-			{loading ? (
+            {loading ? (
 				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6, gap: 2 }}>
 					<CircularProgress size={28} />
-					<Typography color="text.secondary">Daten werden geladen…</Typography>
+					<Typography sx={{
+                        color: "text.secondary"
+                    }}>Daten werden geladen…</Typography>
 				</Box>
 			) : (
 				<Box sx={{ pt: 1 }}>
@@ -412,8 +430,8 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 					/>
 				</Box>
 			)}
-		</BaseModal>
-	);
+        </BaseModal>
+    );
 };
 
 export default UserRelationEditModal;

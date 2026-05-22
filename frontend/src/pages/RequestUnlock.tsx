@@ -42,10 +42,18 @@ export default function RequestUnlock() {
       <Paper elevation={3} sx={{ p: 4 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <LockOpenIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
-          <Typography variant="h5" component="h1" fontWeight={700} align="center">
+          <Typography variant="h5" component="h1" align="center" sx={{
+            fontWeight: 700
+          }}>
             Konto entsperren
           </Typography>
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+          <Typography
+            variant="body2"
+            align="center"
+            sx={{
+              color: "text.secondary",
+              mt: 1
+            }}>
             Gib deine E-Mail-Adresse ein. Falls dein Konto gesperrt ist, senden wir dir einen Entsperr-Link.
           </Typography>
         </Box>

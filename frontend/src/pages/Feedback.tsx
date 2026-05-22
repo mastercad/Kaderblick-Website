@@ -19,7 +19,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PublicIcon from '@mui/icons-material/Public';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BACKEND_URL } from '../../config';
@@ -175,7 +175,9 @@ function FeedbackCard({
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Meta row */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              <Typography variant="body2" fontWeight={600}>{item.userName}</Typography>
+              <Typography variant="body2" sx={{
+                fontWeight: 600
+              }}>{item.userName}</Typography>
               <TypeChip type={item.type} />
               <StatusChip isResolved={item.isResolved} isRead={item.isRead} />
               {!isGitHub && item.githubIssueNumber && (
@@ -187,7 +189,12 @@ function FeedbackCard({
               {/* Comment pill + date — always at the right */}
               <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <CommentPill count={item.commentCount} hasUnread={item.hasUnreadUserReplies} />
-                <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.disabled",
+                    whiteSpace: 'nowrap'
+                  }}>
                   {fmtDate(item.createdAt)}
                 </Typography>
               </Box>
@@ -195,18 +202,29 @@ function FeedbackCard({
 
             {/* GitHub title */}
             {isGitHub && item.title && (
-              <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  wordBreak: 'break-word'
+                }}>
                 {item.title}
               </Typography>
             )}
 
             {/* Message preview (max 3 lines) */}
             {item.message && (
-              <Typography variant="body2" color="text.secondary"
+              <Typography
+                variant="body2"
                 sx={{
-                  whiteSpace: 'pre-line', wordBreak: 'break-word',
-                  overflow: 'hidden', display: '-webkit-box',
-                  WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                  color: "text.secondary",
+                  whiteSpace: 'pre-line',
+                  wordBreak: 'break-word',
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical'
                 }}>
                 {item.message}
               </Typography>
@@ -216,8 +234,15 @@ function FeedbackCard({
             {item.url && !isGitHub && (
               <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <PublicIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
-                <Typography variant="caption" color="text.disabled"
-                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.disabled",
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 400
+                  }}>
                   {item.url}
                 </Typography>
               </Box>
@@ -233,7 +258,6 @@ function FeedbackCard({
           )}
         </Box>
       </CardContent>
-
       <CardActions sx={{ px: 2, pb: 1.5, pt: 0, flexWrap: 'wrap', gap: 0.75 }}>
         {/* Tab 0 — Neu: only "In Bearbeitung" */}
         {tabIndex === 0 && (
@@ -297,7 +321,9 @@ function ResolveDialog({ open, item, onClose, onConfirm }: {
   useEffect(() => { if (open) setNote(item?.adminNote ?? ''); }, [open, item]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{
+      paper: { sx: { borderRadius: 3 } }
+    }}>
       <DialogTitle sx={{ pr: 6 }}>
         Feedback erledigen
         <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 12 }} size="small">
@@ -315,12 +341,23 @@ function ResolveDialog({ open, item, onClose, onConfirm }: {
               )}
             </Box>
             {item.title && (
-              <Typography variant="body2" fontWeight={700} sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  wordBreak: 'break-word'
+                }}>
                 {item.title}
               </Typography>
             )}
-            <Typography variant="body2" color="text.secondary"
-              sx={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                whiteSpace: 'pre-line',
+                wordBreak: 'break-word'
+              }}>
               {item.message}
             </Typography>
           </Box>
@@ -357,7 +394,9 @@ function GitHubIssueDialog({ open, item, onClose, onConfirm }: {
   }, [open, item]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{
+      paper: { sx: { borderRadius: 3 } }
+    }}>
       <DialogTitle sx={{ pr: 6 }}>
         Als GitHub Issue anlegen
         <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 12 }} size="small">
@@ -369,7 +408,9 @@ function GitHubIssueDialog({ open, item, onClose, onConfirm }: {
         <TextField label="Issue-Titel" fullWidth value={title} onChange={e => setTitle(e.target.value)} sx={{ mb: 2 }} />
         {item && (
           <Box sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="caption" color="text.secondary">Issue Body (automatisch generiert):</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Issue Body (automatisch generiert):</Typography>
             <Typography variant="body2" sx={{
               mt: 0.5, whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-word',
             }}>
@@ -512,8 +553,12 @@ const FeedbackPage: React.FC = () => {
           <FeedbackIcon sx={{ fontSize: 30 }} />
         </Box>
         <Box>
-          <Typography variant="h4" fontWeight={700}>Feedback-Verwaltung</Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="h4" sx={{
+            fontWeight: 700
+          }}>Feedback-Verwaltung</Typography>
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Benutzer-Rückmeldungen und GitHub Issues im einheitlichen Workflow
           </Typography>
         </Box>
@@ -530,7 +575,6 @@ const FeedbackPage: React.FC = () => {
           )}
         </Box>
       </Box>
-
       {/* Stats */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {[
@@ -546,21 +590,29 @@ const FeedbackPage: React.FC = () => {
                   <FeedbackIcon />
                 </Box>
                 <Box>
-                  <Typography variant="h5" fontWeight={700} lineHeight={1}>{s.value}</Typography>
-                  <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 700,
+                      lineHeight: 1
+                    }}>{s.value}</Typography>
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>{s.label}</Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
-
       {/* Search + Tabs */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <TextField
           size="small" placeholder="Suchen …" value={search} onChange={e => setSearch(e.target.value)}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }}
           sx={{ minWidth: 240 }}
+          slotProps={{
+            input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }
+          }}
         />
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ ml: 'auto', '& .MuiTab-root': { minHeight: 42 } }}>
           {ADMIN_TABS.map((t, i) => (
@@ -578,14 +630,12 @@ const FeedbackPage: React.FC = () => {
           ))}
         </Tabs>
       </Box>
-
       {/* Contextual hint */}
       {tab === 0 && unresolved.length > 0 && (
         <Alert severity="info" variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
           Neues Feedback mit <strong>„In Bearbeitung"</strong> übernehmen — dann erscheint der <strong>Bearbeiten</strong>-Button mit vollem Kommentar-Thread.
         </Alert>
       )}
-
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}><CircularProgress /></Box>
       ) : currentTabItems.length === 0 ? (
@@ -609,7 +659,6 @@ const FeedbackPage: React.FC = () => {
           ))}
         </Stack>
       )}
-
       {/* Dialogs */}
       <ResolveDialog
         open={!!resolveItem} item={resolveItem}
@@ -630,7 +679,6 @@ const FeedbackPage: React.FC = () => {
           {screenshot && <img src={`${BACKEND_URL}${screenshot}`} alt="Screenshot" style={{ maxWidth: '100%', borderRadius: 8 }} />}
         </DialogContent>
       </Dialog>
-
       <Snackbar
         open={snack.open} autoHideDuration={5000}
         onClose={() => setSnack(s => ({ ...s, open: false }))}

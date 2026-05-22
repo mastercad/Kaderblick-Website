@@ -427,7 +427,6 @@ export default function TournamentDetails() {
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 2, sm: 3 }, maxWidth: 960, mx: 'auto' }}>
-
       {/* ── Back Navigation ── */}
       <Box
         onClick={handleBack}
@@ -447,7 +446,6 @@ export default function TournamentDetails() {
           Zurück zur Übersicht
         </Typography>
       </Box>
-
       {/* ── Hero Card: Tournament Header ── */}
       <Card sx={{
         overflow: 'hidden',
@@ -487,7 +485,13 @@ export default function TournamentDetails() {
                 {tournament.name}
               </Typography>
               {tournament.type && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: '0.82rem' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.25,
+                    fontSize: '0.82rem'
+                  }}>
                   {tournament.type}
                 </Typography>
               )}
@@ -708,7 +712,6 @@ export default function TournamentDetails() {
           </Button>
         </Box>
       </Card>
-
       {/* ── Teams Section ── */}
       {tournament.teams.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -753,7 +756,6 @@ export default function TournamentDetails() {
           </Card>
         </Box>
       )}
-
       {/* ── Filter Toggle ── */}
       {hasUserFilter && (
         <Box sx={{
@@ -774,7 +776,12 @@ export default function TournamentDetails() {
               />
             }
             label={
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  fontSize: '0.82rem'
+                }}>
                 Alle Spiele anzeigen ({allMatches.length} statt {userMatches.length})
               </Typography>
             }
@@ -782,7 +789,6 @@ export default function TournamentDetails() {
           />
         </Box>
       )}
-
       {/* ── Matches by Stage ── */}
       {Object.keys(matchesByStage).length > 0 ? (
         Object.entries(matchesByStage).map(([stage, matches]) => (
@@ -803,19 +809,26 @@ export default function TournamentDetails() {
       ) : (
         <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
           <SoccerIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{
+              color: "text.secondary",
+              fontWeight: 600
+            }}>
             {allMatches.length > 0
               ? 'Keine Spiele für dein Team'
               : 'Noch keine Spiele'}
           </Typography>
-          <Typography variant="body2" color="text.disabled">
+          <Typography variant="body2" sx={{
+            color: "text.disabled"
+          }}>
             {allMatches.length > 0
               ? 'In diesem Turnier gibt es keine Spiele für dein Team.'
               : 'Es wurden noch keine Turnierspiele angelegt.'}
           </Typography>
         </Box>
       )}
-
       <WeatherModal
         open={weatherModalOpen}
         onClose={() => setWeatherModalOpen(false)}

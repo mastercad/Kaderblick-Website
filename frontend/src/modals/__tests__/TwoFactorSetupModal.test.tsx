@@ -16,7 +16,7 @@ jest.mock('@mui/icons-material/Security',           () => () => null);
 jest.mock('@mui/icons-material/PhoneAndroid',       () => () => null);
 jest.mock('@mui/icons-material/EmailOutlined',      () => () => null);
 jest.mock('@mui/icons-material/ContentCopy',        () => () => null);
-jest.mock('@mui/icons-material/CheckCircleOutline', () => () => null);
+jest.mock('@mui/icons-material/CheckCircleOutlined', () => () => null);
 jest.mock('@mui/icons-material/WarningAmber',       () => () => null);
 
 // ─── API mock ─────────────────────────────────────────────────────────────────

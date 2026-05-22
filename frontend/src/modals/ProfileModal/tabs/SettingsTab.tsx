@@ -14,7 +14,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import SendIcon from '@mui/icons-material/Send';
 import SecurityIcon from '@mui/icons-material/Security';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -76,7 +76,6 @@ export function SettingsTab({
           }
         />
       </SectionCard>
-
       <SectionCard
         title="Push-Benachrichtigungen"
         icon={pushHealth?.status === 'healthy'
@@ -103,14 +102,18 @@ export function SettingsTab({
               severity={issue.severity === 'error' ? 'error' : issue.severity === 'warning' ? 'warning' : 'info'}
               sx={{ py: 0.25 }}>
               <Typography variant="body2">{issue.message}</Typography>
-              {issue.action && <Typography variant="caption" color="text.secondary">{issue.action}</Typography>}
+              {issue.action && <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>{issue.action}</Typography>}
             </Alert>
           ))}
 
           {pushHealth?.status === 'healthy' && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CheckCircleOutlineIcon color="success" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Push-Benachrichtigungen sind aktiv.
                 {pushHealth.details.backendSubscriptionCount > 0 &&
                   ` ${pushHealth.details.backendSubscriptionCount} Subscription${pushHealth.details.backendSubscriptionCount > 1 ? 's' : ''}.`}
@@ -146,7 +149,6 @@ export function SettingsTab({
           )}
         </Stack>
       </SectionCard>
-
       <SectionCard title="Zwei-Faktor-Authentifizierung" icon={<SecurityIcon fontSize="small" />}>
         <Stack spacing={1.5}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
@@ -163,7 +165,9 @@ export function SettingsTab({
                 icon={<SecurityIcon />} />
             )}
             {twoFactorEnabled && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 {twoFactorBackupCount} Backup-{twoFactorBackupCount === 1 ? 'Code' : 'Codes'} verbleibend
               </Typography>
             )}
@@ -174,7 +178,9 @@ export function SettingsTab({
           </Box>
 
           {!twoFactorEnabled && !emailOtpEnabled && (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Schütze dein Konto mit einem zweiten Faktor – wähle zwischen Authenticator-App (höchste Sicherheit) oder E-Mail-Code (einfach für alle).
             </Typography>
           )}
@@ -216,7 +222,6 @@ export function SettingsTab({
           </Box>
         </Stack>
       </SectionCard>
-
       <SectionCard title="Feiertage im Kalender" icon={<CalendarMonthIcon fontSize="small" />}>
         <Stack spacing={1.5}>
           <FormControlLabel
@@ -231,7 +236,9 @@ export function SettingsTab({
           />
           {holidaysEnabled && (
             <Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant="body2" gutterBottom sx={{
+                color: "text.secondary"
+              }}>
                 Bundesland / Geltungsbereich
               </Typography>
               <Select
@@ -244,14 +251,19 @@ export function SettingsTab({
                   <MenuItem key={code} value={code}>{label}</MenuItem>
                 ))}
               </Select>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5,
+                  display: 'block'
+                }}>
                 Feiertage werden jährlich automatisch aktuell aus der Datenbank der feiertage-api.de geladen.
               </Typography>
             </Box>
           )}
         </Stack>
       </SectionCard>
-
       <SectionCard title="Hall of Fame" icon={<EmojiEventsIcon fontSize="small" />}>
         <FormControlLabel
           control={
@@ -267,7 +279,9 @@ export function SettingsTab({
             </Typography>
           }
         />
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>
           Wenn aktiv, erscheinst du in der öffentlichen Level-Rangliste und als Titelträger.
         </Typography>
       </SectionCard>

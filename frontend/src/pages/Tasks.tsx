@@ -131,9 +131,21 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
     >
       <CardContent sx={{ pb: 1 }}>
         {/* Header */}
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "flex-start"
+          }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap"
+              }}>
               <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.3 }} noWrap>
                 {task.title}
               </Typography>
@@ -145,7 +157,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
               )}
             </Stack>
             {task.description && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
                 {task.description}
               </Typography>
             )}
@@ -165,7 +186,15 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
         </Stack>
 
         {/* Meta row */}
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: "center",
+            mt: 1.5,
+            flexWrap: 'wrap',
+            gap: 0.5
+          }}>
           {task.createdBy && (
             <Tooltip title={`Erstellt von ${userName(task.createdBy)}`}>
               <Chip
@@ -216,7 +245,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
               Meine Zuweisungen
             </Typography>
             {myAssignments.map(a => (
-              <Stack key={a.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
+              <Stack
+                key={a.id}
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  py: 0.5
+                }}>
                 <Tooltip title={a.status === 'offen' ? 'Als erledigt markieren' : 'Wieder öffnen'}>
                   <IconButton
                     size="small"
@@ -240,21 +276,41 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
         {otherAssignments.length > 0 && (
           <Box sx={{ mt: myAssignments.length > 0 ? 1 : 2 }}>
             {myAssignments.length > 0 && <Divider sx={{ mb: 1 }} />}
-            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                color: "text.secondary",
+                mb: 0.5
+              }}>
               Weitere Zuweisungen
             </Typography>
             {otherAssignments.slice(0, 5).map(a => (
-              <Stack key={a.id} direction="row" alignItems="center" spacing={1} sx={{ py: 0.3 }}>
+              <Stack
+                key={a.id}
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  py: 0.3
+                }}>
                 <Avatar sx={{ width: 24, height: 24, fontSize: 11, bgcolor: a.status === 'erledigt' ? 'success.light' : 'grey.300' }}>
                   {initials(a.user)}
                 </Avatar>
                 <Typography variant="body2" sx={{ minWidth: 100 }}>{userName(a.user)}</Typography>
-                <Typography variant="body2" color="text.secondary">{formatDate(a.assignedDate)}</Typography>
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>{formatDate(a.assignedDate)}</Typography>
                 {statusChip(a.status)}
               </Stack>
             ))}
             {otherAssignments.length > 5 && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5,
+                  display: 'block'
+                }}>
                 ... und {otherAssignments.length - 5} weitere
               </Typography>
             )}
@@ -264,7 +320,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, currentUserId, onEdit, onDele
         {/* No assignments */}
         {totalAssignments === 0 && (
           <Box sx={{ mt: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Noch keine Zuweisungen vorhanden
             </Typography>
           </Box>
@@ -399,59 +457,79 @@ const Tasks: React.FC = () => {
   const doneCount = myTasks.reduce((sum, t) => sum + t.assignments.filter(a => a.user.id === currentUserId && a.status === 'erledigt').length, 0);
 
   return (
-    <Box p={{ xs: 1, sm: 2, md: 3 }} maxWidth={900} mx="auto">
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+    <Box
+      sx={{
+        p: { xs: 1, sm: 2, md: 3 },
+        maxWidth: 900,
+        mx: "auto"
+      }}>
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2
+        }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>Aufgaben</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd} size="medium">
           Neue Aufgabe
         </Button>
       </Stack>
-
       {/* Quick stats */}
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <Paper sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1, flex: 1 }} elevation={1}>
           <AssignmentIcon color="warning" />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{openCount}</Typography>
-            <Typography variant="caption" color="text.secondary">Offen</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Offen</Typography>
           </Box>
         </Paper>
         <Paper sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1, flex: 1 }} elevation={1}>
           <AssignmentTurnedInIcon color="success" />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{doneCount}</Typography>
-            <Typography variant="caption" color="text.secondary">Erledigt</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Erledigt</Typography>
           </Box>
         </Paper>
         <Paper sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1, flex: 1 }} elevation={1}>
           <AssignmentIcon color="info" />
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1 }}>{tasks.length}</Typography>
-            <Typography variant="caption" color="text.secondary">Gesamt</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Gesamt</Typography>
           </Box>
         </Paper>
       </Stack>
-
       {/* Loading */}
       {loading && (
         <Stack spacing={2}>
           {[1, 2, 3].map(i => <Skeleton key={i} variant="rounded" height={120} />)}
         </Stack>
       )}
-
       {/* Tasks grid */}
       {!loading && sortedTasks.length === 0 && (
         <Paper sx={{ p: 4, textAlign: 'center' }} elevation={0}>
           <AssignmentIcon sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" sx={{
+            color: "text.secondary"
+          }}>
             {tab === 0 ? 'Keine Aufgaben für dich vorhanden' : tab === 1 ? 'Du hast noch keine Aufgaben erstellt' : 'Keine Aufgaben vorhanden'}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5
+            }}>
             {tab === 0 ? 'Sobald dir jemand eine Aufgabe zuweist, erscheint sie hier.' : 'Erstelle eine neue Aufgabe mit dem Button oben.'}
           </Typography>
         </Paper>
       )}
-
       {!loading && (
         <Stack spacing={2}>
           {sortedTasks.map(task => (
@@ -467,12 +545,10 @@ const Tasks: React.FC = () => {
           ))}
         </Stack>
       )}
-
       {/* Edit modal */}
       {showModal && (
         <TaskEditModal open={showModal} onClose={handleModalClose} task={editTask} />
       )}
-
       {/* Deletion modal for recurring tasks */}
       <TaskDeletionModal
         open={deletionModal.open}
@@ -493,7 +569,6 @@ const Tasks: React.FC = () => {
           if (task) performDeleteTask(task);
         }}
       />
-
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
         <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar(s => ({ ...s, open: false }))}>

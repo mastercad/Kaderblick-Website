@@ -71,7 +71,13 @@ const CupEditModal: React.FC<CupEditModalProps> = ({ openCupEditModal, cupId, on
             title="Pokal bearbeiten"
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -90,7 +96,14 @@ const CupEditModal: React.FC<CupEditModalProps> = ({ openCupEditModal, cupId, on
                             margin="normal"
                         />
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onCupEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

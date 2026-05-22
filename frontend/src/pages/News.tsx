@@ -99,7 +99,9 @@ const NewsCard: React.FC<{
       onClick={onNavigate}
     >
       <CardContent sx={{ pb: '12px !important' }}>
-        <Stack direction="row" spacing={2} alignItems="flex-start">
+        <Stack direction="row" spacing={2} sx={{
+          alignItems: "flex-start"
+        }}>
           {/* Avatar */}
           <Avatar sx={{ bgcolor: vis.color === 'info' ? 'info.light' : vis.color === 'success' ? 'success.light' : 'secondary.light', color: 'white', width: 44, height: 44, fontSize: 16, mt: 0.5, flexShrink: 0 }}>
             {initials(item.createdByUserName)}
@@ -108,7 +110,13 @@ const NewsCard: React.FC<{
           {/* Content */}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Title row */}
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start"
+              }}>
               <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.3, mb: 0.3 }} noWrap>
                 {item.title}
               </Typography>
@@ -127,20 +135,26 @@ const NewsCard: React.FC<{
             {/* Excerpt */}
             <Typography
               variant="body2"
-              color="text.secondary"
               sx={{
+                color: "text.secondary",
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
-                mb: 1,
-              }}
-            >
+                mb: 1
+              }}>
               {plainContent}
             </Typography>
 
             {/* Meta row */}
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ gap: 0.5 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 0.5
+              }}>
               <Chip size="small" icon={vis.icon} label={scopeName ? `${vis.label}: ${scopeName}` : vis.label} color={vis.color} variant="outlined" />
               <Chip size="small" icon={<PersonIcon fontSize="small" />} label={item.createdByUserName} variant="outlined" sx={{ maxWidth: 160 }} />
               <Tooltip title={new Date(item.createdAt).toLocaleString('de-DE')}>
@@ -211,7 +225,11 @@ const News: React.FC = () => {
   useEffect(() => { fetchNews(); }, []);
 
   return (
-    <Box maxWidth={900} mx="auto">
+    <Box
+      sx={{
+        maxWidth: 900,
+        mx: "auto"
+      }}>
       {/* Sticky Header */}
       <Box
         sx={{
@@ -226,8 +244,16 @@ const News: React.FC = () => {
           borderColor: 'divider',
         }}
       >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 0.5
+          }}>
+          <Stack direction="row" spacing={1.5} sx={{
+            alignItems: "center"
+          }}>
             <ArticleIcon sx={{ fontSize: 32, color: 'primary.main' }} />
             <Typography variant="h4" sx={{ fontWeight: 700 }}>Neuigkeiten</Typography>
           </Stack>
@@ -237,12 +263,15 @@ const News: React.FC = () => {
             </Button>
           )}
         </Stack>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           {news.length} {news.length === 1 ? 'Neuigkeit' : 'Neuigkeiten'} verfügbar
         </Typography>
       </Box>
-
-      <Box p={{ xs: 1, sm: 2, md: 3 }}>
+      <Box sx={{
+        p: { xs: 1, sm: 2, md: 3 }
+      }}>
 
       {/* Loading */}
       {loading && (
@@ -257,8 +286,16 @@ const News: React.FC = () => {
       {!loading && news.length === 0 && (
         <Paper sx={{ p: 5, textAlign: 'center' }} elevation={0}>
           <ArticleIcon sx={{ fontSize: 56, color: 'grey.400', mb: 1 }} />
-          <Typography variant="h6" color="text.secondary">Keine Neuigkeiten verfügbar</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+          <Typography variant="h6" sx={{
+            color: "text.secondary"
+          }}>Keine Neuigkeiten verfügbar</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5,
+              mb: 2
+            }}>
             {canCreate ? 'Erstelle die erste Neuigkeit, um dein Team zu informieren.' : 'Es sind noch keine Neuigkeiten vorhanden.'}
           </Typography>
           {canCreate && (

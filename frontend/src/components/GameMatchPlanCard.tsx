@@ -19,9 +19,9 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  AddCircleOutline as AddCircleOutlineIcon,
+  AddCircleOutlined as AddCircleOutlineIcon,
   CheckCircle as CheckCircleIcon,
-  DeleteOutline as DeleteOutlineIcon,
+  DeleteOutlined as DeleteOutlineIcon,
   Edit as EditIcon,
   FileOpen as FileOpenIcon,
   LockOpen as LockOpenIcon,
@@ -1223,19 +1223,41 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
 
 
             <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 3 }}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', sm: 'center' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{
+                alignItems: { xs: 'stretch', sm: 'center' }
+              }}>
                 <FormationPreview players={startPhase.players} onClick={() => setPreviewDialog({ open: true, phaseId: startPhase.id })} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle1" fontWeight={800}>Startformation</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: 800
+                  }}>Startformation</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 0.25
+                    }}>
                     {startPhase.players.length > 0
                       ? `${startPhase.players.length} auf dem Feld, ${startPhase.bench.length} auf der Bank.`
                       : 'Noch keine Startformation für dieses Spiel gesetzt.'}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      display: 'block',
+                      mt: 0.5
+                    }}>
                     {isReadOnlyPlayerView ? 'Tippe auf die Vorschau für die große Ansicht.' : (loadingResources ? 'Lade Spieldaten…' : squadHint)}
                   </Typography>
-                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                  <Stack
+                    direction="row"
+                    spacing={0.75}
+                    useFlexGap
+                    sx={{
+                      flexWrap: "wrap",
+                      mt: 1
+                    }}>
                     <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => setPreviewDialog({ open: true, phaseId: startPhase.id })}>
                       Vorschau
                     </Button>
@@ -1262,8 +1284,12 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Box>
-                <Typography variant="subtitle1" fontWeight={800}>Spielformationen</Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="subtitle1" sx={{
+                  fontWeight: 800
+                }}>Spielformationen</Typography>
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {isReadOnlyPlayerView
                     ? 'Alle Folgeformationen sind read-only und zeigen Wechsel sowie Umstellungen im Zeitverlauf.'
                     : 'Öffne eine Formation zum Anpassen oder lege aus ihr direkt die nächste Spielformation an.'}
@@ -1278,10 +1304,20 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
 
             {gamePhases.length === 0 ? (
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, textAlign: 'center' }}>
-                <Typography variant="body1" fontWeight={700} sx={{ mb: 0.5 }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 700,
+                    mb: 0.5
+                  }}>
                   Noch keine Spielformationen geplant
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mb: 1.25
+                  }}>
                   {isReadOnlyPlayerView
                     ? 'Aktuell hat der Trainer nur die Startformation freigegeben.'
                     : 'Lege die erste Folgeformation an, wenn du einen Wechsel oder eine Umstellung für später vorbereiten willst.'}
@@ -1313,23 +1349,52 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
                         bgcolor: 'background.paper',
                       }}
                     >
-                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' }
+                      }}>
                         <FormationPreview players={phase.players} onClick={() => setPreviewDialog({ open: true, phaseId: phase.id })} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
-                            <Typography variant="subtitle1" fontWeight={800}>{formatMatchMinute(phase.minute)}</Typography>
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            useFlexGap
+                            sx={{
+                              flexWrap: "wrap",
+                              alignItems: "center"
+                            }}>
+                            <Typography variant="subtitle1" sx={{
+                              fontWeight: 800
+                            }}>{formatMatchMinute(phase.minute)}</Typography>
                             <Chip size="small" icon={chip.icon} label={chip.label} color={chip.color} variant="outlined" />
                           </Stack>
                           <Typography variant="body2" sx={{ mt: 0.5 }}>
                             {phase.label.trim() || 'Spielformation'}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.secondary",
+                              mt: 0.25
+                            }}>
                             {analysis.summary}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              display: 'block',
+                              mt: 0.5
+                            }}>
                             {phase.players.length} auf dem Feld · {phase.bench.length} auf der Bank
                           </Typography>
-                          <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                          <Stack
+                            direction="row"
+                            spacing={0.75}
+                            useFlexGap
+                            sx={{
+                              flexWrap: "wrap",
+                              mt: 1
+                            }}>
                             <Button size="small" variant="outlined" startIcon={<VisibilityIcon />} onClick={() => setPreviewDialog({ open: true, phaseId: phase.id })}>
                               Vorschau
                             </Button>
@@ -1360,14 +1425,17 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
           </Stack>
         </CardContent>
       </Card>
-
       <Dialog open={phaseDialog.open} onClose={() => setPhaseDialog(current => ({ ...current, open: false }))} fullWidth maxWidth="sm">
         <DialogTitle>Neue Spielformation anlegen</DialogTitle>
         <DialogContent sx={{ pt: 1, display: 'grid', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Die neue Formation übernimmt alle Spieler und Positionen aus der gewählten Ausgangsformation. Danach kannst du sie direkt anpassen.
           </Typography>
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Stack direction="row" spacing={1} useFlexGap sx={{
+            flexWrap: "wrap"
+          }}>
             {[45, 60, 70, 80].map(minute => (
               <Chip
                 key={minute}
@@ -1386,11 +1454,12 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
           <Button variant="contained" onClick={handleCreatePhase}>Weiter</Button>
         </DialogActions>
       </Dialog>
-
       <Dialog open={portfolioDialog.open} onClose={() => setPortfolioDialog(current => ({ ...current, open: false }))} fullWidth maxWidth="sm">
         <DialogTitle>Startformation aus Portfolio laden</DialogTitle>
         <DialogContent sx={{ pt: 1, display: 'grid', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Die gewählte Aufstellung wird als Startformation in dieses Spiel übernommen und kann danach unabhängig weiterbearbeitet werden.
           </Typography>
           <TextField
@@ -1412,23 +1481,32 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
           </Button>
         </DialogActions>
       </Dialog>
-
       <Dialog open={clearStartDialog.open} onClose={() => setClearStartDialog({ open: false })} fullWidth maxWidth="sm">
         <DialogTitle>Startformation entfernen</DialogTitle>
         <DialogContent sx={{ pt: 1, display: 'grid', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Auf dieser Startformation bauen bereits weitere Spielformationen auf. Wähle, ob nur die Startformation geleert oder der komplette darauf aufbauende Plan entfernt werden soll.
           </Typography>
           <Box sx={{ display: 'grid', gap: 1 }}>
             <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2.5 }}>
-              <Typography variant="subtitle2" fontWeight={800}>Nur Startformation entfernen</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="subtitle2" sx={{
+                fontWeight: 800
+              }}>Nur Startformation entfernen</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Die Startformation wird geleert. Alle Folgeformationen bleiben erhalten.
               </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2.5, borderColor: 'warning.main', bgcolor: alpha(theme.palette.warning.main, 0.05) }}>
-              <Typography variant="subtitle2" fontWeight={800}>Startformation und Folgeformationen entfernen</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="subtitle2" sx={{
+                fontWeight: 800
+              }}>Startformation und Folgeformationen entfernen</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Der komplette Spielplan ab Anpfiff wird zurückgesetzt. Übrig bleibt nur eine leere Startformation.
               </Typography>
             </Paper>
@@ -1444,7 +1522,6 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
           </Button>
         </DialogActions>
       </Dialog>
-
       <Dialog open={previewDialog.open} onClose={() => setPreviewDialog({ open: false, phaseId: null })} fullWidth maxWidth="md">
         <DialogTitle>
           {previewPhase
@@ -1456,16 +1533,30 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
             <>
               <FormationPreview players={previewPhase.players} size="large" />
               <Box>
-                <Typography variant="subtitle2" fontWeight={800}>Zusammenfassung</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="subtitle2" sx={{
+                  fontWeight: 800
+                }}>Zusammenfassung</Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.5
+                  }}>
                   {previewPhase.minute === 0
                     ? 'Startformation zum Anpfiff.'
                     : (previewAnalysis?.summary ?? 'Keine Änderung zur vorherigen Formation.')}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="subtitle2" fontWeight={800}>Bank</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="subtitle2" sx={{
+                  fontWeight: 800
+                }}>Bank</Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    mt: 0.5
+                  }}>
                   {previewPhase.bench.length > 0
                     ? previewPhase.bench.map(player => player.name || `#${player.number}`).join(', ')
                     : 'Keine Bankspieler hinterlegt.'}
@@ -1478,7 +1569,6 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
           <Button onClick={() => setPreviewDialog({ open: false, phaseId: null })}>Schließen</Button>
         </DialogActions>
       </Dialog>
-
       <FormationEditModal
         open={editorState.open}
         formationId={editorState.formationId}

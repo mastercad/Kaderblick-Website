@@ -75,18 +75,22 @@ export function BackupCodesDialog({
               label="Aktueller TOTP-Code"
               value={code}
               onChange={e => onCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
               autoComplete="one-time-code"
               size="small"
               fullWidth
               helperText="Gib den 6-stelligen Code aus deiner Authenticator-App ein."
+              slotProps={{
+                htmlInput: { maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }
+              }}
             />
             {error && <Alert severity="error">{error}</Alert>}
           </>
         ) : (
           <>
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
-              <Typography variant="body2" fontWeight={700}>Diese Codes jetzt sichern!</Typography>
+              <Typography variant="body2" sx={{
+                fontWeight: 700
+              }}>Diese Codes jetzt sichern!</Typography>
               <Typography variant="caption">
                 Sie werden nicht wieder angezeigt. Jeder Code ist einmalig verwendbar.
               </Typography>

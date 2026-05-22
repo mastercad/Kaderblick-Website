@@ -36,7 +36,6 @@ export default function EditorTopBar({
           <ArrowBackIcon />
         </IconButton>
       </Tooltip>
-
       <TextField
         label="Name"
         size="small"
@@ -44,7 +43,6 @@ export default function EditorTopBar({
         onChange={e => onNameChange(e.target.value)}
         sx={{ minWidth: 220 }}
       />
-
       <FormControl size="small" sx={{ minWidth: 160 }}>
         <InputLabel>Typ</InputLabel>
         <Select value={posterType} label="Typ" onChange={e => onTypeChange(e.target.value as any)}>
@@ -53,11 +51,14 @@ export default function EditorTopBar({
           ))}
         </Select>
       </FormControl>
-
       <Divider orientation="vertical" flexItem />
-
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Formate:</Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mr: 0.5
+          }}>Formate:</Typography>
         {FORMAT_OPTIONS.map(fmt => (
           <Chip
             key={fmt}
@@ -70,12 +71,16 @@ export default function EditorTopBar({
           />
         ))}
       </Box>
-
       {supportedFormats.length > 1 && (
         <>
           <Divider orientation="vertical" flexItem />
           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Ansicht:</Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mr: 0.5
+              }}>Ansicht:</Typography>
             {FORMAT_OPTIONS.filter(f => supportedFormats.includes(f)).map(fmt => (
               <Chip
                 key={fmt}
@@ -90,21 +95,22 @@ export default function EditorTopBar({
           </Box>
         </>
       )}
-
       <Box sx={{ flex: 1 }} />
-
       {isDirty && (
-        <Typography variant="caption" color="warning.main" sx={{ mr: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "warning.main",
+            mr: 1
+          }}>
           Ungespeicherte Änderungen
         </Typography>
       )}
-
       <Tooltip title="Vorschau mit Beispieldaten">
         <IconButton onClick={onPreviewOpen} size="small">
           <VisibilityIcon />
         </IconButton>
       </Tooltip>
-
       <Button
         variant="contained"
         color="primary"

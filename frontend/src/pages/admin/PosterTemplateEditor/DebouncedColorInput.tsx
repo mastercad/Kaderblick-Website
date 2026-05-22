@@ -92,7 +92,6 @@ export default function DebouncedColorInput({ value, onChange }: Props) {
           flexShrink: 0,
         }}
       />
-
       <Popover
         open={open}
         anchorEl={anchor}
@@ -107,7 +106,9 @@ export default function DebouncedColorInput({ value, onChange }: Props) {
               size="small"
               value={hexInput}
               onChange={handleHexInput}
-              inputProps={{ maxLength: 7, style: { fontFamily: 'monospace', width: 90 } }}
+              slotProps={{
+                htmlInput: { maxLength: 7, style: { fontFamily: 'monospace', width: 90 } }
+              }}
             />
             {'EyeDropper' in window && (
               <Tooltip title="Farbe von der Seite aufnehmen">

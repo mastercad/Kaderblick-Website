@@ -256,7 +256,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             )}
 
             {/* Sekundäre Aktionen */}
-            <Stack direction="row" spacing={0.75} alignItems="center">
+            <Stack direction="row" spacing={0.75} sx={{
+              alignItems: "center"
+            }}>
               {event.permissions?.canEdit && onEdit && (
                 <Button
                   onClick={onEdit}
@@ -364,11 +366,15 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           {/* Meeting Point */}
           {(event.meetingPoint || event.meetingLocation) && (
             <Box sx={{ px: 0.5 }}>
-              <Stack direction="row" spacing={1} alignItems="flex-start">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "flex-start"
+              }}>
                 <AccessTimeIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.25, flexShrink: 0 }} />
                 <Box>
                   {event.meetingTime && (
-                    <Typography variant="body2" fontWeight={600} gutterBottom={false}>
+                    <Typography variant="body2" gutterBottom={false} sx={{
+                      fontWeight: 600
+                    }}>
                       Treffpunkt {event.meetingTime} Uhr
                     </Typography>
                   )}
@@ -385,7 +391,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                       }
                     />
                   ) : (
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{
+                      color: "text.secondary"
+                    }}>
                       {event.meetingPoint}
                     </Typography>
                   )}
@@ -407,15 +415,28 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           {/* ── Participation Section ── */}
           {event.permissions?.canParticipate && (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  mb: 1.5
+                }}>
                 <GroupIcon sx={{ fontSize: 22, color: typeColor }} />
-                <Typography variant="subtitle1" fontWeight={700}>
+                <Typography variant="subtitle1" sx={{
+                  fontWeight: 700
+                }}>
                   Teilnahme
                 </Typography>
               </Stack>
 
               {loading ? (
-                <Box display="flex" justifyContent="center" py={3}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    py: 3
+                  }}>
                   <CircularProgress size={32} />
                 </Box>
               ) : (
@@ -456,14 +477,12 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           )}
         </Box>
       </BaseModal>
-
       {/* ──────────────────────── Supporting Modals ─────────────────────── */}
       <WeatherModal
         open={weatherModalOpen}
         onClose={() => setWeatherModalOpen(false)}
         eventId={event.id}
       />
-
       <TeamRideDetailsModal
         open={teamRideModalOpen}
         onClose={() => setTeamRideModalOpen(false)}
@@ -471,16 +490,13 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         cancelled={event.cancelled}
         onUpdated={onUpdated}
       />
-
       <PlayerOverviewModal
         open={playerOverviewOpen}
         onClose={() => setPlayerOverviewOpen(false)}
         eventId={event.id}
         eventTitle={event.title}
       />
-
       <TourTooltip steps={tourSteps} />
-
       {/* ──────────────────────────── Dialogs ──────────────────────────── */}
       <NoteDialog
         open={noteDialogOpen}
@@ -490,7 +506,6 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         note={dialogNote}
         onNoteChange={setDialogNote}
       />
-
       <CancelDialog
         open={cancelDialogOpen}
         onClose={() => setCancelDialogOpen(false)}

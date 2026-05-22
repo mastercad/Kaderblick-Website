@@ -10,7 +10,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import LockIcon from '@mui/icons-material/Lock';
 import SecurityIcon from '@mui/icons-material/Security';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import StorageIcon from '@mui/icons-material/Storage';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -124,8 +124,21 @@ function AlertCard({ item, onResolve, onReopen }: {
     >
       <CardActionArea component="div" onClick={() => navigate(`/admin/system-alerts/${item.id}`)}>
         <CardContent sx={{ pb: '8px !important' }}>
-          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "flex-start",
+              justifyContent: "space-between"
+            }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                minWidth: 0,
+                flex: 1
+              }}>
               <Chip
                 icon={<CategoryIcon category={item.category} />}
                 label={item.categoryLabel}
@@ -166,14 +179,27 @@ function AlertCard({ item, onResolve, onReopen }: {
 
           <Stack direction="row" spacing={2} sx={{ mt: 0.75, flexWrap: 'wrap', rowGap: 0.5 }}>
             {item.clientIp && (
-              <Typography variant="caption" color="text.secondary">IP: {item.clientIp}</Typography>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>IP: {item.clientIp}</Typography>
             )}
             {item.requestUri && (
-              <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 280 }}>
+              <Typography
+                variant="caption"
+                noWrap
+                sx={{
+                  color: "text.secondary",
+                  maxWidth: 280
+                }}>
                 {item.httpMethod} {item.requestUri}
               </Typography>
             )}
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto !important' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                ml: 'auto !important'
+              }}>
               zuletzt: {fmtDate(item.lastOccurrenceAt)}
             </Typography>
           </Stack>
@@ -259,7 +285,14 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>;
+  if (loading) return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        py: 6
+      }}><CircularProgress /></Box>
+  );
   if (error)   return <Alert severity="error">{error}</Alert>;
   if (!data)   return null;
 
@@ -274,10 +307,29 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
   return (
     <Box>
       {/* Toolbar: filter chips + Trend-Analyse */}
-      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={2} flexWrap="wrap" gap={1}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          mb: 2,
+          flexWrap: "wrap",
+          gap: 1
+        }}>
         {data.stats.total > 0 ? (
-          <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-            <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>Filter:</Typography>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              flexWrap: "wrap",
+              alignItems: "center"
+            }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mr: 0.5
+              }}>Filter:</Typography>
             {Object.entries(data.stats.byCategory).map(([cat, cnt]) => {
               const hidden = hiddenCategories.has(cat);
               return (
@@ -315,11 +367,9 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
           <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Trend-Analyse</Box>
         </Button>
       </Stack>
-
       {data.stats.total === 0 && (
         <Alert severity="success" sx={{ mb: 2 }}>Keine offenen Alerts – alles grün! 🎉</Alert>
       )}
-
       {/* Offen / Erledigt */}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         {statusTabs.map((t, i) => (
@@ -336,9 +386,13 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
           />
         ))}
       </Tabs>
-
       {filteredItems.length === 0 ? (
-        <Typography color="text.secondary" textAlign="center" mt={4}>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            textAlign: "center",
+            mt: 4
+          }}>
           {currentItems.length === 0
             ? 'Keine Einträge in dieser Kategorie.'
             : 'Alle Typen ausgeblendet – Filter anpassen, um Alerts zu sehen.'}
@@ -353,7 +407,6 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
           />
         ))
       )}
-
       {/* Resolve-Dialog */}
       <Dialog open={resolveId !== null} onClose={() => setResolveId(null)} maxWidth="sm" fullWidth fullScreen={dialogFullScreen}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
@@ -381,7 +434,6 @@ export default function AlertsTab({ onCountChange }: AlertsTabProps) {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Snackbar
         open={snack !== null}
         autoHideDuration={3000}

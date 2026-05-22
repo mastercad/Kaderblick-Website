@@ -111,7 +111,9 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                 {!collapsed && (
                   <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{ fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' }}
+                    slotProps={{
+                      primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                    }}
                   />
                 )}
               </ListItemButton>
@@ -124,9 +126,18 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
           <>
             <Divider sx={{ my: 1 }} />
             {!collapsed && (
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ px: 2, py: 0.5, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem', display: 'block' }}
-              >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  px: 2,
+                  py: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  fontSize: '0.65rem',
+                  display: 'block'
+                }}>
                 Trainer
               </Typography>
             )}
@@ -144,7 +155,9 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                     {!collapsed && (
                       <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{ fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' }}
+                        slotProps={{
+                          primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                        }}
                       />
                     )}
                   </ListItemButton>
@@ -159,9 +172,18 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
           <>
             <Divider sx={{ my: 1 }} />
             {!collapsed && (
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ px: 2, py: 0.5, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem', display: 'block' }}
-              >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  px: 2,
+                  py: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  fontSize: '0.65rem',
+                  display: 'block'
+                }}>
                 Supporter
               </Typography>
             )}
@@ -179,7 +201,9 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                     {!collapsed && (
                       <ListItemText
                         primary={item.label}
-                        primaryTypographyProps={{ fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' }}
+                        slotProps={{
+                          primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                        }}
                       />
                     )}
                   </ListItemButton>
@@ -194,18 +218,35 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
           <>
             <Divider sx={{ my: 1 }} />
             {!collapsed && (
-              <Typography variant="caption" fontWeight={700} color="text.secondary"
-                sx={{ px: 2, py: 0.5, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem', display: 'block' }}
-              >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  px: 2,
+                  py: 0.5,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.8,
+                  fontSize: '0.65rem',
+                  display: 'block'
+                }}>
                 Administration
               </Typography>
             )}
             {adminMenuSections.map((section) => (
               <Box key={section.section}>
                 {!collapsed && (
-                  <Typography variant="caption" color="text.disabled"
-                    sx={{ px: 2, py: 0.25, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.62rem', display: 'block' }}
-                  >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.disabled",
+                      px: 2,
+                      py: 0.25,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      fontSize: '0.62rem',
+                      display: 'block'
+                    }}>
                     {section.section}
                   </Typography>
                 )}
@@ -228,7 +269,9 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                         {!collapsed && (
                           <ListItemText
                             primary={item.label}
-                            primaryTypographyProps={{ fontWeight: active ? 700 : 400, fontSize: '0.85rem', color: active ? 'primary.main' : 'text.primary' }}
+                            slotProps={{
+                              primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.85rem', color: active ? 'primary.main' : 'text.primary' } }
+                            }}
                           />
                         )}
                       </ListItemButton>
@@ -250,12 +293,13 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
               <ListItemIcon sx={iconSx(false)}>
                 <QrCode2Icon fontSize="small" />
               </ListItemIcon>
-              {!collapsed && <ListItemText primary="QR-Code teilen" primaryTypographyProps={{ fontSize: '0.9rem' }} />}
+              {!collapsed && <ListItemText primary="QR-Code teilen" slotProps={{
+                primary: { sx: { fontSize: '0.9rem' } }
+              }} />}
             </ListItemButton>
           </Tooltip>
         </Box>
       </Box>
-
       {/* Toggle-Button — sticky am unteren Rand, scrollt NICHT mit */}
       <Box
         sx={{

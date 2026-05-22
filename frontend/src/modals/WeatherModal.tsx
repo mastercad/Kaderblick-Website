@@ -155,65 +155,67 @@ const WeatherModal: React.FC<WeatherModalProps> = ({ open, onClose, eventId }) =
             </Card>
           </Box>
         )}
-        {hourly.length > 0 ? (
-          <Box sx={{ mb: 2, px: 2 }}>
-            <Box sx={{ width: '100%', height: 100, mb: 2, mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="100%" height="80" viewBox="0 0 1000 80" preserveAspectRatio="none" style={{ width: '100%', height: 80 }}>
-                {(() => {
-                  const temps = hourly.map(h => h.temp);
-                  const min = Math.min(...temps);
-                  const max = Math.max(...temps);
-                  const n = hourly.length;
-                  const yOffset = 20; // alles nach unten verschieben
-                  const points = hourly.map((h, i) => {
-                    const x = Math.round((i / (n - 1)) * 1000); // 0 ... 1000
-                    const y = yOffset + 40 - ((h.temp - min) / (max - min || 1)) * 30;
-                    return `${x},${y}`;
-                  });
-                  // Achsenbeschriftungen
-                  const firstHour = hourly[0];
-                  const lastHour = hourly[hourly.length - 1];
-                  return <>
-                    <polyline points={points.join(' ')} fill="none" stroke="#1976d2" strokeWidth="3" />
-                    {/* Min/Max Temperatur links/rechts */}
-                    <text x={0} y={yOffset} fontSize="14" fill="#1976d2" textAnchor="start">{min}°C</text>
-                    <text x={1000} y={yOffset} fontSize="14" fill="#1976d2" textAnchor="end">{max}°C</text>
-                    {/* Uhrzeiten links/rechts unter der Kurve */}
-                    <text x={0} y={yOffset + 55} fontSize="14" fill="#333" textAnchor="start">{new Date(firstHour.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>
-                    <text x={1000} y={yOffset + 55} fontSize="14" fill="#333" textAnchor="end">{new Date(lastHour.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>
-                  </>;
-                })()}
-              </svg>
-              <Typography variant="caption" sx={{ color: '#1976d2', mt: 0.5 }}>Temperaturverlauf</Typography>
-            </Box>
-            <Grid container spacing={2} justifyContent="center">
-              {hourly.map((h, i) => (
-                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Card sx={{ background: h.precipitation > 0.5 ? '#90caf9' : h.clouds > 60 ? '#e0e0e0' : '#ffe082', borderRadius: 3, boxShadow: 2, p: 1 }}>
-                    <CardContent sx={{ p: 1 }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1 }}>
-                        <Box sx={{ fontSize: 32, display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <WeatherDisplay code={h.weatherCode} theme="light" />
-                        </Box>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: h.temp > 25 ? '#d84315' : h.temp < 10 ? '#1565c0' : '#333' }}>{h.temp}°C</Typography>
-                        <Typography variant="body2" sx={{ color: '#333' }}>{new Date(h.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Typography>
-                      </Box>
-                      <Typography variant="body2">Regen: {h.precipitation} mm</Typography>
-                      <Typography variant="body2">Wolken: {h.clouds}%</Typography>
-                      {h.wind !== null && <Typography variant="body2">Wind: {h.wind} km/h</Typography>}
-                      {h.gusts !== null && <Typography variant="body2">Böen: {h.gusts} km/h</Typography>}
-                      {h.uv !== null && <Typography variant="body2">UV: {h.uv}</Typography>}
-                      {h.humidity !== null && <Typography variant="body2">Luftfeuchte: {h.humidity}%</Typography>}
-                      {h.pressure !== null && <Typography variant="body2">Luftdruck: {h.pressure} hPa</Typography>}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+      {hourly.length > 0 ? (
+        <Box sx={{ mb: 2, px: 2 }}>
+          <Box sx={{ width: '100%', height: 100, mb: 2, mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="100%" height="80" viewBox="0 0 1000 80" preserveAspectRatio="none" style={{ width: '100%', height: 80 }}>
+              {(() => {
+                const temps = hourly.map(h => h.temp);
+                const min = Math.min(...temps);
+                const max = Math.max(...temps);
+                const n = hourly.length;
+                const yOffset = 20; // alles nach unten verschieben
+                const points = hourly.map((h, i) => {
+                  const x = Math.round((i / (n - 1)) * 1000); // 0 ... 1000
+                  const y = yOffset + 40 - ((h.temp - min) / (max - min || 1)) * 30;
+                  return `${x},${y}`;
+                });
+                // Achsenbeschriftungen
+                const firstHour = hourly[0];
+                const lastHour = hourly[hourly.length - 1];
+                return <>
+                  <polyline points={points.join(' ')} fill="none" stroke="#1976d2" strokeWidth="3" />
+                  {/* Min/Max Temperatur links/rechts */}
+                  <text x={0} y={yOffset} fontSize="14" fill="#1976d2" textAnchor="start">{min}°C</text>
+                  <text x={1000} y={yOffset} fontSize="14" fill="#1976d2" textAnchor="end">{max}°C</text>
+                  {/* Uhrzeiten links/rechts unter der Kurve */}
+                  <text x={0} y={yOffset + 55} fontSize="14" fill="#333" textAnchor="start">{new Date(firstHour.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>
+                  <text x={1000} y={yOffset + 55} fontSize="14" fill="#333" textAnchor="end">{new Date(lastHour.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</text>
+                </>;
+              })()}
+            </svg>
+            <Typography variant="caption" sx={{ color: '#1976d2', mt: 0.5 }}>Temperaturverlauf</Typography>
           </Box>
-        ) : (!loading && !error && !data) ? (
-          <Typography>Keine Wetterdaten verfügbar.</Typography>
-        ) : null}
+          <Grid container spacing={2} sx={{
+            justifyContent: "center"
+          }}>
+            {hourly.map((h, i) => (
+              <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card sx={{ background: h.precipitation > 0.5 ? '#90caf9' : h.clouds > 60 ? '#e0e0e0' : '#ffe082', borderRadius: 3, boxShadow: 2, p: 1 }}>
+                  <CardContent sx={{ p: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ fontSize: 32, display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <WeatherDisplay code={h.weatherCode} theme="light" />
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: h.temp > 25 ? '#d84315' : h.temp < 10 ? '#1565c0' : '#333' }}>{h.temp}°C</Typography>
+                      <Typography variant="body2" sx={{ color: '#333' }}>{new Date(h.time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Typography>
+                    </Box>
+                    <Typography variant="body2">Regen: {h.precipitation} mm</Typography>
+                    <Typography variant="body2">Wolken: {h.clouds}%</Typography>
+                    {h.wind !== null && <Typography variant="body2">Wind: {h.wind} km/h</Typography>}
+                    {h.gusts !== null && <Typography variant="body2">Böen: {h.gusts} km/h</Typography>}
+                    {h.uv !== null && <Typography variant="body2">UV: {h.uv}</Typography>}
+                    {h.humidity !== null && <Typography variant="body2">Luftfeuchte: {h.humidity}%</Typography>}
+                    {h.pressure !== null && <Typography variant="body2">Luftdruck: {h.pressure} hPa</Typography>}
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      ) : (!loading && !error && !data) ? (
+        <Typography>Keine Wetterdaten verfügbar.</Typography>
+      ) : null}
     </BaseModal>
   );
 }

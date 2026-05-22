@@ -123,7 +123,9 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
 
           {!hasSupporterRole && !request && (
             <>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Optional kannst du kurz ergänzen, warum du Supporter-Rechte benötigst.
               </Typography>
               <TextField

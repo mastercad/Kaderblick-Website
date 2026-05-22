@@ -78,7 +78,6 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
       px: { xs: 2, sm: 3 }, py: 2.5,
       display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap',
     }}>
-
       {/* ── Avatar ──────────────────────────────────────────────────────────── */}
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
         <Avatar
@@ -124,13 +123,20 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
           </Tooltip>
         )}
       </Box>
-
       {/* ── Name + badges + completion ──────────────────────────────────────── */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="h6" fontWeight={700} noWrap sx={{ fontSize: { xs: '1rem', sm: '1.2rem' } }}>
+        <Typography
+          variant="h6"
+          noWrap
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: '1rem', sm: '1.2rem' }
+          }}>
           {fullName || 'Mein Profil'}
         </Typography>
-        <Typography variant="body2" color="text.secondary" noWrap>{email}</Typography>
+        <Typography variant="body2" noWrap sx={{
+          color: "text.secondary"
+        }}>{email}</Typography>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 0.75 }}>
           {profileTitle && (
@@ -177,7 +183,6 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
           onNavigateToTab={onNavigateToTab}
         />
       </Box>
-
       {/* ── Quick actions ────────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
         <Tooltip title={relationsCount > 0 ? `${relationsCount} Verknüpfung(en)` : 'Verknüpfung anfragen'}>

@@ -178,7 +178,6 @@ export function EventTypePicker({
         />
       </Box>
       </Box>
-
       {/* ── Popover ──────────────────────────────────────────────────────── */}
       <Popover
         open={open}
@@ -211,12 +210,14 @@ export function EventTypePicker({
             placeholder="Suchen…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }
             }}
           />
         </Box>
@@ -327,12 +328,26 @@ export function EventTypePicker({
 
           {/* Leer-Zustände */}
           {gameEventTypes.length === 0 && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', py: 3 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                display: 'block',
+                textAlign: 'center',
+                py: 3
+              }}>
               Ereignistypen werden geladen…
             </Typography>
           )}
           {gameEventTypes.length > 0 && sections.length === 0 && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', py: 3 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                display: 'block',
+                textAlign: 'center',
+                py: 3
+              }}>
               Kein Ereignistyp gefunden
             </Typography>
           )}

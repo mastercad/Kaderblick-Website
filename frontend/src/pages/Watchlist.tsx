@@ -164,12 +164,14 @@ const Watchlist = () => {
           value={filterQuery}
           onChange={e => setFilterQuery(e.target.value)}
           sx={{ flexGrow: 1 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }
           }}
         />
         <Button
@@ -182,7 +184,6 @@ const Watchlist = () => {
           Hinzufügen
         </Button>
       </Paper>
-
       {/* ── Empty state ──────────────────────────────────────────────────── */}
       {entries.length === 0 && !loading ? (
         <AdminEmptyState
@@ -192,7 +193,12 @@ const Watchlist = () => {
           onCreate={() => setAddDialogOpen(true)}
         />
       ) : filtered.length === 0 ? (
-        <Typography color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+        <Typography
+          sx={{
+            color: "text.secondary",
+            p: 2,
+            textAlign: 'center'
+          }}>
           Kein Eintrag gefunden.
         </Typography>
       ) : (
@@ -209,7 +215,12 @@ const Watchlist = () => {
           </Stack>
 
           {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={3}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                mt: 3
+              }}>
               <Pagination
                 count={totalPages}
                 page={page}
@@ -221,7 +232,6 @@ const Watchlist = () => {
           )}
         </>
       )}
-
       {/* ── Add dialog ───────────────────────────────────────────────────── */}
       <AddToWatchlistDialog
         open={addDialogOpen}
@@ -261,16 +271,34 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
   return (
     <Card variant="outlined">
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "flex-start",
+            justifyContent: "space-between"
+          }}>
           {/* Left: info */}
           <Stack spacing={0.5} sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexWrap: 'wrap' }}>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              sx={{
+                alignItems: "center",
+                flexWrap: 'wrap'
+              }}>
               {isPlayer ? (
                 <SportsSoccerIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
               ) : (
                 <SchoolIcon fontSize="small" color="action" sx={{ flexShrink: 0 }} />
               )}
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ wordBreak: 'break-word', minWidth: 0 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: "bold",
+                  wordBreak: 'break-word',
+                  minWidth: 0
+                }}>
                 {name}
               </Typography>
               <Chip
@@ -282,17 +310,26 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
             </Stack>
 
             {currentClub ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Aktuell bei: <strong>{currentClub}</strong>
               </Typography>
             ) : (
-              <Typography variant="body2" color="warning.main" fontWeight="bold">
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "warning.main",
+                  fontWeight: "bold"
+                }}>
                 Vereinslos
               </Typography>
             )}
 
             {endingClub && (
-              <Typography variant="body2" color="warning.main">
+              <Typography variant="body2" sx={{
+                color: "warning.main"
+              }}>
                 Vereinszugehörigkeit bei <strong>{endingClub.club?.name}</strong> endet{' '}
                 {endingClub.endDate ? new Date(endingClub.endDate).toLocaleDateString('de-DE') : ''}
               </Typography>
@@ -301,15 +338,23 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
             {stats && (
               <>
                 <Divider sx={{ my: 0.5 }} />
-                <Stack direction="row" spacing={{ xs: 1, sm: 2 }} flexWrap="wrap" useFlexGap>
-                  <Typography variant="caption" color="text.secondary">
+                <Stack direction="row" spacing={{ xs: 1, sm: 2 }} useFlexGap sx={{
+                  flexWrap: "wrap"
+                }}>
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Spiele: <strong>{stats.totalGames}</strong>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{
+                    color: "text.secondary"
+                  }}>
                     Minuten: <strong>{stats.totalMinutesPlayed}</strong>
                   </Typography>
                   {stats.eventCounts.slice(0, 4).map(ec => (
-                    <Typography key={ec.type} variant="caption" color="text.secondary">
+                    <Typography key={ec.type} variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {ec.type}: <strong>{ec.count}</strong>
                     </Typography>
                   ))}
@@ -317,13 +362,20 @@ const WatchlistCard = ({ entry, onDelete, onToggleAnonymous }: WatchlistCardProp
               </>
             )}
 
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>
               Hinzugefügt: {new Date(entry.createdAt).toLocaleDateString('de-DE')}
             </Typography>
           </Stack>
 
           {/* Right: actions */}
-          <Stack direction="row" alignItems="center" sx={{ flexShrink: 0 }}>
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: "center",
+              flexShrink: 0
+            }}>
             <Tooltip title={entry.isAnonymous ? 'Anonym beobachten (aktiv)' : 'Sichtbar beobachten (aktiv)'}>
               <IconButton size="small" onClick={() => onToggleAnonymous(entry)}>
                 {entry.isAnonymous ? (
@@ -455,7 +507,9 @@ const AddToWatchlistDialog = ({
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
-        <Stack spacing={2} mt={0.5}>
+        <Stack spacing={2} sx={{
+          mt: 0.5
+        }}>
           <ToggleButtonGroup
             value={type}
             exclusive
@@ -477,12 +531,14 @@ const AddToWatchlistDialog = ({
             placeholder={type === 'player' ? 'Spielername suchen...' : 'Trainername suchen...'}
             value={query}
             onChange={e => handleQueryChange(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  {searching ? <CircularProgress size={16} /> : <SearchIcon fontSize="small" />}
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {searching ? <CircularProgress size={16} /> : <SearchIcon fontSize="small" />}
+                  </InputAdornment>
+                ),
+              }
             }}
           />
 
@@ -518,7 +574,12 @@ const AddToWatchlistDialog = ({
           )}
 
           {query.trim().length >= 2 && !searching && results.length === 0 && (
-            <Typography variant="body2" color="text.secondary" textAlign="center">
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                textAlign: "center"
+              }}>
               Keine Ergebnisse.
             </Typography>
           )}

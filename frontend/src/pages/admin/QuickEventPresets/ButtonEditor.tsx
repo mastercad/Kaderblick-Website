@@ -5,7 +5,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import { getCodeStyle, CODE_STYLE } from '../../../modals/quick-event/codeStyle';
 import type { QuickEventButton, RadialItem } from '../../../modals/quick-event/types';
 

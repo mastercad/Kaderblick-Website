@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
 import Tooltip from '@mui/material/Tooltip';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import type { CompletionItem } from '../hooks/useProfileCompletion';
 
 interface ProfileCompletionBarProps {
@@ -31,16 +31,24 @@ export function ProfileCompletionBar({ percent, color, missing, onNavigateToTab 
         </Tooltip>
         <Typography
           variant="caption"
-          fontWeight={700}
           color={`${color}.main`}
-          sx={{ minWidth: 34, textAlign: 'right', fontSize: '0.68rem' }}
-        >
+          sx={{
+            fontWeight: 700,
+            minWidth: 34,
+            textAlign: 'right',
+            fontSize: '0.68rem'
+          }}>
           {percent}%
         </Typography>
       </Box>
-
       {missing.length > 0 ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.7 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            display: 'block',
+            lineHeight: 1.7
+          }}>
           {'Fehlt: '}
           {missing.slice(0, 3).map((item, idx) => (
             <React.Fragment key={item.key}>
@@ -59,7 +67,13 @@ export function ProfileCompletionBar({ percent, color, missing, onNavigateToTab 
       ) : (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <CheckCircleOutlineIcon sx={{ fontSize: 13, color: 'success.main' }} />
-          <Typography variant="caption" color="success.main" fontWeight={600} sx={{ fontSize: '0.68rem' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "success.main",
+              fontWeight: 600,
+              fontSize: '0.68rem'
+            }}>
             Profil vollständig
           </Typography>
         </Box>

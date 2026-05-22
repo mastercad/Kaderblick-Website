@@ -85,7 +85,9 @@ export default function AdminDropdown() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
-        MenuListProps={{ sx: { minWidth: 250 } }}
+        slotProps={{
+          list: { sx: { minWidth: 250 } }
+        }}
       >
         {adminMenu.map((section) => (
           <Box key={section.section}>

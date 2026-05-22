@@ -18,7 +18,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import ErrorIcon from '@mui/icons-material/Error';
 import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -150,11 +150,15 @@ export default function GameStatsTab() {
           />
         </Box>
       )}
-
       {error      && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {successMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg(null)}>{successMsg}</Alert>}
-
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
         <Button
           variant="contained"
           color="warning"
@@ -169,7 +173,6 @@ export default function GameStatsTab() {
           <RefreshIcon />
         </IconButton>
       </Stack>
-
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
@@ -198,13 +201,22 @@ export default function GameStatsTab() {
               {games.map((g) => (
                 <TableRow key={g.id} sx={g.isInconsistent ? { bgcolor: 'error.50' } : undefined}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={g.isInconsistent ? 700 : 400}>
+                    <Typography variant="body2" sx={{
+                      fontWeight: g.isInconsistent ? 700 : 400
+                    }}>
                       {g.homeTeam ?? '?'} vs. {g.awayTeam ?? '?'}
                     </Typography>
                     {g.matchDay && (
-                      <Typography variant="caption" color="text.secondary">{g.matchDay}</Typography>
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>{g.matchDay}</Typography>
                     )}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'block', sm: 'none' } }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        display: { xs: 'block', sm: 'none' }
+                      }}>
                       {formatDateTime(g.scheduledAt)}
                     </Typography>
                   </TableCell>

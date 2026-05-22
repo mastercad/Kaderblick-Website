@@ -51,7 +51,11 @@ export const NewsWidget: React.FC<{ config?: any; widgetId?: string }> = ({ conf
 
   if (loading) return <CircularProgress size={24} />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (!news.length) return <Typography variant="body2" color="text.secondary">Keine News vorhanden.</Typography>;
+  if (!news.length) return (
+    <Typography variant="body2" sx={{
+      color: "text.secondary"
+    }}>Keine News vorhanden.</Typography>
+  );
 
   const handleNewsClick = (item: NewsItem) => {
     setSelectedNewsId(item.id);
@@ -59,45 +63,66 @@ export const NewsWidget: React.FC<{ config?: any; widgetId?: string }> = ({ conf
 
   return (
     <>
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
-      {news.map((item, idx) => (
-        <Card
-          key={item.id}
-          elevation={1}
-          sx={{
-            mb: 2,
-            width: '100%',
-            display: 'block',
-            alignSelf: 'stretch',
-            cursor: 'pointer',
-            borderLeft: `4px solid ${VISIBILITY_BORDER[item.visibility] ?? VISIBILITY_BORDER.platform}`,
-            transition: 'box-shadow 0.2s, transform 0.15s',
-            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
-          }}
-          onClick={() => handleNewsClick(item)}
-        >
-          <CardContent sx={{ pb: 1, pt: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <Typography variant="subtitle1" fontWeight={600} noWrap sx={{ flex: 1 }}>
-                {item.title}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}>
+        {news.map((item, idx) => (
+          <Card
+            key={item.id}
+            elevation={1}
+            sx={{
+              mb: 2,
+              width: '100%',
+              display: 'block',
+              alignSelf: 'stretch',
+              cursor: 'pointer',
+              borderLeft: `4px solid ${VISIBILITY_BORDER[item.visibility] ?? VISIBILITY_BORDER.platform}`,
+              transition: 'box-shadow 0.2s, transform 0.15s',
+              '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            }}
+            onClick={() => handleNewsClick(item)}
+          >
+            <CardContent sx={{ pb: 1, pt: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <Typography
+                  variant="subtitle1"
+                  noWrap
+                  sx={{
+                    fontWeight: 600,
+                    flex: 1
+                  }}>
+                  {item.title}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    whiteSpace: 'nowrap',
+                    ml: 2
+                  }}>
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </Typography>
+              </div>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mt: 1,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>
+                {item.content.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim()}
               </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 2 }}>
-                {new Date(item.createdAt).toLocaleDateString()}
-              </Typography>
-            </div>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {item.content.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim()}
-            </Typography>
-          </CardContent>
-          {idx < news.length - 1 && <Divider />}
-        </Card>
-      ))}
-    </div>
-    <NewsDetailModal
-      newsId={selectedNewsId}
-      open={selectedNewsId !== null}
-      onClose={() => setSelectedNewsId(null)}
-    />
+            </CardContent>
+            {idx < news.length - 1 && <Divider />}
+          </Card>
+        ))}
+      </div>
+      <NewsDetailModal
+        newsId={selectedNewsId}
+        open={selectedNewsId !== null}
+        onClose={() => setSelectedNewsId(null)}
+      />
     </>
   );
 };

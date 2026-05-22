@@ -74,11 +74,27 @@ export default function NavNotificationCenter({ anchorEl, onClose }: NavNotifica
         {getNotificationIcon(n.type)}
       </Box>
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={n.read ? 400 : 600} noWrap sx={{ color: n.read ? 'text.secondary' : 'text.primary' }}>
+        <Typography
+          variant="body2"
+          noWrap
+          sx={{
+            fontWeight: n.read ? 400 : 600,
+            color: n.read ? 'text.secondary' : 'text.primary'
+          }}>
           {n.title}
         </Typography>
         {n.message && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, mt: 0.2 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: 1.4,
+              mt: 0.2
+            }}>
             {n.message}
           </Typography>
         )}
@@ -92,7 +108,15 @@ export default function NavNotificationCenter({ anchorEl, onClose }: NavNotifica
 
   const SectionLabel = ({ label }: { label: string }) => (
     <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
-      <Typography variant="caption" fontWeight={700} color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.68rem' }}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: "text.disabled",
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+          fontSize: '0.68rem'
+        }}>
         {label}
       </Typography>
     </Box>
@@ -110,13 +134,17 @@ export default function NavNotificationCenter({ anchorEl, onClose }: NavNotifica
         onClose={onClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{ elevation: 8, sx: { width: 400, maxHeight: 540, display: 'flex', flexDirection: 'column', overflow: 'hidden', mt: 1, borderRadius: 2 } }}
+        slotProps={{
+          paper: { elevation: 8, sx: { width: 400, maxHeight: 540, display: 'flex', flexDirection: 'column', overflow: 'hidden', mt: 1, borderRadius: 2 } }
+        }}
       >
         {/* Header */}
         <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0, background: theme.palette.background.paper }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-            <Typography variant="subtitle1" fontWeight={700}>Benachrichtigungen</Typography>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: 700
+            }}>Benachrichtigungen</Typography>
             {unreadCount > 0 && (
               <Box sx={{ bgcolor: 'error.main', color: '#fff', fontSize: '0.7rem', fontWeight: 700, borderRadius: '10px', px: 0.75, py: 0.1, lineHeight: 1.6 }}>
                 {unreadCount}
@@ -141,8 +169,15 @@ export default function NavNotificationCenter({ anchorEl, onClose }: NavNotifica
         {notifications.length === 0 ? (
           <Box sx={{ p: 5, textAlign: 'center', flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <NotificationsNoneIcon sx={{ fontSize: 52, color: 'text.disabled', mb: 1.5 }} />
-            <Typography variant="body2" color="text.secondary" fontWeight={500}>Keine Benachrichtigungen</Typography>
-            <Typography variant="caption" color="text.disabled">Du bist auf dem neuesten Stand!</Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                fontWeight: 500
+              }}>Keine Benachrichtigungen</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.disabled"
+            }}>Du bist auf dem neuesten Stand!</Typography>
           </Box>
         ) : (
           <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
@@ -152,7 +187,6 @@ export default function NavNotificationCenter({ anchorEl, onClose }: NavNotifica
           </Box>
         )}
       </Popover>
-
       <NotificationDetailModal
         notification={selectedNotification}
         open={Boolean(selectedNotification)}

@@ -166,9 +166,11 @@ function buildPanelChart(
     >
       <Typography
         variant={isMobile ? 'body2' : 'subtitle2'}
-        fontWeight={600}
-        sx={{ mb: 0.5, textAlign: 'center' }}
-      >
+        sx={{
+          fontWeight: 600,
+          mb: 0.5,
+          textAlign: 'center'
+        }}>
         {panel.title}
       </Typography>
       <Box sx={{ height: h, position: 'relative' }}>

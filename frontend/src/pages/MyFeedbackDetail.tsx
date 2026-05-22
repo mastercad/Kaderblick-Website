@@ -80,7 +80,14 @@ function CommentBubble({ c }: { c: FeedbackComment }) {
       </Box>
       <Box sx={{ maxWidth: '72%' }}>
         {!isMine && (
-          <Typography variant="caption" color="text.disabled" sx={{ ml: 0.5, display: 'block', mb: 0.25 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.disabled",
+              ml: 0.5,
+              display: 'block',
+              mb: 0.25
+            }}>
             Admin
           </Typography>
         )}
@@ -94,9 +101,16 @@ function CommentBubble({ c }: { c: FeedbackComment }) {
         }}>
           <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.55 }}>{c.content}</Typography>
         </Box>
-        <Typography variant="caption" color="text.disabled"
-          sx={{ mt: 0.3, display: 'block', textAlign: isMine ? 'right' : 'left',
-            mr: isMine ? 0.5 : 0, ml: isMine ? 0 : 0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.disabled",
+            mt: 0.3,
+            display: 'block',
+            textAlign: isMine ? 'right' : 'left',
+            mr: isMine ? 0.5 : 0,
+            ml: isMine ? 0 : 0.5
+          }}>
           {fmtDate(c.createdAt)}
         </Typography>
       </Box>
@@ -185,11 +199,14 @@ const MyFeedbackDetailPage: React.FC = () => {
           <FeedbackIcon sx={{ fontSize: 22 }} />
         </Box>
         <Box>
-          <Typography variant="h5" fontWeight={700}>Feedback-Details</Typography>
-          <Typography variant="caption" color="text.secondary">{fmtDate(item.createdAt)}</Typography>
+          <Typography variant="h5" sx={{
+            fontWeight: 700
+          }}>Feedback-Details</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{fmtDate(item.createdAt)}</Typography>
         </Box>
       </Box>
-
       {/* Metadata card */}
       <Card elevation={0} sx={{
         border: '1px solid', borderColor: 'divider',
@@ -224,9 +241,18 @@ const MyFeedbackDetailPage: React.FC = () => {
           {item.url && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
               <PublicIcon sx={{ fontSize: 13, color: 'text.disabled', flexShrink: 0 }} />
-              <Typography variant="caption" color="text.disabled" component="a" href={item.url} target="_blank"
-                sx={{ color: 'inherit', textDecoration: 'none', wordBreak: 'break-all',
-                  '&:hover': { textDecoration: 'underline' } }}>
+              <Typography
+                variant="caption"
+                component="a"
+                href={item.url}
+                target="_blank"
+                sx={{
+                  color: "text.disabled",
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  wordBreak: 'break-all',
+                  '&:hover': { textDecoration: 'underline' }
+                }}>
                 {item.url} <OpenInNewIcon sx={{ fontSize: 11, verticalAlign: 'middle' }} />
               </Typography>
             </Box>
@@ -242,7 +268,12 @@ const MyFeedbackDetailPage: React.FC = () => {
           {/* Legacy admin note */}
           {item.adminNote && item.comments.length === 0 && (
             <Box sx={{ mt: 2, p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1.5, borderLeft: '3px solid', borderLeftColor: 'primary.main' }}>
-              <Typography variant="caption" fontWeight={700} color="primary.dark">Antwort des Admins:</Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "primary.dark"
+                }}>Antwort des Admins:</Typography>
               <Typography variant="body2" sx={{ mt: 0.25, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
                 {item.adminNote}
               </Typography>
@@ -250,14 +281,24 @@ const MyFeedbackDetailPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Comment thread */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              mb: 2
+            }}>
             Verlauf
             {item.comments.length > 0 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <Typography
+                component="span"
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  ml: 1
+                }}>
                 ({item.comments.length} Nachricht{item.comments.length !== 1 ? 'en' : ''})
               </Typography>
             )}
@@ -302,7 +343,6 @@ const MyFeedbackDetailPage: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
-
       {/* Screenshot dialog */}
       <Dialog open={!!screenshot} onClose={() => setScreenshot(null)} maxWidth="md">
         <DialogTitle>
@@ -313,7 +353,6 @@ const MyFeedbackDetailPage: React.FC = () => {
           {screenshot && <img src={`${BACKEND_URL}${screenshot}`} alt="Screenshot" style={{ maxWidth: '100%', borderRadius: 8 }} />}
         </DialogContent>
       </Dialog>
-
       <Snackbar open={snack.open} autoHideDuration={5000}
         onClose={() => setSnack(s => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

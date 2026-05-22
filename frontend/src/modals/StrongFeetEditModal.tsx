@@ -74,7 +74,13 @@ const StrongFeetEditModal: React.FC<StrongFeetEditModalProps> = ({ openStrongFee
             title="Starken Fuß bearbeiten"
         >
             {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
             ) : error ? (
@@ -83,12 +89,21 @@ const StrongFeetEditModal: React.FC<StrongFeetEditModalProps> = ({ openStrongFee
                 <form id="strongFeetEditForm" autoComplete="off" onSubmit={handleStrongFeetEditSubmit}>
                     <input type="hidden" name="id" value={strongFeet?.id} />
                     <Box sx={{ bgcolor: 'background.default', p: 0 }}>
-                        <Box mb={2}>
+                        <Box sx={{
+                            mb: 2
+                        }}>
                             <TextField label="Name" name="name" value={strongFeet?.name || ''} onChange={handleStrongFeetEditChange} required fullWidth margin="normal" />
                             <TextField label="Kurzname" name="code" value={strongFeet?.code || ''} onChange={handleStrongFeetEditChange} fullWidth margin="normal" />
                         </Box>
                     </Box>
-                    <Box display="flex" justifyContent="flex-end" gap={2} mt={3} mb={1}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: 2,
+                            mt: 3,
+                            mb: 1
+                        }}>
                         <Button onClick={onStrongFeetEditModalClose} variant="outlined" color="secondary">
                             Abbrechen
                         </Button>

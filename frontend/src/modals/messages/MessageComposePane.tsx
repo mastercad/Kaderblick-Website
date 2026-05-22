@@ -140,7 +140,6 @@ export const MessageComposePane: React.FC<Props> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0, width: '100%', overflow: 'hidden' }}>
-
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <Box sx={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -153,7 +152,9 @@ export const MessageComposePane: React.FC<Props> = ({
               <ArrowBackIcon />
             </IconButton>
           )}
-          <Typography variant="subtitle1" fontWeight={700} data-testid="compose-title">{title ?? 'Neue Nachricht'}</Typography>
+          <Typography variant="subtitle1" data-testid="compose-title" sx={{
+            fontWeight: 700
+          }}>{title ?? 'Neue Nachricht'}</Typography>
         </Box>
         {!isMobile && (
           <Tooltip title="Verwerfen">
@@ -163,7 +164,6 @@ export const MessageComposePane: React.FC<Props> = ({
           </Tooltip>
         )}
       </Box>
-
       {/* ── Success screen ────────────────────────────────────────────────── */}
       {success ? (
         <Box sx={{
@@ -171,8 +171,15 @@ export const MessageComposePane: React.FC<Props> = ({
           alignItems: 'center', justifyContent: 'center', gap: 2, px: 3,
         }}>
           <CheckCircleIcon color="success" sx={{ fontSize: 64 }} />
-          <Typography variant="h6" fontWeight={700}>Nachricht gesendet!</Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography variant="h6" sx={{
+            fontWeight: 700
+          }}>Nachricht gesendet!</Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              textAlign: "center"
+            }}>
             Deine Nachricht wurde erfolgreich verschickt.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
@@ -192,7 +199,9 @@ export const MessageComposePane: React.FC<Props> = ({
             {/* Warnung: keine Kontakte */}
             {noContacts && (
               <Alert severity="warning" icon={<WarningAmberIcon fontSize="inherit" />} sx={{ mx: 2, mt: 1.5, mb: 0.5 }}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>
+                <Typography variant="body2" gutterBottom sx={{
+                  fontWeight: 600
+                }}>
                   Kein Zugriff auf die interne Kommunikation
                 </Typography>
                 <Typography variant="caption">
@@ -209,7 +218,7 @@ export const MessageComposePane: React.FC<Props> = ({
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   {recipientsLocked ? (
                     /* Gesperrte Empfänger (z. B. Antwort) */
-                    <Box sx={{
+                    (<Box sx={{
                       display: 'flex', flexWrap: 'wrap', gap: 0.75,
                       border: '1px solid', borderColor: 'divider',
                       borderRadius: 1, px: 1.5, py: 0.75, bgcolor: 'action.disabledBackground',
@@ -227,9 +236,11 @@ export const MessageComposePane: React.FC<Props> = ({
                         />
                       ))}
                       {form.recipients.length === 0 && (
-                        <Typography variant="caption" color="text.disabled">Keine Empfänger</Typography>
+                        <Typography variant="caption" sx={{
+                          color: "text.disabled"
+                        }}>Keine Empfänger</Typography>
                       )}
-                    </Box>
+                    </Box>)
                   ) : (
                     <Autocomplete
                       multiple disabled={noContacts}
@@ -245,7 +256,9 @@ export const MessageComposePane: React.FC<Props> = ({
                           <Box>
                             <Typography variant="body2">{option.fullName}</Typography>
                             {option.context && (
-                              <Typography variant="caption" color="text.secondary">{option.context}</Typography>
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>{option.context}</Typography>
                             )}
                           </Box>
                         </Box>
@@ -253,15 +266,19 @@ export const MessageComposePane: React.FC<Props> = ({
                       renderInput={params => (
                         <TextField
                           {...params} label="Personen suchen…" size="small"
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                <PersonIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} />
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                            sx: { flexWrap: 'wrap' },
+                          slotProps={{
+                            ...params.slotProps,
+
+                            input: {
+                              ...params.slotProps.input,
+                              startAdornment: (
+                                <>
+                                  <PersonIcon fontSize="small" sx={{ mr: 0.5, color: 'text.disabled' }} />
+                                  {params.slotProps.input.startAdornment}
+                                </>
+                              ),
+                              sx: { flexWrap: 'wrap' },
+                            }
                           }}
                         />
                       )}
@@ -370,17 +387,22 @@ export const MessageComposePane: React.FC<Props> = ({
             {/* ── Zeile BETREFF ─────────────────────────────────────────────── */}
             <ComposeRow label="Betreff:">
               <TextField
-                variant="standard" size="small" fullWidth required
+                variant="standard"
+                size="small"
+                fullWidth
+                required
                 disabled={noContacts}
                 value={form.subject}
                 onChange={e => set({ subject: e.target.value })}
                 placeholder="Betreff eingeben…"
-                InputProps={{
-                  disableUnderline: true,
-                  sx: { fontSize: '0.95rem', fontWeight: 500 },
-                }}
-                inputProps={{ 'data-testid': 'compose-subject-inner' }}
-              />
+                slotProps={{
+                  input: {
+                    disableUnderline: true,
+                    sx: { fontSize: '0.95rem', fontWeight: 500 },
+                  },
+
+                  htmlInput: { 'data-testid': 'compose-subject-inner' }
+                }} />
             </ComposeRow>
 
             {/* ── Nachrichtentext ────────────────────────────────────────────── */}
@@ -391,17 +413,19 @@ export const MessageComposePane: React.FC<Props> = ({
                 value={form.content}
                 onChange={e => set({ content: e.target.value })}
                 placeholder="Nachricht schreiben…"
-                InputProps={{
-                  disableUnderline: true,
-                  sx: { fontSize: '0.9rem', lineHeight: 1.8, alignItems: 'flex-start' },
-                }}
                 sx={{
                   flex: 1,
                   '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' },
-                  '& .MuiInputBase-inputMultiline': {
+                  "&.MuiInputBase-multiline > .MuiInputBase-input": {
                     minHeight: isMobile ? 140 : 200,
                     resize: 'none',
                   },
+                }}
+                slotProps={{
+                  input: {
+                    disableUnderline: true,
+                    sx: { fontSize: '0.9rem', lineHeight: 1.8, alignItems: 'flex-start' },
+                  }
                 }}
               />
               {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
@@ -428,7 +452,6 @@ export const MessageComposePane: React.FC<Props> = ({
           </Box>
         </>
       )}
-
       <GroupManagerPane
         open={groupManagerOpen}
         onClose={() => setGroupManagerOpen(false)}

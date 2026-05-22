@@ -228,12 +228,20 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={fullScreen}>
       <DialogTitle>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between">
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: "space-between"
+          }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Video-Schnittliste
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Eigene Clips pro Video verwalten, exportieren und sauber nach Szenen strukturieren.
             </Typography>
           </Box>
@@ -251,7 +259,6 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
           </Box>
         </Stack>
       </DialogTitle>
-
       <DialogContent sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 2 } }}>
         <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
           <Typography variant="body2">
@@ -302,7 +309,14 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                         >
                           {video.name}
                         </Typography>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                        <Stack
+                          direction="row"
+                          spacing={0.75}
+                          useFlexGap
+                          sx={{
+                            flexWrap: "wrap",
+                            mt: 0.75
+                          }}>
                           <Chip label={getSegmentCountLabel(segmentCount)} size="small" color={segmentCount > 0 ? 'primary' : 'default'} />
                           {video.length ? <Chip label={`Länge ${formatSeconds(video.length)}`} size="small" variant="outlined" /> : null}
                           {video.camera?.name ? <Chip label={video.camera.name} size="small" variant="outlined" /> : null}
@@ -338,7 +352,14 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                                   <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                                     Segment {index + 1}
                                   </Typography>
-                                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                                  <Stack
+                                    direction="row"
+                                    spacing={0.75}
+                                    useFlexGap
+                                    sx={{
+                                      flexWrap: "wrap",
+                                      mt: 0.75
+                                    }}>
                                     <Chip label={`Start ${formatSeconds(segment.startMinute)}`} size="small" />
                                     <Chip label={`Dauer ${formatSeconds(segment.lengthSeconds)}`} size="small" variant="outlined" />
                                     <Chip
@@ -373,7 +394,12 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                                 <Box sx={{ display: 'grid', gap: 0.5 }}>
                                   {segment.title && (
                                     <Box>
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "text.secondary",
+                                          display: 'block'
+                                        }}>
                                         Titel
                                       </Typography>
                                       <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
@@ -383,10 +409,20 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                                   )}
                                   {segment.subTitle && (
                                     <Box>
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{
+                                          color: "text.secondary",
+                                          display: 'block'
+                                        }}>
                                         Untertitel
                                       </Typography>
-                                      <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                                      <Typography
+                                        variant="body2"
+                                        sx={{
+                                          color: "text.secondary",
+                                          wordBreak: 'break-word'
+                                        }}>
                                         {segment.subTitle}
                                       </Typography>
                                     </Box>
@@ -421,7 +457,9 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
 
             {sortedVideos.length === 0 && (
               <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Es sind noch keine Videos für dieses Spiel vorhanden.
                 </Typography>
               </Paper>
@@ -441,7 +479,13 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                 borderColor: alpha(theme.palette.primary.main, 0.16),
               }}
             >
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: 'block',
+                  mb: 0.5
+                }}>
                 Ausgewähltes Video
               </Typography>
               <Typography
@@ -465,7 +509,9 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }} gutterBottom>
                 {editingId ? 'Segment bearbeiten' : 'Neues Segment'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Trage Startpunkt und Dauer ein. Titel und Untertitel helfen später beim Export und bei der Orientierung.
               </Typography>
             </Box>
@@ -522,7 +568,9 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       Tonspur übernehmen
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       Aktivieren, wenn der exportierte Clip Audio enthalten soll.
                     </Typography>
                   </Box>
@@ -553,7 +601,6 @@ export const VideoSegmentModal: React.FC<VideoSegmentModalProps> = ({
           </Stack>
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 1.5 }}>
         <Button onClick={onClose}>Schließen</Button>
       </DialogActions>

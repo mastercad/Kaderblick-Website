@@ -173,10 +173,14 @@ export default function MyTeam() {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <GroupsIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-        <Typography variant="h5" color="text.secondary" gutterBottom>
+        <Typography variant="h5" gutterBottom sx={{
+          color: "text.secondary"
+        }}>
           Kein Team gefunden
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{
+          color: "text.secondary"
+        }}>
           Du bist noch keinem Team zugeordnet. Bitte wende dich an deinen Trainer oder Administrator.
         </Typography>
       </Box>
@@ -188,19 +192,26 @@ export default function MyTeam() {
   return (
     <Box sx={{ mx: 'auto', p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          alignItems: "center",
+          mb: 3
+        }}>
         <GroupsIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1.5 }}>
             Mein Team
             {refreshing && <CircularProgress size={20} />}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Alles rund um {teams.length === 1 ? 'dein Team' : 'deine Teams'} auf einen Blick
           </Typography>
         </Box>
       </Stack>
-
       {/* Team-Tabs (wenn mehrere Teams) */}
       {teams.length > 1 && (
         <Paper sx={{ mb: 3 }} elevation={0} variant="outlined">
@@ -215,7 +226,9 @@ export default function MyTeam() {
               <Tab
                 key={team.id}
                 label={
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     <span>{team.name}</span>
                     {team.ageGroup && (
                       <Chip label={team.ageGroup.name} size="small" variant="outlined" />
@@ -227,7 +240,6 @@ export default function MyTeam() {
           </Tabs>
         </Paper>
       )}
-
       {/* Team Banner */}
       <TeamBannerSection
         teamId={currentTeam.id}
@@ -235,16 +247,28 @@ export default function MyTeam() {
         canEditBanner={currentTeam.canEditBanner ?? false}
         onBannerChange={(newBanner) => handleBannerChange(currentTeam.id, newBanner)}
       />
-
       {/* Team-Info Header */}
       <Card sx={{ mb: 3, background: `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}15 100%)` }} elevation={0} variant="outlined">
         <CardContent>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+            sx={{
+              alignItems: { sm: 'center' },
+              justifyContent: "space-between"
+            }}>
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
                 {currentTeam.name}
               </Typography>
-              <Stack direction="row" spacing={1} mt={1} flexWrap="wrap" useFlexGap>
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                sx={{
+                  mt: 1,
+                  flexWrap: "wrap"
+                }}>
                 {currentTeam.ageGroup && (
                   <Chip
                     icon={<GroupsIcon />}
@@ -274,7 +298,6 @@ export default function MyTeam() {
           </Stack>
         </CardContent>
       </Card>
-
       {/* Main Content Grid */}
       <Box sx={{
         display: 'grid',
@@ -285,7 +308,13 @@ export default function MyTeam() {
         {/* Kader */}
         <Card variant="outlined" sx={{ gridColumn: { xs: '1', md: '1' } }}>
           <CardContent sx={{ pb: 1 }}>
-            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                mb: 2
+              }}>
               <SportsSoccerIcon color="primary" />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Kader
@@ -326,7 +355,9 @@ export default function MyTeam() {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Stack direction="row" alignItems="center" spacing={1}>
+                        <Stack direction="row" spacing={1} sx={{
+                          alignItems: "center"
+                        }}>
                           <Typography variant="body2" sx={{ fontWeight: player.isMe ? 700 : 400 }}>
                             {player.fullName}
                           </Typography>
@@ -374,7 +405,9 @@ export default function MyTeam() {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Stack direction="row" alignItems="center" spacing={1}>
+                        <Stack direction="row" spacing={1} sx={{
+                          alignItems: "center"
+                        }}>
                           <Typography variant="body2" sx={{ fontWeight: coach.isMe ? 700 : 400 }}>
                             {coach.fullName}
                           </Typography>
@@ -394,7 +427,13 @@ export default function MyTeam() {
               ))}
 
               {currentTeam.players.length === 0 && currentTeam.coaches.length === 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    py: 2,
+                    textAlign: 'center'
+                  }}>
                   Noch keine Spieler oder Trainer im Team.
                 </Typography>
               )}
@@ -408,7 +447,13 @@ export default function MyTeam() {
           {/* Nächste Termine */}
           <Card variant="outlined">
             <CardContent sx={{ pb: 1 }}>
-              <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}>
                 <CalendarTodayIcon color="primary" />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Nächste Termine
@@ -416,7 +461,13 @@ export default function MyTeam() {
               </Stack>
 
               {data.upcomingEvents.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    py: 2,
+                    textAlign: 'center'
+                  }}>
                   Keine anstehenden Termine in den nächsten 30 Tagen.
                 </Typography>
               ) : (
@@ -445,7 +496,13 @@ export default function MyTeam() {
                         </ListItemIcon>
                         <ListItemText
                           primary={
-                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{
+                                alignItems: "center",
+                                flexWrap: "wrap"
+                              }}>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {event.title}
                               </Typography>
@@ -465,8 +522,16 @@ export default function MyTeam() {
                             </Stack>
                           }
                           secondary={
-                            <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ mt: 0.5 }}>
-                              <Typography variant="caption" color="text.secondary">
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              sx={{
+                                flexWrap: "wrap",
+                                mt: 0.5
+                              }}>
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>
                                 {new Date(event.startDate).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                                 {' '}
                                 {new Date(event.startDate).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
@@ -475,14 +540,23 @@ export default function MyTeam() {
                                 )}
                               </Typography>
                               {event.location && (
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.secondary",
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.5
+                                  }}>
                                   <LocationOnIcon sx={{ fontSize: 14 }} />
                                   {event.location}
                                 </Typography>
                               )}
                             </Stack>
                           }
-                          secondaryTypographyProps={{ component: 'div' }}
+                          slotProps={{
+                            secondary: { component: 'div' }
+                          }}
                         />
                       </ListItem>
                     ))}
@@ -494,7 +568,13 @@ export default function MyTeam() {
           {/* Meine Aufgaben */}
           <Card variant="outlined">
             <CardContent sx={{ pb: 1 }}>
-              <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  mb: 2
+                }}>
                 <AssignmentIcon color="primary" />
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   Meine Aufgaben
@@ -507,7 +587,9 @@ export default function MyTeam() {
               {data.openTasks.length === 0 ? (
                 <Box sx={{ py: 2, textAlign: 'center' }}>
                   <StarIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Alles erledigt! Keine offenen Aufgaben.
                   </Typography>
                 </Box>
@@ -535,12 +617,16 @@ export default function MyTeam() {
                         secondary={
                           <Stack direction="column" spacing={0.5}>
                             {task.description && (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>
                                 {task.description}
                               </Typography>
                             )}
                             {task.assignedDate && (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                              }}>
                                 Fällig: {new Date(task.assignedDate).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
                               </Typography>
                             )}
@@ -555,7 +641,6 @@ export default function MyTeam() {
           </Card>
         </Box>
       </Box>
-
       <EventDetailsModal
         open={!!selectedEvent}
         onClose={closeEventDetails}

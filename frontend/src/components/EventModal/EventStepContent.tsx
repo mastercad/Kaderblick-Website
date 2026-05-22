@@ -149,7 +149,6 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
               onChange={v => handleChange('locationId', v)}
             />
           )}
-
           {/* Match / Tournament fields */}
           {isMatchEvent && (
             <>
@@ -194,17 +193,14 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
               )}
             </>
           )}
-
           {/* Task fields */}
           {isTask && (
             <TaskEventFields formData={event} users={users} handleChange={handleChange} />
           )}
-
           {/* Training fields */}
           {isTraining && (
             <TrainingEventFields formData={event} teams={teams} handleChange={handleChange} />
           )}
-
           {/* Treffpunkt / Treffzeit — for all non-task events */}
           {!isTask && (isMatchEvent || isTraining || isGenericEvent) && (
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mt: 1 }}>
@@ -263,15 +259,18 @@ export const EventStepContent: React.FC<EventStepContentProps> = ({
                 onChange={e => handleChange('meetingTime', e.target.value)}
                 size="small"
                 sx={{ minWidth: 140 }}
-                InputLabelProps={{ shrink: true }}
+                slotProps={{
+                  inputLabel: { shrink: true }
+                }}
               />
             </Box>
           )}
-
           {/* No type selected yet — hint */}
           {!isMatchEvent && !isTask && !isTraining && !isGenericEvent && (
             <Box sx={{ py: 6, textAlign: 'center' }}>
-              <Typography color="text.secondary" variant="body2">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Bitte zuerst den Event-Typ auf Schritt 1 auswählen.
               </Typography>
             </Box>

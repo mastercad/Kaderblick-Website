@@ -55,7 +55,12 @@ export const StepContext: React.FC<StepContextProps> = ({
         <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
           Welcher Spieler?
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Suche und wähle den Spieler aus, über den du eine Auswertung erstellen möchtest.
         </Typography>
         <Autocomplete
@@ -80,15 +85,17 @@ export const StepContext: React.FC<StepContextProps> = ({
               size="small"
               autoFocus
               slotProps={{
+                ...params.slotProps,
+
                 input: {
-                  ...params.InputProps,
+                  ...params.slotProps.input,
                   endAdornment: (
                     <>
                       {playerSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                      {params.InputProps.endAdornment}
+                      {params.slotProps.input.endAdornment}
                     </>
                   ),
-                },
+                }
               }}
             />
           )}
@@ -107,7 +114,12 @@ export const StepContext: React.FC<StepContextProps> = ({
         <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
           Welche Mannschaft?
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Wähle die Mannschaft, für die du die Auswertung erstellen möchtest.
         </Typography>
         <Autocomplete
@@ -130,7 +142,13 @@ export const StepContext: React.FC<StepContextProps> = ({
             />
           )}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mt: 1,
+            display: 'block'
+          }}>
           Optional — ohne Auswahl werden alle Mannschaftsdaten zusammengefasst.
         </Typography>
       </Box>
@@ -148,7 +166,12 @@ export const StepContext: React.FC<StepContextProps> = ({
         <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
           Welche Mannschaften vergleichen?
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Tippe einen Namen ein und füge Mannschaften zur Vergleichsliste hinzu.
         </Typography>
         <Autocomplete
@@ -188,7 +211,13 @@ export const StepContext: React.FC<StepContextProps> = ({
             ))}
           </Box>
         )}
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            mt: 1.5,
+            display: 'block'
+          }}>
           Optional — ohne Auswahl werden alle Mannschaften im Vergleich angezeigt.
         </Typography>
       </Box>
@@ -201,7 +230,12 @@ export const StepContext: React.FC<StepContextProps> = ({
       <Typography variant="h6" sx={{ fontSize: { xs: '1.05rem', sm: '1.25rem' }, mb: 0.5 }}>
         Welche Spieler vergleichen?
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 2
+        }}>
         Tippe einen Namen ein und füge Spieler zur Vergleichsliste hinzu.
       </Typography>
       <Autocomplete
@@ -232,15 +266,17 @@ export const StepContext: React.FC<StepContextProps> = ({
             size="small"
             autoFocus
             slotProps={{
+              ...params.slotProps,
+
               input: {
-                ...params.InputProps,
+                ...params.slotProps.input,
                 endAdornment: (
                   <>
                     {playerSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                    {params.InputProps.endAdornment}
+                    {params.slotProps.input.endAdornment}
                   </>
                 ),
-              },
+              }
             }}
           />
         )}
@@ -259,7 +295,13 @@ export const StepContext: React.FC<StepContextProps> = ({
           ))}
         </Box>
       )}
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          mt: 1.5,
+          display: 'block'
+        }}>
         Optional — ohne Auswahl werden alle Spieler verglichen.
       </Typography>
     </Box>

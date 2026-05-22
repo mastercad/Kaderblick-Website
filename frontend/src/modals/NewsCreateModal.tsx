@@ -100,13 +100,26 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
           required
           sx={{ mt: 1, mb: 2 }}
           placeholder="Worum geht es?"
-          inputProps={{ maxLength: 200 }}
+          slotProps={{
+            htmlInput: { maxLength: 200 }
+          }}
         />
 
         {/* Rich Text Editor */}
         <Box sx={{ mb: 2 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 0.5
+            }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontWeight: 500
+              }}>
               Inhalt
             </Typography>
             <Button
@@ -140,9 +153,15 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
               label="Sichtbarkeit"
               onChange={e => setVisibility(e.target.value)}
             >
-              <MenuItem value="platform"><Stack direction="row" spacing={1} alignItems="center"><PublicIcon fontSize="small" /><span>Plattform</span></Stack></MenuItem>
-              <MenuItem value="club"><Stack direction="row" spacing={1} alignItems="center"><BusinessIcon fontSize="small" /><span>Verein</span></Stack></MenuItem>
-              <MenuItem value="team"><Stack direction="row" spacing={1} alignItems="center"><GroupsIcon fontSize="small" /><span>Team</span></Stack></MenuItem>
+              <MenuItem value="platform"><Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}><PublicIcon fontSize="small" /><span>Plattform</span></Stack></MenuItem>
+              <MenuItem value="club"><Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}><BusinessIcon fontSize="small" /><span>Verein</span></Stack></MenuItem>
+              <MenuItem value="team"><Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}><GroupsIcon fontSize="small" /><span>Team</span></Stack></MenuItem>
             </Select>
           </FormControl>
 
@@ -181,7 +200,6 @@ const NewsCreateModal: React.FC<Props> = ({ open, onClose, onSuccess, clubs, tea
           )}
         </Stack>
       </form>
-
       <NewsTemplatePicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

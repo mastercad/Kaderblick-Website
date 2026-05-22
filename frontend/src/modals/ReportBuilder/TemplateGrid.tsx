@@ -8,7 +8,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import type { BuilderData, ReportConfig } from './types';
 import { DEFAULT_REPORT } from './types';
 import { TEMPLATE_META, TEMPLATE_CATEGORIES } from './templateMeta';
@@ -90,7 +90,6 @@ export const TemplateGrid: React.FC<TemplateGridProps> = ({
           />
         ))}
       </Stack>
-
       {/* Card grid */}
       <Box
         sx={{
@@ -147,16 +146,21 @@ export const TemplateGrid: React.FC<TemplateGridProps> = ({
                 </Typography>
                 <Typography
                   variant="subtitle2"
-                  fontWeight={600}
-                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, lineHeight: 1.3, mb: 0.5 }}
-                >
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    lineHeight: 1.3,
+                    mb: 0.5
+                  }}>
                   {tpl.title}
                 </Typography>
                 <Typography
                   variant="caption"
-                  color="text.secondary"
-                  sx={{ lineHeight: 1.3, display: 'block' }}
-                >
+                  sx={{
+                    color: "text.secondary",
+                    lineHeight: 1.3,
+                    display: 'block'
+                  }}>
                   {tpl.desc}
                 </Typography>
               </CardContent>

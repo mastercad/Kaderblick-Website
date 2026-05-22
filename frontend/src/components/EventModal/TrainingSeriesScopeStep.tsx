@@ -55,7 +55,12 @@ export const TrainingSeriesScopeStep: React.FC<TrainingSeriesScopeStepProps> = (
     <Box>
       <FormControl component="fieldset" fullWidth>
         <FormLabel component="legend">
-          <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 0.5 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: "medium",
+              mb: 0.5
+            }}>
             Diese Änderung gilt für …
           </Typography>
         </FormLabel>
@@ -96,13 +101,17 @@ export const TrainingSeriesScopeStep: React.FC<TrainingSeriesScopeStepProps> = (
           />
         </RadioGroup>
       </FormControl>
-
       {showUntilSection && (
         <>
           <Divider sx={{ my: 2 }} />
           <FormControl component="fieldset" fullWidth>
             <FormLabel component="legend">
-              <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 0.5 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: "medium",
+                  mb: 0.5
+                }}>
                 Bis wann gilt die Änderung?
               </Typography>
             </FormLabel>
@@ -135,7 +144,9 @@ export const TrainingSeriesScopeStep: React.FC<TrainingSeriesScopeStepProps> = (
                 onChange={e => handleChange('trainingEditScopeUntilDate', e.target.value)}
                 size="small"
                 sx={{ mt: 1, maxWidth: 220 }}
-                inputProps={{ 'aria-label': 'Enddatum' }}
+                slotProps={{
+                  htmlInput: { 'aria-label': 'Enddatum' }
+                }}
               />
             )}
           </FormControl>

@@ -77,12 +77,14 @@ const BaseModal: React.FC<BaseModalProps> = ({
       maxWidth={maxWidth}
       fullWidth={fullWidth}
       fullScreen={fullScreen || (isMobile && maxWidth === 'lg')}
-      PaperProps={{
-        sx: {
-          borderRadius: fullScreen ? 0 : 2,
-          ...PaperProps?.sx,
-        },
-        ...PaperProps,
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: fullScreen ? 0 : 2,
+            ...PaperProps?.sx,
+          },
+          ...PaperProps,
+        }
       }}
     >
       {/* Title mit Close Button */}
@@ -116,9 +118,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
           )}
         </DialogTitle>
       )}
-
       {/* Content */}
-
       {/* Content */}
       <DialogContent
         sx={{
@@ -129,7 +129,6 @@ const BaseModal: React.FC<BaseModalProps> = ({
       >
         {children}
       </DialogContent>
-
       {/* Actions */}
       {actions && (
         <DialogActions

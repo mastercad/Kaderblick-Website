@@ -36,7 +36,9 @@ export const CancelledBanner: React.FC<CancelledBannerProps> = ({
   >
     <CancelIcon sx={{ mt: 0.25, fontSize: 28, flexShrink: 0 }} />
     <Box>
-      <Typography variant="subtitle2" fontWeight={700}>Abgesagt</Typography>
+      <Typography variant="subtitle2" sx={{
+        fontWeight: 700
+      }}>Abgesagt</Typography>
       {cancelReason && (
         <Typography variant="body2" sx={{ opacity: 0.92 }}>{cancelReason}</Typography>
       )}

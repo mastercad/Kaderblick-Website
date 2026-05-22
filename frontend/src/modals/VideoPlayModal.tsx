@@ -420,7 +420,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           <Box>Kein Video gefunden.</Box>
         )}
       </Box>
-      
       {/* Mobile-Steuerung: Jog-Buttons, Positionsanzeige, Aktionsbuttons */}
       {videoDuration > 0 && (
         <MobileVideoControls
@@ -437,7 +436,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           cumulativeOffset={cumulativeOffset}
         />
       )}
-
       {!canCreateEvents && (
         <Box
           sx={{
@@ -452,7 +450,12 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
             Zeitstempel bearbeiten und Ereignisse anlegen ist Supportern vorbehalten
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 1.5
+            }}>
             Bewirb dich als Supporter, um Spielereignisse direkt im Video anzulegen und bestehende Zeitstempel per Timeline zu korrigieren.
           </Typography>
           <Button variant="contained" onClick={onRequestSupporterAccess}>
@@ -460,7 +463,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           </Button>
         </Box>
       )}
-
       {/* Schnittmarken Toggle Button */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
         <Tooltip title={cutModeActive ? "Schnittmarken-Modus deaktivieren" : "Schnittmarken-Modus aktivieren"}>
@@ -476,7 +478,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           </IconButton>
         </Tooltip>
       </Box>
-      
       {/* Timeline unter dem Video */}
       {videoDuration > 0 && (
         <VideoTimeline
@@ -495,7 +496,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           showCutMarkers={cutModeActive}
         />
       )}
-      
       {/* Schnittmarken Liste - nur im Cut-Modus */}
       {cutModeActive && cutMarkers.length > 0 && (
         <Box sx={{ mt: 2 }}>
@@ -534,7 +534,6 @@ const VideoPlayModal = forwardRef<any, VideoPlayModalProps>(({ open, onClose, vi
           </List>
         </Box>
       )}
-      
       {children}
     </BaseModal>
   );

@@ -3,8 +3,8 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import type { CurrentParticipation } from '../types';
 
 interface ParticipationStatusBadgeProps {
@@ -42,17 +42,21 @@ export const ParticipationStatusBadge: React.FC<ParticipationStatusBadgeProps> =
     <Box sx={{ minWidth: 0, flex: 1 }}>
       <Typography
         variant="body2"
-        fontWeight={600}
-        sx={{ color: participation.color || 'text.primary' }}
-      >
+        sx={{
+          fontWeight: 600,
+          color: participation.color || 'text.primary'
+        }}>
         {participation.statusName}
       </Typography>
       {participation.note && (
         <Typography
           variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', fontStyle: 'italic', wordBreak: 'break-word' }}
-        >
+          sx={{
+            color: "text.secondary",
+            display: 'block',
+            fontStyle: 'italic',
+            wordBreak: 'break-word'
+          }}>
           {participation.note}
         </Typography>
       )}

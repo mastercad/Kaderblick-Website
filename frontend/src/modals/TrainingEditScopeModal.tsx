@@ -105,12 +105,13 @@ export const TrainingEditScopeModal: React.FC<TrainingEditScopeModalProps> = ({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>Training bearbeiten</DialogTitle>
-
       {/* ── Step 1: Which events? ───────────────────────────────────────── */}
       {step === 1 && (
         <>
           <DialogContent sx={{ pt: 0, pb: 1 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Diese Änderung gilt für …
             </Typography>
           </DialogContent>
@@ -179,12 +180,16 @@ export const TrainingEditScopeModal: React.FC<TrainingEditScopeModalProps> = ({
           </DialogActions>
         </>
       )}
-
       {/* ── Step 2: Until when? ─────────────────────────────────────────── */}
       {step === 2 && (
         <>
           <DialogContent sx={{ pt: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mb: 2
+              }}>
               Bis wann soll die Änderung gelten?
             </Typography>
             <RadioGroup
@@ -211,7 +216,9 @@ export const TrainingEditScopeModal: React.FC<TrainingEditScopeModalProps> = ({
                 size="small"
                 fullWidth
                 sx={{ mt: 1 }}
-                inputProps={{ 'aria-label': 'Enddatum' }}
+                slotProps={{
+                  htmlInput: { 'aria-label': 'Enddatum' }
+                }}
               />
             )}
           </DialogContent>

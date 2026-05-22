@@ -94,7 +94,9 @@ const Teams = () => {
   ];
 
   const seasonFilter = (
-    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} spacing={{ xs: 1.5, sm: 2 }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, sm: 2 }} sx={{
+      alignItems: { xs: 'stretch', sm: 'center' }
+    }}>
       <FormControl size="small" sx={{ width: { xs: '100%', sm: 200 } }}>
         <InputLabel id="teams-season-label">Saison</InputLabel>
         <Select

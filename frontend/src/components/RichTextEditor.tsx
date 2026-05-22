@@ -447,7 +447,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         {/* Media & Links */}
         <ToolBtn title="Link einfügen" active={is('link')}
           onClick={openLinkDialog}>
-          <LinkIcon fontSize="small" />
+          <LinkIcon sx={{
+            fontSize: "small"
+          }} />
         </ToolBtn>
         <ToolBtn title="Link entfernen" disabled={!is('link')}
           onClick={() => editor.chain().focus().unsetLink().run()}>
@@ -525,7 +527,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </>
         )}
       </Paper>
-
       {/* ── Editor Area ───────────────────────────────────────────────────── */}
       <Paper
         variant="outlined"
@@ -625,7 +626,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       >
         <EditorContent editor={editor} />
       </Paper>
-
       {/* ── Emoji Popover ─────────────────────────────────────────────────── */}
       <Popover
         open={Boolean(emojiAnchor)}
@@ -633,11 +633,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onClose={() => setEmojiAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        PaperProps={{ sx: { p: 1.5, maxWidth: 340, maxHeight: 380, overflowY: 'auto' } }}
+        slotProps={{
+          paper: { sx: { p: 1.5, maxWidth: 340, maxHeight: 380, overflowY: 'auto' } }
+        }}
       >
         {EMOJI_CATEGORIES.map(cat => (
           <Box key={cat.label} sx={{ mb: 1.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5, px: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontWeight: 600,
+                display: 'block',
+                mb: 0.5,
+                px: 0.5
+              }}>
               {cat.label}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
@@ -659,7 +669,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </Box>
         ))}
       </Popover>
-
       {/* ── Link Dialog ───────────────────────────────────────────────────── */}
       <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Link einfügen</DialogTitle>
@@ -692,7 +701,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <Button variant="contained" onClick={applyLink}>Einfügen</Button>
         </DialogActions>
       </Dialog>
-
       {/* ── Image Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={imageDialogOpen} onClose={() => { setImageDialogOpen(false); setDragOver(false); }} maxWidth="xs" fullWidth>
         <DialogTitle>Bild einfügen</DialogTitle>
@@ -736,10 +744,18 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               ) : (
                 <ImageIcon sx={{ fontSize: 36, color: dragOver ? 'primary.main' : 'text.disabled', mb: 0.75, display: 'block', mx: 'auto' }} />
               )}
-              <Typography variant="body2" fontWeight={600} color={dragOver ? 'primary.main' : 'text.primary'} sx={{ mb: 0.25 }}>
+              <Typography
+                variant="body2"
+                color={dragOver ? 'primary.main' : 'text.primary'}
+                sx={{
+                  fontWeight: 600,
+                  mb: 0.25
+                }}>
                 {dragOver ? 'Bild loslassen …' : 'Bild hier ablegen'}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 oder klicken zum Durchsuchen
               </Typography>
             </Box>
@@ -760,7 +776,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <Button variant="contained" onClick={applyImageUrl} disabled={!imageUrl.trim()}>Weiter →</Button>
         </DialogActions>
       </Dialog>
-
       {/* ── Image Size Picker ─────────────────────────────────────────── */}
       <Dialog
         open={imageSizeOpen}
@@ -770,7 +785,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       >
         <DialogTitle sx={{ pb: 0.5 }}>Bildgröße wählen</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mb: 2
+            }}>
             Wie soll das Bild im Artikel erscheinen?
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
@@ -833,19 +853,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                   </Box>
                   <Typography
                     variant="body2"
-                    fontWeight={700}
-                    textAlign="center"
                     color={selected ? 'primary' : 'text.primary'}
-                  >
+                    sx={{
+                      fontWeight: 700,
+                      textAlign: "center"
+                    }}>
                     {opt.label}
                   </Typography>
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    textAlign="center"
-                    display="block"
-                    sx={{ mt: 0.25, lineHeight: 1.3 }}
-                  >
+                    sx={{
+                      color: "text.secondary",
+                      textAlign: "center",
+                      display: "block",
+                      mt: 0.25,
+                      lineHeight: 1.3
+                    }}>
                     {opt.desc}
                   </Typography>
                 </Box>

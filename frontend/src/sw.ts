@@ -35,7 +35,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 const navigationRoute = new NavigationRoute(
   async ({ request }) => {
     const cache = await caches.open('workbox-precache-v2');
-    const cachedResponse = await cache.match('index.html') || await cache.match('/index.html');
+    const cachedResponse = (await cache.match('index.html')) || (await cache.match('/index.html'));
     if (cachedResponse) {
       return cachedResponse;
     }

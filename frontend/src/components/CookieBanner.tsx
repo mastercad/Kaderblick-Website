@@ -61,18 +61,29 @@ export default function CookieBanner() {
         >
           <Stack
             direction={{ xs: 'column', md: 'row' }}
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            gap={2}
-          >
+            sx={{
+              alignItems: { xs: 'flex-start', md: 'center' },
+              gap: 2
+            }}>
             {/* ── Text ── */}
             <Box sx={{ flex: 1 }}>
-              <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  gap: 1,
+                  mb: 0.5
+                }}>
                 <CookieIcon color="primary" fontSize="small" />
-                <Typography variant="subtitle1" fontWeight={700}>
+                <Typography variant="subtitle1" sx={{
+                  fontWeight: 700
+                }}>
                   Wir respektieren deine Privatsphäre
                 </Typography>
               </Stack>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Wir setzen technisch notwendige Cookies ein, die für den Betrieb der Webseite
                 erforderlich sind. Mit deiner Einwilligung nutzen wir zusätzlich funktionale
                 Cookies, um die Nutzererfahrung zu verbessern. Du kannst deine Einwilligung
@@ -90,9 +101,11 @@ export default function CookieBanner() {
             */}
             <Stack
               direction={isMobile ? 'column' : 'row'}
-              gap={1}
-              sx={{ flexShrink: 0, width: isMobile ? '100%' : 'auto' }}
-            >
+              sx={{
+                gap: 1,
+                flexShrink: 0,
+                width: isMobile ? '100%' : 'auto'
+              }}>
               <Button
                 variant="outlined"
                 size="small"
@@ -124,7 +137,6 @@ export default function CookieBanner() {
           </Stack>
         </Paper>
       </Slide>
-
       {/* ── Einstellungs-Dialog ── */}
       <CookieSettingsDialog
         open={showSettings}

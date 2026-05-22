@@ -188,32 +188,47 @@ export default function HallOfFame() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          mb: 3
+        }}>
         <EmojiEventsIcon color="warning" sx={{ fontSize: 36 }} />
-        <Typography variant="h4" fontWeight={700}>Hall of Fame</Typography>
+        <Typography variant="h4" sx={{
+          fontWeight: 700
+        }}>Hall of Fame</Typography>
       </Stack>
-
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       )}
-
       {error && (
         <Typography color="error">{error}</Typography>
       )}
-
       {data && (
         <Stack spacing={5}>
           {/* ── Level-Rangliste ── */}
           <Box>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                mb: 2
+              }}>
               <StarIcon color="primary" />
-              <Typography variant="h6" fontWeight={600}>Level-Rangliste</Typography>
+              <Typography variant="h6" sx={{
+                fontWeight: 600
+              }}>Level-Rangliste</Typography>
             </Stack>
 
             {data.topLevel.length === 0 ? (
-              <Typography color="text.secondary" variant="body2">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Noch keine Einträge.
               </Typography>
             ) : (
@@ -234,9 +249,11 @@ export default function HallOfFame() {
                   >
                     <Typography
                       variant="h6"
-                      fontWeight={700}
-                      sx={{ minWidth: 28, color: index < 3 ? 'warning.main' : 'text.secondary' }}
-                    >
+                      sx={{
+                        fontWeight: 700,
+                        minWidth: 28,
+                        color: index < 3 ? 'warning.main' : 'text.secondary'
+                      }}>
                       {index + 1}.
                     </Typography>
                     <UserAvatar
@@ -247,10 +264,14 @@ export default function HallOfFame() {
                       titleObj={entry.titleObj}
                     />
                     <Box sx={{ flex: 1 }}>
-                      <Typography fontWeight={600}>
+                      <Typography sx={{
+                        fontWeight: 600
+                      }}>
                         {entry.firstName} {entry.lastName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{
+                        color: "text.secondary"
+                      }}>
                         {entry.xpTotal.toLocaleString('de-DE')} XP
                       </Typography>
                     </Box>
@@ -270,13 +291,23 @@ export default function HallOfFame() {
 
           {/* ── Titelträger ── */}
           <Box>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                mb: 3
+              }}>
               <EmojiEventsIcon color="warning" />
-              <Typography variant="h6" fontWeight={600}>Titelträger</Typography>
+              <Typography variant="h6" sx={{
+                fontWeight: 600
+              }}>Titelträger</Typography>
             </Stack>
 
             {data.titles.length === 0 ? (
-              <Typography color="text.secondary" variant="body2">
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Noch keine aktiven Titel vorhanden.
               </Typography>
             ) : (
@@ -314,7 +345,13 @@ export default function HallOfFame() {
                       </Box>
                       <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 28, flexShrink: 0 }} />
                       <Box>
-                        <Typography variant="subtitle1" fontWeight={700} color="white" lineHeight={1.2}>
+                        <Typography
+                          variant="subtitle1"
+                          color="white"
+                          sx={{
+                            fontWeight: 700,
+                            lineHeight: 1.2
+                          }}>
                           {group.label}
                         </Typography>
                         {group.season && (
@@ -347,10 +384,14 @@ export default function HallOfFame() {
                             titleObj={entry.titleObj}
                           />
                           <Box sx={{ flex: 1 }}>
-                            <Typography fontWeight={600}>
+                            <Typography sx={{
+                              fontWeight: 600
+                            }}>
                               {entry.playerFirstName} {entry.playerLastName}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>
                               {CATEGORY_LABEL[entry.titleCategory] ?? entry.titleCategory}
                             </Typography>
                           </Box>

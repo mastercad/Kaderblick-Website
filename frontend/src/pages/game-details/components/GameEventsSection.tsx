@@ -273,7 +273,6 @@ const GameEventsSection = ({
           </Button>
         )}
       />
-
       <Collapse in={sectionsOpen} timeout="auto" unmountOnExit>
         <Card className="gameevents-mobile-card" sx={{ overflow: 'hidden' }}>
           <CardContent
@@ -286,7 +285,9 @@ const GameEventsSection = ({
             {gameEvents.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <SoccerIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography color="text.secondary" variant="body2">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Keine Ereignisse für dieses Spiel.
                 </Typography>
               </Box>
@@ -297,13 +298,12 @@ const GameEventsSection = ({
                   <Box sx={{ flex: 1, textAlign: 'right', pr: 0.5 }}>
                     <Typography
                       variant="subtitle2"
-                      fontWeight={800}
                       noWrap
                       sx={{
+                        fontWeight: 800,
                         color: userTeamIds.includes(homeTeamId) ? 'primary.main' : 'text.primary',
-                        fontSize: { xs: '0.74rem', sm: '0.88rem' },
-                      }}
-                    >
+                        fontSize: { xs: '0.74rem', sm: '0.88rem' }
+                      }}>
                       {game.homeTeam.name}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>
@@ -317,13 +317,12 @@ const GameEventsSection = ({
                   <Box sx={{ flex: 1, pl: 0.5 }}>
                     <Typography
                       variant="subtitle2"
-                      fontWeight={800}
                       noWrap
                       sx={{
+                        fontWeight: 800,
                         color: userTeamIds.includes(awayTeamId) ? 'primary.main' : 'text.primary',
-                        fontSize: { xs: '0.74rem', sm: '0.88rem' },
-                      }}
-                    >
+                        fontSize: { xs: '0.74rem', sm: '0.88rem' }
+                      }}>
                       {game.awayTeam.name}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem' }}>

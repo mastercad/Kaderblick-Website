@@ -48,18 +48,26 @@ const AddTeamRideModal: React.FC<AddTeamRideModalProps> = ({ open, onClose, even
         </>
       }
     >
-      <Box mb={2} mt={1}>
+      <Box
+        sx={{
+          mb: 2,
+          mt: 1
+        }}>
         <TextField
           label="Anzahl Plätze"
           type="number"
           value={seats}
           onChange={e => setSeats(Number(e.target.value))}
-          inputProps={{ min: 1 }}
           fullWidth
           disabled={saving}
+          slotProps={{
+            htmlInput: { min: 1 }
+          }}
         />
       </Box>
-      <Box mb={2}>
+      <Box sx={{
+        mb: 2
+      }}>
         <TextField
           label="Notiz (optional)"
           value={note}

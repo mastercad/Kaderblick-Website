@@ -17,7 +17,9 @@ const NotFound: React.FC = () => (
       Die angeforderte Seite wurde nicht gefunden.
     </Typography>
     <Box sx={{ fontSize: 48, mb: 2 }}>⚽️</Box>
-    <Typography variant="body2" color="text.secondary">
+    <Typography variant="body2" sx={{
+      color: "text.secondary"
+    }}>
       Bitte prüfe die URL oder gehe zurück zur Startseite.
     </Typography>
   </Container>

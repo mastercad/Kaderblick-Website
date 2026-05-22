@@ -733,7 +733,6 @@ export default function Games() {
           </Button>
         )}
       </Box>
-
       {/* Season + Team Filter */}
       <Box
         sx={{
@@ -753,7 +752,9 @@ export default function Games() {
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 1.5, sm: 2 }}
-            alignItems={{ xs: 'stretch', sm: 'center' }}
+            sx={{
+              alignItems: { xs: 'stretch', sm: 'center' }
+            }}
           >
             {/* Season selector – always visible */}
             <FormControl size="small" sx={{ width: { xs: '100%', sm: 220 } }}>
@@ -817,7 +818,6 @@ export default function Games() {
             )}
           </Stack>
       </Box>
-
       {/* ── Running ── */}
       {runningCount > 0 && (
         <Box sx={{ mb: 4 }}>
@@ -841,7 +841,6 @@ export default function Games() {
           </Collapse>
         </Box>
       )}
-
       {/* ── Upcoming ── */}
       {upcomingCount > 0 && (
         <Box sx={{ mb: 4 }}>
@@ -865,7 +864,6 @@ export default function Games() {
           </Collapse>
         </Box>
       )}
-
       {/* ── Finished ── */}
       {finishedCount > 0 && (
         <Box sx={{ mb: 4 }}>
@@ -893,39 +891,44 @@ export default function Games() {
           </Collapse>
         </Box>
       )}
-
       {/* Empty State */}
       {!hasAny && (
         noTeamAssignment && selectedTeamId === 'all'
           ? (
             <Box sx={{ textAlign: 'center', py: 8, px: 2 }}>
               <FilterIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{
+                color: "text.secondary"
+              }}>
                 Kein Team ausgewählt
               </Typography>
-              <Typography variant="body2" color="text.disabled">
+              <Typography variant="body2" sx={{
+                color: "text.disabled"
+              }}>
                 Du bist keinem Team zugeordnet. Wähle über den Filter oben ein Team aus, um dessen Spiele zu sehen.
               </Typography>
             </Box>
           ) : (
             <Box sx={{ textAlign: 'center', py: 8, px: 2 }}>
               <SoccerIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{
+                color: "text.secondary"
+              }}>
                 Keine Spiele oder Turniere
               </Typography>
-              <Typography variant="body2" color="text.disabled">
+              <Typography variant="body2" sx={{
+                color: "text.disabled"
+              }}>
                 Für dieses Team sind aktuell keine Spiele oder Turniere vorhanden.
               </Typography>
             </Box>
           )
       )}
-
       <WeatherModal
         open={weatherModalOpen}
         onClose={() => setWeatherModalOpen(false)}
         eventId={selectedEventId}
       />
-
       {quickEventGame && (
         <ToastProvider>
           <QuickEventPanel
@@ -945,7 +948,6 @@ export default function Games() {
           />
         </ToastProvider>
       )}
-
       <SupporterApplicationModal
         open={supporterApplicationOpen}
         onClose={() => setSupporterApplicationOpen(false)}

@@ -38,8 +38,13 @@ const ClubAssignmentRow = React.memo<ClubAssignmentRowProps>(({ assignment, canE
         [allClubs, canEditStammdaten]
     );
     return (
-        <Box display="flex" gap={2} alignItems="center" mb={1}
-            sx={canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
+        <Box
+            sx={[{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                mb: 1
+            }, canEditStammdaten === false ? { pointerEvents: 'none' } : {}]}>
             <Autocomplete
                 options={options}
                 getOptionLabel={(option) => option.name}
@@ -75,17 +80,21 @@ const ClubAssignmentRow = React.memo<ClubAssignmentRowProps>(({ assignment, canE
                 type="date"
                 value={assignment.startDate || ''}
                 onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
                 required
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             <TextField
                 label="Ende"
                 type="date"
                 value={assignment.endDate || ''}
                 onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             {canEditStammdaten !== false && (
                 <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
@@ -104,8 +113,13 @@ interface TeamAssignmentRowProps {
 const TeamAssignmentRow = React.memo<TeamAssignmentRowProps>(({ assignment, allTeams, allPlayerTeamAssignmentTypes, onChange, onRemove }) => {
     const ptaEditable = assignment.id === null || assignment.canEdit !== false;
     return (
-        <Box display="flex" gap={2} alignItems="center" mb={1}
-            sx={!ptaEditable ? { opacity: 0.55, pointerEvents: 'none' } : {}}>
+        <Box
+            sx={[{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                mb: 1
+            }, !ptaEditable ? { opacity: 0.55, pointerEvents: 'none' } : {}]}>
             <Autocomplete
                 options={allTeams}
                 getOptionLabel={(option) => option.name}
@@ -122,23 +136,31 @@ const TeamAssignmentRow = React.memo<TeamAssignmentRowProps>(({ assignment, allT
                 label="Typ"
                 value={assignment.type ? String(assignment.type) : ''}
                 onChange={e => onChange(assignment.id, 'type', e.target.value)}
-                SelectProps={{ native: true }}
                 sx={{ minWidth: 140 }}
+                slotProps={{
+                    select: { native: true }
+                }}
             >
                 <option value="">Typ wählen...</option>
                 {allPlayerTeamAssignmentTypes.map(assignmentType => (
                     <option key={assignmentType.id} value={String(assignmentType.id)}>{assignmentType.name}</option>
                 ))}
             </TextField>
-            <Box flex={1} minWidth={80}>
+            <Box
+                sx={{
+                    flex: 1,
+                    minWidth: 80
+                }}>
                 <TextField
                     label="Trikot Nummer"
                     name="shirtNumber"
                     value={assignment.shirtNumber || ''}
                     onChange={e => onChange(assignment.id, 'shirtNumber', e.target.value)}
                     fullWidth
-                    InputProps={{ startAdornment: <InputAdornment position="start">#</InputAdornment> }}
                     required
+                    slotProps={{
+                        input: { startAdornment: <InputAdornment position="start">#</InputAdornment> }
+                    }}
                 />
             </Box>
             <TextField
@@ -146,17 +168,21 @@ const TeamAssignmentRow = React.memo<TeamAssignmentRowProps>(({ assignment, allT
                 type="date"
                 value={assignment.startDate || ''}
                 onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
                 required
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             <TextField
                 label="Ende"
                 type="date"
                 value={assignment.endDate || ''}
                 onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             {ptaEditable && (
                 <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small"><DeleteIcon /></IconButton>
@@ -179,8 +205,13 @@ const NationalityAssignmentRow = React.memo<NationalityAssignmentRowProps>(({ as
         [allNationalities, canEditStammdaten]
     );
     return (
-        <Box display="flex" gap={2} alignItems="center" mb={1}
-            sx={canEditStammdaten === false ? { pointerEvents: 'none' } : {}}>
+        <Box
+            sx={[{
+                display: "flex",
+                gap: 2,
+                alignItems: "center",
+                mb: 1
+            }, canEditStammdaten === false ? { pointerEvents: 'none' } : {}]}>
             <Autocomplete
                 options={options}
                 getOptionLabel={(option) => option.name}
@@ -216,17 +247,21 @@ const NationalityAssignmentRow = React.memo<NationalityAssignmentRowProps>(({ as
                 type="date"
                 value={assignment.startDate || ''}
                 onChange={e => onChange(assignment.id, 'startDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
                 required
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             <TextField
                 label="Ende"
                 type="date"
                 value={assignment.endDate || ''}
                 onChange={e => onChange(assignment.id, 'endDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 sx={{ minWidth: 120 }}
+                slotProps={{
+                    inputLabel: { shrink: true }
+                }}
             />
             <IconButton onClick={() => onRemove(assignment.id)} color="error" size="small">
                 <DeleteIcon />
@@ -256,9 +291,9 @@ const AltPositionsField = React.memo<AltPositionsFieldProps>(
                 getOptionLabel={option => option.name}
                 value={value}
                 onChange={handleChange}
-                renderTags={(tagValue, getTagProps) =>
+                renderValue={(tagValue, getItemProps) =>
                     tagValue.map((option: Position, index: number) => (
-                        <Chip label={option.name} {...getTagProps({ index })} key={option.id} />
+                        <Chip label={option.name} {...getItemProps({ index })} key={option.id} />
                     ))
                 }
                 renderInput={params => (
@@ -346,20 +381,49 @@ const StammdatenSection = React.memo(
 
             return (
                 <>
-                    <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                    <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{
+                            mb: 3,
+                            display: "flex",
+                            alignItems: "center"
+                        }}>
                         Stammdaten
                         {!canEdit && <Chip label="Nur Ansicht" size="small" sx={{ ml: 1 }} />}
                     </Typography>
-                    <Box display="flex" flexWrap="wrap" gap={2}>
-                        <Box flex={1} minWidth={250}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 2
+                        }}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <TextField label="Vorname" name="firstName" value={fields.firstName} onChange={handleInputChange} required fullWidth margin="normal" />
                         </Box>
-                        <Box flex={1} minWidth={250}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <TextField label="Nachname" name="lastName" value={fields.lastName} onChange={handleInputChange} required fullWidth margin="normal" />
                         </Box>
                     </Box>
-                    <Box display="flex" flexWrap="wrap" gap={2}>
-                        <Box flex={1} minWidth={250}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 2
+                        }}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <TextField
                                 label="Geburtsdatum"
                                 name="birthdate"
@@ -368,15 +432,32 @@ const StammdatenSection = React.memo(
                                 onChange={handleInputChange}
                                 fullWidth
                                 margin="normal"
-                                InputLabelProps={{ shrink: true }}
+                                slotProps={{
+                                    inputLabel: { shrink: true }
+                                }}
                             />
                         </Box>
-                        <Box flex={1} minWidth={250}>
-                            <TextField label="E-Mail" name="email" value={fields.email} onChange={handleInputChange} fullWidth margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">✉️</InputAdornment> }} />
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
+                            <TextField label="E-Mail" name="email" value={fields.email} onChange={handleInputChange} fullWidth margin="normal" slotProps={{
+                                input: { startAdornment: <InputAdornment position="start">✉️</InputAdornment> }
+                            }} />
                         </Box>
                     </Box>
-                    <Box display="flex" flexWrap="wrap" gap={2}>
-                        <Box flex={1} minWidth={250}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 2
+                        }}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <TextField
                                 select
                                 label="Starker Fuß"
@@ -385,16 +466,21 @@ const StammdatenSection = React.memo(
                                 required
                                 fullWidth
                                 margin="normal"
-                                SelectProps={{ native: true }}
-                                InputLabelProps={{ shrink: true }}
-                            >
+                                slotProps={{
+                                    select: { native: true },
+                                    inputLabel: { shrink: true }
+                                }}>
                                 <option value="">Starken Fuß wählen...</option>
                                 {allStrongFeets.map(sf => (
                                     <option key={sf.id} value={String(sf.id)}>{sf.name}</option>
                                 ))}
                             </TextField>
                         </Box>
-                        <Box flex={1} minWidth={250}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <TextField
                                 select
                                 label="Hauptposition"
@@ -403,9 +489,10 @@ const StammdatenSection = React.memo(
                                 fullWidth
                                 required
                                 margin="normal"
-                                SelectProps={{ native: true }}
-                                InputLabelProps={{ shrink: true }}
-                            >
+                                slotProps={{
+                                    select: { native: true },
+                                    inputLabel: { shrink: true }
+                                }}>
                                 <option value="">Hauptposition wählen...</option>
                                 {allPlayerPositions.map(position => (
                                     <option key={position.id} value={String(position.id)}>{position.name}</option>
@@ -413,8 +500,17 @@ const StammdatenSection = React.memo(
                             </TextField>
                         </Box>
                     </Box>
-                    <Box display="flex" flexWrap="wrap" gap={2}>
-                        <Box flex={1} minWidth={250}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 2
+                        }}>
+                        <Box
+                            sx={{
+                                flex: 1,
+                                minWidth: 250
+                            }}>
                             <AltPositionsField
                                 options={allPlayerPositions}
                                 value={fields.alternativePositions}
@@ -748,7 +844,13 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                 title={player?.id ? 'Spieler bearbeiten' : 'Spieler anlegen / zuordnen'}
             >
                 {loading ? (
-                <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 200
+                    }}>
                     <CircularProgress />
                 </Box>
                 ) : (
@@ -761,14 +863,37 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
 
                     {/* Suche nach bestehendem Spieler – nur beim Neuanlegen */}
                     {showPlayerSearch && (
-                        <Box mb={3} p={2} sx={{ bgcolor: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="subtitle1" fontWeight={600} mb={1}>
+                        <Box
+                            sx={{
+                                mb: 3,
+                                p: 2,
+                                bgcolor: 'action.hover',
+                                borderRadius: 2,
+                                border: '1px solid',
+                                borderColor: 'divider'
+                            }}>
+                            <Typography
+                                variant="subtitle1"
+                                sx={{
+                                    fontWeight: 600,
+                                    mb: 1
+                                }}>
                                 Besteht dieser Spieler bereits?
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" mb={2}>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: "text.secondary",
+                                    mb: 2
+                                }}>
                                 Suche nach einem vorhandenen Spieler (auch aus früheren Saisons), um eine neue Team-Zuordnung hinzuzufügen, statt einen Duplikat anzulegen.
                             </Typography>
-                            <Box display="flex" gap={1} alignItems="flex-start">
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    gap: 1,
+                                    alignItems: "flex-start"
+                                }}>
                                 <Autocomplete
                                     sx={{ flex: 1 }}
                                     options={playerSearchResults}
@@ -791,14 +916,18 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                             {...params}
                                             label="Spieler suchen (Name)"
                                             size="small"
-                                            InputProps={{
-                                                ...params.InputProps,
-                                                endAdornment: (
-                                                    <>
-                                                        {playerSearchLoading ? <CircularProgress size={16} /> : null}
-                                                        {params.InputProps.endAdornment}
-                                                    </>
-                                                ),
+                                            slotProps={{
+                                                ...params.slotProps,
+
+                                                input: {
+                                                    ...params.slotProps.input,
+                                                    endAdornment: (
+                                                        <>
+                                                            {playerSearchLoading ? <CircularProgress size={16} /> : null}
+                                                            {params.slotProps.input.endAdornment}
+                                                        </>
+                                                    ),
+                                                }
                                             }}
                                         />
                                     )}
@@ -828,8 +957,13 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                             )}
 
                             {/* Stammdaten zuerst */}
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider"
-                                sx={!canEditStammdaten ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
+                            <Box
+                                sx={[{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }, !canEditStammdaten ? { opacity: 0.6, pointerEvents: 'none' } : {}]}>
                                 <StammdatenSection
                                     ref={stammdatenRef}
                                     initialPlayer={player}
@@ -838,14 +972,32 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                     allPlayerPositions={allPlayerPositions}
                                 />
                             </Box>
-                            <Box mb={4} pb={2} borderBottom={1} borderColor="divider">
-                                <Typography variant="h6" color="primary" mb={3} display="flex" alignItems="center">
+                            <Box
+                                sx={{
+                                    mb: 4,
+                                    pb: 2,
+                                    borderBottom: 1,
+                                    borderColor: "divider"
+                                }}>
+                                <Typography
+                                    variant="h6"
+                                    color="primary"
+                                    sx={{
+                                        mb: 3,
+                                        display: "flex",
+                                        alignItems: "center"
+                                    }}>
                                     Zugehörigkeiten
                                 </Typography>
                                 <Stack spacing={2}>
                                     {/* Verein-Zuordnungen: immer sichtbar, nur bearbeitbar bei voller Berechtigung */}
                                     <Box sx={!canEditStammdaten ? { opacity: 0.75 } : {}}>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Verein-Zuordnungen</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Verein-Zuordnungen</Typography>
                                         {(player?.clubAssignments ?? []).map((assignment: any) => (
                                             <ClubAssignmentRow
                                                 key={assignment.id}
@@ -863,7 +1015,12 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                     </Box>
 
                                     <Box>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Team-Zuordnungen</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Team-Zuordnungen</Typography>
                                         {(player?.teamAssignments ?? []).map((assignment: any) => (
                                             <TeamAssignmentRow
                                                 key={assignment.id ?? assignment._tempKey}
@@ -938,7 +1095,12 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
 */}
                                     {/* Nationalitäten: immer sichtbar, nur bearbeitbar bei voller Berechtigung */}
                                     <Box sx={!canEditStammdaten ? { opacity: 0.75 } : {}}>
-                                        <Typography variant="subtitle1" mt={2} mb={1}>Nationalitäten</Typography>
+                                        <Typography
+                                            variant="subtitle1"
+                                            sx={{
+                                                mt: 2,
+                                                mb: 1
+                                            }}>Nationalitäten</Typography>
                                         {(player?.nationalityAssignments ?? []).map((assignment: any) => (
                                             <NationalityAssignmentRow
                                                 key={assignment.id}
@@ -959,7 +1121,14 @@ const PlayerEditModal: React.FC<PlayerEditModalProps> = ({ openPlayerEditModal, 
                                 </Stack>
                             </Box>
                         </Box>
-                        <Box display="flex" justifyContent="flex-end" gap={2} mt={2} mb={1}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 2,
+                                mt: 2,
+                                mb: 1
+                            }}>
                             <Button onClick={onPlayerEditModalClose} variant="outlined" color="secondary">
                                 Abbrechen
                             </Button>

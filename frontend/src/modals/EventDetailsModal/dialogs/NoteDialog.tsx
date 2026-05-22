@@ -38,11 +38,15 @@ export const NoteDialog: React.FC<NoteDialogProps> = ({
       onClose={onClose}
       maxWidth="xs"
       fullWidth
-      PaperProps={{ sx: { borderRadius: isMobile ? 0 : 3, m: isMobile ? 0 : 2, width: '100%' } }}
       sx={isMobile ? { '& .MuiDialog-container': { alignItems: 'flex-end' } } : {}}
+      slotProps={{
+        paper: { sx: { borderRadius: isMobile ? 0 : 3, m: isMobile ? 0 : 2, width: '100%' } }
+      }}
     >
       <DialogTitle sx={{ pb: 1 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           {pendingStatus?.color && (
             <Box
               sx={{
@@ -54,14 +58,20 @@ export const NoteDialog: React.FC<NoteDialogProps> = ({
               }}
             />
           )}
-          <Typography variant="subtitle1" fontWeight={700}>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 700
+          }}>
             {pendingStatus?.name ?? 'Rückmeldung'}
           </Typography>
         </Stack>
       </DialogTitle>
-
       <DialogContent sx={{ pt: '8px !important' }}>
-        <Typography variant="body2" color="text.secondary" mb={1.5}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 1.5
+          }}>
           Möchtest du eine Nachricht hinzufügen? (optional)
         </Typography>
         <TextField
@@ -74,13 +84,14 @@ export const NoteDialog: React.FC<NoteDialogProps> = ({
           minRows={3}
           maxRows={6}
           autoFocus
-          inputProps={{ maxLength: 300 }}
           placeholder="z.B. Komme 10 Minuten später&#10;Bringe Eierschecke mit&#10;…"
           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           helperText={`${note.length}/300`}
+          slotProps={{
+            htmlInput: { maxLength: 300 }
+          }}
         />
       </DialogContent>
-
       <DialogActions sx={{ px: 2.5, pb: 2.5, gap: 1 }}>
         <Button onClick={onClose} sx={{ borderRadius: 2, flex: 1 }}>
           Abbrechen

@@ -79,7 +79,12 @@ export function SharePresetDialog({ preset, onClose, onShared }: SharePresetDial
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Konfiguration teilen: „{preset?.name}"</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Wähle Trainer, Assistenten oder Supporter aus, mit denen diese Konfiguration geteilt werden soll.
           Bereits geteilte Berechtigungen werden durch diese Auswahl ersetzt.
         </Typography>
@@ -100,14 +105,18 @@ export function SharePresetDialog({ preset, onClose, onShared }: SharePresetDial
               {...params}
               label="Benutzer suchen"
               placeholder="Name eingeben…"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {searching && <CircularProgress size={18} />}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
+              slotProps={{
+                ...params.slotProps,
+
+                input: {
+                  ...params.slotProps.input,
+                  endAdornment: (
+                    <>
+                      {searching && <CircularProgress size={18} />}
+                      {params.slotProps.input.endAdornment}
+                    </>
+                  ),
+                }
               }}
             />
           )}

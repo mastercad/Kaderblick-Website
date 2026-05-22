@@ -112,27 +112,46 @@ export default function SystemSettings() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" mt={8}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: 8
+        }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box maxWidth={700} mx="auto" mt={4} px={2}>
-      <Box display="flex" alignItems="center" gap={1.5} mb={3}>
+    <Box
+      sx={{
+        maxWidth: 700,
+        mx: "auto",
+        mt: 4,
+        px: 2
+      }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          mb: 3
+        }}>
         <SettingsIcon color="action" fontSize="large" />
-        <Typography variant="h5" fontWeight={600}>
+        <Typography variant="h5" sx={{
+          fontWeight: 600
+        }}>
           System-Einstellungen
         </Typography>
       </Box>
-
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
-
       <Paper variant="outlined">
         <CardContent>
-          <Typography variant="overline" color="text.secondary">
+          <Typography variant="overline" sx={{
+            color: "text.secondary"
+          }}>
             Registrierung
           </Typography>
           <Divider sx={{ mb: 2 }} />
@@ -153,10 +172,14 @@ export default function SystemSettings() {
               }
               label={
                 <Box>
-                  <Typography fontWeight={500}>
+                  <Typography sx={{
+                    fontWeight: 500
+                  }}>
                     Verknüpfungsanfrage-Dialog aktiv
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Wenn aktiv, sehen neue Benutzer nach dem ersten Login einen Dialog, in dem sie
                     sich einem Spieler oder Trainer zuordnen. Wenn deaktiviert, erhalten Admins
                     nur eine Benachrichtigung und verknüpfen Benutzer manuell.
@@ -167,7 +190,14 @@ export default function SystemSettings() {
             />
 
             {settings[REGISTRATION_CONTEXT_KEY]?.updatedAt && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', ml: '52px' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5,
+                  display: 'block',
+                  ml: '52px'
+                }}>
                 Zuletzt geändert:{' '}
                 {new Date(settings[REGISTRATION_CONTEXT_KEY].updatedAt).toLocaleString('de-DE')}
               </Typography>
@@ -175,13 +205,20 @@ export default function SystemSettings() {
           </Box>
         </CardContent>
       </Paper>
-
       {/* ── 2FA Enforcement ─────────────────────────────────────────────── */}
       <Paper variant="outlined" sx={{ mt: 3 }}>
         <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mb: 1
+            }}>
             <SecurityIcon color="action" fontSize="small" />
-            <Typography variant="overline" color="text.secondary">
+            <Typography variant="overline" sx={{
+              color: "text.secondary"
+            }}>
               Sicherheit
             </Typography>
           </Box>
@@ -203,10 +240,14 @@ export default function SystemSettings() {
               }
               label={
                 <Box>
-                  <Typography fontWeight={500}>
+                  <Typography sx={{
+                    fontWeight: 500
+                  }}>
                     Zwei-Faktor-Authentifizierung verpflichtend
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                  }}>
                     Wenn aktiv, werden alle Benutzer die noch keine 2FA aktiviert haben mit einem
                     Hinweis-Banner darauf aufmerksam gemacht. Benutzer mit aktivierter 2FA sind
                     davon nicht betroffen. Dies deaktiviert keinen bestehenden Zugang – es ist
@@ -218,7 +259,14 @@ export default function SystemSettings() {
             />
 
             {settings[TWO_FA_REQUIRED_KEY]?.updatedAt && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', ml: '52px' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 0.5,
+                  display: 'block',
+                  ml: '52px'
+                }}>
                 Zuletzt geändert:{' '}
                 {new Date(settings[TWO_FA_REQUIRED_KEY].updatedAt).toLocaleString('de-DE')}
               </Typography>
@@ -226,23 +274,39 @@ export default function SystemSettings() {
           </Box>
         </CardContent>
       </Paper>
-
       {/* ── Push-Benachrichtigungen ──────────────────────────────────────── */}
       <Paper variant="outlined" sx={{ mt: 3 }}>
         <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mb: 1
+            }}>
             <NotificationsIcon color="action" fontSize="small" />
-            <Typography variant="overline" color="text.secondary">
+            <Typography variant="overline" sx={{
+              color: "text.secondary"
+            }}>
               Push-Benachrichtigungen
             </Typography>
           </Box>
           <Divider sx={{ mb: 2 }} />
 
           <Box>
-            <Typography fontWeight={500} mb={0.5}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                mb: 0.5
+              }}>
               Benachrichtigungs-Modus
             </Typography>
-            <Typography variant="body2" color="text.secondary" mb={1.5}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mb: 1.5
+              }}>
               Legt fest, welche Benutzer Push-Benachrichtigungen bei Änderungen an Events erhalten.
               Im Wartungsmodus werden nur SuperAdmins benachrichtigt.
             </Typography>
@@ -256,8 +320,12 @@ export default function SystemSettings() {
                 control={<Radio disabled={saving} />}
                 label={
                   <Box>
-                    <Typography fontWeight={500}>Alle Benutzer</Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography sx={{
+                      fontWeight: 500
+                    }}>Alle Benutzer</Typography>
+                    <Typography variant="body2" sx={{
+                      color: "text.secondary"
+                    }}>
                       Push-Benachrichtigungen an alle betroffenen Benutzer senden (Standard).
                     </Typography>
                   </Box>
@@ -269,8 +337,12 @@ export default function SystemSettings() {
                 control={<Radio disabled={saving} />}
                 label={
                   <Box>
-                    <Typography fontWeight={500}>Nur an mich (Wartungsmodus)</Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography sx={{
+                      fontWeight: 500
+                    }}>Nur an mich (Wartungsmodus)</Typography>
+                    <Typography variant="body2" sx={{
+                      color: "text.secondary"
+                    }}>
                       Nur SuperAdmins erhalten Push-Benachrichtigungen – nützlich bei Wartungsarbeiten.
                     </Typography>
                   </Box>
@@ -282,8 +354,12 @@ export default function SystemSettings() {
                 control={<Radio disabled={saving} />}
                 label={
                   <Box>
-                    <Typography fontWeight={500}>Deaktiviert</Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography sx={{
+                      fontWeight: 500
+                    }}>Deaktiviert</Typography>
+                    <Typography variant="body2" sx={{
+                      color: "text.secondary"
+                    }}>
                       Keine Push-Benachrichtigungen werden gesendet.
                     </Typography>
                   </Box>
@@ -293,7 +369,13 @@ export default function SystemSettings() {
             </RadioGroup>
 
             {settings[PUSH_NOTIFICATIONS_MODE_KEY]?.updatedAt && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 1,
+                  display: 'block'
+                }}>
                 Zuletzt geändert:{' '}
                 {new Date(settings[PUSH_NOTIFICATIONS_MODE_KEY].updatedAt).toLocaleString('de-DE')}
               </Typography>
@@ -301,23 +383,39 @@ export default function SystemSettings() {
           </Box>
         </CardContent>
       </Paper>
-
       {/* ── Mein Spieltag ───────────────────────────────────────────────── */}
       <Paper variant="outlined" sx={{ mt: 3 }}>
         <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mb: 1
+            }}>
             <SportsSoccerIcon color="action" fontSize="small" />
-            <Typography variant="overline" color="text.secondary">
+            <Typography variant="overline" sx={{
+              color: "text.secondary"
+            }}>
               Mein Spieltag
             </Typography>
           </Box>
           <Divider sx={{ mb: 2 }} />
 
           <Box>
-            <Typography fontWeight={500} mb={0.5}>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                mb: 0.5
+              }}>
               Vorausschau-Zeitraum für anstehende Spiele
             </Typography>
-            <Typography variant="body2" color="text.secondary" mb={2}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mb: 2
+              }}>
               Legt fest, wie viele Tage im Voraus Spiele in "Mein Spieltag" als Tabs angezeigt werden.
               Bei einem Wert von 7 sieht ein Spieler alle Spiele der nächsten Woche.
             </Typography>
@@ -345,7 +443,13 @@ export default function SystemSettings() {
             </Box>
 
             {settings[MATCHDAY_LOOKAHEAD_DAYS_KEY]?.updatedAt && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  mt: 1,
+                  display: 'block'
+                }}>
                 Zuletzt geändert:{' '}
                 {new Date(settings[MATCHDAY_LOOKAHEAD_DAYS_KEY].updatedAt).toLocaleString('de-DE')}
               </Typography>

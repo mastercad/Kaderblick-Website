@@ -81,37 +81,64 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({ teamDetailOpen, tea
                 }
             >
                 {team && team.permissions?.canView ? (
-                    <Box mb={2}>
+                    <Box sx={{
+                        mb: 2
+                    }}>
                         <TeamBannerSection
                             teamId={teamId!}
                             bannerImage={bannerImage}
                             canEditBanner={team.permissions?.canEditBanner ?? false}
                             onBannerChange={setBannerImage}
                         />
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, mt: bannerImage || team.permissions?.canEditBanner ? 2 : 0 }}>Beschreibung</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: "text.secondary",
+                                mb: 0.5,
+                                mt: bannerImage || team.permissions?.canEditBanner ? 2 : 0
+                            }}>Beschreibung</Typography>
                         <Typography variant="body1" sx={{ mb: 2 }}>{team.description}</Typography>
                         <Divider sx={{ mb: 2 }} />
-                        <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
+                        <Box
+                            sx={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
+                                gap: 2
+                            }}>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Code</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Code</Typography>
                                 <Typography variant="body1">{team.code}</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Stichtag</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Stichtag</Typography>
                                 <Typography variant="body1">{team.referenceDate}</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Mindestalter</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Mindestalter</Typography>
                                 <Typography variant="body1">{team.minAge} Jahre</Typography>
                             </Box>
                             <Box>
-                                <Typography variant="body2" color="text.secondary">Höchstalter</Typography>
+                                <Typography variant="body2" sx={{
+                                    color: "text.secondary"
+                                }}>Höchstalter</Typography>
                                 <Typography variant="body1">{team.maxAge} Jahre</Typography>
                             </Box>
                         </Box>
                     </Box>
                 ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 200
+                        }}>
                         <CircularProgress />
                     </Box>
                 )}

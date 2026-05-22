@@ -120,7 +120,9 @@ const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ open, onClose }) =>
             <Alert severity="success" sx={{ borderRadius: 2 }}>
               Deine Demo-Anfrage ist eingegangen! Wir melden uns so schnell wie möglich per E-Mail bei dir.
             </Alert>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Zur Bestätigung haben wir dir eine E-Mail an <strong>{form.email}</strong> geschickt.
             </Typography>
           </>
@@ -128,7 +130,9 @@ const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ open, onClose }) =>
           <>
             {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
 
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Füll das Formular aus und wir melden uns direkt bei dir. Pflichtfelder sind mit * markiert.
             </Typography>
 
@@ -161,7 +165,12 @@ const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ open, onClose }) =>
 
             <Divider />
 
-            <Typography variant="caption" color="text.secondary" sx={{ mt: -1 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mt: -1
+              }}>
               Optionale Angaben – helfen uns, die Demo besser auf euren Verein zuzuschneiden
             </Typography>
 

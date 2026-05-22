@@ -10,9 +10,16 @@ interface EventDescriptionProps {
 
 export const EventDescription: React.FC<EventDescriptionProps> = ({ description }) => (
   <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-    <Stack direction="row" spacing={1} alignItems="flex-start">
+    <Stack direction="row" spacing={1} sx={{
+      alignItems: "flex-start"
+    }}>
       <DescriptionIcon sx={{ fontSize: 20, color: 'text.secondary', mt: 0.25, flexShrink: 0 }} />
-      <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'pre-wrap' }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.primary",
+          whiteSpace: 'pre-wrap'
+        }}>
         {description}
       </Typography>
     </Stack>

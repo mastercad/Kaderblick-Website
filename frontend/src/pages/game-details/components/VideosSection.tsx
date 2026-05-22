@@ -173,7 +173,13 @@ const VideosSection = ({
                           )}
                         </Box>
                         {video.filePath && (
-                          <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5, fontSize: '0.75rem' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: "text.disabled",
+                              mt: 0.5,
+                              fontSize: '0.75rem'
+                            }}>
                             {video.filePath}
                           </Typography>
                         )}
@@ -210,7 +216,9 @@ const VideosSection = ({
             ) : (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <VideoIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography color="text.secondary" variant="body2">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Keine Videos für dieses Spiel.
                 </Typography>
               </Box>

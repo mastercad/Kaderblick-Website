@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { LineChart } from '@mui/x-charts';
 import {
@@ -116,7 +116,9 @@ function StatCard({ label, value, color }: StatCardProps) {
   return (
     <Paper elevation={0} sx={{ flex: '1 1 140px', minWidth: 120, p: 2, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
       <Typography variant="h4" sx={{ color, fontWeight: 700 }}>{value}</Typography>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
+      <Typography variant="caption" sx={{
+        color: "text.secondary"
+      }}>{label}</Typography>
     </Paper>
   );
 }
@@ -207,13 +209,13 @@ export default function ActivityOverview() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
-
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <ShowChartIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-        <Typography variant="h5" fontWeight={700}>Nutzeraktivität</Typography>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>Nutzeraktivität</Typography>
       </Box>
-
       {/* Stats */}
       {stats && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
@@ -223,11 +225,12 @@ export default function ActivityOverview() {
           <StatCard label="Nie aktiv"      value={stats.neverActive}      color="text.disabled" />
         </Box>
       )}
-
       {/* Trend chart */}
       <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 600
+          }}>
             Aktivitätstrend
           </Typography>
           <ToggleButtonGroup
@@ -250,7 +253,12 @@ export default function ActivityOverview() {
         {trendError && <Alert severity="error" sx={{ mt: 1 }}>{trendError}</Alert>}
 
         {!trendLoading && !trendError && chartLabels.length === 0 && (
-          <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+          <Typography
+            sx={{
+              color: "text.secondary",
+              py: 3,
+              textAlign: 'center'
+            }}>
             Keine Aktivitätsdaten für diesen Zeitraum.
           </Typography>
         )}
@@ -277,7 +285,6 @@ export default function ActivityOverview() {
           />
         )}
       </Paper>
-
       {/* Search */}
       <TextField
         size="small"
@@ -286,9 +293,7 @@ export default function ActivityOverview() {
         onChange={e => handleSearchChange(e.target.value)}
         sx={{ mb: 2, width: { xs: '100%', sm: 320 } }}
       />
-
       {listError && <Alert severity="error" sx={{ mb: 2 }}>{listError}</Alert>}
-
       {/* Table */}
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <Table size="small">
@@ -358,7 +363,9 @@ export default function ActivityOverview() {
                         <Typography variant="body2">{formatRelative(user.minutesAgo)}</Typography>
                       </Tooltip>
                     ) : (
-                      <Typography variant="body2" color="text.disabled">–</Typography>
+                      <Typography variant="body2" sx={{
+                        color: "text.disabled"
+                      }}>–</Typography>
                     )}
                   </TableCell>
                   <TableCell>
@@ -385,11 +392,15 @@ export default function ActivityOverview() {
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} von ${count}`}
         />
       </TableContainer>
-
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          mt: 1,
+          display: 'block'
+        }}>
         Aktivität wird beim Laden von API-Seiten erfasst (max. alle 5 Minuten aktualisiert).
       </Typography>
-
     </Box>
   );
 }

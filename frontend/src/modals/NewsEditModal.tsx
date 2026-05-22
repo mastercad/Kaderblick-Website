@@ -68,12 +68,25 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
             required
             sx={{ mb: 2 }}
             disabled={loading}
-            inputProps={{ maxLength: 200 }}
+            slotProps={{
+              htmlInput: { maxLength: 200 }
+            }}
           />
 
           <Box>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 0.5
+              }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 500
+                }}>
                 Inhalt
               </Typography>
               <Button
@@ -104,7 +117,6 @@ const NewsEditModal: React.FC<Props> = ({ open, onClose, onSuccess, news }) => {
           </Button>
         </DialogActions>
       </form>
-
       <NewsTemplatePicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

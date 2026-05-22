@@ -37,9 +37,11 @@ export function EquipmentTab({ form, onChange }: EquipmentTabProps) {
           {SOCKS_SIZES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
         <TextField label="Schuhgröße (EU)" type="number" size="small" fullWidth
-          inputProps={{ step: 0.5 }}
           value={form.shoeSize}
-          onChange={e => onChange({ shoeSize: e.target.value ? Number(e.target.value) : '' })} />
+          onChange={e => onChange({ shoeSize: e.target.value ? Number(e.target.value) : '' })}
+          slotProps={{
+            htmlInput: { step: 0.5 }
+          }} />
       </Box>
     </SectionCard>
   );

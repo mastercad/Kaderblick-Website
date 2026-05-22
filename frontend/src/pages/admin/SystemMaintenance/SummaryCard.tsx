@@ -31,7 +31,13 @@ export default function SummaryCard({ label, value, color, icon, onClick, active
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
-        <Typography variant="h5" fontWeight={700} color={active ? colorMap[color] : 'text.primary'} lineHeight={1}>
+        <Typography
+          variant="h5"
+          color={active ? colorMap[color] : 'text.primary'}
+          sx={{
+            fontWeight: 700,
+            lineHeight: 1
+          }}>
           {value.toLocaleString('de-DE')}
         </Typography>
         {icon && (
@@ -40,7 +46,13 @@ export default function SummaryCard({ label, value, color, icon, onClick, active
           </Box>
         )}
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.3 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mt: 0.5,
+          lineHeight: 1.3
+        }}>
         {label}
       </Typography>
     </Paper>

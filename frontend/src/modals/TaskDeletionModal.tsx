@@ -38,7 +38,9 @@ export const TaskDeletionModal: React.FC<TaskDeletionModalProps> = ({
   <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
     <DialogTitle sx={{ pb: 1 }}>{title}</DialogTitle>
     <DialogContent sx={{ pt: 0, pb: 1 }}>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         {message}
       </Typography>
     </DialogContent>

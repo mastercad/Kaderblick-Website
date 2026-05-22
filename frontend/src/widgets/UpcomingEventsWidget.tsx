@@ -87,68 +87,74 @@ export const UpcomingEventsWidget: React.FC<{ widgetId: string; config?: any }> 
     return <Typography color="error">{error}</Typography>;
   }
   if (!events.length) {
-    return <Typography variant="body2" color="text.secondary" align="center">Keine anstehenden Termine</Typography>;
+    return (
+      <Typography variant="body2" align="center" sx={{
+        color: "text.secondary"
+      }}>Keine anstehenden Termine</Typography>
+    );
   }
 
   return (
     <>
-    {refreshing && <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}><CircularProgress size={16} /></Box>}
-    <List dense disablePadding>
-      {events.map(event => (
-        <ListItem
-          key={event.id}
-          alignItems="flex-start"
-          onClick={() => void openEventDetails(event.id)}
-          sx={{ borderLeft: `4px solid ${event.calendarEventType?.color || '#1976d2'}`, mb: 1, pl: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-        >
-          <ListItemIcon sx={{ minWidth: 32, color: event.calendarEventType?.color || 'primary.main' }}>
-            <CalendarTodayIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary={<>
-              <Typography variant="subtitle2" component="span">{event.title}</Typography>
-              {loadingEventId === event.id && <CircularProgress size={14} sx={{ ml: 1, verticalAlign: 'middle' }} />}
-              {event.calendarEventType?.name && (
-                <Box component="span" sx={{ ml: 1, fontSize: 12, color: event.calendarEventType.color || 'primary.main', fontWeight: 500 }}>
-                  {event.calendarEventType.name}
-                </Box>
-              )}
-            </>}
-            secondary={<>
-              <Typography variant="caption" color="text.secondary" component="span">
-                {new Date(event.startDate).toLocaleDateString()} {event.endDate ? `${new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Typography>
-              {event.location && (() => {
-                const loc = typeof event.location === 'string'
-                  ? { id: 0, name: event.location }
-                  : event.location!;
-                return (
-                  <Box component="span" sx={{ ml: 2, display: 'inline-flex', alignItems: 'center', fontSize: 12 }}>
-                    <Location
-                      id={loc.id}
-                      name={loc.name}
-                      latitude={loc.latitude}
-                      longitude={loc.longitude}
-                      address={loc.address}
-                    />
+      {refreshing && <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}><CircularProgress size={16} /></Box>}
+      <List dense disablePadding>
+        {events.map(event => (
+          <ListItem
+            key={event.id}
+            alignItems="flex-start"
+            onClick={() => void openEventDetails(event.id)}
+            sx={{ borderLeft: `4px solid ${event.calendarEventType?.color || '#1976d2'}`, mb: 1, pl: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: event.calendarEventType?.color || 'primary.main' }}>
+              <CalendarTodayIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary={<>
+                <Typography variant="subtitle2" component="span">{event.title}</Typography>
+                {loadingEventId === event.id && <CircularProgress size={14} sx={{ ml: 1, verticalAlign: 'middle' }} />}
+                {event.calendarEventType?.name && (
+                  <Box component="span" sx={{ ml: 1, fontSize: 12, color: event.calendarEventType.color || 'primary.main', fontWeight: 500 }}>
+                    {event.calendarEventType.name}
                   </Box>
-                );
-              })()}
-            </>}
-          />
-        </ListItem>
-      ))}
-    </List>
-    <EventDetailsModal
-      open={!!selectedEvent}
-      onClose={closeEventDetails}
-      event={selectedEvent}
-      onUpdated={() => loadWidgetContent({ silent: true })}
-      onCancelled={() => {
-        closeEventDetails();
-        loadWidgetContent({ silent: true });
-      }}
-    />
+                )}
+              </>}
+              secondary={<>
+                <Typography variant="caption" component="span" sx={{
+                  color: "text.secondary"
+                }}>
+                  {new Date(event.startDate).toLocaleDateString()} {event.endDate ? `${new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Typography>
+                {event.location && (() => {
+                  const loc = typeof event.location === 'string'
+                    ? { id: 0, name: event.location }
+                    : event.location!;
+                  return (
+                    <Box component="span" sx={{ ml: 2, display: 'inline-flex', alignItems: 'center', fontSize: 12 }}>
+                      <Location
+                        id={loc.id}
+                        name={loc.name}
+                        latitude={loc.latitude}
+                        longitude={loc.longitude}
+                        address={loc.address}
+                      />
+                    </Box>
+                  );
+                })()}
+              </>}
+            />
+          </ListItem>
+        ))}
+      </List>
+      <EventDetailsModal
+        open={!!selectedEvent}
+        onClose={closeEventDetails}
+        event={selectedEvent}
+        onUpdated={() => loadWidgetContent({ silent: true })}
+        onCancelled={() => {
+          closeEventDetails();
+          loadWidgetContent({ silent: true });
+        }}
+      />
     </>
   );
 };

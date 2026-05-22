@@ -10,7 +10,9 @@ const AppErrorBoundary: React.FC<{ error: Error }> = ({ error }) => (
       Es ist ein Fehler aufgetreten: {error.message}
     </Typography>
     <Box sx={{ fontSize: 48, mb: 2 }}>💥</Box>
-    <Typography variant="body2" color="text.secondary">
+    <Typography variant="body2" sx={{
+      color: "text.secondary"
+    }}>
       Bitte versuche es später erneut oder kontaktiere den Support.
     </Typography>
   </Container>

@@ -11,7 +11,9 @@ import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { lightTheme } from './theme/theme';
 
+// @ts-ignore
 import '@fontsource-variable/inter';
+// @ts-ignore
 import '@fontsource/anton';
 import './index.css';
 import './styles/tour-tool-tip.css';

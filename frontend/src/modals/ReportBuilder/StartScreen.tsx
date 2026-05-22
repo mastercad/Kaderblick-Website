@@ -64,11 +64,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         <Typography variant="h6" gutterBottom>
           Welche Auswertung interessiert dich?
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Wähle eine fertige Vorlage — oder erstelle Schritt für Schritt deine eigene.
         </Typography>
       </Box>
-
       {/* Template grid with built-in category filter */}
       <TemplateGrid
         builderData={builderData}
@@ -80,7 +81,6 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         onCategoryChange={() => setSelectedTemplate(null)}
         maxHeight="none"
       />
-
       {/* Confirmation bar — sticky at the bottom when a template is selected */}
       {selectedTemplate && (
         <Box
@@ -130,12 +130,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </Box>
         </Box>
       )}
-
       <Divider />
-
       {/* Alternative entry points */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Nicht das Richtige dabei?
         </Typography>
         <Button

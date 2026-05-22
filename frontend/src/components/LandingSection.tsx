@@ -240,18 +240,19 @@ export default function LandingSection({ name, image, additionalImages = [], tex
           </Box>
         </Box>
       </Box>
-
       {/* Modal for full-screen image view with gallery navigation if additionalImages exist */}
       <Modal open={!!modalImage} onClose={() => setModalImage(null)}>
         <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          height="100vh"
-          position="relative"
           onClick={() => setModalImage(null)}
-          sx={{ cursor: 'pointer', background: 'rgba(0,0,0,0.15)' }}
-        >
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+            position: "relative",
+            cursor: 'pointer',
+            background: 'rgba(0,0,0,0.15)'
+          }}>
           <IconButton
             onClick={(e) => {
               e.stopPropagation();
@@ -282,14 +283,21 @@ export default function LandingSection({ name, image, additionalImages = [], tex
             const currentIdx = galleryImages.indexOf(modalImage || '');
             return (
               <Box
-                display="flex"
-                flexDirection="column"
-                alignItems="center"
-                justifyContent="center"
-                width="100%"
                 onClick={(e) => e.stopPropagation()}
-              >
-                <Box display="flex" alignItems="center" justifyContent="center" width="100%">
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%"
+                }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%"
+                  }}>
                   <IconButton
                     onClick={(e) => {
                       e.stopPropagation();
@@ -327,7 +335,13 @@ export default function LandingSection({ name, image, additionalImages = [], tex
                   </IconButton>
                 </Box>
                 {/* Thumbnails below main image */}
-                <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    mt: 2
+                  }}>
                   {galleryImages.map((img, idx) => (
                     <Box
                       key={`${img}-${idx}`}

@@ -42,7 +42,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import CommentIcon from '@mui/icons-material/Comment';
 import PushPinIcon from '@mui/icons-material/PushPin';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutlined';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import LinkIcon from '@mui/icons-material/Link';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -132,7 +132,13 @@ function MediaIcon({ mediaType }: { mediaType: string }) {
   if (mediaType === 'spotify' || mediaType === 'soundcloud') {
     return <MusicNoteIcon fontSize="small" sx={{ color: 'success.main' }} />;
   }
-  return <LinkIcon fontSize="small" sx={{ color: 'text.secondary' }} />;
+  return (
+    <LinkIcon
+      sx={{
+        fontSize: "small",
+        color: 'text.secondary'
+      }} />
+  );
 }
 
 // ─── Media embed helpers ───────────────────────────────────────────────────────
@@ -240,13 +246,29 @@ function MediaEmbed({ media }: { media: KnowledgeBaseMedia }) {
       }}
     >
       <MediaIcon mediaType={media.mediaType} />
-      <Box flex={1} minWidth={0}>
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0
+        }}>
         {media.label && (
-          <Typography variant="body2" fontWeight={500} color="text.primary" noWrap>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{
+              fontWeight: 500,
+              color: "text.primary"
+            }}>
             {media.label}
           </Typography>
         )}
-        <Typography variant="caption" color="primary.main" noWrap sx={{ display: 'block' }}>
+        <Typography
+          variant="caption"
+          noWrap
+          sx={{
+            color: "primary.main",
+            display: 'block'
+          }}>
           {media.url}
         </Typography>
       </Box>
@@ -289,7 +311,6 @@ const PostCard: React.FC<{
           </Box>
         </Tooltip>
       )}
-
       <CardActionArea onClick={onOpen} sx={{ display: 'block' }}>
         {/* Thumbnail: use resolved thumbnailUrl if available, with play overlay for video types */}
         {thumbnailUrl && (
@@ -385,16 +406,31 @@ const PostCard: React.FC<{
         )}
 
         <CardContent sx={{ pb: 1 }}>
-          <Stack direction="row" spacing={0.75} alignItems="center" mb={0.75}>
+          <Stack
+            direction="row"
+            spacing={0.75}
+            sx={{
+              alignItems: "center",
+              mb: 0.75
+            }}>
             <Chip label={post.category} size="small" variant="outlined" />
           </Stack>
 
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom noWrap>
+          <Typography variant="subtitle1" gutterBottom noWrap sx={{
+            fontWeight: 600
+          }}>
             {post.title}
           </Typography>
 
           {post.tags.length > 0 && (
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mb={1}>
+            <Stack
+              direction="row"
+              spacing={0.5}
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                mb: 1
+              }}>
               {post.tags.slice(0, 3).map(tag => (
                 <Chip
                   key={tag.id}
@@ -417,25 +453,43 @@ const PostCard: React.FC<{
             </Stack>
           )}
 
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{
+            alignItems: "center"
+          }}>
             <Avatar sx={{ width: 22, height: 22, fontSize: 11 }}>{initials(post.createdBy.name)}</Avatar>
-            <Typography variant="caption" color="text.secondary" noWrap flex={1}>
+            <Typography
+              variant="caption"
+              noWrap
+              sx={{
+                color: "text.secondary",
+                flex: 1
+              }}>
               {post.createdBy.name} · {timeAgo(post.createdAt)}
             </Typography>
           </Stack>
         </CardContent>
       </CardActionArea>
-
       <Divider />
-      <Stack direction="row" spacing={1} px={2} py={1} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          px: 2,
+          py: 1,
+          alignItems: "center"
+        }}>
         <IconButton size="small" disabled={liking} onClick={e => { e.stopPropagation(); onLike(); }}>
           {post.liked
             ? <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
             : <FavoriteBorderIcon fontSize="small" />}
         </IconButton>
-        <Typography variant="caption" color="text.secondary">{post.likeCount}</Typography>
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>{post.likeCount}</Typography>
         <CommentIcon fontSize="small" sx={{ color: 'text.secondary', ml: 1 }} />
-        <Typography variant="caption" color="text.secondary">{post.commentCount}</Typography>
+        <Typography variant="caption" sx={{
+          color: "text.secondary"
+        }}>{post.commentCount}</Typography>
       </Stack>
     </Card>
   );
@@ -533,10 +587,22 @@ const PostDetailDrawer: React.FC<{
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{ sx: { width: { xs: '100%', sm: 480 }, maxWidth: '100vw', display: 'flex', flexDirection: 'column' } }}
+      slotProps={{
+        paper: { sx: { width: { xs: '100%', sm: 480 }, maxWidth: '100vw', display: 'flex', flexDirection: 'column' } }
+      }}
     >
-      <Stack direction="row" alignItems="center" px={2} py={1.5} borderBottom={1} borderColor="divider">
-        <Typography variant="h6" flex={1} noWrap>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          px: 2,
+          py: 1.5,
+          borderBottom: 1,
+          borderColor: "divider"
+        }}>
+        <Typography variant="h6" noWrap sx={{
+          flex: 1
+        }}>
           {post?.title ?? 'Beitrag'}
         </Typography>
         {post?.canPin && (
@@ -562,8 +628,13 @@ const PostDetailDrawer: React.FC<{
         )}
         <IconButton onClick={onClose}><CloseIcon /></IconButton>
       </Stack>
-
-      <Box flex={1} overflow="auto" px={2} py={2}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          px: 2,
+          py: 2
+        }}>
         {loading && (
           <Stack spacing={1}>
             <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 1 }} />
@@ -586,7 +657,14 @@ const PostDetailDrawer: React.FC<{
             )}
 
             {/* Meta */}
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                alignItems: "center"
+              }}>
               <Chip label={post.category} size="small" variant="outlined" />
               {post.isPinned && <Chip icon={<PushPinIcon fontSize="small" />} label="Angepinnt" size="small" color="primary" />}
               {post.tags.map(tag => (
@@ -611,16 +689,24 @@ const PostDetailDrawer: React.FC<{
             )}
 
             {/* Author/date */}
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{
+              alignItems: "center"
+            }}>
               <Avatar sx={{ width: 28, height: 28, fontSize: 12 }}>{initials(post.createdBy.name)}</Avatar>
               <Box>
-                <Typography variant="caption" display="block">{post.createdBy.name}</Typography>
-                <Typography variant="caption" color="text.secondary">{timeAgo(post.createdAt)}</Typography>
+                <Typography variant="caption" sx={{
+                  display: "block"
+                }}>{post.createdBy.name}</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>{timeAgo(post.createdAt)}</Typography>
               </Box>
             </Stack>
 
             {/* Like */}
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{
+              alignItems: "center"
+            }}>
               <IconButton size="small" onClick={handleLike} disabled={liking}>
                 {post.liked
                   ? <FavoriteIcon fontSize="small" sx={{ color: 'error.main' }} />
@@ -635,13 +721,33 @@ const PostDetailDrawer: React.FC<{
             <Typography variant="subtitle2">Kommentare ({comments.length})</Typography>
             <Stack spacing={1.5}>
               {comments.map(c => (
-                <Stack key={c.id} direction="row" spacing={1} alignItems="flex-start">
+                <Stack key={c.id} direction="row" spacing={1} sx={{
+                  alignItems: "flex-start"
+                }}>
                   <Avatar sx={{ width: 28, height: 28, fontSize: 12, mt: 0.5 }}>{initials(c.user.name)}</Avatar>
-                  <Box flex={1} bgcolor="action.hover" borderRadius={1} px={1.5} py={1}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="caption" fontWeight={600}>{c.user.name}</Typography>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <Typography variant="caption" color="text.secondary">{timeAgo(c.createdAt)}</Typography>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      bgcolor: "action.hover",
+                      borderRadius: 1,
+                      px: 1.5,
+                      py: 1
+                    }}>
+                    <Stack
+                      direction="row"
+                      sx={{
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                      <Typography variant="caption" sx={{
+                        fontWeight: 600
+                      }}>{c.user.name}</Typography>
+                      <Stack direction="row" spacing={0.5} sx={{
+                        alignItems: "center"
+                      }}>
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>{timeAgo(c.createdAt)}</Typography>
                         {c.canDelete && (
                           <IconButton size="small" onClick={() => handleDeleteComment(c.id)}>
                             <DeleteIcon sx={{ fontSize: 14 }} />
@@ -649,14 +755,18 @@ const PostDetailDrawer: React.FC<{
                         )}
                       </Stack>
                     </Stack>
-                    <Typography variant="body2" whiteSpace="pre-line">{c.content}</Typography>
+                    <Typography variant="body2" sx={{
+                      whiteSpace: "pre-line"
+                    }}>{c.content}</Typography>
                   </Box>
                 </Stack>
               ))}
             </Stack>
 
             {canComment && (
-              <Stack direction="row" spacing={1} alignItems="flex-end">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "flex-end"
+              }}>
                 <TextField
                   size="small"
                   fullWidth
@@ -860,7 +970,9 @@ const PostFormDialog: React.FC<{
       onClose={onClose}
       fullWidth
       maxWidth="sm"
-      PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+      slotProps={{
+        paper: { sx: { borderRadius: 3, overflow: 'hidden' } }
+      }}
     >
       {/* ── Header ── */}
       <Box
@@ -889,8 +1001,16 @@ const PostFormDialog: React.FC<{
             ? <EditIcon sx={{ color: 'white' }} />
             : <AddIcon sx={{ color: 'white' }} />}
         </Box>
-        <Box flex={1}>
-          <Typography variant="h6" fontWeight={700} sx={{ color: 'white', lineHeight: 1.2 }}>
+        <Box sx={{
+          flex: 1
+        }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: 'white',
+              lineHeight: 1.2
+            }}>
             {isEdit ? 'Beitrag bearbeiten' : 'Neuer Beitrag'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -905,7 +1025,6 @@ const PostFormDialog: React.FC<{
           <CloseIcon />
         </IconButton>
       </Box>
-
       {/* ── Content ── */}
       <DialogContent sx={{ px: 3, py: 3 }}>
         <Stack spacing={2.5}>
@@ -950,7 +1069,9 @@ const PostFormDialog: React.FC<{
             >
               {dialogCategories.map(c => (
                 <MenuItem key={c.id} value={c.id}>
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     {c.icon && <span>{c.icon}</span>}
                     <span>{c.name}</span>
                   </Stack>
@@ -958,7 +1079,12 @@ const PostFormDialog: React.FC<{
               ))}
             </Select>
             {!isEdit && categoryLostOnTeamChange && (
-              <Typography variant="caption" color="warning.main" sx={{ mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "warning.main",
+                  mt: 0.5
+                }}>
                 Kategorie aus dem anderen Team nicht gefunden – bitte manuell auswählen.
               </Typography>
             )}
@@ -966,7 +1092,16 @@ const PostFormDialog: React.FC<{
 
           {/* Beschreibung */}
           <Box>
-            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.75, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontWeight: 600,
+                display: 'block',
+                mb: 0.75,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase'
+              }}>
               Inhalt
             </Typography>
             <RichTextEditor
@@ -1017,7 +1152,9 @@ const PostFormDialog: React.FC<{
                 const { key, ...rest } = props as any;
                 return (
                   <li key={key} {...rest}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{
+                      alignItems: "center"
+                    }}>
                       <Chip
                         label={`#${option.name}`}
                         size="small"
@@ -1025,7 +1162,9 @@ const PostFormDialog: React.FC<{
                         sx={{ pointerEvents: 'none' }}
                       />
                       {isNew && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           neu anlegen
                         </Typography>
                       )}
@@ -1033,9 +1172,9 @@ const PostFormDialog: React.FC<{
                   </li>
                 );
               }}
-              renderTags={(value, getTagProps) =>
+              renderValue={(value, getItemProps) =>
                 value.map((option, index) => {
-                  const { key, ...tagProps } = getTagProps({ index });
+                  const { key, ...tagProps } = getItemProps({ index });
                   const name = typeof option === 'string' ? option : option.name;
                   const isNew = typeof option !== 'string' && option.id === null;
                   return (
@@ -1060,7 +1199,13 @@ const PostFormDialog: React.FC<{
               )}
             />
             {availableTags.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: 'block',
+                  mt: 0.5
+                }}>
                 {availableTags.length} {availableTags.length === 1 ? 'Tag' : 'Tags'} vorhanden — bitte bevorzugt bestehende Tags verwenden
               </Typography>
             )}
@@ -1070,10 +1215,14 @@ const PostFormDialog: React.FC<{
           <Box>
             <Typography
               variant="caption"
-              color="text.secondary"
-              fontWeight={600}
-              sx={{ display: 'block', mb: 1, letterSpacing: 0.5, textTransform: 'uppercase' }}
-            >
+              sx={{
+                color: "text.secondary",
+                fontWeight: 600,
+                display: 'block',
+                mb: 1,
+                letterSpacing: 0.5,
+                textTransform: 'uppercase'
+              }}>
               Medien-Links
             </Typography>
             <Stack direction="row" spacing={1}>
@@ -1084,14 +1233,20 @@ const PostFormDialog: React.FC<{
                 onChange={e => setMediaUrlInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addMediaUrl(); } }}
                 placeholder="YouTube, Vimeo, Spotify oder anderen Link…"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LinkIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-                    </InputAdornment>
-                  ),
-                }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LinkIcon
+                          sx={{
+                            fontSize: "small",
+                            color: 'text.disabled'
+                          }} />
+                      </InputAdornment>
+                    ),
+                  }
+                }}
               />
               <Button
                 variant="outlined"
@@ -1104,22 +1259,30 @@ const PostFormDialog: React.FC<{
               </Button>
             </Stack>
             {form.mediaUrls.length > 0 && (
-              <Stack spacing={0.75} mt={1}>
+              <Stack spacing={0.75} sx={{
+                mt: 1
+              }}>
                 {form.mediaUrls.map((m, i) => (
                   <Stack
                     key={i}
                     direction="row"
-                    alignItems="center"
                     spacing={1}
                     sx={{
+                      alignItems: "center",
                       bgcolor: 'action.hover',
                       borderRadius: 2,
                       px: 1.5,
-                      py: 0.75,
-                    }}
-                  >
+                      py: 0.75
+                    }}>
                     <MediaIcon mediaType={detectMediaTypeForIcon(m.url)} />
-                    <Typography variant="caption" noWrap flex={1} color="text.secondary" title={m.url}>
+                    <Typography
+                      variant="caption"
+                      noWrap
+                      title={m.url}
+                      sx={{
+                        flex: 1,
+                        color: "text.secondary"
+                      }}>
                       {m.url}
                     </Typography>
                     <IconButton
@@ -1139,19 +1302,22 @@ const PostFormDialog: React.FC<{
           {!isEdit && (
             <Stack
               direction="row"
-              alignItems="center"
-              justifyContent="space-between"
               sx={{
+                alignItems: "center",
+                justifyContent: "space-between",
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: 2,
                 px: 2,
-                py: 1.5,
-              }}
-            >
+                py: 1.5
+              }}>
               <Box>
-                <Typography variant="body2" fontWeight={500}>Team benachrichtigen</Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  fontWeight: 500
+                }}>Team benachrichtigen</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>
                   Push-Benachrichtigung an alle Teammitglieder
                 </Typography>
               </Box>
@@ -1163,20 +1329,18 @@ const PostFormDialog: React.FC<{
           )}
         </Stack>
       </DialogContent>
-
       {/* ── Footer ── */}
       <Stack
         direction="row"
-        justifyContent="flex-end"
         spacing={1.5}
         sx={{
+          justifyContent: "flex-end",
           px: 3,
           py: 2,
           borderTop: '1px solid',
           borderColor: 'divider',
-          bgcolor: 'background.paper',
-        }}
-      >
+          bgcolor: 'background.paper'
+        }}>
         <Button onClick={onClose} disabled={saving} sx={{ borderRadius: 2 }}>
           Abbrechen
         </Button>
@@ -1339,7 +1503,12 @@ export default function KnowledgeBase() {
   const renderPostGrid = (list: KnowledgeBasePostCard[], emptyLabel: string) => {
     if (loadingPosts) {
       return (
-        <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={2}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: 2
+          }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rectangular" height={160} sx={{ borderRadius: 2 }} />
           ))}
@@ -1348,13 +1517,24 @@ export default function KnowledgeBase() {
     }
     if (list.length === 0) {
       return (
-        <Box textAlign="center" py={6}>
-          <Typography color="text.secondary">{emptyLabel}</Typography>
+        <Box
+          sx={{
+            textAlign: "center",
+            py: 6
+          }}>
+          <Typography sx={{
+            color: "text.secondary"
+          }}>{emptyLabel}</Typography>
         </Box>
       );
     }
     return (
-      <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={2}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 2
+        }}>
         {list.map(post => (
           <PostCard
             key={post.id}
@@ -1373,8 +1553,18 @@ export default function KnowledgeBase() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200, mx: 'auto', pb: 10 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={1}>
-        <Typography variant="h5" fontWeight={700}>Wissenspool</Typography>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+          flexWrap: "wrap",
+          gap: 1
+        }}>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>Wissenspool</Typography>
         {teams.length > 1 && (
           <TeamSelect
             teams={teams}
@@ -1387,11 +1577,9 @@ export default function KnowledgeBase() {
           <Chip label={teams[0].name} variant="outlined" />
         )}
       </Stack>
-
       {!teamsLoading && !teamId && (
         <Alert severity="info">Du bist noch in keinem Team.</Alert>
       )}
-
       {teamId && (
         <>
           {/* Sticky: Category Tabs + Search + Create */}
@@ -1411,7 +1599,9 @@ export default function KnowledgeBase() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             }}
           >
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{
+              alignItems: { sm: 'center' }
+            }}>
               <Tabs
                 value={activeCatId ?? 'all'}
                 onChange={(_, v) => setActiveCatId(v === 'all' ? null : v)}
@@ -1425,21 +1615,25 @@ export default function KnowledgeBase() {
                   <Tab key={c.id} label={`${c.icon ?? ''}${c.icon ? ' ' : ''}${c.name}`} value={c.id} />
                 ))}
               </Tabs>
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{
+                alignItems: "center"
+              }}>
                 <TextField
                   size="small"
                   placeholder="Suchen…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
-                    endAdornment: search ? (
-                      <InputAdornment position="end">
-                        <IconButton size="small" onClick={() => setSearch('')}><CloseIcon fontSize="small" /></IconButton>
-                      </InputAdornment>
-                    ) : null,
-                  }}
                   sx={{ flex: 1, minWidth: { sm: 160 }, maxWidth: { sm: 220 } }}
+                  slotProps={{
+                    input: {
+                      startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
+                      endAdornment: search ? (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={() => setSearch('')}><CloseIcon fontSize="small" /></IconButton>
+                        </InputAdornment>
+                      ) : null,
+                    }
+                  }}
                 />
                 <Tooltip title="Beitrag erstellen">
                     <Fab
@@ -1458,7 +1652,9 @@ export default function KnowledgeBase() {
 
           {/* Active tag filter chip */}
           {activeTag && (
-            <Box mb={1.5}>
+            <Box sx={{
+              mb: 1.5
+            }}>
               <Chip
                 label={`#${activeTag}`}
                 onDelete={() => setActiveTag(null)}
@@ -1471,10 +1667,20 @@ export default function KnowledgeBase() {
 
           {/* Pinned section */}
           {pinnedPosts.length > 0 && (
-            <Box mb={3}>
-              <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
+            <Box sx={{
+              mb: 3
+            }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  mb: 1.5
+                }}>
                 <PushPinIcon fontSize="small" color="primary" />
-                <Typography variant="subtitle2" color="primary.main">Angepinnte Beiträge</Typography>
+                <Typography variant="subtitle2" sx={{
+                  color: "primary.main"
+                }}>Angepinnte Beiträge</Typography>
               </Stack>
               {renderPostGrid(pinnedPosts, '')}
               {unpinnedPosts.length > 0 && <Divider sx={{ mt: 3 }} />}
@@ -1485,7 +1691,13 @@ export default function KnowledgeBase() {
           {(unpinnedPosts.length > 0 || loadingPosts) && (
             <Box>
               {pinnedPosts.length > 0 && (
-                <Typography variant="subtitle2" color="text.secondary" mb={1.5} mt={2}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: "text.secondary",
+                    mb: 1.5,
+                    mt: 2
+                  }}>
                   Weitere Beiträge
                 </Typography>
               )}
@@ -1494,8 +1706,14 @@ export default function KnowledgeBase() {
           )}
 
           {!loadingPosts && posts.length === 0 && (
-            <Box textAlign="center" py={8}>
-              <Typography color="text.secondary">Keine Beiträge vorhanden.</Typography>
+            <Box
+              sx={{
+                textAlign: "center",
+                py: 8
+              }}>
+              <Typography sx={{
+                color: "text.secondary"
+              }}>Keine Beiträge vorhanden.</Typography>
               <Button startIcon={<AddIcon />} variant="outlined" sx={{ mt: 2 }} onClick={openCreate}>
                 Ersten Beitrag erstellen
               </Button>
@@ -1503,7 +1721,6 @@ export default function KnowledgeBase() {
           )}
         </>
       )}
-
       {/* Post Detail Drawer */}
       <PostDetailDrawer
         postId={drawerPostId}
@@ -1515,7 +1732,6 @@ export default function KnowledgeBase() {
         onTagClick={tag => setActiveTag(t => t === tag ? null : tag)}
         activeTag={activeTag}
       />
-
       {/* Create / Edit Dialog */}
       <PostFormDialog
         open={dialogOpen}
@@ -1528,7 +1744,6 @@ export default function KnowledgeBase() {
         defaultCategoryId={editPost ? undefined : activeCatId}
         isSuperAdmin={isSuperAdmin}
       />
-
       {/* Snackbar */}
       <Snackbar
         open={snack.open}
@@ -1540,7 +1755,6 @@ export default function KnowledgeBase() {
           {snack.message}
         </Alert>
       </Snackbar>
-
       {/* Supporter-Rechte beantragen */}
       <SupporterApplicationModal
         open={supporterApplicationOpen}

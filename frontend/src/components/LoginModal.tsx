@@ -75,7 +75,7 @@ export default function LoginModal() {
   };
 
   return (
-    <Modal open={true} disableEscapeKeyDown>
+    <Modal open={true}>
       <Box sx={style}>
         <Typography id="modal-modal-title" variant="h6" component="h2">
           Anmeldung erforderlich

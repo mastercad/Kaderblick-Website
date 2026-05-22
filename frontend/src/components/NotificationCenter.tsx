@@ -99,7 +99,6 @@ export const NotificationCenter: React.FC = () => {
           {unreadCount > 0 ? <NotificationsIcon /> : <NotificationsNoneIcon />}
         </Badge>
       </IconButton>
-
       <Popover
         open={open}
         anchorEl={anchorEl}
@@ -112,13 +111,15 @@ export const NotificationCenter: React.FC = () => {
           vertical: 'top',
           horizontal: 'right',
         }}
-        PaperProps={{
-          sx: {
-            width: 400,
-            maxHeight: 500,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+        slotProps={{
+          paper: {
+            sx: {
+              width: 400,
+              maxHeight: 500,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }
           }
         }}
       >
@@ -150,7 +151,9 @@ export const NotificationCenter: React.FC = () => {
           {notifications.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <NotificationsNoneIcon sx={{ fontSize: 48, color: 'text.primary', mb: 1 }} />
-              <Typography variant="body2" color="text.primary">
+              <Typography variant="body2" sx={{
+                color: "text.primary"
+              }}>
                 Keine Benachrichtigungen
               </Typography>
             </Box>
@@ -216,13 +219,15 @@ export const NotificationCenter: React.FC = () => {
                           </Box>
                         </Box>
                       }
-                      primaryTypographyProps={{
-                        sx: { 
-                          fontWeight: notification.read ? 'normal' : 'bold',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
+                      slotProps={{
+                        primary: {
+                          sx: { 
+                            fontWeight: notification.read ? 'normal' : 'bold',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }
                         }
                       }}
                     />
@@ -234,7 +239,6 @@ export const NotificationCenter: React.FC = () => {
           )}
         </Box>
       </Popover>
-
       <NotificationDetailModal
         notification={selectedNotification}
         open={Boolean(selectedNotification)}

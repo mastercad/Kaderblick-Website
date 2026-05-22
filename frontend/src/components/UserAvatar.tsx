@@ -55,7 +55,11 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
   // svgFrameUrl: Priorität: titleObj → prop.svgFrameUrl → prop.svgFrame
   const frameUrl = titleObj ? getAvatarFrameUrl(titleObj) : svgFrameUrl;
   return (
-    <Box display="flex" alignItems="center" sx={{ display: 'inline-flex' }}>
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: "center",
+      }}>
       <Tooltip title={userTitle || ''} disableHoverListener={!userTitle} arrow>
         <Box sx={{ position: 'relative', width: avatarSize, height: avatarSize, minWidth: avatarSize, minHeight: avatarSize, mr: name && name.trim() !== '' ? 1 : 0, display: 'inline-block' }}>
           <Badge
@@ -126,7 +130,12 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
         </Box>
       </Tooltip>
       {showLabel && name && name.trim() !== '' && (
-        <Typography variant="subtitle1" fontWeight={500} fontSize={fontSize}>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 500,
+            fontSize: fontSize
+          }}>
           {name}
         </Typography>
       )}

@@ -141,7 +141,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
             required
             margin="normal"
             placeholder="z.B. Sportplatz Musterstadt"
-            inputProps={{ maxLength: 100 }}
+            slotProps={{
+              htmlInput: { maxLength: 100 }
+            }}
           />
           <TextField
             label="Adresse"
@@ -151,7 +153,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
             fullWidth
             margin="normal"
             placeholder="Straße und Hausnummer"
-            inputProps={{ maxLength: 255 }}
+            slotProps={{
+              htmlInput: { maxLength: 255 }
+            }}
           />
           <TextField
             label="Stadt"
@@ -161,7 +165,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
             fullWidth
             margin="normal"
             placeholder="PLZ und Ort"
-            inputProps={{ maxLength: 255 }}
+            slotProps={{
+              htmlInput: { maxLength: 255 }
+            }}
           />
           <TextField
             label="Kapazität"
@@ -172,7 +178,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
             fullWidth
             margin="normal"
             placeholder="z.B. 500"
-            inputProps={{ min: 0 }}
+            slotProps={{
+              htmlInput: { min: 0 }
+            }}
           />
           <TextField
             label="Ausstattung"
@@ -182,7 +190,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
             fullWidth
             margin="normal"
             placeholder="z.B. Umkleiden, Duschen, Vereinsheim"
-            inputProps={{ maxLength: 255 }}
+            slotProps={{
+              htmlInput: { maxLength: 255 }
+            }}
           />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
@@ -279,7 +289,9 @@ const LocationEditModal: React.FC<LocationEditModalProps> = ({ openLocationEditM
               <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>
             ))}
           </TextField>
-          {error && <Typography color="error" mt={1}>{error}</Typography>}
+          {error && <Typography color="error" sx={{
+            mt: 1
+          }}>{error}</Typography>}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
             <Button onClick={onLocationEditModalClose} variant="outlined" color="secondary" disabled={loading}>Abbrechen</Button>
             <Button type="submit" variant="contained" color="primary" disabled={loading}>

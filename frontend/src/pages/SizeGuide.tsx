@@ -203,7 +203,13 @@ const SizeSummarySection: React.FC<{
         border: `1px solid ${alpha(accentColor, isDark ? 0.25 : 0.18)}`,
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{
+          alignItems: "center",
+          mb: 1.5
+        }}>
         <Avatar
           sx={{
             width: 32,
@@ -214,14 +220,26 @@ const SizeSummarySection: React.FC<{
         >
           {icon}
         </Avatar>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ color: accentColor }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 700,
+            color: accentColor
+          }}>
           {title}
         </Typography>
       </Stack>
       {sorted.length === 0 ? (
-        <Typography variant="caption" color="text.disabled">Keine Daten</Typography>
+        <Typography variant="caption" sx={{
+          color: "text.disabled"
+        }}>Keine Daten</Typography>
       ) : (
-        <Stack direction="row" flexWrap="wrap" gap={0.75}>
+        <Stack
+          direction="row"
+          sx={{
+            flexWrap: "wrap",
+            gap: 0.75
+          }}>
           {sorted.map(([size, count]) => {
             const style = getChipStyle(size, isDark);
             return (
@@ -244,9 +262,17 @@ const SizeSummarySection: React.FC<{
         </Stack>
       )}
       {missingCount > 0 && (
-        <Stack direction="row" alignItems="center" spacing={0.5} mt={1.5}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{
+            alignItems: "center",
+            mt: 1.5
+          }}>
           <WarningAmberIcon sx={{ fontSize: 14, color: 'warning.main' }} />
-          <Typography variant="caption" color="warning.main">
+          <Typography variant="caption" sx={{
+            color: "warning.main"
+          }}>
             {missingCount} ohne Angabe
           </Typography>
         </Stack>
@@ -308,7 +334,12 @@ const ReminderDialog: React.FC<ReminderDialogProps> = ({ open, candidates, sendi
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" mb={2}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            mb: 2
+          }}>
           Die folgenden {candidates.length} Mitglieder haben unvollständige Ausrüstungsangaben.
           Entferne das Häkchen, um einzelne Personen von der Benachrichtigung auszuschließen.
         </Typography>
@@ -331,8 +362,12 @@ const ReminderDialog: React.FC<ReminderDialogProps> = ({ open, candidates, sendi
                   />
                   <ListItemText
                     primary={
-                      <Stack direction="row" alignItems="center" spacing={0.75}>
-                        <Typography variant="body2" fontWeight={600}>
+                      <Stack direction="row" spacing={0.75} sx={{
+                        alignItems: "center"
+                      }}>
+                        <Typography variant="body2" sx={{
+                          fontWeight: 600
+                        }}>
                           {player.name}
                         </Typography>
                         {player.role === 'coach' && (
@@ -490,9 +525,19 @@ const SizeGuide: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight={200} gap={2}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 200,
+          gap: 2
+        }}>
         <CircularProgress size={40} />
-        <Typography variant="body2" color="text.secondary">Größendaten werden geladen …</Typography>
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>Größendaten werden geladen …</Typography>
       </Box>
     );
   }
@@ -503,16 +548,18 @@ const SizeGuide: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%', px: { xs: 1.5, md: 4 }, py: { xs: 2, md: 4 }, maxWidth: 1100, mx: 'auto' }}>
-
       {/* ── Seitenkopf ─────────────────────────────────────────── */}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-        justifyContent="space-between"
         spacing={2}
-        mb={4}
-      >
-        <Stack direction="row" alignItems="center" spacing={2}>
+        sx={{
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          justifyContent: "space-between",
+          mb: 4
+        }}>
+        <Stack direction="row" spacing={2} sx={{
+          alignItems: "center"
+        }}>
           <Avatar
             sx={{
               width: 52,
@@ -524,10 +571,20 @@ const SizeGuide: React.FC = () => {
             <CheckroomIcon sx={{ fontSize: 28 }} />
           </Avatar>
           <Box>
-            <Typography variant="h5" fontWeight={700} lineHeight={1.2}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                lineHeight: 1.2
+              }}>
               Kleidergrößen
             </Typography>
-            <Typography variant="body2" color="text.secondary" mt={0.25}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 0.25
+              }}>
               Ausrüstungsgrößen der Spieler deines Teams
             </Typography>
           </Box>
@@ -560,7 +617,9 @@ const SizeGuide: React.FC = () => {
             >
               {teams.map(t => (
                 <MenuItem key={t.team_id} value={t.team_id}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{
+                    alignItems: "center"
+                  }}>
                     <GroupsIcon sx={{ fontSize: 16, color: 'primary.main', opacity: 0.7 }} />
                     <span>{t.team_name}</span>
                     <Chip
@@ -582,7 +641,6 @@ const SizeGuide: React.FC = () => {
           </FormControl>
         )}
       </Stack>
-
       {teams.length === 0 && (
         <EmptyStateHint
           icon={<CheckroomIcon />}
@@ -591,7 +649,6 @@ const SizeGuide: React.FC = () => {
           compact
         />
       )}
-
       {/* ── Ausgewähltes Team ──────────────────────────────────── */}
       {selectedTeam !== null && (() => {
         const team = selectedTeam;
@@ -642,7 +699,14 @@ const SizeGuide: React.FC = () => {
                   gap: 1.5,
                 }}
               >
-                <Stack direction="row" alignItems="center" spacing={1.5} flex={1} width="100%">
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    alignItems: "center",
+                    flex: 1,
+                    width: "100%"
+                  }}>
                   <Avatar
                     sx={{
                       width: 36,
@@ -653,11 +717,21 @@ const SizeGuide: React.FC = () => {
                   >
                     <GroupsIcon sx={{ fontSize: 20 }} />
                   </Avatar>
-                  <Box flex={1}>
-                    <Typography variant="h6" fontWeight={700} fontSize="1rem" lineHeight={1.2}>
+                  <Box sx={{
+                    flex: 1
+                  }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "1rem",
+                        lineHeight: 1.2
+                      }}>
                       {team.team_name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{
+                      color: "text.secondary"
+                    }}>
                       {team.players.length} Spieler
                       {team.coaches.length > 0 && ` · ${team.coaches.length} Trainer`}
                       {team.supporters.length > 0 && ` · ${team.supporters.length} Supporter`}
@@ -667,9 +741,10 @@ const SizeGuide: React.FC = () => {
                 <Stack
                   direction="row"
                   spacing={1}
-                  alignItems="center"
-                  width={{ xs: '100%', sm: 'auto' }}
-                >
+                  sx={{
+                    alignItems: "center",
+                    width: { xs: '100%', sm: 'auto' }
+                  }}>
                   <Button
                     variant="outlined"
                     size="small"
@@ -755,10 +830,11 @@ const SizeGuide: React.FC = () => {
                         >
                           <Stack
                             direction="row"
-                            alignItems="center"
-                            justifyContent={col.align === 'center' ? 'center' : 'flex-start'}
                             spacing={0.5}
-                          >
+                            sx={{
+                              alignItems: "center",
+                              justifyContent: col.align === 'center' ? 'center' : 'flex-start'
+                            }}>
                             {col.icon}
                             <span>{col.label}</span>
                           </Stack>
@@ -807,7 +883,9 @@ const SizeGuide: React.FC = () => {
                         }}
                       >
                         <TableCell sx={{ py: 1, px: { xs: 1, md: 2 }, fontWeight: 500, fontSize: '0.875rem' }}>
-                          <Stack direction="row" alignItems="center" spacing={1.25}>
+                          <Stack direction="row" spacing={1.25} sx={{
+                            alignItems: "center"
+                          }}>
                             <Avatar
                               sx={{
                                 width: 28,
@@ -820,7 +898,9 @@ const SizeGuide: React.FC = () => {
                             >
                               {player.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </Avatar>
-                            <Typography variant="body2" fontWeight={500} noWrap>
+                            <Typography variant="body2" noWrap sx={{
+                              fontWeight: 500
+                            }}>
                               {player.name}
                             </Typography>
                           </Stack>
@@ -855,9 +935,14 @@ const SizeGuide: React.FC = () => {
                             borderBottom: `1px solid ${alpha(theme.palette.secondary.main, 0.15)}`,
                           }}
                         >
-                          <Typography variant="caption" fontWeight={700}
-                            sx={{ textTransform: 'uppercase', letterSpacing: '0.07em', color: 'secondary.main' }}
-                          >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.07em',
+                              color: 'secondary.main'
+                            }}>
                             Trainer
                           </Typography>
                         </TableCell>
@@ -875,7 +960,9 @@ const SizeGuide: React.FC = () => {
                         }}
                       >
                         <TableCell sx={{ py: 1, px: { xs: 1, md: 2 }, fontWeight: 500, fontSize: '0.875rem' }}>
-                          <Stack direction="row" alignItems="center" spacing={1.25}>
+                          <Stack direction="row" spacing={1.25} sx={{
+                            alignItems: "center"
+                          }}>
                             <Avatar
                               sx={{
                                 width: 28,
@@ -888,7 +975,9 @@ const SizeGuide: React.FC = () => {
                             >
                               {coach.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </Avatar>
-                            <Typography variant="body2" fontWeight={500} noWrap>
+                            <Typography variant="body2" noWrap sx={{
+                              fontWeight: 500
+                            }}>
                               {coach.name}
                             </Typography>
                           </Stack>
@@ -923,9 +1012,14 @@ const SizeGuide: React.FC = () => {
                             borderBottom: `1px solid ${alpha(theme.palette.warning.main, 0.15)}`,
                           }}
                         >
-                          <Typography variant="caption" fontWeight={700}
-                            sx={{ textTransform: 'uppercase', letterSpacing: '0.07em', color: 'warning.main' }}
-                          >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.07em',
+                              color: 'warning.main'
+                            }}>
                             Supporter
                           </Typography>
                         </TableCell>
@@ -943,7 +1037,9 @@ const SizeGuide: React.FC = () => {
                         }}
                       >
                         <TableCell sx={{ py: 1, px: { xs: 1, md: 2 }, fontWeight: 500, fontSize: '0.875rem' }}>
-                          <Stack direction="row" alignItems="center" spacing={1.25}>
+                          <Stack direction="row" spacing={1.25} sx={{
+                            alignItems: "center"
+                          }}>
                             <Avatar
                               sx={{
                                 width: 28,
@@ -956,7 +1052,9 @@ const SizeGuide: React.FC = () => {
                             >
                               {supporter.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </Avatar>
-                            <Typography variant="body2" fontWeight={500} noWrap>
+                            <Typography variant="body2" noWrap sx={{
+                              fontWeight: 500
+                            }}>
                               {supporter.name}
                             </Typography>
                           </Stack>
@@ -982,7 +1080,6 @@ const SizeGuide: React.FC = () => {
                 </Table>
               </Box>
             </Paper>
-
             <Paper
               elevation={isDark ? 1 : 2}
               sx={{
@@ -997,13 +1094,19 @@ const SizeGuide: React.FC = () => {
                 <Divider sx={{ mb: 2 }}>
                   <Typography
                     variant="caption"
-                    color="text.secondary"
-                    sx={{ px: 1, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}
-                  >
+                    sx={{
+                      color: "text.secondary",
+                      px: 1,
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em'
+                    }}>
                     Größenverteilung
                   </Typography>
                 </Divider>
-                <Stack direction={isMobile ? 'column' : 'row'} spacing={1.5} useFlexGap flexWrap="wrap">
+                <Stack direction={isMobile ? 'column' : 'row'} spacing={1.5} useFlexGap sx={{
+                  flexWrap: "wrap"
+                }}>
                   <SizeSummarySection
                     title="Hosen"
                     icon={<CheckroomIcon sx={{ fontSize: 16 }} />}
@@ -1045,7 +1148,6 @@ const SizeGuide: React.FC = () => {
           </>
         );
       })()}
-
       {/* Erinnerung: Bestätigungsdialog */}
       <ReminderDialog
         open={reminderDialog.open}
@@ -1054,7 +1156,6 @@ const SizeGuide: React.FC = () => {
         onClose={() => setReminderDialog(d => ({ ...d, open: false }))}
         onConfirm={handleConfirmReminder}
       />
-
       <Snackbar
         open={reminderSnackbar.open}
         autoHideDuration={5000}

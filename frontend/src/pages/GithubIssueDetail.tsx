@@ -55,7 +55,9 @@ function ResolveDialog({ open, onClose, onConfirm }: {
 }) {
   const [note, setNote] = useState('');
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{
+      paper: { sx: { borderRadius: 3 } }
+    }}>
       <DialogTitle sx={{ pr: 6 }}>
         GitHub Issue erledigen
         <IconButton onClick={onClose} sx={{ position: 'absolute', right: 8, top: 12 }} size="small"><CloseIcon /></IconButton>
@@ -94,8 +96,15 @@ function CommentItem({ c }: { c: GithubComment }) {
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography variant="caption" fontWeight={700} color="text.primary">{c.userName}</Typography>
-          <Typography variant="caption" color="text.disabled">{fmtDate(c.createdAt)}</Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.primary"
+            }}>{c.userName}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.disabled"
+          }}>{fmtDate(c.createdAt)}</Typography>
           <Tooltip title="Auf GitHub ansehen">
             <Typography
               variant="caption"
@@ -232,10 +241,14 @@ const GithubIssueDetailPage: React.FC = () => {
           <GitHubIcon sx={{ fontSize: 22 }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h5" fontWeight={700} noWrap>
+          <Typography variant="h5" noWrap sx={{
+            fontWeight: 700
+          }}>
             Issue #{issue.number}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             {issue.userName} · {fmtDate(issue.createdAt)}
           </Typography>
         </Box>
@@ -260,7 +273,6 @@ const GithubIssueDetailPage: React.FC = () => {
           </Tooltip>
         </Box>
       </Box>
-
       {/* Issue body card */}
       <Card elevation={0} sx={{
         border: '1px solid',
@@ -278,7 +290,9 @@ const GithubIssueDetailPage: React.FC = () => {
               {getInitials(issue.userName)}
             </Avatar>
             <Box>
-              <Typography variant="body1" fontWeight={700}>{issue.userName}</Typography>
+              <Typography variant="body1" sx={{
+                fontWeight: 700
+              }}>{issue.userName}</Typography>
             </Box>
             <Chip
               icon={<GitHubIcon sx={{ fontSize: '16px !important', color: '#24292f !important' }} />}
@@ -295,7 +309,13 @@ const GithubIssueDetailPage: React.FC = () => {
           </Box>
 
           {/* Title */}
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5, wordBreak: 'break-word' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              mb: 1.5,
+              wordBreak: 'break-word'
+            }}>
             {issue.title}
           </Typography>
 
@@ -308,7 +328,12 @@ const GithubIssueDetailPage: React.FC = () => {
 
           {issue.adminNote && (
             <Box sx={{ mt: 2, p: 1.5, bgcolor: '#e8f5e9', borderRadius: 1.5, borderLeft: '3px solid', borderLeftColor: 'success.main' }}>
-              <Typography variant="caption" fontWeight={700} color="success.dark">Abschluss-Notiz:</Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color: "success.dark"
+                }}>Abschluss-Notiz:</Typography>
               <Typography variant="body2" sx={{ mt: 0.25, whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
                 {issue.adminNote}
               </Typography>
@@ -316,14 +341,24 @@ const GithubIssueDetailPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
       {/* Comments + reply */}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 700,
+              mb: 2
+            }}>
             GitHub-Kommentare
             {issue.comments.length > 0 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <Typography
+                component="span"
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  ml: 1
+                }}>
                 ({issue.comments.length})
               </Typography>
             )}
@@ -366,14 +401,18 @@ const GithubIssueDetailPage: React.FC = () => {
               </span>
             </Tooltip>
           </Box>
-          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.disabled",
+              mt: 0.5,
+              display: 'block'
+            }}>
             Der Kommentar wird direkt auf GitHub veröffentlicht.
           </Typography>
         </CardContent>
       </Card>
-
       <ResolveDialog open={resolveOpen} onClose={() => setResolveOpen(false)} onConfirm={handleResolve} />
-
       <Snackbar open={snack.open} autoHideDuration={5000}
         onClose={() => setSnack(s => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

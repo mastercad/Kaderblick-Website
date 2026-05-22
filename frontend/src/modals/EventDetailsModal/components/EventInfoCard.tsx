@@ -47,15 +47,25 @@ export const EventInfoCard: React.FC<EventInfoCardProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
       {/* Datum */}
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} sx={{
+        alignItems: "center"
+      }}>
         <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
-        <Typography variant="body2" fontWeight={600}>{dateStr}</Typography>
+        <Typography variant="body2" sx={{
+          fontWeight: 600
+        }}>{dateStr}</Typography>
       </Stack>
-
       {/* Zeit + Wetter + Fahrgemeinschaft inline */}
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} sx={{
+        alignItems: "center"
+      }}>
         <AccessTimeIcon sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            flex: 1
+          }}>
           {startTimeStr} – {isSameDay ? endTimeStr : `${endDateStr} ${endTimeStr}`}
         </Typography>
 

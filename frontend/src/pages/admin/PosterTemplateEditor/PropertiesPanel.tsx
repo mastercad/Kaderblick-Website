@@ -58,14 +58,14 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-
       {/* Header */}
       <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-        <Typography variant="subtitle2" color="text.secondary">
+        <Typography variant="subtitle2" sx={{
+          color: "text.secondary"
+        }}>
           {element.type === 'custom_text' ? 'Freier Text' : 'Platzhalter'}
         </Typography>
       </Box>
-
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
 
         {/* Inhalt */}
@@ -93,7 +93,13 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         )}
 
         {/* Typografie */}
-        <Typography variant="overline" color="text.secondary" display="block" gutterBottom>
+        <Typography
+          variant="overline"
+          gutterBottom
+          sx={{
+            color: "text.secondary",
+            display: "block"
+          }}>
           Typografie
         </Typography>
         <Divider sx={{ mb: 1.5 }} />
@@ -124,7 +130,9 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           return (
             <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">Größe: {element.fontSize}px</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Größe: {element.fontSize}px</Typography>
                 <Slider
                   min={12} max={300} value={element.fontSize}
                   onChange={(_, v) => u({ fontSize: v as number })}
@@ -152,7 +160,13 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           );
         })()}
 
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 1
+          }}>
           <ButtonGroup size="small" variant="outlined">
             <Button
               {...modeBtn(!gradient)}
@@ -186,8 +200,16 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         </Stack>
 
         {!gradient && (
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">Farbe</Typography>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              mb: 1
+            }}>
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>Farbe</Typography>
             <DebouncedColorInput value={/^#[0-9a-fA-F]{6}$/.test(element.color) ? element.color : '#ffffff'} onChange={v => u({ color: v })} />
           </Stack>
         )}
@@ -213,7 +235,9 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
             {/* Winkel (linear) */}
             {gradient.type === 'linear' && (
               <Box sx={{ mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">Winkel: {gradient.angle}°</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Winkel: {gradient.angle}°</Typography>
                 <Slider
                   min={0} max={360} step={1}
                   value={gradient.angle}
@@ -226,14 +250,18 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
             {/* Ursprung (radial) */}
             {gradient.type === 'radial' && (
               <Box sx={{ mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">Ursprung X: {gradient.originX}%</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Ursprung X: {gradient.originX}%</Typography>
                 <Slider
                   min={0} max={100} step={1}
                   value={gradient.originX}
                   onChange={(_, v) => updateGradient({ originX: v as number })}
                   size="small"
                 />
-                <Typography variant="caption" color="text.secondary">Ursprung Y: {gradient.originY}%</Typography>
+                <Typography variant="caption" sx={{
+                  color: "text.secondary"
+                }}>Ursprung Y: {gradient.originY}%</Typography>
                 <Slider
                   min={0} max={100} step={1}
                   value={gradient.originY}
@@ -244,11 +272,24 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
             )}
 
             {/* Farbstopps */}
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                display: "block",
+                mb: 0.5
+              }}>
               Farbstopps
             </Typography>
             {gradient.stops.map((stop, i) => (
-              <Stack key={i} direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.5 }}>
+              <Stack
+                key={i}
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  alignItems: "center",
+                  mb: 0.5
+                }}>
                 <DebouncedColorInput
                   value={stop.color}
                   onChange={v => updateStop(i, { color: v })}
@@ -296,7 +337,12 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         </FormControl>
 
         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              mb: 0.5
+            }}>
             Textanpassung bei langen Inhalten
           </Typography>
           <Select
@@ -313,7 +359,12 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
 
         {element.textFit === 'shrink-wrap' && (
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                mb: 0.5
+              }}>
               Max. Zeilen (Smart-Modus)
             </Typography>
             <Select
@@ -328,7 +379,9 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         )}
 
         <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             Deckkraft: {Math.round(element.opacity * 100)}%
           </Typography>
           <Slider
@@ -339,7 +392,13 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
         </Box>
 
         {/* Rand-Effekt */}
-        <Typography variant="overline" color="text.secondary" display="block" gutterBottom>
+        <Typography
+          variant="overline"
+          gutterBottom
+          sx={{
+            color: "text.secondary",
+            display: "block"
+          }}>
           Rand-Effekt
         </Typography>
         <Divider sx={{ mb: 1.5 }} />
@@ -355,7 +414,9 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
 
         {(element.edgeFade ?? 'none') !== 'none' && (
           <Box>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>
               Verlauf-Tiefe: {Math.round(10 + (element.edgeFadeDepth ?? 1) * 5)}%
             </Typography>
             <Slider
@@ -366,7 +427,6 @@ export default function PropertiesPanel({ element, onChange, onDelete }: Propert
           </Box>
         )}
       </Box>
-
       {/* Löschen */}
       <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
         <Button

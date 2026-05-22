@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import GroupsIcon from '@mui/icons-material/Groups';
 import { apiJson } from '../../../utils/api';
 import type { EventOverviewResponse, TeamOverview, TeamOverviewMember } from '../types';
@@ -104,45 +104,68 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: isMobile ? 0 : 3,
-          m: isMobile ? 0 : 2,
-          width: '100%',
-          maxHeight: isMobile ? '100dvh' : '85vh',
-        },
-      }}
       sx={isMobile ? { '& .MuiDialog-container': { alignItems: 'flex-end' } } : {}}
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: isMobile ? 0 : 3,
+            m: isMobile ? 0 : 2,
+            width: '100%',
+            maxHeight: isMobile ? '100dvh' : '85vh',
+          },
+        }
+      }}
     >
       {/* ── Title ── */}
       <DialogTitle sx={{ pb: 1.5 }}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
+        <Stack direction="row" spacing={1.25} sx={{
+          alignItems: "center"
+        }}>
           <GroupsIcon sx={{ color: theme.palette.primary.main }} />
           <Box>
-            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 700,
+                lineHeight: 1.2
+              }}>
               Teilnehmerübersicht
             </Typography>
             {eventTitle && (
               <Typography
                 variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block' }}
-              >
+                sx={{
+                  color: "text.secondary",
+                  display: 'block'
+                }}>
                 {eventTitle}
               </Typography>
             )}
           </Box>
         </Stack>
       </DialogTitle>
-
       <DialogContent dividers sx={{ p: 0 }}>
         {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" py={6}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 6
+            }}>
             <CircularProgress size={36} />
           </Box>
         ) : !data || data.teams.length === 0 ? (
-          <Box display="flex" justifyContent="center" alignItems="center" py={6}>
-            <Typography variant="body2" color="text.secondary">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 6
+            }}>
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Keine Teamdaten verfügbar.
             </Typography>
           </Box>
@@ -162,7 +185,9 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
                   >
                     {data.teams.map(team => (
                       <MenuItem key={team.id} value={team.id}>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={{
+                          alignItems: "center"
+                        }}>
                           <Typography variant="body2">{team.name}</Typography>
                           {team.id === data.my_team_id && (
                             <Chip
@@ -183,7 +208,13 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
             {/* ── Summary pill row ── */}
             {selectedTeam && (
               <Box sx={{ px: 2.5, pt: hasMultipleTeams ? 0.5 : 2, pb: 1 }}>
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.75 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{
+                    flexWrap: "wrap",
+                    gap: 0.75
+                  }}>
                   <Chip
                     icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
                     label={`${respondedMembers.length} geantwortet`}
@@ -216,15 +247,25 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
               <Box sx={{ px: 2.5, pt: 2, pb: 1.5 }}>
                 <Typography
                   variant="overline"
-                  color="text.secondary"
-                  sx={{ fontSize: '0.7rem', letterSpacing: 1 }}
-                >
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: '0.7rem',
+                    letterSpacing: 1
+                  }}>
                   Rückmeldungen
                 </Typography>
-                <Stack spacing={1.5} mt={1}>
+                <Stack spacing={1.5} sx={{
+                  mt: 1
+                }}>
                   {Object.entries(grouped).map(([, group]) => (
                     <Box key={group.statusName}>
-                      <Stack direction="row" spacing={0.75} alignItems="center" mb={0.75}>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        sx={{
+                          alignItems: "center",
+                          mb: 0.75
+                        }}>
                         <Box
                           sx={{
                             width: 9,
@@ -236,9 +277,11 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
                         />
                         <Typography
                           variant="caption"
-                          fontWeight={700}
-                          sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                        >
+                          sx={{
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5
+                          }}>
                           {group.statusName} ({group.members.length})
                         </Typography>
                       </Stack>
@@ -266,15 +309,14 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
                             {m.participation?.note && (
                               <Typography
                                 variant="caption"
-                                display="block"
-                                color="text.secondary"
                                 sx={{
+                                  display: "block",
+                                  color: "text.secondary",
                                   fontStyle: 'italic',
                                   mt: 0.25,
                                   ml: 0.5,
-                                  fontSize: '0.7rem',
-                                }}
-                              >
+                                  fontSize: '0.7rem'
+                                }}>
                                 {m.participation.note}
                               </Typography>
                             )}
@@ -294,9 +336,11 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
                 <Box sx={{ px: 2.5, pt: 2, pb: 2.5 }}>
                   <Typography
                     variant="overline"
-                    color="text.secondary"
-                    sx={{ fontSize: '0.7rem', letterSpacing: 1 }}
-                  >
+                    sx={{
+                      color: "text.secondary",
+                      fontSize: '0.7rem',
+                      letterSpacing: 1
+                    }}>
                     Noch keine Rückmeldung ({pendingMembers.length})
                   </Typography>
                   <Box
@@ -327,8 +371,14 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
             )}
 
             {respondedMembers.length === 0 && pendingMembers.length === 0 && (
-              <Box py={4} textAlign="center">
-                <Typography variant="body2" color="text.secondary">
+              <Box
+                sx={{
+                  py: 4,
+                  textAlign: "center"
+                }}>
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   Keine Mitglieder in diesem Team gefunden.
                 </Typography>
               </Box>
@@ -336,7 +386,6 @@ export const PlayerOverviewModal: React.FC<PlayerOverviewModalProps> = ({
           </Box>
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: 2.5, py: 1.75 }}>
         <Button onClick={onClose} variant="contained" sx={{ borderRadius: 2, px: 3 }}>
           Schließen

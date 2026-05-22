@@ -399,21 +399,19 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
         }} />
       ) : (
         // Half-pitch landscape (1357×960): display image at its natural ratio
-        <Box sx={{
+        (<Box sx={{
           position: 'absolute', inset: 0,
           backgroundImage: 'url(/images/formation/fussballfeld_haelfte.jpg)',
           backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
           bgcolor: '#1a5229',
-        }} />
+        }} />)
       )}
-
       {/* Dark vignette for depth */}
       <Box sx={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.28) 100%)',
         pointerEvents: 'none', zIndex: 1,
       }} />
-
       {/* ── Zone labels ──────────────────────────────────────────────────── */}
       {zoneLabels.map(z => (
         <Typography key={z.label} variant="caption" sx={{
@@ -426,7 +424,6 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           {z.label}
         </Typography>
       ))}
-
       {/* ── Own player tokens ─────────────────────────────────────────────── */}
       {/* Pointer mode: sit above SVG (z:12), draggable.                       */}
       {/* Drawing modes: stay below SVG (z:3), pass events through.            */}
@@ -495,7 +492,6 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           </Box>
         );
       })}
-
       {/* ── Ghost indicators for off-screen own players (half-pitch only) ── */}
       {/* Players in the opponent half have sy < 0 and are clipped by         */}
       {/* overflow:hidden. We pin a small semi-transparent token at top=0     */}
@@ -539,7 +535,6 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           </Box>
         ))
       }
-
       {/* ── Opponent tokens (HTML, z:11) ─────────────────────────────────── */}
       {/* Same layout as own players (circle + label) but hollow ring style   */}
       {/* so they are immediately distinguishable regardless of color.        */}
@@ -609,7 +604,6 @@ export const PitchCanvas: React.FC<PitchCanvasProps> = ({
           </Box>
         );
       })}
-
       {/* ── SVG drawing layer (z:10) ─────────────────────────────────────── */}
       {/* overflow:visible is intentional: paths with negative coordinates    */}
       {/* (opponent-half elements viewed in half-pitch) must NOT be clipped   */}

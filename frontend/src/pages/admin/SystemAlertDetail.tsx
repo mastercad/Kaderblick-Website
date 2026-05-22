@@ -53,8 +53,16 @@ function fmtDate(iso: string) {
 
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'baseline' }}>
-      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 160, flexShrink: 0 }}>
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{
+      alignItems: { sm: 'baseline' }
+    }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          minWidth: 160,
+          flexShrink: 0
+        }}>
         {label}
       </Typography>
       <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>{value}</Typography>
@@ -118,7 +126,14 @@ export default function SystemAlertDetail() {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" mt={6}><CircularProgress /></Box>;
+  if (loading) return (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        mt: 6
+      }}><CircularProgress /></Box>
+  );
   if (error || !alert) return <Alert severity="error" sx={{ m: 2 }}>{error ?? 'Unbekannter Fehler.'}</Alert>;
 
   const borderColor = alert.category === 'server_error' ? 'error.main' :
@@ -137,13 +152,22 @@ export default function SystemAlertDetail() {
         >
           System-Wartung
         </Link>
-        <Typography variant="body2" color="text.primary">Alert #{alert.id}</Typography>
+        <Typography variant="body2" sx={{
+          color: "text.primary"
+        }}>Alert #{alert.id}</Typography>
       </Breadcrumbs>
-
       {/* Title */}
-      <Stack direction="row" alignItems="center" spacing={1.5} mb={2}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          alignItems: "center",
+          mb: 2
+        }}>
         <CategoryIcon category={alert.category} />
-        <Typography variant="h5" fontWeight={700}>{alert.categoryLabel}</Typography>
+        <Typography variant="h5" sx={{
+          fontWeight: 700
+        }}>{alert.categoryLabel}</Typography>
         {alert.isResolved && (
           <Chip label="Erledigt" color="success" size="small" icon={<CheckCircleIcon />} />
         )}
@@ -151,7 +175,6 @@ export default function SystemAlertDetail() {
           <Chip label={`${alert.occurrenceCount}× aufgetreten`} color="error" variant="outlined" size="small" />
         )}
       </Stack>
-
       {/* Alert message */}
       <Paper
         variant="outlined"
@@ -159,10 +182,14 @@ export default function SystemAlertDetail() {
       >
         <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: 'break-all' }}>{alert.message}</Typography>
       </Paper>
-
       {/* Metadata */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Typography variant="subtitle2" fontWeight={700} mb={1}>Metadaten</Typography>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontWeight: 700,
+            mb: 1
+          }}>Metadaten</Typography>
         <Stack spacing={0.75}>
           <MetaRow label="Erste Auslösung" value={fmtDate(alert.firstOccurrenceAt)} />
           <MetaRow label="Letzte Auslösung" value={fmtDate(alert.lastOccurrenceAt)} />
@@ -180,11 +207,15 @@ export default function SystemAlertDetail() {
           )}
         </Stack>
       </Paper>
-
       {/* Context JSON */}
       {alert.context && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" fontWeight={700} mb={1}>Kontext</Typography>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 700,
+              mb: 1
+            }}>Kontext</Typography>
           <Box
             component="pre"
             sx={{
@@ -203,11 +234,15 @@ export default function SystemAlertDetail() {
           </Box>
         </Paper>
       )}
-
       {/* Stack trace */}
       {alert.stackTrace && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" fontWeight={700} mb={1}>Stack Trace</Typography>
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: 700,
+              mb: 1
+            }}>Stack Trace</Typography>
           <Box
             component="pre"
             sx={{
@@ -227,9 +262,10 @@ export default function SystemAlertDetail() {
           </Box>
         </Paper>
       )}
-
       {/* Actions */}
-      <Stack direction="row" spacing={1} mt={2}>
+      <Stack direction="row" spacing={1} sx={{
+        mt: 2
+      }}>
         <Button variant="outlined" onClick={() => navigate('/admin/system-alerts')}>
           Zurück
         </Button>
@@ -248,7 +284,6 @@ export default function SystemAlertDetail() {
           </Button>
         )}
       </Stack>
-
       {/* Resolve dialog */}
       <Dialog open={resolveOpen} onClose={() => setResolveOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Alert als erledigt markieren</DialogTitle>
@@ -271,7 +306,6 @@ export default function SystemAlertDetail() {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Snackbar open={snack !== null} autoHideDuration={3000} onClose={() => setSnack(null)} message={snack} />
     </Box>
   );

@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { FaTrashAlt } from 'react-icons/fa';
 import { SectionCard } from '../components/SectionCard';
@@ -35,7 +35,9 @@ export function ApiTokenTab({
   return (
     <SectionCard title="Persönlicher API-Token" icon={<VpnKeyIcon fontSize="small" />}>
       <Stack spacing={2}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Mit einem persönlichen API-Token kannst du dich bei API-Anfragen und Automatisierungen authentifizieren.
           Verwende ihn als <code>Authorization: Bearer &lt;token&gt;</code>-Header.
         </Typography>
@@ -46,7 +48,9 @@ export function ApiTokenTab({
             <Typography variant="body2">
               Token aktiv
               {createdAt && (
-                <Typography component="span" variant="body2" color="text.secondary">
+                <Typography component="span" variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   {' '}· erstellt am {new Date(createdAt).toLocaleDateString('de-DE', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit',
@@ -60,7 +64,13 @@ export function ApiTokenTab({
         {newToken && (
           <Alert severity="warning" icon={<WarningAmberIcon fontSize="inherit" />}
             sx={{ fontFamily: 'monospace', fontSize: '0.78rem', wordBreak: 'break-all', alignItems: 'flex-start' }}>
-            <Typography variant="caption" fontWeight={700} display="block" mb={0.5}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                display: "block",
+                mb: 0.5
+              }}>
               Token nur einmal sichtbar – jetzt kopieren!
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>

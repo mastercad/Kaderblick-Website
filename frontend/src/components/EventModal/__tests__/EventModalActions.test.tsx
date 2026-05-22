@@ -15,7 +15,7 @@ jest.mock('@mui/material/Button', () => (props: any) => (
 jest.mock('@mui/icons-material/ArrowBack', () => () => <span data-testid="icon-back" />);
 jest.mock('@mui/icons-material/ArrowForward', () => () => <span data-testid="icon-forward" />);
 jest.mock('@mui/icons-material/Save', () => () => <span data-testid="icon-save" />);
-jest.mock('@mui/icons-material/DeleteOutline', () => () => <span data-testid="icon-delete" />);
+jest.mock('@mui/icons-material/DeleteOutlined', () => () => <span data-testid="icon-delete" />);
 
 const noop = jest.fn();
 

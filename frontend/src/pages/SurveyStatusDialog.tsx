@@ -82,9 +82,15 @@ const SurveyStatusDialog: React.FC<SurveyStatusDialogProps> = ({ surveyId, open,
         {error && <Alert severity="error">{error}</Alert>}
         {survey && (
           <Box>
-            <Typography variant="h6" mb={1}>{survey.title}</Typography>
+            <Typography variant="h6" sx={{
+              mb: 1
+            }}>{survey.title}</Typography>
             {survey.description && (
-              <Typography color="text.secondary" mb={2}>{survey.description}</Typography>
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  mb: 2
+                }}>{survey.description}</Typography>
             )}
 
             {canViewStats && surveyId ? (
@@ -112,14 +118,17 @@ const ResultsView: React.FC<{ results: any }> = ({ results }) => {
     <Box>
       {/* Summary header */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{
+          alignItems: "center"
+        }}>
           <PeopleIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle1" fontWeight="bold">
+          <Typography variant="subtitle1" sx={{
+            fontWeight: "bold"
+          }}>
             {totalResponses} {totalResponses === 1 ? 'Teilnahme' : 'Teilnahmen'}
           </Typography>
         </Stack>
       </Paper>
-
       {results.results.length === 0 && (
         <EmptyStateHint
           icon={<PollIcon />}
@@ -128,7 +137,6 @@ const ResultsView: React.FC<{ results: any }> = ({ results }) => {
           compact
         />
       )}
-
       {/* Per-question results */}
       {results.results.map((q: any, idx: number) => {
         const typeName = TYPE_LABELS[q.type] || q.type;
@@ -138,9 +146,21 @@ const ResultsView: React.FC<{ results: any }> = ({ results }) => {
         return (
           <Accordion key={q.id} defaultExpanded variant="outlined" sx={{ mb: 1 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1 }}>
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  alignItems: "center",
+                  width: '100%',
+                  pr: 1
+                }}>
                 <PollIcon fontSize="small" color={typeColor} />
-                <Typography variant="body1" fontWeight="bold" sx={{ flex: 1 }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: "bold",
+                    flex: 1
+                  }}>
                   {idx + 1}. {q.questionText}
                 </Typography>
                 <Chip label={typeName} size="small" color={typeColor} variant="outlined" />
@@ -185,7 +205,11 @@ function computeTotalForQuestion(q: any, totalResponses: number): number {
 /** Choice question results with progress bars */
 const ChoiceResults: React.FC<{ options: any[]; total: number }> = ({ options, total }) => {
   if (!options || options.length === 0) {
-    return <Typography variant="body2" color="text.secondary">Keine Antwortoptionen vorhanden.</Typography>;
+    return (
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>Keine Antwortoptionen vorhanden.</Typography>
+    );
   }
 
   const maxCount = Math.max(...options.map((o: any) => o.count || 0), 1);
@@ -199,15 +223,29 @@ const ChoiceResults: React.FC<{ options: any[]; total: number }> = ({ options, t
 
         return (
           <Box key={opt.id} sx={{ mb: 1.5 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline" mb={0.25}>
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                mb: 0.25
+              }}>
               <Typography
                 variant="body2"
-                fontWeight={isMax ? 'bold' : 'normal'}
                 color={isMax ? 'text.primary' : 'text.secondary'}
+                sx={{
+                  fontWeight: isMax ? 'bold' : 'normal'
+                }}
               >
                 {opt.optionText || `Option ${opt.id}`}
               </Typography>
-              <Typography variant="body2" fontWeight="bold" sx={{ ml: 2, whiteSpace: 'nowrap' }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: "bold",
+                  ml: 2,
+                  whiteSpace: 'nowrap'
+                }}>
                 {count} {count === 1 ? 'Stimme' : 'Stimmen'} ({percentage}%)
               </Typography>
             </Stack>
@@ -228,7 +266,13 @@ const ChoiceResults: React.FC<{ options: any[]; total: number }> = ({ options, t
           </Box>
         );
       })}
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          mt: 1,
+          display: 'block'
+        }}>
         Gesamt: {total} {total === 1 ? 'Antwort' : 'Antworten'}
       </Typography>
     </Box>
@@ -250,15 +294,24 @@ const ScaleResults: React.FC<{ question: any; totalResponses: number }> = ({ que
       <Box>
         {/* Options if available */}
         {question.options && question.options.length > 0 && (
-          <Box mb={2}>
+          <Box sx={{
+            mb: 2
+          }}>
             {question.options.map((opt: any) => {
               const count = opt.count || 0;
               const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
               return (
                 <Box key={opt.id} sx={{ mb: 1 }}>
-                  <Stack direction="row" justifyContent="space-between" mb={0.25}>
+                  <Stack
+                    direction="row"
+                    sx={{
+                      justifyContent: "space-between",
+                      mb: 0.25
+                    }}>
                     <Typography variant="body2">{opt.optionText || opt.id}</Typography>
-                    <Typography variant="body2" fontWeight="bold">{count} ({pct}%)</Typography>
+                    <Typography variant="body2" sx={{
+                      fontWeight: "bold"
+                    }}>{count} ({pct}%)</Typography>
                   </Stack>
                   <LinearProgress
                     variant="determinate"
@@ -271,7 +324,6 @@ const ScaleResults: React.FC<{ question: any; totalResponses: number }> = ({ que
             })}
           </Box>
         )}
-
         {/* Average display */}
         <Paper
           variant="outlined"
@@ -281,11 +333,20 @@ const ScaleResults: React.FC<{ question: any; totalResponses: number }> = ({ que
             background: 'linear-gradient(135deg, rgba(255,167,38,0.08) 0%, rgba(255,167,38,0.02) 100%)',
           }}
         >
-          <Typography variant="caption" color="text.secondary">Durchschnitt</Typography>
-          <Typography variant="h4" fontWeight="bold" color="warning.main">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>Durchschnitt</Typography>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: "bold",
+              color: "warning.main"
+            }}>
             {average}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>
             von {maxScale} ({totalResponses} {totalResponses === 1 ? 'Antwort' : 'Antworten'})
           </Typography>
           <LinearProgress
@@ -300,7 +361,9 @@ const ScaleResults: React.FC<{ question: any; totalResponses: number }> = ({ que
   }
 
   return (
-    <Typography variant="body2" color="text.secondary">Keine Skalendaten verfügbar.</Typography>
+    <Typography variant="body2" sx={{
+      color: "text.secondary"
+    }}>Keine Skalendaten verfügbar.</Typography>
   );
 };
 
@@ -338,7 +401,9 @@ const TextResults: React.FC<{ answers: any }> = ({ answers }) => {
           <Typography variant="body2">{ans}</Typography>
         </Paper>
       ))}
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" sx={{
+        color: "text.secondary"
+      }}>
         {textList.length} {textList.length === 1 ? 'Antwort' : 'Antworten'}
       </Typography>
     </Stack>

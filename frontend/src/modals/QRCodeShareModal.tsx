@@ -66,7 +66,12 @@ export default function QRCodeShareModal({ open, onClose }: QRCodeShareModalProp
         showCloseButton
       >
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <Typography variant="body2" color="text.secondary" textAlign="center">
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              textAlign: "center"
+            }}>
             Teile diesen QR-Code — wer ihn scannt, landet direkt auf dem Registrierungs-Formular.
           </Typography>
 
@@ -143,7 +148,6 @@ export default function QRCodeShareModal({ open, onClose }: QRCodeShareModalProp
           </Box>
         </Box>
       </BaseModal>
-
       <Snackbar
         open={copied}
         autoHideDuration={2500}

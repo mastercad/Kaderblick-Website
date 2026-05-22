@@ -22,7 +22,7 @@ import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import SecurityIcon from '@mui/icons-material/Security';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
@@ -166,10 +166,20 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
           <SecurityIcon sx={{ color: 'white', fontSize: 40 }} />
         </Box>
       </Box>
-      <Typography variant="h6" fontWeight={700} textAlign="center">
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          textAlign: "center"
+        }}>
         Wie möchtest du dich absichern?
       </Typography>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Wähle die Methode, die am besten zu dir passt. Du kannst sie jederzeit wechseln.
       </Typography>
 
@@ -181,8 +191,12 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
           <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
             <PhoneAndroidIcon color="primary" sx={{ mt: 0.5, fontSize: 32 }} />
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>Authenticator-App</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="subtitle1" sx={{
+                fontWeight: 700
+              }}>Authenticator-App</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Höchste Sicherheit. Lade eine kostenlose App (z. B. Google Authenticator oder Authy) auf dein Smartphone und scanne einen QR-Code.
               </Typography>
             </Box>
@@ -198,8 +212,12 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
           <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
             <EmailOutlinedIcon color="primary" sx={{ mt: 0.5, fontSize: 32 }} />
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>E-Mail-Code</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="subtitle1" sx={{
+                fontWeight: 700
+              }}>E-Mail-Code</Typography>
+              <Typography variant="body2" sx={{
+                color: "text.secondary"
+              }}>
                 Einfach für alle. Beim Login bekommst du einen Code per E-Mail zugeschickt – kein Smartphone nötig.
               </Typography>
             </Box>
@@ -213,18 +231,30 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
 
   const renderTotpStep0 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 } }}>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Du benötigst eine kostenlose Authenticator-App auf deinem Smartphone.
       </Typography>
       <Alert severity="info" sx={{ borderRadius: 2 }}>
-        <Typography variant="body2" fontWeight={600} mb={0.5}>Empfohlene Apps (kostenlos):</Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 600,
+            mb: 0.5
+          }}>Empfohlene Apps (kostenlos):</Typography>
         <Typography variant="body2">
           • <strong>Google Authenticator</strong> (Android &amp; iPhone)<br />
           • <strong>Microsoft Authenticator</strong> (Android &amp; iPhone)<br />
           • <strong>Authy</strong> (Android, iPhone &amp; Desktop)
         </Typography>
       </Alert>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         Lade eine dieser Apps auf dein Handy, öffne sie und tippe dann auf <em>„Konto hinzufügen"</em> oder das <strong>+</strong>-Symbol.
         Danach klicke unten auf <em>Weiter</em>.
       </Typography>
@@ -234,7 +264,12 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
 
   const renderTotpStep1 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 } }}>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Scanne diesen QR-Code mit deiner Authenticator-App. Gib danach den 6-stelligen Code ein, der in der App angezeigt wird.
       </Typography>
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -262,11 +297,13 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
         label="6-stelliger Code aus der App"
         value={code}
         onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(null); }}
-        inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
         autoComplete="one-time-code"
         size="small"
         fullWidth
         helperText="Der Code wechselt alle 30 Sekunden."
+        slotProps={{
+          htmlInput: { maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }
+        }}
       />
       {error && <Alert severity="error">{error}</Alert>}
     </Stack>
@@ -275,7 +312,9 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
   const renderTotpStep2 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 } }}>
       <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ borderRadius: 2 }}>
-        <Typography variant="body2" fontWeight={700}>Wichtig: Backup-Codes jetzt sichern!</Typography>
+        <Typography variant="body2" sx={{
+          fontWeight: 700
+        }}>Wichtig: Backup-Codes jetzt sichern!</Typography>
         <Typography variant="body2">
           Wenn du dein Handy verlierst oder keinen Zugriff auf deine App hast, kannst du dich mit diesen Codes anmelden.
           Jeder Code kann nur <strong>einmal</strong> verwendet werden.
@@ -287,7 +326,14 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
         p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.default',
       }}>
         {backupCodes.map((c) => (
-          <Typography key={c} fontFamily="monospace" fontWeight={700} fontSize="0.9rem" textAlign="center">{c}</Typography>
+          <Typography
+            key={c}
+            sx={{
+              fontFamily: "monospace",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              textAlign: "center"
+            }}>{c}</Typography>
         ))}
       </Box>
       <Button variant="outlined" startIcon={<ContentCopyIcon />} onClick={handleCopyBackupCodes}
@@ -295,7 +341,9 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
         {copied ? 'Kopiert!' : 'Alle Codes kopieren'}
       </Button>
       <Divider />
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{
+        color: "text.secondary"
+      }}>
         Hast du die Codes gesichert? Dann klicke auf <em>„Einrichtung abschließen"</em>.
       </Typography>
     </Stack>
@@ -304,8 +352,18 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
   const renderTotpStep3 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 }, alignItems: 'center' }}>
       <CheckCircleOutlineIcon color="success" sx={{ fontSize: 72 }} />
-      <Typography variant="h6" fontWeight={700} textAlign="center">2FA ist jetzt aktiv!</Typography>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          textAlign: "center"
+        }}>2FA ist jetzt aktiv!</Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Ab sofort wirst du beim Login nach einem Code gefragt. Dein Konto ist jetzt deutlich besser geschützt.
       </Typography>
     </Stack>
@@ -315,7 +373,12 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
 
   const renderEmailStep0 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 } }}>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Wir senden einen 6-stelligen Code an deine registrierte E-Mail-Adresse. Gib ihn unten ein, um die Einrichtung abzuschließen.
       </Typography>
       {!emailCodeSent ? (
@@ -337,12 +400,14 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
             label="6-stelliger Code aus der E-Mail"
             value={emailCode}
             onChange={(e) => { setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(null); }}
-            inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
             autoComplete="one-time-code"
             size="small"
             fullWidth
             helperText="Der Code ist 10 Minuten gültig."
             autoFocus
+            slotProps={{
+              htmlInput: { maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }
+            }}
           />
           <Button
             variant="text"
@@ -361,8 +426,18 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
   const renderEmailStep1 = () => (
     <Stack spacing={2.5} sx={{ p: { xs: 2, sm: 3 }, alignItems: 'center' }}>
       <CheckCircleOutlineIcon color="success" sx={{ fontSize: 72 }} />
-      <Typography variant="h6" fontWeight={700} textAlign="center">E-Mail-2FA ist jetzt aktiv!</Typography>
-      <Typography variant="body2" color="text.secondary" textAlign="center">
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          textAlign: "center"
+        }}>E-Mail-2FA ist jetzt aktiv!</Typography>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          textAlign: "center"
+        }}>
         Ab sofort bekommst du beim Login einen Code per E-Mail.
       </Typography>
     </Stack>
@@ -434,10 +509,14 @@ export default function TwoFactorSetupModal({ open, onClose, onEnabled }: Props)
   // ── Modal title ───────────────────────────────────────────────────────
 
   const titleContent = method === null ? (
-    <Typography variant="h6" fontWeight={700}>2FA einrichten</Typography>
+    <Typography variant="h6" sx={{
+      fontWeight: 700
+    }}>2FA einrichten</Typography>
   ) : (
     <Box>
-      <Typography variant="h6" fontWeight={700}>
+      <Typography variant="h6" sx={{
+        fontWeight: 700
+      }}>
         2FA einrichten – {method === 'totp' ? 'Authenticator-App' : 'E-Mail-Code'}
       </Typography>
       <Stepper activeStep={step} alternativeLabel sx={{ mt: 1.5, mb: -0.5 }}>

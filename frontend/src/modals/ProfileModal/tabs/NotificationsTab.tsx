@@ -39,24 +39,30 @@ export function NotificationsTab({
             ) : undefined
           }
         >
-          <Typography variant="body2" fontWeight={600}>Push-Benachrichtigungen sind nicht aktiv</Typography>
-          <Typography variant="caption" display="block">
+          <Typography variant="body2" sx={{
+            fontWeight: 600
+          }}>Push-Benachrichtigungen sind nicht aktiv</Typography>
+          <Typography variant="caption" sx={{
+            display: "block"
+          }}>
             {pushHealth.status === 'permission_denied'
               ? 'Du hast Push-Benachrichtigungen im Browser blockiert. Ändere die Einstellung in den Browser-Einstellungen.'
               : 'Aktiviere Push-Benachrichtigungen, damit diese Einstellungen wirksam werden.'}
           </Typography>
         </Alert>
       )}
-
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 2
+        }}>
         Wähle aus, für welche Bereiche du Push-Benachrichtigungen erhalten möchtest.
         Einstellungen werden sofort gespeichert.
       </Typography>
-
       {prefsMessage && (
         <Alert severity={prefsMessage.type} sx={{ mb: 2, py: 0.5 }}>{prefsMessage.text}</Alert>
       )}
-
       {Object.entries(groups).map(([groupName, categories]) => (
         <SectionCard key={groupName} title={groupName}>
           <Stack divider={<Divider />} spacing={0}>
@@ -71,8 +77,15 @@ export function NotificationsTab({
                   {cat.icon}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600}>{cat.label}</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">{cat.description}</Typography>
+                  <Typography variant="body2" sx={{
+                    fontWeight: 600
+                  }}>{cat.label}</Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      display: "block"
+                    }}>{cat.description}</Typography>
                 </Box>
                 <Switch
                   checked={isEnabled(cat.key)}
@@ -86,7 +99,6 @@ export function NotificationsTab({
           </Stack>
         </SectionCard>
       ))}
-
       {pushHealth && pushHealth.status !== 'healthy' && (
         <Alert severity="info" sx={{ mt: 2 }}
           icon={<NotificationsActiveIcon fontSize="inherit" />}

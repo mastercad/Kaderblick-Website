@@ -36,10 +36,10 @@ jest.mock('@mui/icons-material/CalendarMonth',       () => () => <span>📅</spa
 jest.mock('@mui/icons-material/VpnKey',              () => () => <span>🔑</span>);
 jest.mock('@mui/icons-material/ContentCopy',         () => () => <span>📋</span>);
 jest.mock('@mui/icons-material/Refresh',             () => () => <span>🔄</span>);
-jest.mock('@mui/icons-material/DeleteOutline',       () => () => <span>🗑</span>);
+jest.mock('@mui/icons-material/DeleteOutlined',       () => () => <span>🗑</span>);
 jest.mock('@mui/icons-material/Add',                 () => () => <span>➕</span>);
 jest.mock('@mui/icons-material/OpenInNew',           () => () => <span>🔗</span>);
-jest.mock('@mui/icons-material/CheckCircleOutline',  () => () => <span>✅</span>);
+jest.mock('@mui/icons-material/CheckCircleOutlined',  () => () => <span>✅</span>);
 jest.mock('@mui/icons-material/Edit',                () => () => <span>✏️</span>);
 
 // ─── API Mock ──────────────────────────────────────────────────────────────────

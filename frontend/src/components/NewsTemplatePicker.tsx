@@ -43,15 +43,24 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
         onClose={onClose}
         maxWidth="lg"
         fullWidth
-        PaperProps={{ sx: { height: '85vh', maxHeight: 760 } }}
+        slotProps={{
+          paper: { sx: { height: '85vh', maxHeight: 760 } }
+        }}
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1.5 }}>
           <AutoAwesomeIcon color="primary" />
           <Box>
-            <Typography variant="h6" component="span" fontWeight={700}>
+            <Typography variant="h6" component="span" sx={{
+              fontWeight: 700
+            }}>
               Vorlage auswählen
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mt: 0.25
+              }}>
               Wähle eine Vorlage als Ausgangspunkt – alle Texte kannst du danach beliebig anpassen.
             </Typography>
           </Box>
@@ -95,7 +104,9 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
                     },
                   }}
                 >
-                  <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                  <Stack direction="row" spacing={1.25} sx={{
+                    alignItems: "flex-start"
+                  }}>
                     <Box
                       sx={{
                         width: 40,
@@ -114,24 +125,25 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
                     <Box sx={{ minWidth: 0 }}>
                       <Typography
                         variant="body2"
-                        fontWeight={isSelected ? 700 : 600}
                         color={isSelected ? tpl.color : 'text.primary'}
                         noWrap
+                        sx={{
+                          fontWeight: isSelected ? 700 : 600
+                        }}
                       >
                         {tpl.name}
                       </Typography>
                       <Typography
                         variant="caption"
-                        color="text.secondary"
                         sx={{
+                          color: "text.secondary",
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
                           lineHeight: 1.4,
-                          mt: 0.25,
-                        }}
-                      >
+                          mt: 0.25
+                        }}>
                         {tpl.description}
                       </Typography>
                     </Box>
@@ -151,7 +163,13 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
             }}
           >
             {/* Preview header */}
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2.5 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                mb: 2.5
+              }}>
               <Chip
                 label="Vorschau"
                 size="small"
@@ -162,7 +180,9 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
                   border: `1px solid ${alpha(selected.color, 0.3)}`,
                 }}
               />
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
                 So sieht die Vorlage nach dem Befüllen in etwa aus
               </Typography>
             </Stack>
@@ -197,12 +217,13 @@ const NewsTemplatePicker: React.FC<Props> = ({ open, onClose, onApply, hasConten
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* ── Overwrite confirmation ──────────────────────────────────────── */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs">
         <DialogTitle>Inhalt ersetzen?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
             Der aktuelle Inhalt des Editors wird durch die Vorlage <strong>„{selected.name}"</strong> ersetzt.
             Diese Aktion kann rückgängig gemacht werden (Strg+Z).
           </Typography>

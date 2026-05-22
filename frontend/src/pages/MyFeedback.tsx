@@ -14,7 +14,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutlined';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useNavigate } from 'react-router-dom';
 import { BACKEND_URL } from '../../config';
@@ -92,8 +92,16 @@ function StatsStrip({ items }: { items: FeedbackItem[] }) {
           display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1,
           borderRadius: 2, bgcolor: s.bgcolor, border: '1px solid', borderColor: `${s.color}30`,
         }}>
-          <Typography variant="h6" fontWeight={700} color={s.color} lineHeight={1}>{s.value}</Typography>
-          <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+          <Typography
+            variant="h6"
+            color={s.color}
+            sx={{
+              fontWeight: 700,
+              lineHeight: 1
+            }}>{s.value}</Typography>
+          <Typography variant="caption" sx={{
+            color: "text.secondary"
+          }}>{s.label}</Typography>
         </Box>
       ))}
     </Box>
@@ -141,7 +149,12 @@ function FeedbackCard({ item, onShowScreenshot }: {
           {/* right side: pills + date + screenshot */}
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <CommentPill count={item.commentCount} hasUnread={item.hasUnreadAdminReply} />
-            <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                whiteSpace: 'nowrap'
+              }}>
               {fmtDate(item.createdAt)}
             </Typography>
             {item.screenshotPath && (
@@ -155,11 +168,17 @@ function FeedbackCard({ item, onShowScreenshot }: {
         </Box>
 
         {/* Message preview */}
-        <Typography variant="body2" color="text.secondary" sx={{
-          overflow: 'hidden', display: '-webkit-box',
-          WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-          whiteSpace: 'pre-line', wordBreak: 'break-word',
-        }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            overflow: 'hidden',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            whiteSpace: 'pre-line',
+            wordBreak: 'break-word'
+          }}>
           {item.message}
         </Typography>
 
@@ -170,7 +189,12 @@ function FeedbackCard({ item, onShowScreenshot }: {
             bgcolor: 'warning.light', display: 'flex', alignItems: 'center', gap: 1,
           }}>
             <ChatBubbleOutlineIcon sx={{ fontSize: 16, color: 'warning.dark' }} />
-            <Typography variant="caption" fontWeight={600} color="warning.dark">
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                color: "warning.dark"
+              }}>
               Admin hat geantwortet — tippe auf Details zum Lesen.
             </Typography>
           </Box>
@@ -253,8 +277,12 @@ const MyFeedback: React.FC = () => {
             <FeedbackIcon sx={{ fontSize: 30 }} />
           </Box>
           <Box>
-            <Typography variant="h4" fontWeight={700}>Mein Feedback</Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="h4" sx={{
+              fontWeight: 700
+            }}>Mein Feedback</Typography>
+            <Typography variant="body2" sx={{
+              color: "text.secondary"
+            }}>
               Übersicht deiner Rückmeldungen und Admin-Antworten
             </Typography>
           </Box>
@@ -271,7 +299,9 @@ const MyFeedback: React.FC = () => {
             <TextField
               size="small" placeholder="Suchen …" value={search}
               onChange={e => setSearch(e.target.value)} sx={{ minWidth: 220 }}
-              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }}
+              slotProps={{
+                input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }
+              }}
             />
             <Tabs value={tab} onChange={(_, v) => setTab(v)}
               sx={{ ml: 'auto', minHeight: 'auto', '& .MuiTab-root': { minHeight: 36, py: 0.75 } }}>
@@ -283,7 +313,6 @@ const MyFeedback: React.FC = () => {
           </Box>
         )}
       </Box>
-
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}><CircularProgress /></Box>
       ) : (
@@ -304,7 +333,6 @@ const MyFeedback: React.FC = () => {
           )}
         </>
       )}
-
       {/* Screenshot dialog */}
       <Dialog open={!!screenshot} onClose={() => setScreenshot(null)} maxWidth="md">
         <DialogTitle>

@@ -186,7 +186,9 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({ open, onClose, task }) =>
       }
     >
       <Stack spacing={2}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{
+          color: "text.secondary"
+        }}>
           Du kannst hier einmalige Aufgaben, wiederkehrende Aufgaben oder Aufgaben pro Spiel anlegen.
         </Typography>
 
@@ -209,9 +211,11 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({ open, onClose, task }) =>
           onChange={e => handleChange('date', e.target.value)}
           fullWidth
           required
-          InputLabelProps={{ shrink: true }}
           error={!formData.date && !!formError}
           helperText={!formData.date && !!formError ? 'Bitte ein Startdatum angeben.' : 'Ab diesem Datum werden die Aufgaben-Termine erzeugt.'}
+          slotProps={{
+            inputLabel: { shrink: true }
+          }}
         />
 
         <TaskEventFields

@@ -189,7 +189,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
 
   return (
     <Box sx={{ px: { xs: 1.5, sm: 3 }, py: { xs: 2, sm: 3 }, maxWidth: 960, mx: 'auto' }}>
-
       {/* ── Compact sticky header (teams + section) ──────────────────────── */}
       <Box
         sx={{
@@ -259,17 +258,20 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           </Box>
         )}
       </Box>
-
       {/* ── Back Navigation ─────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <IconButton onClick={hook.handleBack} sx={{ mr: 1 }} size="small">
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            fontWeight: 500
+          }}>
           {game.tournamentId ? 'Zurück zum Turnier' : 'Zurück zur Übersicht'}
         </Typography>
       </Box>
-
       {/* ── Scoreboard ──────────────────────────────────────────────────── */}
       <Box ref={scoreboardRef}>
         <ScoreboardHeroCard
@@ -285,7 +287,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onFinishGame={() => hook.setConfirmFinishOpen(true)}
         />
       </Box>
-
       {/* ── Share poster button ──────────────────────────────────────────── */}
       {!hook.isGameRunning() && (hook.isFinished || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
@@ -300,7 +301,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           />
         </Box>
       )}
-
       {/* ── Match Plan ──────────────────────────────────────────────────── */}
       {(game.permissions?.can_manage_match_plan || game.permissions?.can_view_match_plan) && (
         <Box sx={{ mb: 3 }}>          <Box ref={matchPlanSentinelRef} aria-hidden sx={{ height: 0 }} />          <DetailSectionHeader
@@ -320,37 +320,34 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           </Collapse>
         </Box>
       )}
-
       {/* ── Game Events ─────────────────────────────────────────────────── */}      <Box ref={eventsSentinelRef} aria-hidden sx={{ height: 0 }} />      <GameEventsSection
-        game={game}
-        gameEvents={hook.gameEvents}
-        gameStartDate={hook.gameStartDate}
-        youtubeLinks={hook.youtubeLinks as any}
-        mappedCameras={hook.mappedCameras}
-        sectionsOpen={hook.sectionsOpen.events}
-        canCreateEvents={hook.canCreateEvents()}
-        onToggle={() => hook.toggleSection('events')}
-        onProtectedEventAction={hook.handleProtectedEventAction}
-        onEditEvent={(event) => {
-          hook.setEventToEdit(event);
-          hook.setEventFormOpen(true);
-        }}
-        onDeleteEvent={hook.setEventToDelete}
-      />
-
+          game={game}
+          gameEvents={hook.gameEvents}
+          gameStartDate={hook.gameStartDate}
+          youtubeLinks={hook.youtubeLinks as any}
+          mappedCameras={hook.mappedCameras}
+          sectionsOpen={hook.sectionsOpen.events}
+          canCreateEvents={hook.canCreateEvents()}
+          onToggle={() => hook.toggleSection('events')}
+          onProtectedEventAction={hook.handleProtectedEventAction}
+          onEditEvent={(event) => {
+            hook.setEventToEdit(event);
+            hook.setEventFormOpen(true);
+          }}
+          onDeleteEvent={hook.setEventToDelete}
+        />
       {/* ── Videos ──────────────────────────────────────────────────────── */}      <Box ref={videosSentinelRef} aria-hidden sx={{ height: 0 }} />      <VideosSection
-        videos={hook.videos}
-        sectionsOpen={hook.sectionsOpen.videos}
-        canCreateVideos={hook.canCreateVideos()}
-        hasUser={!!hook.user}
-        onToggle={() => hook.toggleSection('videos')}
-        onProtectedVideoAction={hook.handleProtectedVideoAction}
-        onOpenSegmentModal={() => hook.setVideoSegmentModalOpen(true)}
-        onPlayVideo={handleOpenPlayVideo}
-        onEditVideo={hook.handleOpenEditVideo}
-        onDeleteVideo={hook.setVideoToDelete}
-      />
-
+          videos={hook.videos}
+          sectionsOpen={hook.sectionsOpen.videos}
+          canCreateVideos={hook.canCreateVideos()}
+          hasUser={!!hook.user}
+          onToggle={() => hook.toggleSection('videos')}
+          onProtectedVideoAction={hook.handleProtectedVideoAction}
+          onOpenSegmentModal={() => hook.setVideoSegmentModalOpen(true)}
+          onPlayVideo={handleOpenPlayVideo}
+          onEditVideo={hook.handleOpenEditVideo}
+          onDeleteVideo={hook.setVideoToDelete}
+        />
       {/* ── Timing ──────────────────────────────────────────────────────── */}
       {(game.permissions?.can_edit_timing || game.halfDuration != null) && (
         <TimingSection
@@ -369,7 +366,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onSave={hook.handleSaveTiming}
         />
       )}
-
       {/* ── Floating Action Button ───────────────────────────────────────── */}
       <Fab
         color="primary"
@@ -379,7 +375,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
       >
         <AddIcon />
       </Fab>
-
       {/* ── Fernbedienung FAB (nur während laufendem Spiel) ─────────────── */}
       {hook.isGameRunning() && (
         <QuickEventFab
@@ -392,7 +387,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           }}
         />
       )}
-
       {/* ── Fernbedienung Panel ─────────────────────────────────────────── */}
       {hook.isGameRunning() && hook.canCreateEvents() && hook.gameId != null && (
         <QuickEventPanel
@@ -404,7 +398,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onEventCreated={hook.loadGameEvents}
         />
       )}
-
       {/* ── All Modals ──────────────────────────────────────────────────── */}
       <GameDetailsModals
         game={game}

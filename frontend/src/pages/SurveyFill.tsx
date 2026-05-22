@@ -62,22 +62,57 @@ const SurveyFill: React.FC = () => {
       .catch(() => setError('Antworten konnten nicht gespeichert werden.'));
   };
 
-  if (loading) return <Box p={4}><Typography>Lade Umfrage...</Typography></Box>;
-  if (error) return <Box p={4}><Typography color="error">{error}</Typography></Box>;
-  if (submitted) return <Box p={4}><Typography variant="h5" color="primary">Vielen Dank für Ihre Teilnahme!</Typography></Box>;
+  if (loading) return (
+    <Box sx={{
+      p: 4
+    }}><Typography>Lade Umfrage...</Typography></Box>
+  );
+  if (error) return (
+    <Box sx={{
+      p: 4
+    }}><Typography color="error">{error}</Typography></Box>
+  );
+  if (submitted) return (
+    <Box sx={{
+      p: 4
+    }}><Typography variant="h5" color="primary">Vielen Dank für Ihre Teilnahme!</Typography></Box>
+  );
   if (!survey) return null;
 
   return (
-    <Box minHeight="100dvh" bgcolor={theme.palette.background.default}>
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        bgcolor: theme.palette.background.default
+      }}>
       <AppBar position="static" color="primary" elevation={1}>
         <Toolbar>
-          <Box component="img" src={KaderblickLogo} alt="Kaderblick" height={40} sx={{ mr: 2 }} />
-          <Typography variant="h6" color="inherit" sx={{ flexGrow: 1 }}>
+          <Box
+            component="img"
+            src={KaderblickLogo}
+            alt="Kaderblick"
+            sx={{
+              height: 40,
+              mr: 2
+            }} />
+          <Typography
+            variant="h6"
+            sx={{
+              color: "inherit",
+              flexGrow: 1
+            }}>
             Kaderblick – Umfrage
           </Typography>
         </Toolbar>
       </AppBar>
-      <Box display="flex" justifyContent="center" alignItems="flex-start" mt={4} width="100%">
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          mt: 4,
+          width: "100%"
+        }}>
         <Card sx={{ /* width: '100%',*/ boxShadow: 4 }}>
           <CardContent>
             <Typography variant="h4" gutterBottom sx={{ color: theme.palette.primary.main }}>{survey.title}</Typography>
@@ -88,7 +123,12 @@ const SurveyFill: React.FC = () => {
               <Stack spacing={4}>
                 {survey.questions.map((q: any, idx: number) => (
                   <Box key={q.id}>
-                    <Typography variant="h6" mb={1} sx={{ color: theme.palette.primary.dark }}>{idx + 1}. {q.questionText}</Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mb: 1,
+                        color: theme.palette.primary.dark
+                      }}>{idx + 1}. {q.questionText}</Typography>
                     {/* Fragetypen */}
                     {q.type === 'single_choice' && (
                       <RadioGroup
@@ -106,7 +146,9 @@ const SurveyFill: React.FC = () => {
                       </RadioGroup>
                     )}
                     {q.type === 'multiple_choice' && (
-                      <Stack direction="row" spacing={2} flexWrap="wrap">
+                      <Stack direction="row" spacing={2} sx={{
+                        flexWrap: "wrap"
+                      }}>
                         {q.options.map((opt: any) => (
                           <FormControlLabel
                             key={opt.id}
@@ -131,17 +173,21 @@ const SurveyFill: React.FC = () => {
                         onChange={e => handleChange(q.id, e.target.value)}
                         variant="outlined"
                         placeholder="Antwort eingeben..."
-                        InputProps={{
-                          sx: {
-                            '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.main },
-                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.dark },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.main },
+                        slotProps={{
+                          input: {
+                            sx: {
+                              '& .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.main },
+                              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.dark },
+                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: theme.palette.primary.main },
+                            }
                           }
                         }}
                       />
                     )}
                     {q.type === 'scale_1_5' && (
-                      <Box px={2}>
+                      <Box sx={{
+                        px: 2
+                      }}>
                         <Slider
                           value={typeof answers[q.id] === 'number' ? answers[q.id] : 3}
                           onChange={(_, val) => handleChange(q.id, val)}
@@ -152,7 +198,12 @@ const SurveyFill: React.FC = () => {
                           valueLabelDisplay="auto"
                           sx={{ color: theme.palette.primary.main }}
                         />
-                        <Box display="flex" justifyContent="space-between" mx="auto">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mx: "auto"
+                          }}>
                           {[1,2,3,4,5].map(n => (
                             <Typography key={n} variant="caption">{n}</Typography>
                           ))}
@@ -160,7 +211,9 @@ const SurveyFill: React.FC = () => {
                       </Box>
                     )}
                     {q.type === 'scale_1_10' && (
-                      <Box px={2}>
+                      <Box sx={{
+                        px: 2
+                      }}>
                         <Slider
                           value={typeof answers[q.id] === 'number' ? answers[q.id] : 5}
                           onChange={(_, val) => handleChange(q.id, val)}
@@ -171,7 +224,12 @@ const SurveyFill: React.FC = () => {
                           valueLabelDisplay="auto"
                           sx={{ color: theme.palette.primary.main }}
                         />
-                        <Box display="flex" justifyContent="space-between" mx="auto">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mx: "auto"
+                          }}>
                           {[1,2,3,4,5,6,7,8,9,10].map(n => (
                             <Typography key={n} variant="caption">{n}</Typography>
                           ))}

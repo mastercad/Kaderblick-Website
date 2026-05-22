@@ -133,7 +133,13 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
       .finally(() => setLoading(false));
   }, [surveyId]);
 
-  if (loading) return <Box textAlign="center" py={3}><CircularProgress size={28} /></Box>;
+  if (loading) return (
+    <Box
+      sx={{
+        textAlign: "center",
+        py: 3
+      }}><CircularProgress size={28} /></Box>
+  );
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!stats) return null;
 
@@ -143,9 +149,17 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
     <Box>
       {/* Participation Overview */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 1
+          }}>
           <GroupIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle1" fontWeight="bold">Beteiligung</Typography>
+          <Typography variant="subtitle1" sx={{
+            fontWeight: "bold"
+          }}>Beteiligung</Typography>
         </Stack>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -157,12 +171,19 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
               sx={{ height: 10, borderRadius: 5 }}
             />
           </Box>
-          <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 50 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: "bold",
+              minWidth: 50
+            }}>
             {stats.participationRate}%
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={2} flexWrap="wrap">
+        <Stack direction="row" spacing={2} sx={{
+          flexWrap: "wrap"
+        }}>
           <Chip
             icon={<GroupIcon />}
             label={`${stats.totalTargeted} Zielgruppe`}
@@ -185,12 +206,15 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           />
         </Stack>
       </Paper>
-
       {/* Target Group & Due Date */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={3} flexWrap="wrap">
+        <Stack direction="row" spacing={3} sx={{
+          flexWrap: "wrap"
+        }}>
           <Box>
-            <Typography variant="caption" color="text.secondary">Zielgruppe</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Zielgruppe</Typography>
             <Typography variant="body2">
               {stats.targetGroup.type === 'platform'
                 ? stats.targetGroup.label
@@ -198,7 +222,9 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" color="text.secondary">Fälligkeitsdatum</Typography>
+            <Typography variant="caption" sx={{
+              color: "text.secondary"
+            }}>Fälligkeitsdatum</Typography>
             <Typography variant="body2">
               {stats.dueDate ? formatDate(stats.dueDate) : 'Kein Fälligkeitsdatum'}
               {stats.isExpired && (
@@ -208,12 +234,18 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           </Box>
         </Stack>
       </Paper>
-
       {/* Timeline */}
       {Object.keys(stats.timeline).length > 0 && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-          <Typography variant="subtitle2" fontWeight="bold" mb={1}>Teilnahme-Verlauf</Typography>
-          <Stack direction="row" spacing={2} flexWrap="wrap">
+          <Typography
+            variant="subtitle2"
+            sx={{
+              fontWeight: "bold",
+              mb: 1
+            }}>Teilnahme-Verlauf</Typography>
+          <Stack direction="row" spacing={2} sx={{
+            flexWrap: "wrap"
+          }}>
             {Object.entries(stats.timeline).map(([date, count]) => (
               <Chip
                 key={date}
@@ -226,13 +258,22 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           </Stack>
         </Paper>
       )}
-
       {/* Question Stats */}
       {stats.questionStats.length > 0 && (
-        <Box mb={2}>
-          <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+        <Box sx={{
+          mb: 2
+        }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: "center",
+              mb: 1
+            }}>
             <PollIcon color="primary" fontSize="small" />
-            <Typography variant="subtitle1" fontWeight="bold">Auswertung pro Frage</Typography>
+            <Typography variant="subtitle1" sx={{
+              fontWeight: "bold"
+            }}>Auswertung pro Frage</Typography>
           </Stack>
 
           {stats.questionStats.map((q, idx) => (
@@ -249,9 +290,16 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
                   <Box>
                     {q.options.map(opt => (
                       <Box key={opt.id} sx={{ mb: 1 }}>
-                        <Stack direction="row" justifyContent="space-between" mb={0.25}>
+                        <Stack
+                          direction="row"
+                          sx={{
+                            justifyContent: "space-between",
+                            mb: 0.25
+                          }}>
                           <Typography variant="body2">{opt.optionText || `Option ${opt.id}`}</Typography>
-                          <Typography variant="body2" fontWeight="bold">{opt.count} ({opt.percentage}%)</Typography>
+                          <Typography variant="body2" sx={{
+                            fontWeight: "bold"
+                          }}>{opt.count} ({opt.percentage}%)</Typography>
                         </Stack>
                         <LinearProgress
                           variant="determinate"
@@ -268,9 +316,16 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
                   <Box>
                     {q.options.length > 0 && q.options.map(opt => (
                       <Box key={opt.id} sx={{ mb: 1 }}>
-                        <Stack direction="row" justifyContent="space-between" mb={0.25}>
+                        <Stack
+                          direction="row"
+                          sx={{
+                            justifyContent: "space-between",
+                            mb: 0.25
+                          }}>
                           <Typography variant="body2">{opt.optionText || `${opt.id}`}</Typography>
-                          <Typography variant="body2" fontWeight="bold">{opt.count} ({opt.percentage}%)</Typography>
+                          <Typography variant="body2" sx={{
+                            fontWeight: "bold"
+                          }}>{opt.count} ({opt.percentage}%)</Typography>
                         </Stack>
                         <LinearProgress
                           variant="determinate"
@@ -280,7 +335,9 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
                       </Box>
                     ))}
                     {q.scaleAverage !== undefined && (
-                      <Typography variant="body2" mt={1}>
+                      <Typography variant="body2" sx={{
+                        mt: 1
+                      }}>
                         <b>Durchschnitt:</b> {q.scaleAverage}
                       </Typography>
                     )}
@@ -291,7 +348,9 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
                 {q.type === 'text' && q.textAnswers && (
                   <Box>
                     {q.textAnswers.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary">Keine Antworten vorhanden.</Typography>
+                      <Typography variant="body2" sx={{
+                        color: "text.secondary"
+                      }}>Keine Antworten vorhanden.</Typography>
                     ) : (
                       <Box component="ul" sx={{ pl: 2, m: 0 }}>
                         {q.textAnswers.map((ans, i) => (
@@ -308,7 +367,6 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           ))}
         </Box>
       )}
-
       {/* Participants Table */}
       <Accordion variant="outlined" sx={{ mb: 1 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -319,7 +377,12 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
           {stats.participants.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                p: 2
+              }}>
               Noch keine Teilnahmen.
             </Typography>
           ) : (
@@ -344,7 +407,6 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           )}
         </AccordionDetails>
       </Accordion>
-
       {/* Non-Participants Table */}
       <Accordion variant="outlined" sx={{ mb: 1 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -355,7 +417,12 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0 }}>
           {stats.nonParticipants.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                p: 2
+              }}>
               Alle Benutzer haben bereits teilgenommen.
             </Typography>
           ) : (
@@ -378,12 +445,19 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
           )}
         </AccordionDetails>
       </Accordion>
-
       {/* Notification Info */}
       <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            mb: 1
+          }}>
           <NotificationsActiveIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle2" fontWeight="bold">Benachrichtigungen</Typography>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: "bold"
+          }}>Benachrichtigungen</Typography>
         </Stack>
         <Typography variant="body2">
           Erstbenachrichtigung: {stats.initialNotificationSent
@@ -391,16 +465,29 @@ const SurveyStatsPanel: React.FC<SurveyStatsPanelProps> = ({ surveyId }) => {
             : <Chip label="Nicht gesendet" size="small" color="default" />}
         </Typography>
         {stats.remindersSent && stats.remindersSent.length > 0 ? (
-          <Box mt={1}>
+          <Box sx={{
+            mt: 1
+          }}>
             <Typography variant="body2">Erinnerungen gesendet:</Typography>
-            <Stack direction="row" spacing={1} mt={0.5} flexWrap="wrap">
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                mt: 0.5,
+                flexWrap: "wrap"
+              }}>
               {stats.remindersSent.map(r => (
                 <Chip key={r} label={getReminderLabel(r)} size="small" variant="outlined" />
               ))}
             </Stack>
           </Box>
         ) : (
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
+              mt: 0.5
+            }}>
             Noch keine Erinnerungen gesendet.
           </Typography>
         )}
