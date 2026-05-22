@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  Alert,
   Box,
   Button,
-  CircularProgress,
   Container,
   Link,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
@@ -26,8 +23,8 @@ import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { Link as RouterLink } from 'react-router-dom';
-import { apiJson } from '../utils/api';
 import AuthModal from '../modals/AuthModal';
+import ContactForm from '../components/public/ContactForm';
 import DemoRequestModal from '../modals/DemoRequestModal';
 import PublicSiteHeader from '../components/public/PublicSiteHeader';
 import { useHomeScroll } from '../context/HomeScrollContext';
@@ -105,30 +102,6 @@ export default function Home() {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const { setIsOnHeroSection } = useHomeScroll();
-
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactMessage, setContactMessage] = useState('');
-  const [contactLoading, setContactLoading] = useState(false);
-  const [contactSuccess, setContactSuccess] = useState(false);
-  const [contactError, setContactError] = useState<string | null>(null);
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setContactLoading(true);
-    setContactError(null);
-    try {
-      await apiJson('/api/contact', {
-        method: 'POST',
-        body: { name: contactName, email: contactEmail, message: contactMessage },
-      });
-      setContactSuccess(true);
-    } catch (err: any) {
-      setContactError(err.message || 'Fehler beim Senden. Bitte versuch es erneut.');
-    } finally {
-      setContactLoading(false);
-    }
-  };
 
   useEffect(() => {
     const original = document.body.style.background;
@@ -370,57 +343,7 @@ export default function Home() {
               </Box>
 
               <Box>
-                {contactSuccess ? (
-                  <Box className="public-home-contact-success">
-                    <CheckCircleOutlineRoundedIcon className="public-home-contact-success-icon" />
-                    <Typography component="h3" className="public-home-contact-success-title">
-                      Nachricht gesendet!
-                    </Typography>
-                    <Typography className="public-home-contact-success-text">
-                      Ich melde mich zeitnah bei dir.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box component="form" onSubmit={handleContactSubmit} className="public-home-contact-form">
-                    <TextField
-                      label="Name"
-                      value={contactName}
-                      onChange={e => setContactName(e.target.value)}
-                      required
-                      fullWidth
-                      size="small"
-                    />
-                    <TextField
-                      label="E-Mail"
-                      type="email"
-                      value={contactEmail}
-                      onChange={e => setContactEmail(e.target.value)}
-                      required
-                      fullWidth
-                      size="small"
-                    />
-                    <TextField
-                      label="Nachricht"
-                      value={contactMessage}
-                      onChange={e => setContactMessage(e.target.value)}
-                      required
-                      fullWidth
-                      multiline
-                      minRows={4}
-                      size="small"
-                    />
-                    {contactError && <Alert severity="error">{contactError}</Alert>}
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={contactLoading}
-                      endIcon={contactLoading ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardRoundedIcon />}
-                      className="public-home-primary-button"
-                    >
-                      {contactLoading ? 'Wird gesendet…' : 'Nachricht senden'}
-                    </Button>
-                  </Box>
-                )}
+                <ContactForm />
               </Box>
             </Box>
           </Container>
