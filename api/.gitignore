@@ -51,3 +51,6 @@ phpstan.neon
 /vendor/
 composer.phar
 /public/uploads/*
+
+*.decrypt.private.php
+*.decrypt.*.php
