@@ -82,8 +82,6 @@ class DemoProvisioningService
                 'demo_token' => $demoToken,
                 'request_id' => $requestId,
                 'image_tag' => 'latest',
-                'deploy_alfahosting' => 'true',
-                'deploy_hetzner' => 'false',
             ],
         ];
 
