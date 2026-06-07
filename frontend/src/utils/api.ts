@@ -10,6 +10,7 @@ interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
   headers?: Record<string, string>;
+  cache?: RequestCache;
 }
 
 /**
@@ -20,7 +21,8 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const {
     method = 'GET',
     body,
-    headers = {}
+    headers = {},
+    cache,
   } = options;
 
   // JWT aus Cookie holen und als Authorization-Header setzen
@@ -29,6 +31,7 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const config: RequestInit = {
     method,
     credentials: 'include', // Immer Cookies mitschicken
+    ...(cache !== undefined ? { cache } : {}),
     headers: {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {}),
