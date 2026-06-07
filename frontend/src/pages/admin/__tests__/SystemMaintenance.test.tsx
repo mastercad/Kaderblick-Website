@@ -441,8 +441,31 @@ describe('SystemMaintenance', () => {
 
       await waitFor(() => {
         expect(mockApiRequest).toHaveBeenCalledWith(
-          expect.stringContaining('backup_testdb_20251201_120000.sql')
+          expect.stringContaining('backup_testdb_20251201_120000.sql'),
+          expect.objectContaining({ cache: 'no-store' })
         );
+      });
+    });
+
+    it('download request always uses cache: no-store to prevent partial-response resumption', async () => {
+      const backup = {
+        filename: 'backup_testdb_20251201_120000.sql',
+        size: 2048,
+        createdAt: new Date().toISOString(),
+      };
+      await switchToDatabaseTab([backup]);
+
+      mockApiRequest.mockResolvedValueOnce({
+        ok: true,
+        blob: jest.fn().mockResolvedValue(new Blob(['-- SQL dump'])),
+      } as unknown as Response);
+
+      const row = screen.getByText('backup_testdb_20251201_120000.sql').closest('tr')!;
+      fireEvent.click(within(row).getByRole('button', { name: /Herunterladen/i }));
+
+      await waitFor(() => {
+        const [, opts] = mockApiRequest.mock.calls[0] as [string, Record<string, unknown>];
+        expect(opts).toMatchObject({ cache: 'no-store' });
       });
     });
 

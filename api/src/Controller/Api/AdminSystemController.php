@@ -15,10 +15,10 @@ use Exception;
 use FilesystemIterator;
 use SplFileInfo;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
@@ -591,7 +591,7 @@ class AdminSystemController extends AbstractController
      * GET /api/admin/system/backup/download/{filename}
      */
     #[Route('/backup/download/{filename}', name: 'api_admin_system_backup_download', methods: ['GET'])]
-    public function downloadBackup(string $filename): BinaryFileResponse|JsonResponse
+    public function downloadBackup(string $filename): StreamedResponse|JsonResponse
     {
         // Verhindere Path-Traversal-Angriffe
         if (!preg_match('/^backup_[\w.-]+\.sql$/', $filename)) {
@@ -604,9 +604,17 @@ class AdminSystemController extends AbstractController
             return $this->json(['error' => 'Datei nicht gefunden.'], 404);
         }
 
-        $response = new BinaryFileResponse($filepath);
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);
+        $filesize = (int) filesize($filepath);
+
+        $response = new StreamedResponse(static function () use ($filepath): void {
+            readfile($filepath);
+        });
+        $response->headers->set(
+            'Content-Disposition',
+            $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename)
+        );
         $response->headers->set('Content-Type', 'application/octet-stream');
+        $response->headers->set('Content-Length', (string) $filesize);
 
         return $response;
     }

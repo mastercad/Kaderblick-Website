@@ -16,8 +16,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 #[AllowMockObjectsWithoutExpectations]
@@ -535,7 +535,7 @@ class AdminSystemControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
     }
 
-    public function testDownloadBackupReturnsBinaryFileResponseForValidFile(): void
+    public function testDownloadBackupReturnsStreamedResponseForValidFile(): void
     {
         $backupDir = $this->projectDir . '/var/backups';
         mkdir($backupDir, 0750, true);
@@ -544,7 +544,77 @@ class AdminSystemControllerTest extends TestCase
 
         $response = $this->controller->downloadBackup($filename);
 
-        $this->assertInstanceOf(BinaryFileResponse::class, $response);
+        $this->assertInstanceOf(StreamedResponse::class, $response);
+    }
+
+    public function testDownloadBackupReturns200NotPartialContent(): void
+    {
+        $backupDir = $this->projectDir . '/var/backups';
+        mkdir($backupDir, 0750, true);
+        $filename = 'backup_testdb_20251201_120000.sql';
+        file_put_contents($backupDir . '/' . $filename, '-- SQL dump');
+
+        $response = $this->controller->downloadBackup($filename);
+
+        // StreamedResponse verarbeitet keine Range-Header → immer 200, nie 206
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function testDownloadBackupSetsContentDispositionHeader(): void
+    {
+        $backupDir = $this->projectDir . '/var/backups';
+        mkdir($backupDir, 0750, true);
+        $filename = 'backup_testdb_20251201_120000.sql';
+        file_put_contents($backupDir . '/' . $filename, '-- SQL dump');
+
+        $response = $this->controller->downloadBackup($filename);
+
+        $disposition = (string) $response->headers->get('Content-Disposition');
+        $this->assertStringContainsString('attachment', $disposition);
+        $this->assertStringContainsString($filename, $disposition);
+    }
+
+    public function testDownloadBackupSetsContentTypeHeader(): void
+    {
+        $backupDir = $this->projectDir . '/var/backups';
+        mkdir($backupDir, 0750, true);
+        $filename = 'backup_testdb_20251201_120000.sql';
+        file_put_contents($backupDir . '/' . $filename, '-- SQL dump');
+
+        $response = $this->controller->downloadBackup($filename);
+
+        $this->assertSame('application/octet-stream', $response->headers->get('Content-Type'));
+    }
+
+    public function testDownloadBackupSetsContentLengthHeader(): void
+    {
+        $backupDir = $this->projectDir . '/var/backups';
+        mkdir($backupDir, 0750, true);
+        $filename = 'backup_testdb_20251201_120000.sql';
+        $content = '-- SQL dump content for length test';
+        file_put_contents($backupDir . '/' . $filename, $content);
+
+        $response = $this->controller->downloadBackup($filename);
+
+        $this->assertSame((string) strlen($content), $response->headers->get('Content-Length'));
+    }
+
+    public function testDownloadBackupStreamsCompleteFileContent(): void
+    {
+        $backupDir = $this->projectDir . '/var/backups';
+        mkdir($backupDir, 0750, true);
+        $filename = 'backup_testdb_20251201_120000.sql';
+        $content = "-- MySQL dump\nINSERT INTO foo VALUES (1);\n";
+        file_put_contents($backupDir . '/' . $filename, $content);
+
+        $response = $this->controller->downloadBackup($filename);
+        $this->assertInstanceOf(StreamedResponse::class, $response);
+
+        ob_start();
+        $response->sendContent();
+        $actual = ob_get_clean();
+
+        $this->assertSame($content, $actual);
     }
 
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
