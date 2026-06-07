@@ -28,12 +28,21 @@ jobs:
     permissions:
       contents: read
     outputs:
-      prod_dir:    ${{ steps.prep.outputs.prod_dir }}
-      staging_dir: ${{ steps.prep.outputs.staging_dir }}
-      demo_dir:    ${{ steps.prep.outputs.demo_dir }}
+      prod_dir:    ${{ steps.dirs.outputs.prod_dir }}
+      staging_dir: ${{ steps.dirs.outputs.staging_dir }}
+      demo_dir:    ${{ steps.dirs.outputs.demo_dir }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate release directory names
+        id: dirs
+        shell: bash
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          echo "prod_dir=production_releases/${TIMESTAMP}"  >> $GITHUB_OUTPUT
+          echo "staging_dir=staging_releases/${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "demo_dir=demo_releases/${TIMESTAMP}"       >> $GITHUB_OUTPUT
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
@@ -45,10 +54,12 @@ jobs:
           project-slug:  infrastructure-r-zu-j
 
       - name: Prepare release
-        id: prep
         uses: ./.github/actions/prepare-release
         with:
-          image_tag: ${{ inputs.image_tag }}
+          prod_dir:    ${{ steps.dirs.outputs.prod_dir }}
+          staging_dir: ${{ steps.dirs.outputs.staging_dir }}
+          demo_dir:    ${{ steps.dirs.outputs.demo_dir }}
+          image_tag:   ${{ inputs.image_tag }}
 
   # ============================================================
   # DEPLOY PRODUCTION
