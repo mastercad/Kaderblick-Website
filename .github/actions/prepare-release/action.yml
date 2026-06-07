@@ -52,6 +52,11 @@ runs:
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
           set -e
+          echo "=== DEBUG ==="
+          echo "whoami: $(whoami)"
+          echo "prod_dir parent: $(dirname '${{ steps.dirs.outputs.prod_dir }}')"
+          ls -la "$(dirname '${{ steps.dirs.outputs.prod_dir }}')" || echo "parent dir not listable"
+          echo "=== END DEBUG ==="
           mkdir -p "${{ steps.dirs.outputs.prod_dir }}"
           mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/staging_releases"
           mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/demo_releases"
