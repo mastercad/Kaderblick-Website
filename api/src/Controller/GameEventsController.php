@@ -104,7 +104,7 @@ class GameEventsController extends AbstractController
         $awayTeamId = $game->getAwayTeam()?->getId();
         if ($player) {
             $assignments = $player->getPlayerTeamAssignments();
-            $currentDate = new DateTime();
+            $currentDate = new DateTime('today');
             foreach ($assignments as $pta) {
                 $ptaTeam = $pta->getTeam();
                 $ptaEnd = $pta->getEndDate();
@@ -115,7 +115,7 @@ class GameEventsController extends AbstractController
                 }
             }
         } elseif ($coach) {
-            $currentDate = new DateTime();
+            $currentDate = new DateTime('today');
             foreach ($coach->getCoachTeamAssignments() as $cta) {
                 $ctaTeam = $cta->getTeam();
                 $ctaEnd = $cta->getEndDate();
