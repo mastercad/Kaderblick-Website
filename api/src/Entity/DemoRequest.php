@@ -13,6 +13,11 @@ use Doctrine\ORM\Mapping as ORM;
 class DemoRequest
 {
     public const STATUS_PENDING = 'pending';
+    public const STATUS_PROVISIONING = 'provisioning';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_REVOKING = 'revoking';
+    public const STATUS_REVOKED = 'revoked';
+    public const STATUS_FAILED = 'failed';
     public const STATUS_DEMO_SENT = 'demo_sent';
     /** @deprecated Use STATUS_DEMO_SENT for new code. Kept for existing data compatibility. */
     public const STATUS_CONTACTED = 'contacted';

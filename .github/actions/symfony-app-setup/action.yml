@@ -46,7 +46,7 @@ runs:
   using: composite
   steps:
     - name: Setup ${{ inputs.env }} – secrets / cache / migrations / JWT
-      uses: appleboy/ssh-action@master
+      uses: appleboy/ssh-action@v1.2.5
       with:
         host: ${{ inputs.host }}
         username: ${{ inputs.username }}
@@ -61,6 +61,9 @@ runs:
             'touch /var/www/symfony/.env.${{ inputs.env }}.local && \
              chown www-data:www-data /var/www/symfony/.env.${{ inputs.env }}.local && \
              chmod 664 /var/www/symfony/.env.${{ inputs.env }}.local'
+          # || true ist ABSICHTLICH: secrets:decrypt-to-local kann mit Exit-Code != 0 enden
+          # auch wenn die Entschlüsselung erfolgreich war (z.B. bei Warnungen).
+          # Der Erfolg wird manuell über grep auf die Ausgabe geprüft.
           DECRYPT_OUT=$($DC exec -T --user www-data api \
             bin/console secrets:decrypt-to-local --force --env=${{ inputs.env }} 2>&1) || true
           echo "$DECRYPT_OUT"
@@ -85,7 +88,7 @@ runs:
               lexik:jwt:generate-keypair --overwrite --no-interaction --env=${{ inputs.env }}
             mkdir -p "${{ inputs.main_project_path }}/api/config/jwt"
             $DC exec -T api sh -c 'cat /var/www/symfony/config/jwt/private.pem' \
-              > "${{ inputs.main_project_path }}/api/config/jwt/private.pem" || true
+              > "${{ inputs.main_project_path }}/api/config/jwt/private.pem"
             $DC exec -T api sh -c 'cat /var/www/symfony/config/jwt/public.pem' \
-              > "${{ inputs.main_project_path }}/api/config/jwt/public.pem"  || true
+              > "${{ inputs.main_project_path }}/api/config/jwt/public.pem"
           fi

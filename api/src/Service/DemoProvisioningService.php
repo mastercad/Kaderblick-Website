@@ -4,15 +4,15 @@ namespace App\Service;
 
 use App\Entity\DemoRequest;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use RuntimeException;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
 /**
- * Sendet Demo-Zugangsdaten an den Anfragenden.
+ * Stößt die Provisionierung einer isolierten Demo-Instanz per GitHub-Actions-Workflow an.
  *
  * Die Demo-Umgebung enthält vorbereitete Fixture-Accounts für den Verein "FC Sonnenberg"
  * mit je einem Zugang für folgende Rollen:
- *   – Plattform-Admin   (superadmin.sonnenberg@demo-kaderblick.de)
  *   – Vereins-Admin     (admin.sonnenberg@demo-kaderblick.de)
  *   – Cheftrainer       (trainer1.sonnenberg@demo-kaderblick.de)
  *   – Spieler           (spieler1.sonnenberg@demo-kaderblick.de)
@@ -31,11 +31,6 @@ class DemoProvisioningService
      * @var list<array{role: string, email: string, description: string}>
      */
     private const DEMO_ACCOUNTS = [
-        [
-            'role' => 'Plattform-Admin',
-            'email' => 'superadmin.sonnenberg@demo-kaderblick.de',
-            'description' => 'Vollzugriff auf alle Plattform-Funktionen, Benutzerverwaltung und Systemeinstellungen',
-        ],
         [
             'role' => 'Vereins-Admin',
             'email' => 'admin.sonnenberg@demo-kaderblick.de',
@@ -59,35 +54,71 @@ class DemoProvisioningService
     ];
 
     public function __construct(
-        private readonly EmailService $emailService,
-        private readonly ParameterBagInterface $params,
+        private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
+        private readonly string $githubToken,
+        private readonly string $githubRepoOwner,
+        private readonly string $githubRepoName,
     ) {
     }
 
     /**
-     * Erstellt die Demo-E-Mail mit allen Zugangsdaten und versendet sie an den Anfragenden.
+     * Löst den GitHub-Actions-Workflow "provision-demo-instance.yml" aus.
+     * Der Workflow provisioniert eine vollständig isolierte Demo-Instanz und
+     * benachrichtigt das Backend anschließend per HMAC-gesichertem Webhook.
+     *
+     * @throws RuntimeException wenn der GitHub-API-Call fehlschlägt
      */
     public function sendDemoAccess(DemoRequest $demoRequest): void
     {
-        $demoUrl = rtrim((string) $this->params->get('app.demo_url'), '/');
+        $demoToken = $this->generateDemoToken();
+        $requestId = (string) $demoRequest->getId();
+
+        $payload = [
+            'ref' => 'main',
+            'inputs' => [
+                'demo_token' => $demoToken,
+                'request_id' => $requestId,
+                'image_tag' => 'latest',
+            ],
+        ];
 
         try {
-            $this->emailService->sendTemplatedEmail(
-                $demoRequest->getEmail(),
-                'Deine Kaderblick-Demo-Zugangsdaten',
-                'demo_access_credentials',
+            $response = $this->httpClient->request(
+                'POST',
+                sprintf(
+                    'https://api.github.com/repos/%s/%s/actions/workflows/provision-demo-instance.yml/dispatches',
+                    $this->githubRepoOwner,
+                    $this->githubRepoName
+                ),
                 [
-                    'demoRequest' => $demoRequest,
-                    'demoUrl' => $demoUrl,
-                    'accounts' => self::DEMO_ACCOUNTS,
-                    'password' => self::DEMO_PASSWORD,
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $this->githubToken,
+                        'Accept' => 'application/vnd.github+json',
+                        'X-GitHub-Api-Version' => '2022-11-28',
+                    ],
+                    'json' => $payload,
                 ]
+            );
+
+            $statusCode = $response->getStatusCode();
+            // GitHub antwortet mit 204 No Content bei Erfolg
+            if (204 !== $statusCode) {
+                throw new RuntimeException(sprintf('GitHub-API hat unerwartet mit Status %d geantwortet (erwartet 204).', $statusCode));
+            }
+
+            $this->logger->info(
+                sprintf('Demo-Provisionierung für Request %s ausgelöst (Token: %s)', $requestId, $demoToken),
+                ['demo_token' => $demoToken, 'request_id' => $requestId]
             );
         } catch (Throwable $e) {
             $this->logger->error(
-                sprintf('Demo-Zugangsdaten konnten nicht an %s gesendet werden: %s', $demoRequest->getEmail(), $e->getMessage()),
-                ['exception' => $e]
+                sprintf(
+                    'Demo-Provisionierung für Request %s fehlgeschlagen: %s',
+                    $requestId,
+                    $e->getMessage()
+                ),
+                ['exception' => $e, 'request_id' => $requestId]
             );
 
             throw $e;
@@ -95,7 +126,7 @@ class DemoProvisioningService
     }
 
     /**
-     * Gibt die konfigurierten Demo-Accounts zurück (z. B. für Tests / Vorschau).
+     * Gibt die konfigurierten Demo-Accounts zurück (z. B. für E-Mail-Templates / Vorschau).
      *
      * @return list<array{role: string, email: string, description: string}>
      */
@@ -107,5 +138,10 @@ class DemoProvisioningService
     public function getDemoPassword(): string
     {
         return self::DEMO_PASSWORD;
+    }
+
+    private function generateDemoToken(): string
+    {
+        return bin2hex(random_bytes(4));
     }
 }

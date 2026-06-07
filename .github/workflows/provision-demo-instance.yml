@@ -1,0 +1,309 @@
+name: Provision Demo Instance
+
+# Wird vom Backend via GitHub API (workflow_dispatch) ausgelöst, wenn ein Admin
+# eine Demo-Anfrage genehmigt.
+#
+# Ablauf:
+#   1. Infisical-Secrets laden (Infrastruktur + Prod-App-Secrets)
+#   2. Datenbank-Passwort auf dem Runner generieren (maskiert)
+#   3. Release-Verzeichnis anlegen und Dateien kopieren
+#   4. DB anlegen, .env schreiben, Decrypt-Key mit chmod 600 schreiben
+#   5. Docker-Stack hochfahren (docker-compose -p demo-<token>)
+#   6. symfony-app-setup (Migrations, Cache, JWT, Secrets-Decrypt)
+#   7. Fixtures laden (--group=master --group=demo)
+#   8. nginx-vhost anlegen + reload
+#   9. HMAC-signierten Webhook ans Backend senden → E-Mail an Interessenten
+#
+# Voraussetzungen in Infisical infrastructure/global:
+#   HETZNER_HOST, HETZNER_USER, HETZNER_SSH_KEY, HETZNER_PROJECT_PATH,
+#   GHCR_TOKEN, HOST_UID, HOST_GID, MYSQL_ROOT_PASSWORD
+# Voraussetzungen in Infisical kaderblick/prod:
+#   DECRYPT_KEY, APP_SECRET, ADMIN_ALERT_EMAIL, DEMO_WEBHOOK_SECRET
+
+on:
+  workflow_dispatch:
+    inputs:
+      demo_token:
+        description: 'Eindeutiger Demo-Token (z.B. abc123)'
+        type: string
+        required: true
+      request_id:
+        description: 'ID des DemoRequest-Eintrags im Backend'
+        type: string
+        required: true
+      image_tag:
+        description: 'Docker image tag (SHA aus GHCR, muss existieren)'
+        type: string
+        required: true
+
+concurrency:
+  group: demo-provision-${{ inputs.demo_token }}
+  cancel-in-progress: false
+
+jobs:
+  provision-hetzner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      HOST_UID: 1001
+      HOST_GID: 1001
+      TOKEN: ${{ inputs.demo_token }}
+      DB_NAME: kaderblick_demo_${{ inputs.demo_token }}
+      DB_USER: demo_${{ inputs.demo_token }}
+      COMPOSE_PROJECT: demo-${{ inputs.demo_token }}
+      FRONTEND_URL: https://demo-${{ inputs.demo_token }}.kaderblick.de
+      API_URL: https://demo-${{ inputs.demo_token }}-api.kaderblick.de
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch infrastructure secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      global
+          project-slug:  infrastructure-r-zu-j
+
+      - name: Fetch prod secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      prod
+          project-slug:  kaderblick-ny-in
+
+      - name: Generate database password
+        id: gen-pass
+        run: |
+          DB_PASS=$(openssl rand -hex 16)
+          echo "::add-mask::$DB_PASS"
+          echo "db_pass=$DB_PASS" >> "$GITHUB_OUTPUT"
+          echo "db_url=mysql://${{ env.DB_USER }}:${DB_PASS}@db:3306/${{ env.DB_NAME }}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release files locally
+        run: |
+          mkdir -p build/api/config build/frontend
+          cp docker-compose.yml docker-compose.demo.yml docker-compose.db.yml build/
+          cp -r .docker build/
+          cp api/.env.dist build/api/
+          cp -r api/config/packages api/config/routes api/config/routes.yaml \
+                api/config/services.yaml api/config/bundles.php build/api/config/ 2>/dev/null || true
+          cp -r api/config/secrets build/api/config/ 2>/dev/null || true
+
+      - name: Create release directory on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+
+      - name: Copy release files to Hetzner
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host:             ${{ env.HETZNER_HOST }}
+          username:         ${{ env.HETZNER_USER }}
+          key:              ${{ env.HETZNER_SSH_KEY }}
+          source:           "build/*"
+          target:           "${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+          strip_components: 1
+
+      - name: Setup files, database and environment on Hetzner
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            ROOT_DIR="${{ env.HETZNER_PROJECT_PATH }}"
+
+            # JWT-Keys aus dem Root-Projektverzeichnis übernehmen (falls vorhanden)
+            mkdir -p "$RELEASE_DIR/api/config/jwt"
+            if [ -d "$ROOT_DIR/api/config/jwt" ]; then
+              cp -r "$ROOT_DIR/api/config/jwt/"* "$RELEASE_DIR/api/config/jwt/" 2>/dev/null || true
+            fi
+
+            # Datenbank und DB-User anlegen
+            docker exec kaderblick-db mysql -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' \
+              -e "CREATE DATABASE IF NOT EXISTS \`${{ env.DB_NAME }}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+            docker exec kaderblick-db mysql -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' \
+              -e "CREATE USER IF NOT EXISTS '${{ env.DB_USER }}'@'%' IDENTIFIED BY '${{ steps.gen-pass.outputs.db_pass }}';"
+            docker exec kaderblick-db mysql -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' \
+              -e "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER ON \`${{ env.DB_NAME }}\`.* TO '${{ env.DB_USER }}'@'%'; FLUSH PRIVILEGES;"
+
+            # Uploads-Verzeichnis anlegen
+            UPLOADS_DIR="${{ env.HETZNER_PROJECT_PATH }}/demo_uploads/${{ env.TOKEN }}"
+            mkdir -p "$UPLOADS_DIR"
+            chmod 775 "$UPLOADS_DIR"
+
+            # api/.env aus .env.dist erzeugen und befüllen
+            cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
+            sed -i 's/^APP_ENV=.*$/APP_ENV=prod/'                                               "$RELEASE_DIR/api/.env"
+            sed -i "s|^FRONTEND_URL=.*\$|FRONTEND_URL=${{ env.FRONTEND_URL }}|"                 "$RELEASE_DIR/api/.env"
+            sed -i "s|^DEMO_URL=.*\$|DEMO_URL=${{ env.FRONTEND_URL }}|"                         "$RELEASE_DIR/api/.env"
+            echo "APP_DEBUG=0"                                                                  >> "$RELEASE_DIR/api/.env"
+            echo "APP_SECRET=${{ env.APP_SECRET }}"                                             >> "$RELEASE_DIR/api/.env"
+            echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"                               >> "$RELEASE_DIR/api/.env"
+            echo "DEMO_WEBHOOK_SECRET=${{ env.DEMO_WEBHOOK_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
+
+            # Symfony-Decrypt-Key schreiben (chmod 600 – nur Owner darf lesen)
+            mkdir -p "$RELEASE_DIR/api/config/secrets/prod"
+            echo '${{ env.DECRYPT_KEY }}' | base64 -d \
+              > "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+            chmod 600 "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+
+            # Port-Zuweisung (Hash-basiert, mit Kollisionsprüfung auf belegten Ports)
+            TOKEN_HASH=$(echo -n "${{ env.TOKEN }}" | sha256sum | cut -c1-4)
+            PORT_OFFSET=$((16#$TOKEN_HASH % 1000))
+            API_PORT=$((30081 + PORT_OFFSET * 3))
+            REACT_PORT=$((30080 + PORT_OFFSET * 3))
+            TRIES=0
+            while [ $TRIES -lt 100 ]; do
+              if ! ss -tlnp 2>/dev/null | grep -qE ":${API_PORT}[[:space:]]" && \
+                 ! ss -tlnp 2>/dev/null | grep -qE ":${REACT_PORT}[[:space:]]"; then
+                break
+              fi
+              PORT_OFFSET=$(( (PORT_OFFSET + 1) % 1000 ))
+              API_PORT=$((30081 + PORT_OFFSET * 3))
+              REACT_PORT=$((30080 + PORT_OFFSET * 3))
+              TRIES=$((TRIES + 1))
+            done
+            if [ $TRIES -ge 100 ]; then
+              echo "FEHLER: Kein freier Port-Offset gefunden (alle 100 Kandidaten belegt)!"
+              exit 1
+            fi
+
+            # Compose-Env-Datei schreiben
+            cat > "$RELEASE_DIR/.env" <<EOF
+            IMAGE_TAG=${{ inputs.image_tag }}
+            API_IMAGE_TAG=${{ inputs.image_tag }}
+            DATABASE_URL=${{ steps.gen-pass.outputs.db_url }}
+            UPLOADS_DIR=${UPLOADS_DIR}
+            DEMO_API_URL=${{ env.API_URL }}
+            API_PORT=${API_PORT}
+            REACT_PORT=${REACT_PORT}
+            HOST_UID=${{ env.HOST_UID }}
+            HOST_GID=${{ env.HOST_GID }}
+            XDEBUG_MODE=off
+            EOF
+
+            echo "$API_PORT"   > "$RELEASE_DIR/.api_port"
+            echo "$REACT_PORT" > "$RELEASE_DIR/.react_port"
+
+      - name: Deploy demo containers
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:            ${{ env.HETZNER_HOST }}
+          username:        ${{ env.HETZNER_USER }}
+          key:             ${{ env.HETZNER_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            cd "$RELEASE_DIR"
+
+            echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+            docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
+            docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag }}
+
+            docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+              -p ${{ env.COMPOSE_PROJECT }} \
+              up -d --no-build --force-recreate api frontend worker
+
+      - name: Symfony app setup (secrets, cache, migrations, JWT)
+        uses: ./.github/actions/symfony-app-setup
+        with:
+          host:              ${{ env.HETZNER_HOST }}
+          username:          ${{ env.HETZNER_USER }}
+          key:               ${{ env.HETZNER_SSH_KEY }}
+          env:               prod
+          compose_project:   ${{ env.COMPOSE_PROJECT }}
+          compose_files:     '-f docker-compose.yml -f docker-compose.demo.yml'
+          work_dir:          ${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}
+          main_project_path: ${{ env.HETZNER_PROJECT_PATH }}
+          database_url:      ${{ steps.gen-pass.outputs.db_url }}
+
+      - name: Load demo fixtures
+        uses: ./.github/actions/symfony-load-fixtures
+        with:
+          host:            ${{ env.HETZNER_HOST }}
+          username:        ${{ env.HETZNER_USER }}
+          key:             ${{ env.HETZNER_SSH_KEY }}
+          env:             prod
+          compose_project: ${{ env.COMPOSE_PROJECT }}
+          compose_files:   '-f docker-compose.yml -f docker-compose.demo.yml'
+          work_dir:        ${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}
+          database_url:    ${{ steps.gen-pass.outputs.db_url }}
+          fixture_groups:  master,demo
+
+      - name: Write nginx vhost configs and reload
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            API_PORT=$(cat "$RELEASE_DIR/.api_port")
+            REACT_PORT=$(cat "$RELEASE_DIR/.react_port")
+            FRONTEND_SUBDOMAIN="demo-${{ env.TOKEN }}.kaderblick.de"
+            API_SUBDOMAIN="demo-${{ env.TOKEN }}-api.kaderblick.de"
+
+            cat > "/etc/nginx/conf.d/${FRONTEND_SUBDOMAIN}.conf" <<NGINXEOF
+            server {
+                listen 80;
+                server_name ${FRONTEND_SUBDOMAIN};
+
+                location / {
+                    proxy_pass http://127.0.0.1:${REACT_PORT};
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            NGINXEOF
+
+            cat > "/etc/nginx/conf.d/${API_SUBDOMAIN}.conf" <<NGINXEOF
+            server {
+                listen 80;
+                server_name ${API_SUBDOMAIN};
+
+                location ~ ^/.* {
+                    client_max_body_size 55M;
+                    proxy_pass http://127.0.0.1:${API_PORT};
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            NGINXEOF
+
+            nginx -t && systemctl reload nginx
+
+      - name: Notify backend via webhook
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            PAYLOAD="{\"request_id\": \"${{ inputs.request_id }}\", \"demo_token\": \"${{ env.TOKEN }}\", \"frontend_url\": \"${{ env.FRONTEND_URL }}\", \"api_url\": \"${{ env.API_URL }}\", \"db_name\": \"${{ env.DB_NAME }}\", \"db_user\": \"${{ env.DB_USER }}\", \"db_password\": \"${{ steps.gen-pass.outputs.db_pass }}\", \"status\": \"active\"}"
+            SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ env.DEMO_WEBHOOK_SECRET }}" | awk '{print $2}')
+            curl -fsS \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -H "X-Demo-Signature: sha256=${SIGNATURE}" \
+              -d "$PAYLOAD" \
+              https://api.kaderblick.de/internal/demo-webhook

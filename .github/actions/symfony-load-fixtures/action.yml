@@ -36,12 +36,16 @@ inputs:
     description: 'Überschreibt DATABASE_URL in .env.{env}.local vor fixtures:load (Pflicht für Demo)'
     required: false
     default: ''
+  fixture_groups:
+    description: 'Komma-getrennte Fixture-Gruppen (z.B. "master,demo"). Default: master'
+    required: false
+    default: 'master'
 
 runs:
   using: composite
   steps:
     - name: Load master fixtures (${{ inputs.env }})
-      uses: appleboy/ssh-action@master
+      uses: appleboy/ssh-action@v1.2.5
       with:
         host: ${{ inputs.host }}
         username: ${{ inputs.username }}
@@ -58,6 +62,11 @@ runs:
                /var/www/symfony/.env.${{ inputs.env }}.local"
             echo "DATABASE_URL in .env.${{ inputs.env }}.local auf Instanz-DB gesetzt."
           fi
+          GROUP_FLAGS=""
+          IFS=',' read -ra GROUPS <<< "${{ inputs.fixture_groups }}"
+          for G in "${GROUPS[@]}"; do
+            GROUP_FLAGS="$GROUP_FLAGS --group=${G// /}"
+          done
           $DC exec -T --user www-data api \
             bin/console doctrine:fixtures:load \
-            --env=${{ inputs.env }} --no-interaction --append --group=master
+            --env=${{ inputs.env }} --no-interaction --append $GROUP_FLAGS

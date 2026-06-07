@@ -4,9 +4,11 @@ namespace App\Tests\Feature\Controller;
 
 use App\Entity\DemoRequest;
 use App\Entity\User;
+use App\Service\DemoProvisioningService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
  *  POST /admin/demo-requests/{id}/contact — success, 409 on non-pending
  *  POST /admin/demo-requests/{id}/reject  — success with note, 409 on non-pending
  */
+#[AllowMockObjectsWithoutExpectations]
 class DemoRequestAdminControllerTest extends WebTestCase
 {
     private EntityManagerInterface $em;
@@ -35,6 +38,9 @@ class DemoRequestAdminControllerTest extends WebTestCase
         self::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
+
+        $mockProvisioning = $this->createMock(DemoProvisioningService::class);
+        static::getContainer()->set(DemoProvisioningService::class, $mockProvisioning);
     }
 
     protected function tearDown(): void
@@ -313,7 +319,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
 
         $this->em->clear();
         $stored = $this->em->getRepository(DemoRequest::class)->find($id);
-        $this->assertSame(DemoRequest::STATUS_DEMO_SENT, $stored->getStatus());
+        $this->assertSame(DemoRequest::STATUS_PROVISIONING, $stored->getStatus());
         $this->assertNotNull($stored->getProcessedAt());
         $this->assertNotNull($stored->getProcessedBy());
     }

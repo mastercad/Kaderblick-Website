@@ -1,0 +1,44 @@
+name: 'Ensure Database'
+description: >
+  Stellt sicher dass eine MySQL-Datenbank existiert (CREATE IF NOT EXISTS + GRANT).
+  Liest SSH-Zugangsdaten aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  db_name:
+    description: 'Name der sicherzustellenden Datenbank'
+    required: true
+  db_container:
+    description: 'Name des Docker-DB-Containers'
+    required: false
+    default: 'kaderblick-db'
+  db_root_user:
+    description: 'MySQL-Root-Benutzer'
+    required: false
+    default: 'root'
+  db_root_password:
+    description: 'MySQL-Root-Passwort'
+    required: false
+    default: 'root'
+  db_grant_user:
+    description: 'MySQL-Benutzer dem Rechte auf die DB gewährt werden'
+    required: false
+    default: 'kaderblick'
+
+runs:
+  using: composite
+  steps:
+    - name: Ensure database exists
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          set -e
+          docker exec ${{ inputs.db_container }} \
+            mysql -u${{ inputs.db_root_user }} -p${{ inputs.db_root_password }} \
+              -e "CREATE DATABASE IF NOT EXISTS \`${{ inputs.db_name }}\`
+                    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+                  GRANT ALL PRIVILEGES ON \`${{ inputs.db_name }}\`.* TO '${{ inputs.db_grant_user }}'@'%';
+                  FLUSH PRIVILEGES;"
+          echo "Datenbank ${{ inputs.db_name }} sichergestellt."

@@ -13,7 +13,6 @@ on:
         description: 'Docker image tag / Commit-SHA (muss in GHCR existieren)'
         type: string
         required: true
-        default: 'latest'
       target:
         description: 'Ziel-Instanz(en) für das Deployment'
         type: choice

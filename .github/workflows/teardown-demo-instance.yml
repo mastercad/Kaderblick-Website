@@ -1,0 +1,127 @@
+name: Teardown Demo Instance
+
+# Wird vom Backend via GitHub API (workflow_dispatch) ausgelöst, wenn ein Admin
+# eine Demo-Instanz über die Adminoberfläche entfernt.
+#
+# Ablauf:
+#   1. Docker-Stack stoppen und entfernen
+#   2. Datenbank + DB-User löschen
+#   3. nginx-vhost-Configs entfernen und nginx neu laden
+#   4. Uploads-Verzeichnis löschen
+#   5. Release-Verzeichnis löschen
+#   6. HMAC-signierten Webhook ans Backend senden
+
+on:
+  workflow_dispatch:
+    inputs:
+      demo_token:
+        description: 'Demo-Token der zu löschenden Instanz'
+        type: string
+        required: true
+      request_id:
+        description: 'ID des DemoRequest-Eintrags im Backend'
+        type: string
+        required: true
+
+concurrency:
+  group: demo-teardown-${{ inputs.demo_token }}
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TOKEN: ${{ inputs.demo_token }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch infrastructure secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      global
+          project-slug:  infrastructure-r-zu-j
+
+      - name: Fetch demo secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      demo
+          project-slug:  kaderblick-ny-in
+
+      - name: Stop and remove containers
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            if [ -d "$RELEASE_DIR" ]; then
+              cd "$RELEASE_DIR"
+              docker compose -f docker-compose.yml -f docker-compose.demo.yml \
+                -p demo-${{ env.TOKEN }} down --remove-orphans --stop-timeout 10 2>/dev/null || true
+            fi
+
+      - name: Drop database and user
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            set -e
+            docker exec kaderblick-db mysql -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' \
+              -e "DROP DATABASE IF EXISTS kaderblick_demo_${{ env.TOKEN }};"
+            docker exec kaderblick-db mysql -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' \
+              -e "DROP USER IF EXISTS 'demo_${{ env.TOKEN }}'@'%'; FLUSH PRIVILEGES;"
+            echo "Datenbank und User für Demo-${{ env.TOKEN }} gelöscht."
+
+      - name: Remove nginx configs and reload
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            FRONTEND_SUBDOMAIN="demo-${{ env.TOKEN }}.kaderblick.de"
+            API_SUBDOMAIN="demo-${{ env.TOKEN }}-api.kaderblick.de"
+            rm -f "/etc/nginx/conf.d/${FRONTEND_SUBDOMAIN}.conf"
+            rm -f "/etc/nginx/conf.d/${API_SUBDOMAIN}.conf"
+            nginx -t && systemctl reload nginx
+            echo "nginx-Configs für Demo-${{ env.TOKEN }} entfernt."
+
+      - name: Remove uploads and release directory
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            rm -rf "${{ env.HETZNER_PROJECT_PATH }}/demo_uploads/${{ env.TOKEN }}"
+            rm -rf "${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}"
+            echo "Verzeichnisse für Demo-${{ env.TOKEN }} gelöscht."
+
+      - name: Notify backend via webhook
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host:     ${{ env.HETZNER_HOST }}
+          username: ${{ env.HETZNER_USER }}
+          key:      ${{ env.HETZNER_SSH_KEY }}
+          script: |
+            PAYLOAD="{\"request_id\": \"${{ inputs.request_id }}\", \"demo_token\": \"${{ env.TOKEN }}\", \"status\": \"revoked\"}"
+            SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ env.DEMO_WEBHOOK_SECRET }}" | awk '{print $2}')
+            curl -fsS \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -H "X-Demo-Signature: sha256=${SIGNATURE}" \
+              -d "$PAYLOAD" \
+              https://api.kaderblick.de/internal/demo-webhook

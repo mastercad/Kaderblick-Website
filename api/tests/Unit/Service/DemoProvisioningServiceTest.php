@@ -4,33 +4,35 @@ namespace App\Tests\Unit\Service;
 
 use App\Entity\DemoRequest;
 use App\Service\DemoProvisioningService;
-use App\Service\EmailService;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 #[AllowMockObjectsWithoutExpectations]
 class DemoProvisioningServiceTest extends TestCase
 {
-    private EmailService&\PHPUnit\Framework\MockObject\MockObject $emailService;
-    private ParameterBagInterface&\PHPUnit\Framework\MockObject\MockObject $params;
+    private HttpClientInterface&\PHPUnit\Framework\MockObject\MockObject $httpClient;
     private LoggerInterface&\PHPUnit\Framework\MockObject\MockObject $logger;
     private DemoProvisioningService $service;
 
     protected function setUp(): void
     {
-        $this->emailService = $this->createMock(EmailService::class);
-        $this->params = $this->createMock(ParameterBagInterface::class);
+        $this->httpClient = $this->createMock(HttpClientInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->params->method('get')->with('app.demo_url')->willReturn('https://demo.kaderblick.de');
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(204);
+        $this->httpClient->method('request')->willReturn($response);
 
         $this->service = new DemoProvisioningService(
-            $this->emailService,
-            $this->params,
+            $this->httpClient,
             $this->logger,
+            'test-github-token',
+            'test-owner',
+            'test-repo',
         );
     }
 
@@ -42,81 +44,53 @@ class DemoProvisioningServiceTest extends TestCase
         return $req;
     }
 
-    public function testSendDemoAccessCallsEmailServiceWithCorrectTemplate(): void
+    public function testSendDemoAccessDispatchesGitHubWorkflow(): void
     {
-        $demoRequest = $this->makeDemoRequest();
-
-        $this->emailService->expects($this->once())
-            ->method('sendTemplatedEmail')
+        $this->httpClient->expects($this->once())
+            ->method('request')
             ->with(
-                'max@example.com',
-                $this->isString(),
-                'demo_access_credentials',
-                $this->arrayHasKey('demoRequest'),
+                'POST',
+                $this->stringContains('test-owner/test-repo/actions/workflows/provision-demo-instance.yml/dispatches'),
+                $this->arrayHasKey('headers'),
             );
 
-        $this->service->sendDemoAccess($demoRequest);
+        $this->service->sendDemoAccess($this->makeDemoRequest());
     }
 
-    public function testSendDemoAccessPassesAllContextKeys(): void
+    public function testSendDemoAccessThrowsOnNon204Response(): void
     {
-        $demoRequest = $this->makeDemoRequest();
+        $httpClient = $this->createMock(HttpClientInterface::class);
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(422);
+        $httpClient->method('request')->willReturn($response);
 
-        $this->emailService->expects($this->once())
-            ->method('sendTemplatedEmail')
-            ->with(
-                $this->anything(),
-                $this->anything(),
-                $this->anything(),
-                $this->callback(function (array $context): bool {
-                    return array_key_exists('demoRequest', $context)
-                        && array_key_exists('demoUrl', $context)
-                        && array_key_exists('accounts', $context)
-                        && array_key_exists('password', $context);
-                }),
-            );
+        $service = new DemoProvisioningService(
+            $httpClient,
+            $this->logger,
+            'test-github-token',
+            'test-owner',
+            'test-repo',
+        );
 
-        $this->service->sendDemoAccess($demoRequest);
+        $this->expectException(RuntimeException::class);
+        $service->sendDemoAccess($this->makeDemoRequest());
     }
 
-    public function testSendDemoAccessIncludesDemoUrlWithoutTrailingSlash(): void
+    public function testSendDemoAccessRethrowsAndLogsHttpClientException(): void
     {
-        $this->params = $this->createMock(ParameterBagInterface::class);
-        $this->params->method('get')->with('app.demo_url')->willReturn('https://demo.kaderblick.de/');
-
-        $service = new DemoProvisioningService($this->emailService, $this->params, $this->logger);
-
-        $demoRequest = $this->makeDemoRequest();
-
-        $this->emailService->expects($this->once())
-            ->method('sendTemplatedEmail')
-            ->with(
-                $this->anything(),
-                $this->anything(),
-                $this->anything(),
-                $this->callback(fn (array $ctx) => 'https://demo.kaderblick.de' === $ctx['demoUrl']),
-            );
-
-        $service->sendDemoAccess($demoRequest);
-    }
-
-    public function testSendDemoAccessRethrowsEmailException(): void
-    {
-        $demoRequest = $this->makeDemoRequest();
-
-        $this->emailService->method('sendTemplatedEmail')->willThrowException(new RuntimeException('SMTP failed'));
+        $this->httpClient->method('request')->willThrowException(new RuntimeException('connection refused'));
         $this->logger->expects($this->once())->method('error');
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('SMTP failed');
+        $this->expectExceptionMessage('connection refused');
 
-        $this->service->sendDemoAccess($demoRequest);
+        $this->service->sendDemoAccess($this->makeDemoRequest());
     }
 
-    public function testGetDemoAccountsReturnsFiveAccounts(): void
+    public function testGetDemoAccountsReturnsFourAccounts(): void
     {
         $accounts = $this->service->getDemoAccounts();
-        $this->assertCount(5, $accounts);
+        $this->assertCount(4, $accounts);
     }
 
     public function testGetDemoAccountsHaveRequiredKeys(): void

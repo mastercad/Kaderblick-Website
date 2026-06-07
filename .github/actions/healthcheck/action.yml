@@ -1,0 +1,48 @@
+name: 'API Healthcheck'
+description: >
+  Prüft via SSH ob die API unter einer URL erreichbar ist (Retry-Loop).
+  Bei Fehler wird docker compose logs ausgegeben.
+  Liest SSH-Zugangsdaten aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  url:
+    description: 'URL des Healthcheck-Endpoints (z.B. http://localhost:8081/api/health)'
+    required: true
+  compose_project:
+    description: 'Docker-Compose Projektname für Logs bei Fehler'
+    required: true
+  retries:
+    description: 'Anzahl Versuche'
+    required: false
+    default: '12'
+  wait_seconds:
+    description: 'Wartezeit in Sekunden zwischen Versuchen'
+    required: false
+    default: '5'
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for API to become healthy
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          set -e
+          RETRIES=${{ inputs.retries }}
+          WAIT=${{ inputs.wait_seconds }}
+          URL="${{ inputs.url }}"
+          for i in $(seq 1 $RETRIES); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            if [ "$CODE" = "200" ]; then
+              echo "Healthcheck OK (Versuch $i): $URL"
+              exit 0
+            fi
+            echo "Versuch $i/$RETRIES: HTTP $CODE – warte ${WAIT}s ..."
+            sleep $WAIT
+          done
+          echo "Healthcheck fehlgeschlagen nach $RETRIES Versuchen."
+          docker compose -p ${{ inputs.compose_project }} logs --tail=100 || true
+          exit 1

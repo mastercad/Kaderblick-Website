@@ -31,6 +31,7 @@ services:
             $githubToken: '%env(resolve:GITHUB_TOKEN)%'
             $githubRepoOwner: '%env(resolve:GITHUB_REPO_OWNER)%'
             $githubRepoName: '%env(resolve:GITHUB_REPO_NAME)%'
+            $demoWebhookSecret: '%env(resolve:DEMO_WEBHOOK_SECRET)%'
             $weatherApiUrl: '%env(resolve:WEATHER_API_URL)%'
             $frontendUrl: '%env(resolve:FRONTEND_URL)%'
             $appBaseUrl: '%env(resolve:WEBSITE)%'

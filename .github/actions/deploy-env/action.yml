@@ -1,0 +1,179 @@
+name: 'Deploy Environment'
+description: >
+  Schreibt .env + Decrypt-Key, schaltet Maintenance ein, setzt den current-Symlink,
+  deployt Container, führt App-Setup + Fixtures aus und schaltet Maintenance aus.
+  SSH-Zugangsdaten und Secrets werden aus env.* gelesen (gesetzt via infisical-fetch).
+
+inputs:
+  release_dir:
+    description: 'Absoluter Pfad zum neuen Release-Verzeichnis auf dem Server'
+    required: true
+  current_link_name:
+    description: 'Name des current-Symlinks (z.B. production_current, staging_current)'
+    required: true
+  app_env:
+    description: 'Symfony APP_ENV (prod oder staging)'
+    required: true
+  decrypt_key_env:
+    description: 'Unterordner unter config/secrets/ (prod oder staging)'
+    required: true
+  vite_backend_url:
+    description: 'Wert für VITE_BACKEND_URL in frontend/.env'
+    required: true
+  google_redirect_uri:
+    description: 'Überschreibt GOOGLE_REDIRECT_URI in api/.env (leer = kein Override)'
+    required: false
+    default: ''
+  frontend_url:
+    description: 'Überschreibt FRONTEND_URL in api/.env (leer = kein Override)'
+    required: false
+    default: ''
+  image_tag:
+    description: 'Docker-Image-Tag der zu deployenden Version'
+    required: true
+  frontend_image_suffix:
+    description: 'Suffix des Frontend-Image (prod, staging oder demo)'
+    required: true
+  compose_files:
+    description: 'Docker-Compose -f Flags (z.B. "-f docker-compose.yml -f docker-compose.staging.yml")'
+    required: true
+  compose_project:
+    description: 'Docker-Compose Projektname (production, staging oder demo)'
+    required: true
+  extra_docker_env:
+    description: 'Zusätzliche Env-Vars für docker compose up (z.B. "PMA_PORT=18082 API_PORT=18081")'
+    required: false
+    default: ''
+  maintenance_flag:
+    description: 'Dateiname der Maintenance-Flagge (z.B. maintenance_production.flag)'
+    required: true
+  disable_maintenance_on_exit:
+    description: >
+      Maintenance am Ende (auch bei Fehler) innerhalb dieser Action deaktivieren.
+      Auf false setzen wenn der aufrufende Job die Maintenance selbst steuert (z.B. bei Rollback).
+    required: false
+    default: 'true'
+  rollback_file:
+    description: 'Pfad zur Rollback-Datei (speichert vorheriges Symlink-Ziel). Leer = kein Rollback-File.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Write .env and decrypt key
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          set -e
+          RELEASE_DIR="${{ inputs.release_dir }}"
+          cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
+          sed -i "s/^APP_ENV=.*$/APP_ENV=${{ inputs.app_env }}/" "$RELEASE_DIR/api/.env"
+          if [ -n "${{ inputs.google_redirect_uri }}" ]; then
+            sed -i "s|^GOOGLE_REDIRECT_URI=.*$|GOOGLE_REDIRECT_URI=${{ inputs.google_redirect_uri }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.frontend_url }}" ]; then
+            sed -i "s|^FRONTEND_URL=.*$|FRONTEND_URL=${{ inputs.frontend_url }}|" "$RELEASE_DIR/api/.env"
+          fi
+          echo "APP_DEBUG=0"                                        >> "$RELEASE_DIR/api/.env"
+          echo "APP_SECRET=${{ env.APP_SECRET }}"                  >> "$RELEASE_DIR/api/.env"
+          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"    >> "$RELEASE_DIR/api/.env"
+          mkdir -p "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}"
+          printf '%s' '${{ env.DECRYPT_KEY }}' | base64 -d \
+            > "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
+          chmod 600 "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
+          echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}" > "$RELEASE_DIR/frontend/.env"
+
+    - name: Enable maintenance
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          touch "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.maintenance_flag }}"
+          chmod 644 "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.maintenance_flag }}"
+
+    - name: Set current symlink
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          set -e
+          CURRENT="${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}"
+          ROLLBACK_FILE="${{ inputs.rollback_file }}"
+          if [ -n "$ROLLBACK_FILE" ]; then
+            # Vorherigen Symlink-Pfad und zugehörigen IMAGE_TAG sichern (Zeile 1 + 2)
+            PREV_PATH=$(readlink "$CURRENT" 2>/dev/null || echo "")
+            PREV_TAG=$(cat "${ROLLBACK_FILE}.image_tag" 2>/dev/null || echo "")
+            printf '%s\n%s\n' "$PREV_PATH" "$PREV_TAG" > "$ROLLBACK_FILE"
+          fi
+          ln -sfn "${{ inputs.release_dir }}" "$CURRENT"
+          if [ -n "$ROLLBACK_FILE" ]; then
+            # Aktuellen IMAGE_TAG für nächsten möglichen Rollback persistieren
+            echo "${{ inputs.image_tag }}" > "${ROLLBACK_FILE}.image_tag"
+          fi
+          mkdir -p "$CURRENT/api/var/cache" "$CURRENT/api/var/log"
+
+    - name: Deploy containers
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:            ${{ env.HETZNER_HOST }}
+        username:        ${{ env.HETZNER_USER }}
+        key:             ${{ env.HETZNER_SSH_KEY }}
+        command_timeout: 30m
+        script: |
+          set -e
+          cd "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}"
+          echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+          docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
+          docker pull ghcr.io/mastercad/kaderblick/frontend-${{ inputs.frontend_image_suffix }}:${{ inputs.image_tag }}
+          docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
+            down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+          sleep 2
+          ${{ inputs.extra_docker_env }} \
+          IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
+          DATABASE_URL="${{ env.DATABASE_URL }}" XDEBUG_MODE=off \
+          HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
+          docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
+            up -d --no-build --force-recreate api frontend worker
+
+    - name: App setup – secrets / cache / migrations / JWT
+      uses: ./.github/actions/symfony-app-setup
+      with:
+        host:              ${{ env.HETZNER_HOST }}
+        username:          ${{ env.HETZNER_USER }}
+        key:               ${{ env.HETZNER_SSH_KEY }}
+        env:               ${{ inputs.app_env }}
+        compose_project:   ${{ inputs.compose_project }}
+        compose_files:     ${{ inputs.compose_files }}
+        work_dir:          ${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}
+        main_project_path: ${{ env.HETZNER_PROJECT_PATH }}
+        database_url:      ${{ env.DATABASE_URL }}
+
+    - name: Load master fixtures
+      uses: ./.github/actions/symfony-load-fixtures
+      with:
+        host:            ${{ env.HETZNER_HOST }}
+        username:        ${{ env.HETZNER_USER }}
+        key:             ${{ env.HETZNER_SSH_KEY }}
+        env:             ${{ inputs.app_env }}
+        compose_project: ${{ inputs.compose_project }}
+        compose_files:   ${{ inputs.compose_files }}
+        work_dir:        ${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}
+        database_url:    ${{ env.DATABASE_URL }}
+
+    - name: Disable maintenance
+      if: always() && inputs.disable_maintenance_on_exit == 'true'
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          rm -f "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.maintenance_flag }}"

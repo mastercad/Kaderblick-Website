@@ -4,10 +4,10 @@ services:
     restart: unless-stopped
     container_name: kaderblick-db
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: kaderblick
       MYSQL_USER: kaderblick
-      MYSQL_PASSWORD: kaderblick
+      MYSQL_PASSWORD: ${MYSQL_USER_PASSWORD:-kaderblick}
     volumes:
       - kaderblick-db-data:/var/lib/mysql
     networks:
@@ -15,7 +15,7 @@ services:
         aliases:
           - db
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5

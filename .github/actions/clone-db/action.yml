@@ -1,0 +1,55 @@
+name: 'Clone Database'
+description: >
+  Klont eine MySQL-Datenbank in eine andere auf dem Server (DROP + CREATE + Import).
+  Liest SSH-Zugangsdaten aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  source_db:
+    description: 'Name der Quell-Datenbank'
+    required: true
+  target_db:
+    description: 'Name der Ziel-Datenbank (wird gedroppt und neu erstellt)'
+    required: true
+  db_container:
+    description: 'Name des Docker-DB-Containers'
+    required: false
+    default: 'kaderblick-db'
+  db_root_user:
+    description: 'MySQL-Root-Benutzer'
+    required: false
+    default: 'root'
+  db_root_password:
+    description: 'MySQL-Root-Passwort'
+    required: false
+    default: 'root'
+  db_grant_user:
+    description: 'MySQL-Benutzer dem Rechte auf die Ziel-DB gewährt werden'
+    required: false
+    default: 'kaderblick'
+
+runs:
+  using: composite
+  steps:
+    - name: Clone database
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:            ${{ env.HETZNER_HOST }}
+        username:        ${{ env.HETZNER_USER }}
+        key:             ${{ env.HETZNER_SSH_KEY }}
+        command_timeout: 30m
+        script: |
+          set -e
+          # Schritt 1: Ziel-Datenbank neu anlegen und Zugriffsrechte vergeben (kein Dump)
+          docker exec ${{ inputs.db_container }} \
+            mysql -u${{ inputs.db_root_user }} -p${{ inputs.db_root_password }} \
+              -e "DROP DATABASE IF EXISTS \`${{ inputs.target_db }}\`;
+                  CREATE DATABASE \`${{ inputs.target_db }}\`
+                    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+                  GRANT ALL PRIVILEGES ON \`${{ inputs.target_db }}\`.* TO '${{ inputs.db_grant_user }}'@'%';
+                  FLUSH PRIVILEGES;"
+          # Schritt 2: Konsistenter Dump der Quelle in einem einzigen Schritt importieren
+          docker exec ${{ inputs.db_container }} \
+            bash -c "mysqldump -u${{ inputs.db_root_user }} -p${{ inputs.db_root_password }} \
+              --single-transaction --routines --triggers ${{ inputs.source_db }} \
+            | mysql -u${{ inputs.db_root_user }} -p${{ inputs.db_root_password }} ${{ inputs.target_db }}"
+          echo "Datenbank ${{ inputs.source_db }} → ${{ inputs.target_db }} geklont."

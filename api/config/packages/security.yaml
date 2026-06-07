@@ -75,6 +75,7 @@ security:
     - { path: ^/poster-share/, roles: PUBLIC_ACCESS }
     - { path: ^/connect/google, roles: PUBLIC_ACCESS }
     - { path: ^/connect/google/check, roles: PUBLIC_ACCESS }
+    - { path: ^/internal/demo-webhook, roles: PUBLIC_ACCESS }
     - { path: ^/aktuelles, roles: PUBLIC_ACCESS }
     - { path: ^/news-sitemap\.xml$, roles: PUBLIC_ACCESS }
     - { path: ^/admin,        roles: ROLE_ADMIN }
