@@ -61,7 +61,19 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Write .env and decrypt key
+    - name: Prepare decrypt key
+      id: prepare-key
+      shell: bash
+      run: |
+        KEY_SUBDIR="${{ inputs.decrypt_key_env }}"
+        KEY_FILE="/tmp/${KEY_SUBDIR}.decrypt.private.php"
+        echo '${{ env.DECRYPT_KEY }}' | base64 -d > "$KEY_FILE"
+        chmod 600 "$KEY_FILE"
+        REMOTE_DIR="${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.release_dir }}/api/config/secrets/${KEY_SUBDIR}"
+        echo "key_file=$KEY_FILE"  >> $GITHUB_OUTPUT
+        echo "key_dir=$REMOTE_DIR" >> $GITHUB_OUTPUT
+
+    - name: Write .env
       uses: appleboy/ssh-action@v1.2.5
       with:
         host:     ${{ env.HETZNER_HOST }}
@@ -78,14 +90,30 @@ runs:
           if [ -n "${{ inputs.frontend_url }}" ]; then
             sed -i "s|^FRONTEND_URL=.*$|FRONTEND_URL=${{ inputs.frontend_url }}|" "$RELEASE_DIR/api/.env"
           fi
-          echo "APP_DEBUG=0"                                        >> "$RELEASE_DIR/api/.env"
-          echo "APP_SECRET=${{ env.APP_SECRET }}"                  >> "$RELEASE_DIR/api/.env"
-          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"    >> "$RELEASE_DIR/api/.env"
-          mkdir -p "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}"
-          echo '${{ env.DECRYPT_KEY }}' | base64 -d \
-            > "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
-          chmod 600 "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
+          echo "APP_DEBUG=0"                                     >> "$RELEASE_DIR/api/.env"
+          echo "APP_SECRET=${{ env.APP_SECRET }}"               >> "$RELEASE_DIR/api/.env"
+          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}" >> "$RELEASE_DIR/api/.env"
           echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}" > "$RELEASE_DIR/frontend/.env"
+          mkdir -p "${{ steps.prepare-key.outputs.key_dir }}"
+
+    - name: Deploy decrypt key
+      uses: appleboy/scp-action@v1.0.0
+      with:
+        host:             ${{ env.HETZNER_HOST }}
+        username:         ${{ env.HETZNER_USER }}
+        key:              ${{ env.HETZNER_SSH_KEY }}
+        source:           ${{ steps.prepare-key.outputs.key_file }}
+        target:           ${{ steps.prepare-key.outputs.key_dir }}
+        strip_components: 2
+
+    - name: Set decrypt key permissions
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          chmod 600 "${{ steps.prepare-key.outputs.key_dir }}"/*.php
 
     - name: Enable maintenance
       uses: appleboy/ssh-action@v1.2.5

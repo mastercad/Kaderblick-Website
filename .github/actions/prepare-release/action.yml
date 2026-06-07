@@ -150,7 +150,7 @@ runs:
             COMPOSE_DIR="${{ env.HETZNER_PROJECT_PATH }}/production_current"
             [ -d "$COMPOSE_DIR" ] || COMPOSE_DIR="${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}"
             docker compose -f "$COMPOSE_DIR/docker-compose.db.yml" -p kaderblick-db up -d db
-            until docker exec kaderblick-db mysqladmin ping -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' --silent 2>/dev/null; do sleep 3; done
+            until docker exec kaderblick-db mysqladmin ping -uroot -p"${{ env.MYSQL_ROOT_PASSWORD || 'root' }}" --silent 2>/dev/null; do sleep 3; done
             echo "DB bereit."
           fi
 
