@@ -15,6 +15,10 @@ on:
         description: 'Ziel-Instanzen (prod/staging/demo, Kombinationen mit +)'
         type: string
         required: true
+      release_timestamp:
+        description: 'Release timestamp (YYYYMMDD_HHMMSS)'
+        type: string
+        required: true
 
 jobs:
   # ============================================================
@@ -27,22 +31,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-    outputs:
-      prod_dir:    ${{ steps.dirs.outputs.prod_dir }}
-      staging_dir: ${{ steps.dirs.outputs.staging_dir }}
-      demo_dir:    ${{ steps.dirs.outputs.demo_dir }}
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Generate release directory names
-        id: dirs
-        shell: bash
-        run: |
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          echo "prod_dir=production_releases/${TIMESTAMP}"  >> $GITHUB_OUTPUT
-          echo "staging_dir=staging_releases/${TIMESTAMP}" >> $GITHUB_OUTPUT
-          echo "demo_dir=demo_releases/${TIMESTAMP}"       >> $GITHUB_OUTPUT
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
@@ -56,9 +46,9 @@ jobs:
       - name: Prepare release
         uses: ./.github/actions/prepare-release
         with:
-          prod_dir:    ${{ steps.dirs.outputs.prod_dir }}
-          staging_dir: ${{ steps.dirs.outputs.staging_dir }}
-          demo_dir:    ${{ steps.dirs.outputs.demo_dir }}
+          prod_dir:    production_releases/${{ inputs.release_timestamp }}
+          staging_dir: staging_releases/${{ inputs.release_timestamp }}
+          demo_dir:    demo_releases/${{ inputs.release_timestamp }}
           image_tag:   ${{ inputs.image_tag }}
 
   # ============================================================
@@ -75,6 +65,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set release directory names
+        id: dirs
+        shell: bash
+        run: |
+          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
+          echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
+          echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
@@ -97,7 +95,7 @@ jobs:
       - name: Deploy production environment
         uses: ./.github/actions/deploy-env
         with:
-          release_dir:                 ${{ needs.prepare.outputs.prod_dir }}
+          release_dir:                 ${{ steps.dirs.outputs.prod_dir }}
           current_link_name:           production_current
           app_env:                     prod
           decrypt_key_env:             prod
@@ -159,6 +157,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set release directory names
+        id: dirs
+        shell: bash
+        run: |
+          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
+          echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
+          echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
+
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
         with:
@@ -195,7 +201,7 @@ jobs:
       - name: Deploy staging environment
         uses: ./.github/actions/deploy-env
         with:
-          release_dir:           ${{ needs.prepare.outputs.staging_dir }}
+          release_dir:           ${{ steps.dirs.outputs.staging_dir }}
           current_link_name:     staging_current
           app_env:               staging
           decrypt_key_env:       staging
@@ -222,6 +228,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set release directory names
+        id: dirs
+        shell: bash
+        run: |
+          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
+          echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
+          echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
@@ -250,7 +264,7 @@ jobs:
       - name: Deploy demo environment
         uses: ./.github/actions/deploy-env
         with:
-          release_dir:           ${{ needs.prepare.outputs.demo_dir }}
+          release_dir:           ${{ steps.dirs.outputs.demo_dir }}
           current_link_name:     demo_current
           app_env:               prod
           decrypt_key_env:       prod

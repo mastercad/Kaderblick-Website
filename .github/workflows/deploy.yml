@@ -34,12 +34,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  generate-ids:
+    name: Generate release IDs
+    runs-on: ubuntu-latest
+    outputs:
+      release_timestamp: ${{ steps.ts.outputs.release_timestamp }}
+    steps:
+      - name: Generate timestamp
+        id: ts
+        run: echo "release_timestamp=$(date +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
+
   deploy-hetzner:
+    needs: generate-ids
     uses: ./.github/workflows/deploy-hetzner.yml
     secrets: inherit
     permissions:
       contents: read
       packages: write
     with:
-      image_tag: ${{ inputs.image_tag || 'latest' }}
-      target:    ${{ inputs.target || 'prod+staging+demo' }}
+      image_tag:         ${{ inputs.image_tag || 'latest' }}
+      target:            ${{ inputs.target || 'prod+staging+demo' }}
+      release_timestamp: ${{ needs.generate-ids.outputs.release_timestamp }}
