@@ -11,13 +11,13 @@ inputs:
 
 outputs:
   prod_dir:
-    description: 'Absoluter Pfad des Production-Release-Verzeichnisses'
+    description: 'Relativer Pfad des Production-Release-Verzeichnisses (ohne Projekt-Basis)'
     value: ${{ steps.dirs.outputs.prod_dir }}
   staging_dir:
-    description: 'Absoluter Pfad des Staging-Release-Verzeichnisses'
+    description: 'Relativer Pfad des Staging-Release-Verzeichnisses (ohne Projekt-Basis)'
     value: ${{ steps.dirs.outputs.staging_dir }}
   demo_dir:
-    description: 'Absoluter Pfad des Demo-Release-Verzeichnisses'
+    description: 'Relativer Pfad des Demo-Release-Verzeichnisses (ohne Projekt-Basis)'
     value: ${{ steps.dirs.outputs.demo_dir }}
 
 runs:
@@ -28,9 +28,9 @@ runs:
       shell: bash
       run: |
         TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-        echo "prod_dir=${{ env.HETZNER_PROJECT_PATH }}/production_releases/${TIMESTAMP}"  >> $GITHUB_OUTPUT
-        echo "staging_dir=${{ env.HETZNER_PROJECT_PATH }}/staging_releases/${TIMESTAMP}" >> $GITHUB_OUTPUT
-        echo "demo_dir=${{ env.HETZNER_PROJECT_PATH }}/demo_releases/${TIMESTAMP}"       >> $GITHUB_OUTPUT
+        echo "prod_dir=production_releases/${TIMESTAMP}"    >> $GITHUB_OUTPUT
+        echo "staging_dir=staging_releases/${TIMESTAMP}"   >> $GITHUB_OUTPUT
+        echo "demo_dir=demo_releases/${TIMESTAMP}"         >> $GITHUB_OUTPUT
 
     - name: Prepare release files locally
       shell: bash
@@ -52,12 +52,7 @@ runs:
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
           set -e
-          echo "=== DEBUG ==="
-          echo "whoami: $(whoami)"
-          echo "prod_dir parent: $(dirname '${{ steps.dirs.outputs.prod_dir }}')"
-          ls -la "$(dirname '${{ steps.dirs.outputs.prod_dir }}')" || echo "parent dir not listable"
-          echo "=== END DEBUG ==="
-          mkdir -p "${{ steps.dirs.outputs.prod_dir }}"
+          mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}"
           mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/staging_releases"
           mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/demo_releases"
 
@@ -68,7 +63,7 @@ runs:
         username:         ${{ env.HETZNER_USER }}
         key:              ${{ env.HETZNER_SSH_KEY }}
         source:           "build/*"
-        target:           "${{ steps.dirs.outputs.prod_dir }}"
+        target:           "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}"
         strip_components: 1
 
     - name: Clone release dir for staging and demo
@@ -79,8 +74,8 @@ runs:
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
           set -e
-          cp -r "${{ steps.dirs.outputs.prod_dir }}" "${{ steps.dirs.outputs.staging_dir }}"
-          cp -r "${{ steps.dirs.outputs.prod_dir }}" "${{ steps.dirs.outputs.demo_dir }}"
+          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.staging_dir }}"
+          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.demo_dir }}"
 
     - name: Deploy JWT keys to all release dirs
       uses: appleboy/ssh-action@v1.2.5
@@ -91,9 +86,9 @@ runs:
         script: |
           set -e
           ROOT_DIR="${{ env.HETZNER_PROJECT_PATH }}"
-          for DIR in "${{ steps.dirs.outputs.prod_dir }}" \
-                     "${{ steps.dirs.outputs.staging_dir }}" \
-                     "${{ steps.dirs.outputs.demo_dir }}"; do
+          for DIR in "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}" \
+                     "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.staging_dir }}" \
+                     "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.demo_dir }}"; do
             mkdir -p "$DIR/api/config/jwt"
             [ -d "$ROOT_DIR/api/config/jwt" ] && \
               cp -r "$ROOT_DIR/api/config/jwt/"* "$DIR/api/config/jwt/" 2>/dev/null || true
@@ -109,9 +104,9 @@ runs:
           set -e
           SHARED="${{ env.HETZNER_PROJECT_PATH }}/public/uploads"
           mkdir -p "$SHARED" && chmod -R 775 "$SHARED"
-          for DIR in "${{ steps.dirs.outputs.prod_dir }}" \
-                     "${{ steps.dirs.outputs.staging_dir }}" \
-                     "${{ steps.dirs.outputs.demo_dir }}"; do
+          for DIR in "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}" \
+                     "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.staging_dir }}" \
+                     "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.demo_dir }}"; do
             mkdir -p "$DIR/public"
             rm -rf "$DIR/public/uploads"
             ln -s "$SHARED" "$DIR/public/uploads"
@@ -127,9 +122,9 @@ runs:
           set -e
           ROOT="${{ env.HETZNER_PROJECT_PATH }}"
           declare -A BACKUP_DIRS=(
-            ["${{ steps.dirs.outputs.prod_dir }}"]="$ROOT/backups"
-            ["${{ steps.dirs.outputs.staging_dir }}"]="$ROOT/staging_backups"
-            ["${{ steps.dirs.outputs.demo_dir }}"]="$ROOT/demo_backups"
+            ["${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}"]="$ROOT/backups"
+            ["${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.staging_dir }}"]="$ROOT/staging_backups"
+            ["${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.demo_dir }}"]="$ROOT/demo_backups"
           )
           for RELEASE_DIR in "${!BACKUP_DIRS[@]}"; do
             SHARED="${BACKUP_DIRS[$RELEASE_DIR]}"
@@ -153,7 +148,7 @@ runs:
             echo "DB läuft bereits."
           else
             COMPOSE_DIR="${{ env.HETZNER_PROJECT_PATH }}/production_current"
-            [ -d "$COMPOSE_DIR" ] || COMPOSE_DIR="${{ steps.dirs.outputs.prod_dir }}"
+            [ -d "$COMPOSE_DIR" ] || COMPOSE_DIR="${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}"
             docker compose -f "$COMPOSE_DIR/docker-compose.db.yml" -p kaderblick-db up -d db
             until docker exec kaderblick-db mysqladmin ping -uroot -p'${{ env.MYSQL_ROOT_PASSWORD || 'root' }}' --silent 2>/dev/null; do sleep 3; done
             echo "DB bereit."
@@ -170,5 +165,5 @@ runs:
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/maintenance:${{ inputs.image_tag }}
           IMAGE_TAG=${{ inputs.image_tag }} docker compose \
-            -f "${{ steps.dirs.outputs.prod_dir }}/docker-compose.maintenance.yml" \
+            -f "${{ env.HETZNER_PROJECT_PATH }}/${{ steps.dirs.outputs.prod_dir }}/docker-compose.maintenance.yml" \
             -p maintenance up -d --no-build --force-recreate

@@ -6,7 +6,7 @@ description: >
 
 inputs:
   release_dir:
-    description: 'Absoluter Pfad zum neuen Release-Verzeichnis auf dem Server'
+    description: 'Relativer Pfad zum neuen Release-Verzeichnis (ohne Projekt-Basis, z.B. production_releases/20260607_120000)'
     required: true
   current_link_name:
     description: 'Name des current-Symlinks (z.B. production_current, staging_current)'
@@ -69,7 +69,7 @@ runs:
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
           set -e
-          RELEASE_DIR="${{ inputs.release_dir }}"
+          RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.release_dir }}"
           cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
           sed -i "s/^APP_ENV=.*$/APP_ENV=${{ inputs.app_env }}/" "$RELEASE_DIR/api/.env"
           if [ -n "${{ inputs.google_redirect_uri }}" ]; then
@@ -113,7 +113,7 @@ runs:
             PREV_TAG=$(cat "${ROLLBACK_FILE}.image_tag" 2>/dev/null || echo "")
             printf '%s\n%s\n' "$PREV_PATH" "$PREV_TAG" > "$ROLLBACK_FILE"
           fi
-          ln -sfn "${{ inputs.release_dir }}" "$CURRENT"
+          ln -sfn "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.release_dir }}" "$CURRENT"
           if [ -n "$ROLLBACK_FILE" ]; then
             # Aktuellen IMAGE_TAG für nächsten möglichen Rollback persistieren
             echo "${{ inputs.image_tag }}" > "${ROLLBACK_FILE}.image_tag"
