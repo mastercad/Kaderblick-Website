@@ -35,7 +35,6 @@ jobs:
 
   deploy:
     needs: [build, quality-assurance]
-    environment: production
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     permissions:
