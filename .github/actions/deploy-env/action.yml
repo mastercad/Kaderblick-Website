@@ -104,7 +104,7 @@ runs:
         key:              ${{ env.HETZNER_SSH_KEY }}
         source:           ${{ steps.prepare-key.outputs.key_file }}
         target:           ${{ steps.prepare-key.outputs.key_dir }}
-        strip_components: 2
+        strip_components: 1
 
     - name: Set decrypt key permissions
       uses: appleboy/ssh-action@v1.2.5
@@ -113,7 +113,7 @@ runs:
         username: ${{ env.HETZNER_USER }}
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
-          chmod 600 "${{ steps.prepare-key.outputs.key_dir }}"/*.php
+          chmod 644 "${{ steps.prepare-key.outputs.key_dir }}"/*.php
 
     - name: Enable maintenance
       uses: appleboy/ssh-action@v1.2.5
