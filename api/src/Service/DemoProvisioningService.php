@@ -4,7 +4,7 @@ namespace App\Service;
 
 use App\Entity\DemoRequest;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use RuntimeException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
@@ -54,9 +54,7 @@ class DemoProvisioningService
     ];
 
     public function __construct(
-        private readonly EmailService $emailService,
         private readonly HttpClientInterface $httpClient,
-        private readonly ParameterBagInterface $params,
         private readonly LoggerInterface $logger,
         private readonly string $githubToken,
         private readonly string $githubRepoOwner,
@@ -69,7 +67,7 @@ class DemoProvisioningService
      * Der Workflow provisioniert eine vollständig isolierte Demo-Instanz und
      * benachrichtigt das Backend anschließend per HMAC-gesichertem Webhook.
      *
-     * @throws \RuntimeException wenn der GitHub-API-Call fehlschlägt
+     * @throws RuntimeException wenn der GitHub-API-Call fehlschlägt
      */
     public function sendDemoAccess(DemoRequest $demoRequest): void
     {
@@ -106,12 +104,7 @@ class DemoProvisioningService
             $statusCode = $response->getStatusCode();
             // GitHub antwortet mit 204 No Content bei Erfolg
             if (204 !== $statusCode) {
-                throw new \RuntimeException(
-                    sprintf(
-                        'GitHub-API hat unerwartet mit Status %d geantwortet (erwartet 204).',
-                        $statusCode
-                    )
-                );
+                throw new RuntimeException(sprintf('GitHub-API hat unerwartet mit Status %d geantwortet (erwartet 204).', $statusCode));
             }
 
             $this->logger->info(
@@ -152,4 +145,3 @@ class DemoProvisioningService
         return bin2hex(random_bytes(4));
     }
 }
-

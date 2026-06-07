@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 /**
  * Empfängt HMAC-gesicherte Webhook-Callbacks vom GitHub-Actions-Workflow
@@ -77,10 +78,10 @@ class DemoWebhookController extends AbstractController
 
         // ── Status-Handler ──────────────────────────────────────────────────
         match ($status) {
-            'active'  => $this->handleActive($demoRequest, $demoToken, $data),
+            'active' => $this->handleActive($demoRequest, $demoToken, $data),
             'revoked' => $this->handleRevoked($demoRequest, $demoToken),
-            'failed'  => $this->handleFailed($demoRequest, $demoToken),
-            default   => null,
+            'failed' => $this->handleFailed($demoRequest, $demoToken),
+            default => null,
         };
 
         return $this->json(['ok' => true]);
@@ -133,7 +134,7 @@ class DemoWebhookController extends AbstractController
                     'expiresAt' => $instance->getExpiresAt(),
                 ]
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->logger->error('Demo-Webhook: E-Mail konnte nicht gesendet werden.', [
                 'exception' => $e,
                 'demo_token' => $demoToken,

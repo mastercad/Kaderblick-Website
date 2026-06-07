@@ -1,0 +1,42 @@
+name: 'Cleanup Releases'
+description: >
+  Löscht alte Release-Verzeichnisse (behält die neuesten N), entfernt ungenutzte
+  Docker-Images und führt docker system prune durch.
+  Liest SSH-Zugangsdaten aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  keep:
+    description: 'Anzahl der zu behaltenden aktuellsten Releases pro Environment'
+    required: false
+    default: '3'
+
+runs:
+  using: composite
+  steps:
+    - name: Cleanup old release directories
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          ROOT="${{ env.HETZNER_PROJECT_PATH }}"
+          KEEP=${{ inputs.keep }}
+          for RELEASE_BASE in production_releases staging_releases demo_releases; do
+            DIR="$ROOT/$RELEASE_BASE"
+            if [ ! -d "$DIR" ]; then continue; fi
+            ls -1dt "$DIR"/*/ 2>/dev/null | tail -n +$((KEEP + 1)) | while read -r OLD; do
+              echo "Lösche altes Release: $OLD"
+              rm -rf "$OLD"
+            done
+          done
+
+    - name: Prune unused Docker resources
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          docker image prune -f || true
+          docker builder prune -f --keep-storage 2g || true

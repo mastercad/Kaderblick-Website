@@ -1,0 +1,22 @@
+name: 'Disable Maintenance'
+description: >
+  Löscht die Maintenance-Flagge auf dem Server.
+  Liest SSH-Zugangsdaten aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  maintenance_flag:
+    description: 'Dateiname der Maintenance-Flagge (z.B. maintenance_production.flag)'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Remove maintenance flag
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          rm -f "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.maintenance_flag }}"
+          echo "Maintenance deaktiviert: ${{ inputs.maintenance_flag }}"

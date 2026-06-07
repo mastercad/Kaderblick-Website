@@ -1,0 +1,55 @@
+name: 'Rollback Deployment'
+description: >
+  Liest den vorherigen Release-Pfad aus der Rollback-Datei, fährt die aktuellen
+  Container herunter, setzt den Symlink zurück und startet die alten Container.
+  Liest SSH-Zugangsdaten und DATABASE_URL aus env.* (gesetzt via infisical-fetch).
+
+inputs:
+  rollback_file:
+    description: 'Absoluter Pfad zur Rollback-Datei auf dem Server'
+    required: true
+  current_link_name:
+    description: 'Name des current-Symlinks (z.B. production_current)'
+    required: true
+  compose_project:
+    description: 'Docker-Compose Projektname'
+    required: true
+  compose_files:
+    description: 'Docker-Compose -f Flags'
+    required: false
+    default: '-f docker-compose.yml'
+
+runs:
+  using: composite
+  steps:
+    - name: Execute rollback
+      uses: appleboy/ssh-action@v1.2.5
+      with:
+        host:     ${{ env.HETZNER_HOST }}
+        username: ${{ env.HETZNER_USER }}
+        key:      ${{ env.HETZNER_SSH_KEY }}
+        script: |
+          set -e
+          ROLLBACK_FILE="${{ inputs.rollback_file }}"
+          ROLLBACK_TARGET=$(sed -n '1p' "$ROLLBACK_FILE" 2>/dev/null || echo "")
+          ROLLBACK_TAG=$(sed -n '2p' "$ROLLBACK_FILE" 2>/dev/null || echo "")
+          if [ -z "$ROLLBACK_TARGET" ] || [ ! -d "$ROLLBACK_TARGET" ]; then
+            echo "Kein gültiges Rollback-Ziel in $ROLLBACK_FILE – Rollback übersprungen."
+            exit 0
+          fi
+          if [ -z "$ROLLBACK_TAG" ]; then
+            echo "FEHLER: Kein IMAGE_TAG für Rollback gefunden (${ROLLBACK_FILE}.image_tag fehlt oder leer)."
+            exit 1
+          fi
+          echo "Rollback auf: $ROLLBACK_TARGET (IMAGE_TAG: $ROLLBACK_TAG)"
+          CURRENT="${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}"
+          docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
+            down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+          ln -sfn "$ROLLBACK_TARGET" "$CURRENT"
+          cd "$CURRENT"
+          IMAGE_TAG="$ROLLBACK_TAG" API_IMAGE_TAG="$ROLLBACK_TAG" \
+          DATABASE_URL="${{ env.DATABASE_URL }}" XDEBUG_MODE=off \
+          HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
+          docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
+            up -d --no-build api frontend worker
+          echo "Rollback abgeschlossen."
