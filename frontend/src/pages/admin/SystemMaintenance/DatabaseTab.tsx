@@ -85,7 +85,8 @@ export default function DatabaseTab() {
     setError(null);
     try {
       const response = await apiRequest(
-        `/api/admin/system/backup/download/${encodeURIComponent(filename)}`
+        `/api/admin/system/backup/download/${encodeURIComponent(filename)}`,
+        { cache: 'no-store' }
       );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
