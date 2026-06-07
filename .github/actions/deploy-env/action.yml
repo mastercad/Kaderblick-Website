@@ -82,7 +82,7 @@ runs:
           echo "APP_SECRET=${{ env.APP_SECRET }}"                  >> "$RELEASE_DIR/api/.env"
           echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"    >> "$RELEASE_DIR/api/.env"
           mkdir -p "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}"
-          printf '%s' '${{ env.DECRYPT_KEY }}' | base64 -d \
+          echo '${{ env.DECRYPT_KEY }}' | base64 -d \
             > "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
           chmod 600 "$RELEASE_DIR/api/config/secrets/${{ inputs.decrypt_key_env }}/${{ inputs.decrypt_key_env }}.decrypt.private.php"
           echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}" > "$RELEASE_DIR/frontend/.env"
