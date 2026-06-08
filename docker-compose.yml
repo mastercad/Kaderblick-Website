@@ -14,6 +14,8 @@ services:
       # Runtime-Konfiguration: wird beim Deploy auf den Server geschrieben und eingebunden.
       # vendor/ und Source-Code kommen aus dem Image – kein Source-Mount mehr.
       - ./api/.env:/var/www/symfony/.env
+      - ./api/.env.prod.local:/var/www/symfony/.env.prod.local
+      - ./api/.env.staging.local:/var/www/symfony/.env.staging.local
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
       # UPLOADS_DIR: für dynamische Demo-Instanzen auf das instanz-spezifische Verzeichnis
@@ -63,6 +65,8 @@ services:
     command: ["php", "/var/www/symfony/bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
     volumes:
       - ./api/.env:/var/www/symfony/.env
+      - ./api/.env.prod.local:/var/www/symfony/.env.prod.local
+      - ./api/.env.staging.local:/var/www/symfony/.env.staging.local
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
       - ${UPLOADS_DIR:-./public/uploads}:/var/www/symfony/public/uploads

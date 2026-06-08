@@ -94,6 +94,8 @@ runs:
           echo "APP_SECRET=${{ env.APP_SECRET }}"               >> "$RELEASE_DIR/api/.env"
           echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}" >> "$RELEASE_DIR/api/.env"
           echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}" > "$RELEASE_DIR/frontend/.env"
+          touch "$RELEASE_DIR/api/.env.prod.local"
+          touch "$RELEASE_DIR/api/.env.staging.local"
           mkdir -p "${{ steps.prepare-key.outputs.key_dir }}"
 
     - name: Deploy decrypt key
@@ -194,7 +196,6 @@ runs:
         compose_project: ${{ inputs.compose_project }}
         compose_files:   ${{ inputs.compose_files }}
         work_dir:        ${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}
-        database_url:    ${{ env.DATABASE_URL }}
 
     - name: Disable maintenance
       if: always() && inputs.disable_maintenance_on_exit == 'true'
