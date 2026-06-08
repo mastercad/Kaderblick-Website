@@ -3,6 +3,7 @@
 namespace App\Controller\ApiResource;
 
 use App\Repository\PosterTemplateRepository;
+use FilesystemIterator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -56,7 +57,22 @@ class PosterImageUploadController extends AbstractController
             return new JsonResponse([]);
         }
 
-        $files = glob($uploadDir . '/*.{jpg,jpeg,png,gif,webp}', 1024) ?: [];
+        $files = [];
+
+        foreach (new FilesystemIterator($uploadDir) as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            if (in_array(
+                strtolower($file->getExtension()),
+                ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                true
+            )) {
+                $files[] = $file->getPathname();
+            }
+        }
+
         $urls = array_values(array_map(
             static fn (string $f): string => '/uploads/poster/' . basename($f),
             $files
