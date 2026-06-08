@@ -67,6 +67,9 @@ runs:
           for G in "${GROUPS[@]}"; do
             GROUP_FLAGS="$GROUP_FLAGS --group=${G// /}"
           done
+          echo "=== Container-Status vor fixtures:load ==="
+          $DC ps api 2>&1 || true
+          echo "=== Starte fixtures:load ==="
           $DC exec -T --user www-data api \
             bin/console doctrine:fixtures:load \
-            --env=${{ inputs.env }} --no-interaction --append $GROUP_FLAGS
+            --env=${{ inputs.env }} --no-interaction --append $GROUP_FLAGS 2>&1
