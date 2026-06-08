@@ -59,7 +59,7 @@ class PosterImageUploadController extends AbstractController
 
         $files = [];
 
-        foreach (new FilesystemIterator($uploadDir) as $file) {
+        foreach (new \FilesystemIterator($uploadDir) as $file) {
             if (!$file->isFile()) {
                 continue;
             }
@@ -69,16 +69,11 @@ class PosterImageUploadController extends AbstractController
                 ['jpg', 'jpeg', 'png', 'gif', 'webp'],
                 true
             )) {
-                $files[] = $file->getPathname();
+                $files[] = '/uploads/poster/' . $file->getFilename();
             }
         }
 
-        $urls = array_values(array_map(
-            static fn (string $f): string => '/uploads/poster/' . basename($f),
-            $files
-        ));
-
-        return new JsonResponse($urls);
+        return new JsonResponse($files);
     }
 
     #[Route(path: '/{filename}', name: 'delete', methods: ['DELETE'])]
