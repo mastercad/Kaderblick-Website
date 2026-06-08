@@ -56,7 +56,7 @@ class PosterImageUploadController extends AbstractController
             return new JsonResponse([]);
         }
 
-        $files = glob($uploadDir . '/*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE) ?: [];
+        $files = glob($uploadDir . '/*.{jpg,jpeg,png,gif,webp}', 1024) ?: [];
         $urls = array_values(array_map(
             static fn (string $f): string => '/uploads/poster/' . basename($f),
             $files
