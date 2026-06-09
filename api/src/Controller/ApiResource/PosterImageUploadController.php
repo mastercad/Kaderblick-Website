@@ -64,11 +64,13 @@ class PosterImageUploadController extends AbstractController
                 continue;
             }
 
-            if (in_array(
-                strtolower($file->getExtension()),
-                ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-                true
-            )) {
+            if (
+                in_array(
+                    strtolower($file->getExtension()),
+                    ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                    true
+                )
+            ) {
                 $files[] = '/uploads/poster/' . $file->getFilename();
             }
         }
