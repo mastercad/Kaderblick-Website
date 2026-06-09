@@ -266,8 +266,8 @@ jobs:
         with:
           release_dir:           ${{ steps.dirs.outputs.demo_dir }}
           current_link_name:     demo_current
-          app_env:               prod
-          decrypt_key_env:       prod
+          app_env:               demo
+          decrypt_key_env:       demo
           vite_backend_url:      ${{ env.VITE_BACKEND_URL }}
           google_redirect_uri:   ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:          ${{ env.FRONTEND_URL }}
