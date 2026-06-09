@@ -59,7 +59,7 @@ class PosterImageUploadController extends AbstractController
 
         $files = [];
 
-        foreach (new \FilesystemIterator($uploadDir) as $file) {
+        foreach (new FilesystemIterator($uploadDir) as $file) {
             if (!$file->isFile()) {
                 continue;
             }

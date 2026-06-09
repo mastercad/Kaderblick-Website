@@ -252,7 +252,7 @@ jobs:
           client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           domain:        ${{ secrets.INFISICAL_URL }}
-          env-slug:      demo
+          env-slug:      prod
           project-slug:  kaderblick-ny-in
 
       - name: Ensure demo DB exists
