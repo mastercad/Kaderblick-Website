@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button, type SxProps, type Theme } from '@mui/material';
-import CookieIcon from '@mui/icons-material/Cookie';
 import { useConsent } from '../context/ConsentContext';
 import CookieSettingsDialog from './CookieSettingsDialog';
 import { type ConsentCategory } from '../services/cookieConsentService';

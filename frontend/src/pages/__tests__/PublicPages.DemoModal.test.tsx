@@ -22,6 +22,11 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// ── Global mocks ────────────────────────────────────────────────────────────
+global.fetch = jest.fn(() =>
+  Promise.resolve({ ok: false })
+) as jest.Mock;
+
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 // PublicSiteHeader: expose onOpenDemo as a button
@@ -84,6 +89,18 @@ jest.mock('../../modals/AuthModal', () => ({
 // HomeScrollContext (used by Home)
 jest.mock('../../context/HomeScrollContext', () => ({
   useHomeScroll: () => ({ isOnHeroSection: false, setIsOnHeroSection: jest.fn() }),
+}));
+
+// AuthProvider mock
+jest.mock('../../context/AuthContext', () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => ({ user: null, loading: false }),
+}));
+
+// ConsentContext mock
+jest.mock('../../context/ConsentContext', () => ({
+  ConsentProvider: ({ children }: any) => children,
+  useConsent: () => ({ hasConsent: false, setHasConsent: jest.fn() }),
 }));
 
 // ── Imports after mocks ────────────────────────────────────────────────────

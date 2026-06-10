@@ -8,7 +8,6 @@
  *  - RouteSeoBoundary: private path → noindex=true
  */
 
-import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -87,6 +86,10 @@ jest.mock('../components/FabStackRoot', () => ({
 jest.mock('../components/Footer', () => ({
   __esModule: true,
   default: () => <div data-testid="footer" />,
+}));
+jest.mock('../components/LandingPageFooter', () => ({
+  __esModule: true,
+  default: () => <div data-testid="landing-page-footer" />,
 }));
 jest.mock('../components/PullToRefresh', () => ({
   PullToRefresh: ({ children }: any) => <>{children}</>,
