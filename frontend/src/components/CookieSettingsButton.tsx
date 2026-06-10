@@ -19,11 +19,10 @@ export default function CookieSettingsButton({ sx }: { sx?: SxProps<Theme> }) {
       <Button
         size="small"
         variant="text"
-        startIcon={<CookieIcon fontSize="small" />}
         onClick={() => setOpen(true)}
-        sx={{ fontSize: 'inherit', color: 'inherit', textTransform: 'none', p: 0, minWidth: 0, ...( sx as object ?? {}) }}
+        sx={{ color: 'inherit', textTransform: 'none', fontSize: 13.5, p: 0, minWidth: 0, ...( sx as object ?? {}) }}
       >
-        Cookie-Einstellungen
+        Cookies
       </Button>
       <CookieSettingsDialog
         open={open}

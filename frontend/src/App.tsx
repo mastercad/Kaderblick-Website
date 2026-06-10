@@ -23,6 +23,7 @@ import FabStackRoot from './components/FabStackRoot';
 import Imprint from './pages/Imprint';
 import Privacy from './pages/Privacy';
 import Footer from './components/Footer';
+import LandingPageFooter from './components/LandingPageFooter';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -471,7 +472,7 @@ function App() {
               {!isHome && (showAuthenticatedAppChrome ? (
                 <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>
               ) : (
-                <Footer />
+                <LandingPageFooter />
               ))}
                 </Box>{/* end content column */}
                 </Box>{/* end flex-row sidebar+content */}

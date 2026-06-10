@@ -56,7 +56,7 @@ const Footer: React.FC = () => {
             )}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Link component={RouterLink} to="/kontakt" color="inherit" underline="hover">
             Kontakt
           </Link>
@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
           <Link component={RouterLink} to="https://docs.kaderblick.de" color="inherit" underline="hover">
             Dokumentation
           </Link>
-          {!user && <CookieSettingsButton />}
+          {!user && <CookieSettingsButton sx={{ mt: -1.5 }} />}
         </Box>
       </Container>
     </Box>

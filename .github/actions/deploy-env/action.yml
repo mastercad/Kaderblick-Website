@@ -167,6 +167,9 @@ runs:
             down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
           sleep 2
           ${{ inputs.extra_docker_env }} \
+          API_PORT=${{ env.API_PORT }} \
+          REACT_PORT=${{ env.REACT_PORT }} \
+          HEALTHCHECK_URL=${{ env.HEALTHCHECK_URL }} \
           IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
           DATABASE_URL="${{ env.DATABASE_URL }}" XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \

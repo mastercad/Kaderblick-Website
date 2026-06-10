@@ -101,6 +101,11 @@ jobs:
           decrypt_key_env:             prod
           vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
           image_tag:                   ${{ inputs.image_tag }}
+          api_port:                    ${{ env.API_PORT }}
+          react_port:                  ${{ env.REACT_PORT }}
+          google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
+          healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
+          frontend_url:                ${{ env.FRONTEND_URL }}
           frontend_image_suffix:       prod
           compose_files:               '-f docker-compose.yml'
           compose_project:             production
@@ -209,6 +214,9 @@ jobs:
           google_redirect_uri:   ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:          ${{ env.FRONTEND_URL }}
           image_tag:             ${{ inputs.image_tag }}
+          api_port:              ${{ env.API_PORT }}
+          react_port:            ${{ env.REACT_PORT }}
+          healthcheck_url:       ${{ env.HEALTHCHECK_URL }}
           frontend_image_suffix: staging
           compose_files:         '-f docker-compose.yml -f docker-compose.staging.yml'
           compose_project:       staging
@@ -271,6 +279,9 @@ jobs:
           vite_backend_url:      ${{ env.VITE_BACKEND_URL }}
           google_redirect_uri:   ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:          ${{ env.FRONTEND_URL }}
+          api_port:              ${{ env.API_PORT }}
+          react_port:            ${{ env.REACT_PORT }}
+          healthcheck_url:       ${{ env.HEALTHCHECK_URL }}
           image_tag:             ${{ inputs.image_tag }}
           frontend_image_suffix: demo
           compose_files:         '-f docker-compose.yml -f docker-compose.demo.yml'

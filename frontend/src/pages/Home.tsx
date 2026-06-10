@@ -8,7 +8,6 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import ChecklistRtlOutlinedIcon from '@mui/icons-material/ChecklistRtlOutlined';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
@@ -29,6 +28,7 @@ import ObfuscatedEmail from '../components/public/ObfuscatedEmail';
 import DemoRequestModal from '../modals/DemoRequestModal';
 import PublicSiteHeader from '../components/public/PublicSiteHeader';
 import { useHomeScroll } from '../context/HomeScrollContext';
+import LandingPageFooter from '../components/LandingPageFooter';
 import Seo from '../seo/Seo';
 import '../styles/public-home.css';
 
@@ -348,56 +348,8 @@ export default function Home() {
           </Container>
         </Box>
 
-        <Box component="footer" id="cta" className="public-home-proof-section">
-          <Container maxWidth="lg" className="public-home-proof-grid">
-            <Box className="public-home-proof-copy">
-              <Box className="public-home-proof-icon-wrap">
-                <CalendarMonthOutlinedIcon />
-              </Box>
-              <Box>
-                <Typography className="public-home-proof-title">
-                  Bereit, deinen Verein auf das nächste Level zu bringen?
-                </Typography>
-                {/*
-                <Typography className="public-home-proof-text">
-                  Über 1.000 Vereine vertrauen bereits auf Kaderblick.
-                </Typography>
-                */}
-                <Stack direction="row" spacing={2.5} className="public-home-proof-legal">
-                  <Link component={RouterLink} to="/kontakt" className="public-home-proof-link" underline="none">
-                    Kontakt
-                  </Link>
-                  <Link component={RouterLink} to="/imprint" className="public-home-proof-link" underline="none">
-                    Impressum
-                  </Link>
-                  <Link component={RouterLink} to="/privacy" className="public-home-proof-link" underline="none">
-                    Datenschutz
-                  </Link>
-                </Stack>
-              </Box>
-            </Box>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} className="public-home-proof-actions">
-              <Button
-                variant="contained"
-                endIcon={<ArrowOutwardRoundedIcon />}
-                className="public-home-cta-button-light"
-                onClick={() => setDemoModalOpen(true)}
-              >
-                Demo anfragen
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/funktionen"
-                variant="outlined"
-                endIcon={<ArrowOutwardRoundedIcon />}
-                className="public-home-cta-button-ghost"
-              >
-                Mehr erfahren
-              </Button>
-            </Stack>
-          </Container>
-        </Box>
+        <LandingPageFooter />
+        
       </Box>
 
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
