@@ -34,6 +34,11 @@ runs:
           RETRIES=${{ inputs.retries }}
           WAIT=${{ inputs.wait_seconds }}
           URL="${{ inputs.url }}"
+          if [ "${{ inputs.url }}" = "http://localhost:8081/api/health" ]; then
+            echo "MATCH"
+          else
+            echo "NO MATCH"
+          fi
           echo "URL=[$URL]"
           echo "Length=${#URL}"
           printf '%q\n' "$URL"
