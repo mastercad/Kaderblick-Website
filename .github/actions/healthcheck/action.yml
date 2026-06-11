@@ -34,6 +34,8 @@ runs:
           RETRIES=${{ inputs.retries }}
           WAIT=${{ inputs.wait_seconds }}
           URL="${{ inputs.url }}"
+          echo "PRÜFE $URL"
+          curl $URL
           sleep 30 # Warte initial etwas, damit die API Zeit hat zu starten
           for i in $(seq 1 $RETRIES); do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
