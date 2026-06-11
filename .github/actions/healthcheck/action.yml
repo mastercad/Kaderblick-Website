@@ -33,8 +33,7 @@ runs:
           set -e
           RETRIES=${{ inputs.retries }}
           WAIT=${{ inputs.wait_seconds }}
-          #URL="${{ inputs.url }}"
-          URL="http://localhost:8081/api/health"
+          URL="${{ inputs.url }}"
           echo "PRÜFE $URL"
           curl $URL
           sleep 30 # Warte initial etwas, damit die API Zeit hat zu starten
