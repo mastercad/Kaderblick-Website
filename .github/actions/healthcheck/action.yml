@@ -35,9 +35,19 @@ runs:
           WAIT=${{ inputs.wait_seconds }}
           URL="${{ inputs.url }}"
           if [ "${{ inputs.url }}" = "http://localhost:8081/api/health" ]; then
-            echo "MATCH"
+            echo "PROD MATCH"
           else
-            echo "NO MATCH"
+            echo "NO PROD MATCH"
+          fi
+          if [ "${{ inputs.url }}" = "http://localhost:18081/api/health" ]; then
+            echo "STAGING MATCH"
+          else
+            echo "NO STAGING MATCH"
+          fi
+          if [ "${{ inputs.url }}" = "http://localhost:28081/api/health" ]; then
+            echo "DEMO MATCH"
+          else
+            echo "NO DEMO MATCH"
           fi
           echo "URL=[$URL]"
           echo "Length=${#URL}"
