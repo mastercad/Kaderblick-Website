@@ -57,6 +57,15 @@ inputs:
     description: 'Pfad zur Rollback-Datei (speichert vorheriges Symlink-Ziel). Leer = kein Rollback-File.'
     required: false
     default: ''
+  api_port:
+    description: 'Port, auf dem die API erreichbar sein soll (für HEALTHCHECK_URL und extra_docker_env)'
+    required: true
+  react_port:
+    description: 'Port, auf dem das Frontend erreichbar sein soll (für HEALTHCHECK_URL und extra_docker_env)'
+    required: true
+  healthcheck_url:
+    description: 'URL für Healthchecks (z.B. http://localhost:18081/api/health) (für extra_docker_env)'
+    required: true
 
 runs:
   using: composite
@@ -82,6 +91,11 @@ runs:
         script: |
           set -e
           RELEASE_DIR="${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.release_dir }}"
+          
+          echo "RELEASE_DIR=$RELEASE_DIR"
+          echo "Checking file: $RELEASE_DIR/api/.env.dist"
+          ls -la "$RELEASE_DIR/api/.env.dist"
+          
           cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
           sed -i "s/^APP_ENV=.*$/APP_ENV=${{ inputs.app_env }}/" "$RELEASE_DIR/api/.env"
           if [ -n "${{ inputs.google_redirect_uri }}" ]; then
