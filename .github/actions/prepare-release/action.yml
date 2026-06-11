@@ -42,8 +42,8 @@ runs:
         script: |
           set -e
           mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.prod_dir }}"
-          mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/staging_releases"
-          mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/demo_releases"
+          mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.staging_dir }}"
+          mkdir -p "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.demo_dir }}"
 
     - name: Copy release files to server
       uses: appleboy/scp-action@v1.0.0

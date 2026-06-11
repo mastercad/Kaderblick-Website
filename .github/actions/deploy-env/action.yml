@@ -94,6 +94,12 @@ runs:
           
           echo "RELEASE_DIR=$RELEASE_DIR"
           echo "Checking file: $RELEASE_DIR/api/.env.dist"
+          if [ -z "$RELEASE_DIR" ]; then
+            echo "ERROR: RELEASE_DIR is empty. HETZNER_PROJECT_PATH='${{ env.HETZNER_PROJECT_PATH }}' inputs.release_dir='${{ inputs.release_dir }}'"
+            exit 1
+          fi
+          ls -la "${{ env.HETZNER_PROJECT_PATH }}"
+          ls -la "$RELEASE_DIR"
           ls -la "$RELEASE_DIR/api/.env.dist"
           
           cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
