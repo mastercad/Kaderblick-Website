@@ -116,7 +116,7 @@ jobs:
       - name: Production healthcheck
         uses: ./.github/actions/healthcheck
         with:
-          url:             http://localhost:8081/api/health
+          url:             ${{ env.HEALTHCHECK_URL }}
           compose_project: production
 
       - name: Rollback production on failure
