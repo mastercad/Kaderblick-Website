@@ -63,8 +63,8 @@ runs:
         key:      ${{ env.HETZNER_SSH_KEY }}
         script: |
           set -e
-          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.staging_dir }}"
-          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.demo_dir }}"
+          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.staging_dir }}/"
+          cp -r "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.prod_dir }}" "${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.demo_dir }}/"
 
     - name: Deploy JWT keys to all release dirs
       uses: appleboy/ssh-action@v1.2.5

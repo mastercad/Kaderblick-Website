@@ -27,7 +27,7 @@ log_diagnostics() {
   local logfile="/var/www/symfony/var/log/cron_wrapper.log"
   mkdir -p "$(dirname "$logfile")"
   echo "----------------------------------------" >> "$logfile"
-  echo "DATE: $(date --iso-8601=seconds)" >> "$logfile"
+  echo "DATE: $(date +"%Y-%m-%dT%H:%M:%S%z")" >> "$logfile"
   echo "USER: $(whoami)" >> "$logfile"
   echo "PWD: $(pwd)" >> "$logfile"
   echo "APP_ENV: ${APP_ENV:-unset}" >> "$logfile"
