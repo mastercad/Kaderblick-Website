@@ -34,6 +34,9 @@ runs:
           RETRIES=${{ inputs.retries }}
           WAIT=${{ inputs.wait_seconds }}
           URL="${{ inputs.url }}"
+          echo "URL=[$URL]"
+          echo "Length=${#URL}"
+          printf '%q\n' "$URL"
           echo "PRÜFE $URL"
           curl $URL
           sleep 30 # Warte initial etwas, damit die API Zeit hat zu starten
