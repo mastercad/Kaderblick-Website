@@ -146,6 +146,7 @@ jobs:
           cp api/.env.dist api/.env
           echo "APP_SECRET=${{ env.APP_SECRET }}" >> api/.env
           sed -i 's/^APP_ENV=.*/APP_ENV=test/' api/.env
+          sed -i 's/^DATABASE_URL=.*/DATABASE_URL='kaderblick_test'/' api/.env
 
           docker network inspect kaderblick-net >/dev/null 2>&1 || docker network create kaderblick-net
           
@@ -207,7 +208,7 @@ jobs:
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:test-${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag }}
-          DATABASE_URL=${{ env.DATABASE_URL }} API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
+          DATABASE_URL=kaderblick_test API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
 
           mkdir -p api/config/secrets/test
           # echo "<?php return \"${{ env.DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
@@ -216,6 +217,7 @@ jobs:
 
           echo "Decrypt secrets"
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force
+          echo "Decrypt secrets done"
 
           echo "Replace MAILER_DSN in decrypted secrets to avoid external SMTP calls during tests"
           # SMTP ist von GitHub Actions nicht erreichbar – MAILER_DSN nach dem Decrypt überschreiben.
