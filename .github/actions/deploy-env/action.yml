@@ -191,7 +191,7 @@ runs:
           REACT_PORT=${{ env.REACT_PORT }} \
           HEALTHCHECK_URL=${{ env.HEALTHCHECK_URL }} \
           IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
-          DATABASE_URL="${{ env.DATABASE_URL }}" XDEBUG_MODE=off \
+          XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
             up -d --no-build --force-recreate api frontend worker
@@ -207,7 +207,6 @@ runs:
         compose_files:     ${{ inputs.compose_files }}
         work_dir:          ${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}
         main_project_path: ${{ env.HETZNER_PROJECT_PATH }}
-        database_url:      ${{ env.DATABASE_URL }}
 
     - name: Load master fixtures
       uses: ./.github/actions/symfony-load-fixtures

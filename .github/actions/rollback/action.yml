@@ -48,7 +48,7 @@ runs:
           ln -sfn "$ROLLBACK_TARGET" "$CURRENT"
           cd "$CURRENT"
           IMAGE_TAG="$ROLLBACK_TAG" API_IMAGE_TAG="$ROLLBACK_TAG" \
-          DATABASE_URL="${{ env.DATABASE_URL }}" XDEBUG_MODE=off \
+          XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
             up -d --no-build api frontend worker

@@ -68,13 +68,13 @@ jobs:
           env-slug:      global
           project-slug:  infrastructure-r-zu-j
 
-      - name: Fetch prod secrets
+      - name: Fetch demo secrets
         uses: ./.github/actions/infisical-fetch
         with:
           client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           domain:        ${{ secrets.INFISICAL_URL }}
-          env-slug:      prod
+          env-slug:      demo
           project-slug:  kaderblick-ny-in
 
       - name: Generate database password
@@ -155,10 +155,10 @@ jobs:
             echo "DEMO_WEBHOOK_SECRET=${{ env.DEMO_WEBHOOK_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
 
             # Symfony-Decrypt-Key schreiben (chmod 600 – nur Owner darf lesen)
-            mkdir -p "$RELEASE_DIR/api/config/secrets/prod"
+            mkdir -p "$RELEASE_DIR/api/config/secrets/demo"
             echo '${{ env.DECRYPT_KEY }}' | base64 -d \
-              > "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
-            chmod 600 "$RELEASE_DIR/api/config/secrets/prod/prod.decrypt.private.php"
+              > "$RELEASE_DIR/api/config/secrets/demo/demo.decrypt.private.php"
+            chmod 600 "$RELEASE_DIR/api/config/secrets/demo/demo.decrypt.private.php"
 
             # Port-Zuweisung (Hash-basiert, mit Kollisionsprüfung auf belegten Ports)
             TOKEN_HASH=$(echo -n "${{ env.TOKEN }}" | sha256sum | cut -c1-4)
@@ -224,7 +224,7 @@ jobs:
           host:              ${{ env.HETZNER_HOST }}
           username:          ${{ env.HETZNER_USER }}
           key:               ${{ env.HETZNER_SSH_KEY }}
-          env:               prod
+          env:               demo
           compose_project:   ${{ env.COMPOSE_PROJECT }}
           compose_files:     '-f docker-compose.yml -f docker-compose.demo.yml'
           work_dir:          ${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}
@@ -237,7 +237,7 @@ jobs:
           host:            ${{ env.HETZNER_HOST }}
           username:        ${{ env.HETZNER_USER }}
           key:             ${{ env.HETZNER_SSH_KEY }}
-          env:             prod
+          env:             demo
           compose_project: ${{ env.COMPOSE_PROJECT }}
           compose_files:   '-f docker-compose.yml -f docker-compose.demo.yml'
           work_dir:        ${{ env.HETZNER_PROJECT_PATH }}/demo_instances/${{ env.TOKEN }}
