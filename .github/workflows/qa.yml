@@ -43,6 +43,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch infrastructure secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      global
+          project-slug:  infrastructure-r-zu-j
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -105,6 +114,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch infrastructure secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      global
+          project-slug:  infrastructure-r-zu-j
 
       - name: Cache Composer vendors
         uses: actions/cache@v4
