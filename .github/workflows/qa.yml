@@ -207,7 +207,7 @@ jobs:
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:test-${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag }}
-          API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
+          DATABASE_URL=${{ env.DATABASE_URL }} API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
 
           mkdir -p api/config/secrets/test
           # echo "<?php return \"${{ env.DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
@@ -223,6 +223,8 @@ jobs:
             'sed -i "s|^MAILER_DSN=.*|MAILER_DSN=null://null|" /var/www/symfony/.env.test.local 2>/dev/null || true; echo "MAILER_DSN=null://null" >> /var/www/symfony/.env.test.local'
 
           mkdir -p "api/config/jwt"
+
+          docker compose exec -T api sh -c 'cat /var/www/symfony/.env.test.local'
 
           if [ ! -f api/config/jwt/private.pem ] || [ ! -f api/config/jwt/public.pem ]; then
             docker compose exec -T api php bin/console lexik:jwt:generate-keypair --overwrite
