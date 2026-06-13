@@ -130,7 +130,7 @@ jobs:
           client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           domain:        ${{ secrets.INFISICAL_URL }}
-          env-slug:      prod
+          env-slug:      test
           project-slug:  infrastructure-r-zu-j
 
       - name: Cache Composer vendors
@@ -211,7 +211,6 @@ jobs:
           DATABASE_URL=kaderblick_test API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
 
           mkdir -p api/config/secrets/test
-          # echo "<?php return \"${{ env.DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
           echo '${{ env.DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
 
@@ -236,7 +235,7 @@ jobs:
             docker compose exec -T api php bin/console lexik:jwt:generate-keypair --overwrite
           fi
           
-          echo "Migraet Test DB"
+          echo "Migrate Test DB"
           docker compose exec -T api bin/console doctrine:migrations:migrate --env=test
 
           echo "Load Fixtures"
