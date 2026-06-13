@@ -87,8 +87,8 @@ jobs:
         if: inputs.is_main_push
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: ${{ secrets.COVERAGE_GIST_ID }}
+          auth: ${{ env.GIST_TOKEN }}
+          gistID: ${{ env.COVERAGE_GIST_ID }}
           filename: frontend-coverage.json
           label: Frontend Coverage
           message: "${{ steps.frontend-pct.outputs.coverage }}%"
@@ -117,7 +117,7 @@ jobs:
           # prepare database container 
 
           cp api/.env.dist api/.env
-          echo "APP_SECRET=${{ secrets.APP_SECRET }}" >> api/.env
+          echo "APP_SECRET=${{ env.APP_SECRET }}" >> api/.env
           sed -i 's/^APP_ENV=.*/APP_ENV=test/' api/.env
 
           docker network inspect kaderblick-net >/dev/null 2>&1 || docker network create kaderblick-net
@@ -177,14 +177,14 @@ jobs:
             FLUSH PRIVILEGES;
           "
           
-          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
+          echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:test-${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag }}
           API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
 
           mkdir -p api/config/secrets/test
-          # echo "<?php return \"${{ secrets.DEV_DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
-          echo '${{ secrets.DEV_DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
+          # echo "<?php return \"${{ env.DEV_DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
+          echo '${{ env.DEV_DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
 
           echo "Decrypt secrets"
@@ -251,8 +251,8 @@ jobs:
         if: inputs.is_main_push
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: ${{ secrets.COVERAGE_GIST_ID }}
+          auth: ${{ env.GIST_TOKEN }}
+          gistID: ${{ env.COVERAGE_GIST_ID }}
           filename: backend-coverage.json
           label: Backend Coverage
           message: "${{ steps.phpunit-coverage.outputs.coverage }}%"

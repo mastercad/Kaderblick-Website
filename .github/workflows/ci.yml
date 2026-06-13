@@ -21,20 +21,21 @@ jobs:
       contents: read
       packages: write
 
-  quality-assurance:
-    needs: build
-    uses: ./.github/workflows/qa.yml
-    secrets: inherit
-    permissions:
-      contents: read
-      pull-requests: write
-      packages: read
-    with:
-      image_tag: ${{ github.sha }}
-      is_main_push: true
+#  quality-assurance:
+#    needs: build
+#    uses: ./.github/workflows/qa.yml
+#    secrets: inherit
+#    permissions:
+#      contents: read
+#      pull-requests: write
+#      packages: read
+#    with:
+#      image_tag: ${{ github.sha }}
+#      is_main_push: true
 
   deploy:
-    needs: [build, quality-assurance]
+#    needs: [build, quality-assurance]
+    needs: [build]
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
     permissions:

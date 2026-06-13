@@ -26,7 +26,6 @@ services:
       # (production_current/backups → $MAIN_PROJECT_PATH/backups etc.).
       - ./backups:/var/www/symfony/var/backups
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql://kaderblick:kaderblick@db:3306/kaderblick}
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
       HOST_UID: ${HOST_UID:-1001}
       HOST_GID: ${HOST_GID:-1001}
@@ -71,7 +70,6 @@ services:
       - ./api/config/secrets:/var/www/symfony/config/secrets
       - ${UPLOADS_DIR:-./public/uploads}:/var/www/symfony/public/uploads
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql://kaderblick:kaderblick@db:3306/kaderblick}
       XDEBUG_MODE: off
       HOST_UID: ${HOST_UID:-1001}
       HOST_GID: ${HOST_GID:-1001}
