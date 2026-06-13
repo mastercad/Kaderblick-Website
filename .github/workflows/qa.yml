@@ -214,7 +214,11 @@ jobs:
           echo '${{ env.DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
 
+          cat api/config/secrets/test/test.decrypt.private.php
+
           echo "Decrypt secrets"
+          docker compose exec -T api bin/console about --env=test
+          docker compose exec -T api bin/console secrets:list --env=test
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force
           echo "Decrypt secrets done"
 

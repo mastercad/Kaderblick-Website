@@ -16,6 +16,8 @@ services:
       - ./api/.env:/var/www/symfony/.env
       - ./api/.env.prod.local:/var/www/symfony/.env.prod.local
       - ./api/.env.staging.local:/var/www/symfony/.env.staging.local
+      - ./api/.env.test.local:/var/www/symfony/.env.test.local
+      - ./api/.env.demo.local:/var/www/symfony/.env.demo.local
       - ./api/config/jwt:/var/www/symfony/config/jwt
       - ./api/config/secrets:/var/www/symfony/config/secrets
       # UPLOADS_DIR: für dynamische Demo-Instanzen auf das instanz-spezifische Verzeichnis
