@@ -201,8 +201,8 @@ jobs:
           API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
 
           mkdir -p api/config/secrets/test
-          # echo "<?php return \"${{ env.DEV_DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
-          echo '${{ env.DEV_DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
+          # echo "<?php return \"${{ env.DECRYPT_KEY }}\"; ?>" > api/config/secrets/test/test.decrypt.private.php
+          echo '${{ env.DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
 
           echo "Decrypt secrets"
