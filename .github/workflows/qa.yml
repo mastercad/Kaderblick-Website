@@ -217,6 +217,7 @@ jobs:
           echo "Decrypt secrets"
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force
 
+          echo "Replace MAILER_DSN in decrypted secrets to avoid external SMTP calls during tests"
           # SMTP ist von GitHub Actions nicht erreichbar – MAILER_DSN nach dem Decrypt überschreiben.
           # secrets:decrypt-to-local schreibt in .env.test.local (höhere Priorität als .env).
           docker compose exec -T api sh -c \
@@ -224,14 +225,19 @@ jobs:
 
           mkdir -p "api/config/jwt"
 
+          echo "Debug output .env.test.local:"
           docker compose exec -T api sh -c 'cat /var/www/symfony/.env.test.local'
 
+          echo "Ensure JWT Keys"
           if [ ! -f api/config/jwt/private.pem ] || [ ! -f api/config/jwt/public.pem ]; then
+            echo "Generate JWT Keys"
             docker compose exec -T api php bin/console lexik:jwt:generate-keypair --overwrite
           fi
           
+          echo "Migraet Test DB"
           docker compose exec -T api bin/console doctrine:migrations:migrate --env=test
 
+          echo "Load Fixtures"
           docker compose exec -T api bin/console doctrine:fixtures:load -n --env=test --group=master --group=test
 
       - name: run PHP-CS-Fixer
