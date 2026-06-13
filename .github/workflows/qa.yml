@@ -124,6 +124,15 @@ jobs:
           env-slug:      global
           project-slug:  infrastructure-r-zu-j
 
+      - name: Fetch infrastructure secrets
+        uses: ./.github/actions/infisical-fetch
+        with:
+          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          domain:        ${{ secrets.INFISICAL_URL }}
+          env-slug:      prod
+          project-slug:  infrastructure-r-zu-j
+
       - name: Cache Composer vendors
         uses: actions/cache@v4
         with:
