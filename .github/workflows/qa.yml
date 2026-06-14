@@ -204,6 +204,12 @@ jobs:
             GRANT ALL PRIVILEGES ON kaderblick_test.* TO 'kaderblick'@'%';
             FLUSH PRIVILEGES;
           "
+
+          # prevent creating directories instead of files when running docker compose exec with mounted current host directory
+          touch ./api/.env.test.local
+          touch ./api/.env.demo.local
+          touch ./api/.env.staging.local
+          touch ./api/.env.prod.local
           
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:test-${{ inputs.image_tag }}
