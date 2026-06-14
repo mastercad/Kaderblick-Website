@@ -89,7 +89,7 @@ jobs:
             cd "${{ env.HETZNER_PROJECT_PATH }}/demo_current"
             docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
               exec -T --user www-data api \
-              bin/console doctrine:migrations:migrate --no-interaction --env=prod
+              bin/console doctrine:migrations:migrate --no-interaction --env=demo
             echo "Migrationen auf Demo abgeschlossen."
 
       - name: Load fixtures on demo
@@ -105,7 +105,7 @@ jobs:
             docker compose -f docker-compose.yml -f docker-compose.demo.yml -p demo \
               exec -T --user www-data api \
               bin/console doctrine:fixtures:load \
-              --env=prod --no-interaction --group=master --group=demo
+              --env=demo --no-interaction --group=master --group=demo
             echo "Fixtures auf Demo geladen."
 
       - name: Disable demo maintenance
