@@ -214,24 +214,15 @@ jobs:
           echo '${{ env.DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
 
-          cat api/config/secrets/test/test.decrypt.private.php
-
           echo "Decrypt secrets"
-          docker compose exec -T api bin/console about --env=test
-          docker compose exec -T api bin/console secrets:list --env=test
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force
           echo "Decrypt secrets done"
 
           echo "Replace MAILER_DSN in decrypted secrets to avoid external SMTP calls during tests"
-          # SMTP ist von GitHub Actions nicht erreichbar – MAILER_DSN nach dem Decrypt überschreiben.
-          # secrets:decrypt-to-local schreibt in .env.test.local (höhere Priorität als .env).
           docker compose exec -T api sh -c \
-            'sed -i "s|^MAILER_DSN=.*|MAILER_DSN=null://null|" /var/www/symfony/.env.test.local 2>/dev/null || true; echo "MAILER_DSN=null://null" >> /var/www/symfony/.env.test.local'
+            'ls -lisa /var/www/symfony && sed -i "s|^MAILER_DSN=.*|MAILER_DSN=null://null|" /var/www/symfony/.env.test.local 2>/dev/null || true; echo "MAILER_DSN=null://null" >> /var/www/symfony/.env.test.local'
 
           mkdir -p "api/config/jwt"
-
-          echo "Debug output .env.test.local:"
-          docker compose exec -T api sh -c 'cat /var/www/symfony/.env.test.local'
 
           echo "Ensure JWT Keys"
           if [ ! -f api/config/jwt/private.pem ] || [ ! -f api/config/jwt/public.pem ]; then
