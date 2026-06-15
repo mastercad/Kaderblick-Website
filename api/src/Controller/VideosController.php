@@ -114,7 +114,7 @@ class VideosController extends AbstractController
         if (null === $game) {
             return new JsonResponse(['error' => 'Spiel nicht gefunden'], 404);
         }
-        
+
         if (!$this->isGranted(VideoVoter::CREATE, $game)) {
             return new JsonResponse(['error' => 'Zugriff verweigert – nur Berechtigte können Videos verwalten.'], 403);
         }

@@ -39,18 +39,18 @@ class VideoTimelineService
         // keine Halbzeitpause. Deshalb muss für Ereignisse in der 2. Halbzeit (und später)
         // die Pausendauer von eventSeconds abgezogen werden, damit der berechnete
         // Video-Zeitpunkt stimmt.
-#        $firstHalfEndSeconds = $game->getFirstHalfTotalSeconds();
-#        $breakSeconds = $game->getHalftimeBreakDuration() * 60;
+        //        $firstHalfEndSeconds = $game->getFirstHalfTotalSeconds();
+        //        $breakSeconds = $game->getHalftimeBreakDuration() * 60;
 
         foreach ($gameEvents as $event) {
             // Event-Zeit relativ zum Spielstart (in Sekunden, Echtzeit)
-#            $eventSecondsRealTime = ($event->getTimestamp()->getTimestamp() - $startTimestamp);
+            //            $eventSecondsRealTime = ($event->getTimestamp()->getTimestamp() - $startTimestamp);
             $eventSeconds = ($event->getTimestamp()->getTimestamp() - $startTimestamp);
 
             // Korrektur um Halbzeitpause für Ereignisse nach der 1. Halbzeit
-#            $eventSeconds = $eventSecondsRealTime > $firstHalfEndSeconds
-#                ? $eventSecondsRealTime - $breakSeconds
-#                : $eventSecondsRealTime;
+            //            $eventSeconds = $eventSecondsRealTime > $firstHalfEndSeconds
+            //                ? $eventSecondsRealTime - $breakSeconds
+            //                : $eventSecondsRealTime;
 
             foreach ($videos as $cameraId => $currentVideos) {
                 // Verfolge die akkumulierte Spielzeit über alle Videos dieser Kamera
