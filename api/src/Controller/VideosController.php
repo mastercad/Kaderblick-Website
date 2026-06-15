@@ -20,7 +20,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_USER')]
@@ -115,11 +114,9 @@ class VideosController extends AbstractController
         if (null === $game) {
             return new JsonResponse(['error' => 'Spiel nicht gefunden'], 404);
         }
-
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Videos anlegen/bearbeiten
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos anlegen/bearbeiten
+        
         if (!$this->isGranted(VideoVoter::CREATE, $game)) {
-            return new JsonResponse(['error' => 'Zugriff verweigert – nur Teammitglieder können Videos verwalten.'], 403);
+            return new JsonResponse(['error' => 'Zugriff verweigert – nur Berechtigte können Videos verwalten.'], 403);
         }
 
         /** @var User $user */
@@ -154,7 +151,7 @@ class VideosController extends AbstractController
 
         if ($videoId) {
             $video = $videoRepository->find($videoId);
-            if (!$video) {
+            if (!$video instanceof Video) {
                 return new JsonResponse(['error' => 'Video nicht gefunden'], 404);
             }
         } else {
@@ -211,20 +208,16 @@ class VideosController extends AbstractController
     #[Route('/videos/delete/{id}', name: 'videos_delete', methods: ['DELETE'])]
     public function delete(
         int $id,
-        Request $request,
         VideoRepository $videoRepository,
-        EntityManagerInterface $em,
-        CsrfTokenManagerInterface $csrfTokenManager
+        EntityManagerInterface $em
     ): JsonResponse {
         $video = $videoRepository->find($id);
-        if (!$video) {
+        if (!$video instanceof Video) {
             return new JsonResponse(['error' => 'Video nicht gefunden'], 404);
         }
 
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Videos löschen
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER dürfen Videos löschen
         if (!$this->isGranted(VideoVoter::DELETE, $video)) {
-            return new JsonResponse(['error' => 'Zugriff verweigert – nur Teammitglieder können Videos löschen.'], 403);
+            return new JsonResponse(['error' => 'Zugriff verweigert – nur Berechtigte können Videos löschen.'], 403);
         }
 
         $em->remove($video);

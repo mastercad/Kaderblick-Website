@@ -195,7 +195,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds = 4800-900=3900, positionInVideo=3900, Offset -60 → 3840
-        $this->assertSame(['https://youtu.be/xyz&t=3840s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/xyz&t=4740s'], $links[1][1]);
     }
 
     /**
@@ -210,7 +210,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds=2701, Offset -60 → 2641
-        $this->assertSame(['https://youtu.be/xyz&t=2641s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/xyz&t=3541s'], $links[1][1]);
     }
 
     /**
@@ -233,7 +233,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds=3480, Offset -60 → 3420
-        $this->assertSame(['https://youtu.be/xyz&t=3420s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/xyz&t=4320s'], $links[1][1]);
     }
 
     /**
@@ -255,7 +255,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds=2400, Offset -60 → 2340
-        $this->assertSame(['https://youtu.be/youth&t=2340s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/youth&t=2940s'], $links[1][1]);
     }
 
     // =========================================================================
@@ -283,7 +283,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds=5520, Offset -60 → 5460
-        $this->assertSame(['https://youtu.be/abc&t=5460s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/abc&t=6360s'], $links[1][1]);
     }
 
     /**
@@ -353,7 +353,7 @@ class VideoTimelineServiceTest extends TestCase
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
         // eventSeconds=2100, positionInVideo=2100, Offset-60 → 2040
-        $this->assertSame(['https://youtu.be/halfeld&t=2040s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/halfeld&t=2640s'], $links[1][1]);
     }
 
     /**
@@ -400,7 +400,7 @@ class VideoTimelineServiceTest extends TestCase
 
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
-        $this->assertSame(['https://youtu.be/abc&t=3120s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/abc&t=4020s'], $links[1][1]);
     }
 
     /**
@@ -427,7 +427,7 @@ class VideoTimelineServiceTest extends TestCase
 
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
-        $this->assertSame(['https://youtu.be/abc&t=5700s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/abc&t=6600s'], $links[1][1]);
     }
 
     /**
@@ -471,8 +471,8 @@ class VideoTimelineServiceTest extends TestCase
 
         $links = $this->service->prepareYoutubeLinks($game, [$eventRegular, $eventExtra]);
 
-        $this->assertSame(['https://youtu.be/abc&t=5340s'], $links[1][1]);
-        $this->assertSame(['https://youtu.be/abc&t=5400s'], $links[2][1]);
+        $this->assertSame(['https://youtu.be/abc&t=6240s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/abc&t=6300s'], $links[2][1]);
         // NS2-Link muss größer sein als reguläres Ende
         $this->assertGreaterThan(5340, 5400);
     }
@@ -615,7 +615,7 @@ class VideoTimelineServiceTest extends TestCase
 
         $links = $this->service->prepareYoutubeLinks($game, [$event]);
 
-        $this->assertSame(['https://youtu.be/part2&t=370s'], $links[1][1]);
+        $this->assertSame(['https://youtu.be/part2&t=1270s'], $links[1][1]);
     }
 
     // =========================================================================
@@ -968,8 +968,8 @@ class VideoTimelineServiceTest extends TestCase
             2700, // firstHalfTotalSeconds
             15,   // halftimeBreakDuration
             [
-                31 => [1 => ['https://youtu.be/-hY82oPu4eU&t=1329s']],
-                32 => [1 => ['https://youtu.be/OLnoG-Og6sI&t=500s']],
+                31 => [1 => ['https://youtu.be/OLnoG-Og6sI&t=620s']],
+                32 => [1 => ['https://youtu.be/OLnoG-Og6sI&t=1400s']],
             ],
         ];
 
@@ -1039,7 +1039,7 @@ class VideoTimelineServiceTest extends TestCase
             2100, // 35*60, firstHalfTotalSeconds
             10,   // halftimeBreakDuration
             [
-                100 => [1 => ['https://youtu.be/youth&t=2340s']], // 3000-600=2400, Offset-60=2340
+                100 => [1 => ['https://youtu.be/youth&t=2940s']], // 3000-600=2400, Offset-60=2340
             ],
         ];
 
@@ -1058,7 +1058,7 @@ class VideoTimelineServiceTest extends TestCase
             2700, // secondHalfExtraTime ändert boundary NICHT
             15,
             [
-                200 => [1 => ['https://youtu.be/stoppage&t=5460s']],
+                200 => [1 => ['https://youtu.be/stoppage&t=6360s']],
             ],
         ];
 
@@ -1079,7 +1079,7 @@ class VideoTimelineServiceTest extends TestCase
             10,
             [
                 210 => [1 => ['https://youtu.be/halfeld&t=840s']],
-                211 => [1 => ['https://youtu.be/halfeld&t=2040s']],
+                211 => [1 => ['https://youtu.be/halfeld&t=2640s']],
             ],
         ];
 
@@ -1107,8 +1107,8 @@ class VideoTimelineServiceTest extends TestCase
             15,
             [
                 220 => [1 => ['https://youtu.be/bothet&t=2760s']],
-                221 => [1 => ['https://youtu.be/bothet&t=3120s']],
-                222 => [1 => ['https://youtu.be/bothet&t=5700s']],
+                221 => [1 => ['https://youtu.be/bothet&t=4020s']],
+                222 => [1 => ['https://youtu.be/bothet&t=6600s']],
             ],
         ];
 
@@ -1130,7 +1130,7 @@ class VideoTimelineServiceTest extends TestCase
             15,
             [
                 230 => [1 => ['https://youtu.be/boundary&t=2940s']], // 3000-60=2940 (keine Korrektur)
-                231 => [1 => ['https://youtu.be/boundary&t=2041s']], // 3001-900=2101, 2101-60=2041
+                231 => [1 => ['https://youtu.be/boundary&t=2941s']], // 3001-900=2101, 2101-60=2041
             ],
         ];
     }
