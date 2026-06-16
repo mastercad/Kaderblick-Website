@@ -214,6 +214,11 @@ jobs:
             docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
             docker pull ghcr.io/mastercad/kaderblick/frontend-demo:${{ inputs.image_tag }}
 
+            touch "$RELEASE_DIR/api/.env.test.local"
+            touch "$RELEASE_DIR/api/.env.demo.local"
+            touch "$RELEASE_DIR/api/.env.staging.local"
+            touch "$RELEASE_DIR/api/.env.prod.local"
+
             docker compose -f docker-compose.yml -f docker-compose.demo.yml \
               -p ${{ env.COMPOSE_PROJECT }} \
               up -d --no-build --force-recreate api frontend worker
