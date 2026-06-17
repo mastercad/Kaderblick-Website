@@ -147,7 +147,7 @@ describe('trainerMenuItems', () => {
 // ── navItemIconMap ────────────────────────────────────────────────────────────
 
 describe('navItemIconMap', () => {
-  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'spielbetrieb', 'team', 'wissenspool', 'community', 'quick-event-konfigurationen', 'hall-of-fame'];
+  const expectedKeys = ['home', 'dashboard', 'my-team', 'mein-verein', 'calendar', 'games', 'reports', 'news', 'surveys', 'mein-feedback', 'tasks', 'mein-spieltag', 'spielbetrieb', 'team', 'wissenspool', 'community', 'quick-event-konfigurationen', 'hall-of-fame', 'kassenbuch', 'mein-deckel', 'strafenkatalog'];
 
   it('defines an icon for every nav key', () => {
     expectedKeys.forEach(key => {

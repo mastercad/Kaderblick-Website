@@ -64,6 +64,8 @@ class XPConcurrencyIntegrationTest extends KernelTestCase
 
     private function buildRegisterWorkerCommand(int $userId, string $actionType, int $actionId): string
     {
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? '';
+
         $workerScript = <<<'PHP'
 require __DIR__ . '/vendor/autoload.php';
 $kernel = new \App\Kernel('test', true);
@@ -84,7 +86,8 @@ $kernel->shutdown();
 PHP;
 
         return sprintf(
-            'APP_ENV=test XP_USER_ID=%d XP_ACTION_TYPE=%s XP_ACTION_ID=%d php -r %s',
+            'APP_ENV=test DATABASE_URL=%s XP_USER_ID=%d XP_ACTION_TYPE=%s XP_ACTION_ID=%d php -r %s',
+            escapeshellarg($databaseUrl),
             $userId,
             escapeshellarg($actionType),
             $actionId,

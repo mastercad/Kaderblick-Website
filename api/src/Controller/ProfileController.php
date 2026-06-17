@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\FunctionaryClubAssignment;
+use App\Entity\FunctionaryTeamAssignment;
 use App\Entity\RegistrationRequest;
 use App\Entity\User;
 use App\Event\ProfileCompletenessReachedEvent;
@@ -49,6 +51,22 @@ class ProfileController extends AbstractController
         $isPlayer = count($this->coachTeamPlayerService->collectPlayerTeams($user)) > 0;
         $isCoach = count($this->coachTeamPlayerService->collectCoachTeams($user)) > 0;
 
+        $isKassenwart = false;
+        foreach ($this->entityManager->getRepository(FunctionaryTeamAssignment::class)->findBy(['user' => $user]) as $a) {
+            if ('Kassenwart' === $a->getFunctionaryTeamAssignmentType()?->getName()) {
+                $isKassenwart = true;
+                break;
+            }
+        }
+        if (!$isKassenwart) {
+            foreach ($this->entityManager->getRepository(FunctionaryClubAssignment::class)->findBy(['user' => $user]) as $a) {
+                if ('Kassenwart' === $a->getFunctionaryClubAssignmentType()?->getName()) {
+                    $isKassenwart = true;
+                    break;
+                }
+            }
+        }
+
         $hasUserRelations = $user->getUserRelations()->count() > 0;
         $hasRegistrationRequests = $this->entityManager->getRepository(RegistrationRequest::class)
             ->count(['user' => $user]) > 0;
@@ -78,6 +96,7 @@ class ProfileController extends AbstractController
             'roles' => $user->getRoles(),
             'isCoach' => $isCoach,
             'isPlayer' => $isPlayer,
+            'isKassenwart' => $isKassenwart,
             'avatarFile' => $user->getAvatarFilename(),
             'googleAvatarUrl' => $user->getGoogleAvatarUrl(),
             'useGoogleAvatar' => $user->isUseGoogleAvatar(),

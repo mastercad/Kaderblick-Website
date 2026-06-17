@@ -8,6 +8,13 @@ use ReflectionClass;
 
 class FussballDeCrawlerServiceTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        if (!isset($_ENV['FUSSBALLDE_BASE_URL'])) {
+            $_ENV['FUSSBALLDE_BASE_URL'] = 'https://www.fussball.de';
+        }
+    }
+
     public function testParseUpcomingGamesHtmlParsesGamesCorrectly(): void
     {
         $html = file_get_contents(__DIR__ . '/fixtures/fussballde_club_matchplan.html');

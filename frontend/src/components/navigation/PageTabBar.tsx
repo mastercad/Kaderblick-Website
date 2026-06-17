@@ -2,13 +2,14 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { findNavGroupForPathname, isNavItemActive } from './navigationConfig';
+import { useNavConfig, isNavItemActive } from './navigationConfig';
 
 export function PageTabBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { navigationGroups } = useNavConfig();
 
-  const group = findNavGroupForPathname(pathname);
+  const group = navigationGroups.find(g => g.children.some(c => isNavItemActive(pathname, c.key)));
   if (!group) return null;
 
   const activeIndex = group.children.findIndex(c => isNavItemActive(pathname, c.key));

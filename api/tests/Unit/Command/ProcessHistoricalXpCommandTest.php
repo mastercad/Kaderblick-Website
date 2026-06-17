@@ -5,22 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Command;
 
 use App\Command\ProcessHistoricalXpCommand;
-use App\Entity\CalendarEvent;
-use App\Entity\CalendarEventType;
-use App\Entity\GameEvent;
-use App\Entity\Participation;
-use App\Entity\ParticipationStatus;
-use App\Entity\Player;
-use App\Entity\RelationType;
-use App\Entity\User;
-use App\Entity\UserLevel;
-use App\Entity\UserRelation;
-use App\Entity\UserXpEvent;
-use App\Service\XPService;
+use App\Entity\XpRule;
+use App\Repository\XpRuleRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use Doctrine\ORM\Query;
-use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -36,714 +24,773 @@ use Symfony\Component\Console\Tester\CommandTester;
 class ProcessHistoricalXpCommandTest extends TestCase
 {
     private EntityManagerInterface&MockObject $entityManager;
-    private XPService&MockObject $xpService;
-    /** @phpstan-var EntityRepository<Participation>&MockObject */
-    private EntityRepository&MockObject $participationRepository;
-    /** @phpstan-var EntityRepository<UserXpEvent>&MockObject */
-    private EntityRepository&MockObject $xpEventRepository;
-    /** @phpstan-var EntityRepository<GameEvent>&MockObject */
-    private EntityRepository&MockObject $gameEventRepository;
-    /** @phpstan-var EntityRepository<User>&MockObject */
-    private EntityRepository&MockObject $userRepository;
-    /** @phpstan-var EntityRepository<UserLevel>&MockObject */
-    private EntityRepository&MockObject $userLevelRepository;
-    private CommandTester $commandTester;
+    private XpRuleRepository&MockObject $xpRuleRepository;
+    private Connection&MockObject $connection;
+
+    /** @var list<array{sql: string, params: array<string, mixed>}> */
+    private array $executedStatements = [];
+
+    /** @var array<string, list<array<string, mixed>>> */
+    private array $fetchResults = [];
+
+    private function buildCommandTester(): CommandTester
+    {
+        $command = new ProcessHistoricalXpCommand(
+            $this->entityManager,
+            $this->xpRuleRepository,
+        );
+
+        return new CommandTester($command);
+    }
 
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->xpService = $this->createMock(XPService::class);
-        $this->participationRepository = $this->createMock(EntityRepository::class);
-        $this->xpEventRepository = $this->createMock(EntityRepository::class);
-        $this->gameEventRepository = $this->createMock(EntityRepository::class);
-        $this->userRepository = $this->createMock(EntityRepository::class);
-        $this->userLevelRepository = $this->createMock(EntityRepository::class);
+        $this->xpRuleRepository = $this->createMock(XpRuleRepository::class);
+        $this->connection = $this->createMock(Connection::class);
 
-        // By default: no existing XP events (XP not yet awarded) — configured per-test where needed
-        // Route getRepository() calls
-        $this->entityManager->method('getRepository')
-            ->willReturnCallback(function (string $class): EntityRepository {
-                return match ($class) {
-                    Participation::class => $this->participationRepository,
-                    UserXpEvent::class => $this->xpEventRepository,
-                    GameEvent::class => $this->gameEventRepository,
-                    User::class => $this->userRepository,
-                    UserLevel::class => $this->userLevelRepository,
-                    default => $this->createMock(EntityRepository::class),
-                };
-            });
-
-        $command = new ProcessHistoricalXpCommand($this->entityManager, $this->xpService);
-        $this->commandTester = new CommandTester($command);
+        $this->entityManager->method('getConnection')->willReturn($this->connection);
+        $this->executedStatements = [];
+        $this->fetchResults = [];
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * @param Participation[] $participations
-     */
-    private function mockParticipationQuery(array $participations): void
+    private function makeXpRule(string $actionType, int $xpValue): XpRule
     {
-        $query = $this->createMock(Query::class);
-        $query->method('getResult')->willReturn($participations);
+        $rule = $this->createMock(XpRule::class);
+        $rule->method('getActionType')->willReturn($actionType);
+        $rule->method('getXpValue')->willReturn($xpValue);
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('innerJoin')->willReturnSelf();
-        $qb->method('leftJoin')->willReturnSelf();
-        $qb->method('where')->willReturnSelf();
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
-
-        $this->participationRepository->method('createQueryBuilder')->willReturn($qb);
+        return $rule;
     }
 
-    /**
-     * @param GameEvent[] $gameEvents
-     */
-    private function mockGameEventQuery(array $gameEvents): void
+    /** @param list<XpRule> $rules */
+    private function setupRules(array $rules): void
     {
-        $query = $this->createMock(Query::class);
-        $query->method('getResult')->willReturn($gameEvents);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('innerJoin')->willReturnSelf();
-        $qb->method('leftJoin')->willReturnSelf();
-        $qb->method('where')->willReturnSelf();
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
-
-        $this->gameEventRepository->method('createQueryBuilder')->willReturn($qb);
+        $this->xpRuleRepository->method('findBy')->willReturn($rules);
     }
 
-    /**
-     * @param User[] $users
-     */
-    private function mockUserQuery(array $users): void
+    private function setupFetch(): void
     {
-        $query = $this->createMock(Query::class);
-        $query->method('getResult')->willReturn($users);
+        $this->connection->method('fetchAllAssociative')
+            ->willReturnCallback(function (string $sql, array $params = []): array {
+                if (str_contains($sql, 'CONCAT(user_id')) {
+                    return $this->fetchResults['dedup'] ?? [];
+                }
+                if (str_contains($sql, 'game_events') && str_contains($sql, 'goal')) {
+                    return $this->fetchResults['goals'] ?? [];
+                }
+                if (str_contains($sql, 'game_events') && str_contains($sql, 'assist')) {
+                    return $this->fetchResults['assists'] ?? [];
+                }
+                if (str_contains($sql, 'game_events')) {
+                    return $this->fetchResults['game_events'] ?? [];
+                }
+                if (str_contains($sql, 'participations')) {
+                    return $this->fetchResults['participations'] ?? [];
+                }
+                if (str_contains($sql, 'is_enabled')) {
+                    return $this->fetchResults['profiles'] ?? [];
+                }
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('where')->willReturnSelf();
-        $qb->method('andWhere')->willReturnSelf();
-        $qb->method('setParameter')->willReturnSelf();
-        $qb->method('getQuery')->willReturn($query);
-
-        $this->userRepository->method('createQueryBuilder')->willReturn($qb);
+                return [];
+            });
     }
 
-    private function makeParticipation(
-        int $id,
-        User $user,
-        CalendarEvent $calendarEvent,
-        string $statusCode,
-    ): Participation {
-        $status = $this->createMock(ParticipationStatus::class);
-        $status->method('getCode')->willReturn($statusCode);
+    private function trackStatements(): void
+    {
+        $this->connection->method('executeStatement')
+            ->willReturnCallback(function (string $sql, array $params = []): int {
+                $this->executedStatements[] = ['sql' => $sql, 'params' => $params];
 
-        $participation = $this->createMock(Participation::class);
-        $participation->method('getId')->willReturn($id);
-        $participation->method('getUser')->willReturn($user);
-        $participation->method('getEvent')->willReturn($calendarEvent);
-        $participation->method('getStatus')->willReturn($status);
-
-        return $participation;
+                return 1;
+            });
     }
 
-    private function makeCalendarEvent(int $id, ?string $typeName): CalendarEvent
-    {
-        $calendarEvent = $this->createMock(CalendarEvent::class);
-        $calendarEvent->method('getId')->willReturn($id);
+    // ── Basic execution ──────────────────────────────────────────────────────
 
-        if (null !== $typeName) {
-            $eventType = $this->createMock(CalendarEventType::class);
-            $eventType->method('getName')->willReturn($typeName);
-            $calendarEvent->method('getCalendarEventType')->willReturn($eventType);
-        } else {
-            $calendarEvent->method('getCalendarEventType')->willReturn(null);
+    public function testReturnsSuccessWithNoRules(): void
+    {
+        $this->setupRules([]);
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+    }
+
+    public function testReturnsSuccessWithNoData(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = ['dedup' => [], 'goals' => [], 'assists' => []];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 goals', $tester->getDisplay());
+    }
+
+    // ── Deduplication ────────────────────────────────────────────────────────
+
+    public function testSkipsAlreadyProcessedEvents(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [['k' => '1:goal_scored:100']],
+            'goals' => [['game_event_id' => 100, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 goals', $tester->getDisplay());
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertEmpty($inserts);
+    }
+
+    public function testProcessesNewEventsNotInDedupSet(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [['k' => '1:goal_scored:99']],
+            'goals' => [['game_event_id' => 100, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 1 goals, awarded 50 XP', $tester->getDisplay());
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertNotEmpty($inserts);
+    }
+
+    public function testInlineDedupPreventsDuplicatesDuringRun(): void
+    {
+        $this->setupRules([$this->makeXpRule('game_event', 15)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'game_events' => [
+                ['game_event_id' => 10, 'user_id' => 1],
+                ['game_event_id' => 10, 'user_id' => 1],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'game_events']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 1 game events, awarded 15 XP', $tester->getDisplay());
+    }
+
+    // ── Dry-run mode ─────────────────────────────────────────────────────────
+
+    public function testDryRunDoesNotInsertAnything(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [
+                ['game_event_id' => 1, 'user_id' => 1],
+                ['game_event_id' => 2, 'user_id' => 1],
+            ],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+
+        $this->connection->expects($this->never())->method('executeStatement');
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals', '--dry-run' => true]);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('DRY-RUN', $output);
+        $this->assertStringContainsString('Processed 2 goals, awarded 100 XP', $output);
+    }
+
+    public function testDryRunReportsCorrectXpValues(): void
+    {
+        $this->setupRules([$this->makeXpRule('game_event', 15)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'game_events' => [['game_event_id' => 10, 'user_id' => 5]],
+        ];
+        $this->setupFetch();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'game_events', '--dry-run' => true]);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('15 XP', $tester->getDisplay());
+    }
+
+    // ── Goal processing ──────────────────────────────────────────────────────
+
+    public function testGoalsBatchInsertMultipleEvents(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [
+                ['game_event_id' => 1, 'user_id' => 1],
+                ['game_event_id' => 2, 'user_id' => 1],
+                ['game_event_id' => 3, 'user_id' => 2],
+            ],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 3 goals, awarded 150 XP', $tester->getDisplay());
+
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertNotEmpty($inserts);
+
+        $levelUpdates = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'user_levels'));
+        $this->assertNotEmpty($levelUpdates);
+    }
+
+    // ── Assist processing ────────────────────────────────────────────────────
+
+    public function testAssistsAreProcessedSeparately(): void
+    {
+        $this->setupRules([
+            $this->makeXpRule('goal_scored', 50),
+            $this->makeXpRule('goal_assisted', 30),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [['game_event_id' => 1, 'user_id' => 1]],
+            'assists' => [['game_event_id' => 2, 'user_id' => 1]],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('Processed 1 goals, awarded 50 XP', $output);
+        $this->assertStringContainsString('Processed 1 assists, awarded 30 XP', $output);
+    }
+
+    // ── Game events ──────────────────────────────────────────────────────────
+
+    public function testGameEventsAwardCorrectXp(): void
+    {
+        $this->setupRules([$this->makeXpRule('game_event', 15)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'game_events' => [
+                ['game_event_id' => 10, 'user_id' => 3],
+                ['game_event_id' => 11, 'user_id' => 3],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'game_events']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 2 game events, awarded 30 XP', $tester->getDisplay());
+    }
+
+    // ── Calendar events ──────────────────────────────────────────────────────
+
+    /** @return array<string, array{string, string, string}> */
+    public static function calendarEventMappingProvider(): array
+    {
+        return [
+            'Training attending → training_attended' => ['attending', 'Training', 'training_attended'],
+            'Spiel attending → match_attended' => ['attending', 'Spiel', 'match_attended'],
+            'Turnier-Match attending → match_attended' => ['attending', 'Turnier-Match', 'match_attended'],
+            'Other attending → calendar_event' => ['attending', 'Vereinsfest', 'calendar_event'],
+            'not_attending → participation_response' => ['not_attending', 'Training', 'participation_response'],
+            'maybe → participation_response' => ['maybe', 'Training', 'participation_response'],
+            'late → participation_response' => ['late', 'Spiel', 'participation_response'],
+        ];
+    }
+
+    #[DataProvider('calendarEventMappingProvider')]
+    public function testCalendarEventActionTypeMapping(string $statusCode, string $eventTypeName, string $expectedAction): void
+    {
+        $this->setupRules([
+            $this->makeXpRule('training_attended', 20),
+            $this->makeXpRule('match_attended', 25),
+            $this->makeXpRule('calendar_event', 10),
+            $this->makeXpRule('participation_response', 5),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'participations' => [
+                [
+                    'participation_id' => 1,
+                    'user_id' => 1,
+                    'event_id' => 100,
+                    'status_code' => $statusCode,
+                    'event_type_name' => $eventTypeName,
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'calendar_events']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 1 calendar event participations', $tester->getDisplay());
+
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertNotEmpty($inserts, 'Expected at least one INSERT statement');
+        $insertStmt = array_values($inserts)[0];
+        $this->assertSame($expectedAction, $insertStmt['params']['at0']);
+    }
+
+    public function testCalendarEventUnknownStatusIsSkipped(): void
+    {
+        $this->setupRules([$this->makeXpRule('training_attended', 20)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'participations' => [
+                [
+                    'participation_id' => 1,
+                    'user_id' => 1,
+                    'event_id' => 100,
+                    'status_code' => 'unknown_status',
+                    'event_type_name' => 'Training',
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'calendar_events']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 calendar event', $tester->getDisplay());
+    }
+
+    public function testCalendarEventWithZeroXpRuleIsSkipped(): void
+    {
+        $this->setupRules([]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'participations' => [
+                [
+                    'participation_id' => 1,
+                    'user_id' => 1,
+                    'event_id' => 100,
+                    'status_code' => 'attending',
+                    'event_type_name' => 'Training',
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'calendar_events']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 calendar event', $tester->getDisplay());
+    }
+
+    // ── Profile completeness ─────────────────────────────────────────────────
+
+    public function testProfileFullCompletenessAwardsAllMilestones(): void
+    {
+        $this->setupRules([
+            $this->makeXpRule('profile_completion_25', 10),
+            $this->makeXpRule('profile_completion_50', 20),
+            $this->makeXpRule('profile_completion_75', 30),
+            $this->makeXpRule('profile_completion_100', 50),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'profiles' => [
+                [
+                    'id' => 1,
+                    'first_name' => 'Max',
+                    'last_name' => 'Mustermann',
+                    'email' => 'max@example.com',
+                    'avatar_filename' => 'avatar.jpg',
+                    'height' => 180,
+                    'weight' => 75,
+                    'shoe_size' => 42,
+                    'shirt_size' => 'M',
+                    'pants_size' => '32',
+                    'relation_count' => 1,
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'profiles']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 4 user profiles, awarded 110 XP', $tester->getDisplay());
+    }
+
+    public function testProfilePartialCompletenessAwardsOnlyReachedMilestones(): void
+    {
+        $this->setupRules([
+            $this->makeXpRule('profile_completion_25', 10),
+            $this->makeXpRule('profile_completion_50', 20),
+            $this->makeXpRule('profile_completion_75', 30),
+            $this->makeXpRule('profile_completion_100', 50),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'profiles' => [
+                [
+                    'id' => 2,
+                    'first_name' => 'Anna',
+                    'last_name' => 'Test',
+                    'email' => 'anna@example.com',
+                    'avatar_filename' => null,
+                    'height' => null,
+                    'weight' => null,
+                    'shoe_size' => null,
+                    'shirt_size' => null,
+                    'pants_size' => null,
+                    'relation_count' => 0,
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'profiles']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        // 3/10 fields set = 30% → milestones 25 reached
+        $this->assertStringContainsString('Processed 1 user profiles, awarded 10 XP', $tester->getDisplay());
+    }
+
+    public function testProfileAlreadyAwardedMilestonesAreSkipped(): void
+    {
+        $this->setupRules([
+            $this->makeXpRule('profile_completion_25', 10),
+            $this->makeXpRule('profile_completion_50', 20),
+            $this->makeXpRule('profile_completion_75', 30),
+            $this->makeXpRule('profile_completion_100', 50),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [
+                ['k' => '1:profile_completion_25:1'],
+                ['k' => '1:profile_completion_50:1'],
+                ['k' => '1:profile_completion_75:1'],
+                ['k' => '1:profile_completion_100:1'],
+            ],
+            'profiles' => [
+                [
+                    'id' => 1,
+                    'first_name' => 'Max',
+                    'last_name' => 'Mustermann',
+                    'email' => 'max@example.com',
+                    'avatar_filename' => 'a.jpg',
+                    'height' => 180,
+                    'weight' => 75,
+                    'shoe_size' => 42,
+                    'shirt_size' => 'M',
+                    'pants_size' => '32',
+                    'relation_count' => 1,
+                ],
+            ],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'profiles']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 user profiles', $tester->getDisplay());
+    }
+
+    // ── Force mode ───────────────────────────────────────────────────────────
+
+    public function testForceModeClearsExistingXpDataBeforeProcessing(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'goals' => [['game_event_id' => 1, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals', '--force' => true]);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Force mode', $tester->getDisplay());
+
+        $deleteStatements = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'DELETE FROM user_xp_events'));
+        $resetStatements = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'UPDATE user_levels SET xp_total = 0'));
+        $this->assertNotEmpty($deleteStatements);
+        $this->assertNotEmpty($resetStatements);
+    }
+
+    public function testForceModeSkipsDedupLoading(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+
+        $fetchCalls = [];
+        $this->connection->method('fetchAllAssociative')
+            ->willReturnCallback(function (string $sql) use (&$fetchCalls): array {
+                $fetchCalls[] = $sql;
+                if (str_contains($sql, 'game_events') && str_contains($sql, 'goal')) {
+                    return [['game_event_id' => 1, 'user_id' => 1]];
+                }
+
+                return [];
+            });
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals', '--force' => true]);
+
+        $dedupQueries = array_filter($fetchCalls, fn ($sql) => str_contains($sql, 'CONCAT(user_id'));
+        $this->assertEmpty($dedupQueries);
+    }
+
+    // ── User ID filtering ────────────────────────────────────────────────────
+
+    public function testUserIdFilterIsPassedToQueries(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+
+        $capturedParams = [];
+        $this->connection->method('fetchAllAssociative')
+            ->willReturnCallback(function (string $sql, array $params) use (&$capturedParams): array {
+                $capturedParams[] = $params;
+
+                return [];
+            });
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals', '--user-id' => '42']);
+
+        $hasUserFilter = false;
+        foreach ($capturedParams as $p) {
+            if (isset($p['userId']) && 42 === $p['userId']) {
+                $hasUserFilter = true;
+                break;
+            }
         }
-
-        return $calendarEvent;
+        $this->assertTrue($hasUserFilter, 'Expected user-id filter to be applied to queries');
     }
 
-    private function makeUser(int $id = 1): User
+    // ── Batch size ───────────────────────────────────────────────────────────
+
+    public function testBatchSizeControlsFlushFrequency(): void
     {
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn($id);
-        $user->method('getEmail')->willReturn("user{$id}@example.com");
-
-        return $user;
-    }
-
-    /**
-     * Build a GameEvent mock linked to a User via a self_player relation.
-     */
-    private function makeGameEventWithUser(int $gameEventId, User $user): GameEvent
-    {
-        $relationType = $this->createMock(RelationType::class);
-        $relationType->method('getIdentifier')->willReturn('self_player');
-
-        $userRelation = $this->createMock(UserRelation::class);
-        $userRelation->method('getRelationType')->willReturn($relationType);
-        $userRelation->method('getUser')->willReturn($user);
-
-        $player = $this->createMock(Player::class);
-        $player->method('getUserRelations')->willReturn(new \Doctrine\Common\Collections\ArrayCollection([$userRelation]));
-
-        $gameEvent = $this->createMock(GameEvent::class);
-        $gameEvent->method('getId')->willReturn($gameEventId);
-        $gameEvent->method('getPlayer')->willReturn($player);
-
-        return $gameEvent;
-    }
-
-    /**
-     * Build a User mock with all profile fields set for calculateProfileCompleteness().
-     */
-    private function makeUserWithProfile(int $id): User
-    {
-        $userRelations = $this->createMock(\Doctrine\Common\Collections\Collection::class);
-        $userRelations->method('count')->willReturn(1);
-
-        $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn($id);
-        $user->method('getEmail')->willReturn("user{$id}@example.com");
-        $user->method('getFirstName')->willReturn('Max');
-        $user->method('getLastName')->willReturn('Mustermann');
-        $user->method('getAvatarFilename')->willReturn('avatar.jpg');
-        $user->method('getHeight')->willReturn(180.0);
-        $user->method('getWeight')->willReturn(75.0);
-        $user->method('getShoeSize')->willReturn(42.0);
-        $user->method('getShirtSize')->willReturn('M');
-        $user->method('getPantsSize')->willReturn('32');
-        $user->method('getUserRelations')->willReturn($userRelations);
-        $user->method('getUserLevel')->willReturn(null); // triggers new UserLevel creation
-
-        return $user;
-    }
-
-    // ── Status-to-ActionType mapping ──────────────────────────────────────────
-
-    /** @return array<string, array{string, string}> */
-    public static function nonAttendingStatusProvider(): array
-    {
-        return [
-            'not_attending → participation_response' => ['not_attending', 'participation_response'],
-            'maybe → participation_response' => ['maybe',        'participation_response'],
-            'late → participation_response' => ['late',         'participation_response'],
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [
+                ['game_event_id' => 1, 'user_id' => 1],
+                ['game_event_id' => 2, 'user_id' => 1],
+                ['game_event_id' => 3, 'user_id' => 1],
+                ['game_event_id' => 4, 'user_id' => 1],
+                ['game_event_id' => 5, 'user_id' => 1],
+            ],
+            'assists' => [],
         ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals', '--batch-size' => '2']);
+
+        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+        // 5 events, batch size 2: flush at [2], [4], final [5] = 3 INSERT batches
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertCount(3, $inserts);
     }
 
-    #[DataProvider('nonAttendingStatusProvider')]
-    public function testNonAttendingStatusMapsToParticipationResponseActionType(
-        string $statusCode,
-        string $expectedActionType,
-    ): void {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(100, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, $statusCode);
+    // ── Level recalculation ──────────────────────────────────────────────────
 
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(5);
-
-        $this->xpService->expects($this->once())
-            ->method('addXPToUser')
-            ->with($user, 5);
-
-        $capturedActionType = null;
-        $this->xpEventRepository->method('findOneBy')
-            ->willReturnCallback(function (array $criteria) use (&$capturedActionType): ?UserXpEvent {
-                $capturedActionType = $criteria['actionType'];
-
-                return null;
-            });
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame($expectedActionType, $capturedActionType);
-        $this->assertSame(Command::SUCCESS, $this->commandTester->getStatusCode());
-    }
-
-    /** @return array<string, array{string, string}> */
-    public static function attendingEventTypeProvider(): array
+    public function testLevelRecalculationRunsAfterProcessing(): void
     {
-        return [
-            'Training → training_attended' => ['Training',      'training_attended'],
-            'Spiel → match_attended' => ['Spiel',         'match_attended'],
-            'Turnier-Match → match_attended' => ['Turnier-Match', 'match_attended'],
-            'Sonstiges → calendar_event' => ['Sonstiges',     'calendar_event'],
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [['game_event_id' => 1, 'user_id' => 1]],
+            'assists' => [],
         ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals']);
+
+        $levelRecalc = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'GREATEST(1, FLOOR(POW'));
+        $this->assertNotEmpty($levelRecalc, 'Expected level recalculation SQL to be executed');
     }
 
-    #[DataProvider('attendingEventTypeProvider')]
-    public function testAttendingStatusMapsToCorrectActionTypeByEventType(
-        string $eventTypeName,
-        string $expectedActionType,
-    ): void {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(200, $eventTypeName);
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
-
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-        $this->xpService->method('addXPToUser');
-
-        $capturedActionType = null;
-        $this->xpEventRepository->method('findOneBy')
-            ->willReturnCallback(function (array $criteria) use (&$capturedActionType): ?UserXpEvent {
-                $capturedActionType = $criteria['actionType'];
-
-                return null;
-            });
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame($expectedActionType, $capturedActionType);
-    }
-
-    public function testAttendingWithNullEventTypeFallsBackToCalendarEvent(): void
+    public function testLevelRecalculationSkippedWhenNothingProcessed(): void
     {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(300, null); // no event type
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = ['dedup' => [], 'goals' => [], 'assists' => []];
+        $this->setupFetch();
+        $this->trackStatements();
 
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(10);
-        $this->xpService->method('addXPToUser');
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals']);
 
-        $capturedActionType = null;
-        $this->xpEventRepository->method('findOneBy')
-            ->willReturnCallback(function (array $criteria) use (&$capturedActionType): ?UserXpEvent {
-                $capturedActionType = $criteria['actionType'];
-
-                return null;
-            });
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame('calendar_event', $capturedActionType);
+        $levelRecalc = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'GREATEST(1, FLOOR(POW'));
+        $this->assertEmpty($levelRecalc);
     }
 
-    // ── Deduplication ─────────────────────────────────────────────────────────
-
-    public function testAlreadyAwardedParticipationIsSkipped(): void
+    public function testLevelRecalculationSkippedInDryRun(): void
     {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(10, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [['game_event_id' => 1, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
 
-        $this->mockParticipationQuery([$participation]);
+        $this->connection->expects($this->never())->method('executeStatement');
 
-        // Simulate already-awarded: findOneBy returns an existing XP event
-        $existingXpEvent = $this->createMock(UserXpEvent::class);
-        $this->xpEventRepository->method('findOneBy')->willReturn($existingXpEvent);
-
-        // Must NOT award any XP
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame(Command::SUCCESS, $this->commandTester->getStatusCode());
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals', '--dry-run' => true]);
     }
 
-    public function testParticipationWithXpValueZeroIsSkipped(): void
+    // ── XP accumulation per user ─────────────────────────────────────────────
+
+    public function testXpAccumulatesPerUser(): void
     {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(10, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [
+                ['game_event_id' => 1, 'user_id' => 1],
+                ['game_event_id' => 2, 'user_id' => 1],
+                ['game_event_id' => 3, 'user_id' => 2],
+            ],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
 
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(0); // rule disabled or missing
+        $tester = $this->buildCommandTester();
+        $tester->execute(['--type' => 'goals']);
 
-        $this->xpService->expects($this->never())->method('addXPToUser');
+        $levelUpserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'ON DUPLICATE KEY UPDATE'));
+        $levelUpserts = array_values($levelUpserts);
 
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame(Command::SUCCESS, $this->commandTester->getStatusCode());
+        $this->assertCount(2, $levelUpserts);
+        $this->assertSame(1, $levelUpserts[0]['params']['uid']);
+        $this->assertSame(100, $levelUpserts[0]['params']['xp']);
+        $this->assertSame(2, $levelUpserts[1]['params']['uid']);
+        $this->assertSame(50, $levelUpserts[1]['params']['xp']);
     }
 
-    // ── Unknown status is skipped ─────────────────────────────────────────────
+    // ── --type=all ───────────────────────────────────────────────────────────
 
-    public function testUnknownStatusCodeIsSkipped(): void
+    public function testTypeAllProcessesAllSections(): void
     {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(10, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'unknown_custom_status');
+        $this->setupRules([
+            $this->makeXpRule('goal_scored', 50),
+            $this->makeXpRule('goal_assisted', 30),
+            $this->makeXpRule('game_event', 15),
+            $this->makeXpRule('training_attended', 20),
+            $this->makeXpRule('profile_completion_25', 10),
+        ]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [],
+            'assists' => [],
+            'game_events' => [],
+            'participations' => [],
+            'profiles' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
 
-        $this->mockParticipationQuery([$participation]);
-
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame(Command::SUCCESS, $this->commandTester->getStatusCode());
-    }
-
-    // ── Dry-run mode ──────────────────────────────────────────────────────────
-
-    public function testDryRunDoesNotCallAddXPToUser(): void
-    {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(20, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
-
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-
-        $this->xpService->expects($this->never())->method('addXPToUser');
-        $this->entityManager->expects($this->never())->method('persist');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'calendar_events', '--dry-run' => true]);
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'all']);
 
         $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertStringContainsString('DRY-RUN', $this->commandTester->getDisplay());
-    }
-
-    public function testDryRunReportsExpectedXpWithoutSaving(): void
-    {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(21, 'Training');
-        $participation = $this->makeParticipation(5, $user, $calendarEvent, 'not_attending');
-
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(5);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'calendar_events', '--dry-run' => true]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $output = $this->commandTester->getDisplay();
-        $this->assertStringContainsString('5 XP', $output);
-        $this->assertStringContainsString('participation_response', $output);
-    }
-
-    // ── Multiple participations ───────────────────────────────────────────────
-
-    public function testMultipleParticipationsAreAllProcessed(): void
-    {
-        $user1 = $this->makeUser(1);
-        $user2 = $this->makeUser(2);
-        $event1 = $this->makeCalendarEvent(10, 'Training');
-        $event2 = $this->makeCalendarEvent(11, 'Spiel');
-
-        $p1 = $this->makeParticipation(1, $user1, $event1, 'attending');
-        $p2 = $this->makeParticipation(2, $user2, $event2, 'not_attending');
-
-        $this->mockParticipationQuery([$p1, $p2]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(10);
-
-        $addXpCalls = 0;
-        $this->xpService->method('addXPToUser')
-            ->willReturnCallback(function () use (&$addXpCalls): void {
-                ++$addXpCalls;
-            });
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame(2, $addXpCalls, 'Expected XP to be awarded for both participations');
-    }
-
-    // ── Output messages ───────────────────────────────────────────────────────
-
-    public function testSuccessfulAwardAppearsInOutput(): void
-    {
-        $user = $this->makeUser(3);
-        $calendarEvent = $this->makeCalendarEvent(50, 'Training');
-        $participation = $this->makeParticipation(7, $user, $calendarEvent, 'attending');
-
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-        $this->xpService->method('addXPToUser');
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $output = $this->commandTester->getDisplay();
-        $this->assertStringContainsString('training_attended', $output);
-        $this->assertStringContainsString('+15 XP', $output);
-    }
-
-    public function testEmptyParticipationListReturnsSuccess(): void
-    {
-        $this->mockParticipationQuery([]);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'calendar_events']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    // ── XP values are persisted ───────────────────────────────────────────────
-
-    public function testXpEventRecordIsPersistedAndFlushed(): void
-    {
-        $user = $this->makeUser();
-        $calendarEvent = $this->makeCalendarEvent(60, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
-
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-        $this->xpService->method('addXPToUser');
-
-        $this->entityManager->expects($this->atLeastOnce())->method('persist');
-        $this->entityManager->expects($this->atLeastOnce())->method('flush');
-
-        $this->commandTester->execute(['--type' => 'calendar_events']);
-    }
-
-    // ── --type=goals ──────────────────────────────────────────────────────────
-
-    public function testTypeGoalsReturnsSuccessWithEmptyList(): void
-    {
-        $this->mockGameEventQuery([]);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'goals']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testTypeGoalsAwardsXpForGoalAndAssist(): void
-    {
-        $user = $this->makeUser(10);
-        $goalEvent = $this->makeGameEventWithUser(1, $user);
-        $assistEvent = $this->makeGameEventWithUser(2, $user);
-
-        // Return same events for both processGoals() and processAssists() calls
-        $this->mockGameEventQuery([$goalEvent, $assistEvent]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(10);
-
-        $addXpCalls = 0;
-        $this->xpService->method('addXPToUser')
-            ->willReturnCallback(function () use (&$addXpCalls): void {
-                ++$addXpCalls;
-            });
-
-        $exitCode = $this->commandTester->execute(['--type' => 'goals']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        // processGoals + processAssists each award XP for 2 events = 4 total
-        $this->assertSame(4, $addXpCalls);
-    }
-
-    public function testTypeGoalsDryRunDoesNotCallAddXPToUser(): void
-    {
-        $user = $this->makeUser(11);
-        $goalEvent = $this->makeGameEventWithUser(5, $user);
-
-        $this->mockGameEventQuery([$goalEvent]);
-        $this->xpService->expects($this->never())->method('addXPToUser');
-        $this->xpService->method('retrieveXPForAction')->willReturn(50);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'goals', '--dry-run' => true]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertStringContainsString('DRY-RUN', $this->commandTester->getDisplay());
-    }
-
-    public function testTypeGoalsSkipsAlreadyAwardedGoal(): void
-    {
-        $user = $this->makeUser(12);
-        $goalEvent = $this->makeGameEventWithUser(6, $user);
-
-        $this->mockGameEventQuery([$goalEvent]);
-
-        $existing = $this->createMock(UserXpEvent::class);
-        $this->xpEventRepository->method('findOneBy')->willReturn($existing);
-
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'goals']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    // ── --type=game_events ────────────────────────────────────────────────────
-
-    public function testTypeGameEventsReturnsSuccessWithEmptyList(): void
-    {
-        $this->mockGameEventQuery([]);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'game_events']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testTypeGameEventsAwardsXpForEventWithPlayer(): void
-    {
-        $user = $this->makeUser(20);
-        $gameEvent = $this->makeGameEventWithUser(10, $user);
-
-        $this->mockGameEventQuery([$gameEvent]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-
-        $this->xpService->expects($this->once())->method('addXPToUser')->with($user, 15);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'game_events']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testTypeGameEventsSkipsEventWithNullPlayer(): void
-    {
-        $gameEvent = $this->createMock(GameEvent::class);
-        $gameEvent->method('getId')->willReturn(11);
-        $gameEvent->method('getPlayer')->willReturn(null);
-
-        $this->mockGameEventQuery([$gameEvent]);
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'game_events']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testTypeGameEventsDryRunDoesNotAwardXp(): void
-    {
-        $user = $this->makeUser(21);
-        $gameEvent = $this->makeGameEventWithUser(12, $user);
-
-        $this->mockGameEventQuery([$gameEvent]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(15);
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'game_events', '--dry-run' => true]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    // ── --type=profiles ───────────────────────────────────────────────────────
-
-    public function testTypeProfilesReturnsSuccessWithEmptyList(): void
-    {
-        $this->mockUserQuery([]);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'profiles']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    public function testTypeProfilesAwardsXpForMilestonesReached(): void
-    {
-        $this->mockUserQuery([$this->makeUserWithProfile(30)]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(20);
-
-        // 100% completeness → milestones 25, 50, 75, 100 all reached = 4 awards
-        $addXpCalls = 0;
-        $this->xpService->method('addXPToUser')
-            ->willReturnCallback(function () use (&$addXpCalls): void {
-                ++$addXpCalls;
-            });
-
-        $exitCode = $this->commandTester->execute(['--type' => 'profiles']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertSame(4, $addXpCalls);
-    }
-
-    public function testTypeProfilesDryRunReportsWithoutSaving(): void
-    {
-        $this->mockUserQuery([$this->makeUserWithProfile(31)]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(10);
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'profiles', '--dry-run' => true]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertStringContainsString('DRY-RUN', $this->commandTester->getDisplay());
-    }
-
-    public function testTypeProfilesSkipsAlreadyAwardedMilestone(): void
-    {
-        $this->mockUserQuery([$this->makeUserWithProfile(32)]);
-
-        $existing = $this->createMock(UserXpEvent::class);
-        $this->xpEventRepository->method('findOneBy')->willReturn($existing);
-
-        $this->xpService->expects($this->never())->method('addXPToUser');
-
-        $exitCode = $this->commandTester->execute(['--type' => 'profiles']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    // ── --type=all ────────────────────────────────────────────────────────────
-
-    public function testTypeAllProcessesAllSectionsAndReturnsSuccess(): void
-    {
-        // All repos return empty lists — just validate the branches are hit
-        $this->mockGameEventQuery([]);
-        $this->mockParticipationQuery([]);
-        $this->mockUserQuery([]);
-
-        $exitCode = $this->commandTester->execute(['--type' => 'all']);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $output = $this->commandTester->getDisplay();
+        $output = $tester->getDisplay();
         $this->assertStringContainsString('Processing Goals', $output);
+        $this->assertStringContainsString('Processing Assists', $output);
         $this->assertStringContainsString('Processing Game Events', $output);
         $this->assertStringContainsString('Processing Calendar Event Participations', $output);
         $this->assertStringContainsString('Processing Profile Completeness', $output);
     }
 
-    // ── --user-id option ──────────────────────────────────────────────────────
+    // ── Error handling ───────────────────────────────────────────────────────
 
-    public function testUserIdOptionRestrictsProcessingToSpecificUser(): void
+    public function testReturnsFailureOnException(): void
     {
-        $user = $this->makeUser(42);
-        $calendarEvent = $this->makeCalendarEvent(70, 'Training');
-        $participation = $this->makeParticipation(1, $user, $calendarEvent, 'attending');
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->connection->method('fetchAllAssociative')
+            ->willReturnCallback(function (string $sql): array {
+                if (str_contains($sql, 'CONCAT')) {
+                    return [];
+                }
+                throw new RuntimeException('DB connection lost');
+            });
+        $this->trackStatements();
 
-        $this->mockParticipationQuery([$participation]);
-        $this->xpService->method('retrieveXPForAction')->willReturn(10);
-
-        $exitCode = $this->commandTester->execute([
-            '--type' => 'calendar_events',
-            '--user-id' => '42',
-        ]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-    }
-
-    // ── --force option ────────────────────────────────────────────────────────
-
-    public function testForceOptionDeletesExistingXpEventsAndResetsLevels(): void
-    {
-        // Force mode uses QueryBuilder on UserXpEvent and UserLevel repos for DELETE/UPDATE
-        $xpEventDeleteQuery = $this->createMock(Query::class);
-        $xpEventDeleteQb = $this->createMock(QueryBuilder::class);
-        $xpEventDeleteQb->method('delete')->willReturnSelf();
-        $xpEventDeleteQb->method('getQuery')->willReturn($xpEventDeleteQuery);
-        $xpEventDeleteQuery->method('execute')->willReturn(0);
-
-        $userLevelUpdateQuery = $this->createMock(Query::class);
-        $userLevelUpdateQb = $this->createMock(QueryBuilder::class);
-        $userLevelUpdateQb->method('update')->willReturnSelf();
-        $userLevelUpdateQb->method('set')->willReturnSelf();
-        $userLevelUpdateQb->method('getQuery')->willReturn($userLevelUpdateQuery);
-        $userLevelUpdateQuery->method('execute')->willReturn(0);
-
-        $this->xpEventRepository->method('createQueryBuilder')->willReturn($xpEventDeleteQb);
-        $this->userLevelRepository->method('createQueryBuilder')->willReturn($userLevelUpdateQb);
-        $this->mockParticipationQuery([]);
-
-        $exitCode = $this->commandTester->execute([
-            '--type' => 'calendar_events',
-            '--force' => true,
-        ]);
-
-        $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertStringContainsString('Force mode', $this->commandTester->getDisplay());
-    }
-
-    // ── Exception handling → Command::FAILURE ─────────────────────────────────
-
-    public function testExecuteReturnsFailureWhenExceptionIsThrown(): void
-    {
-        $this->participationRepository->method('createQueryBuilder')
-            ->willThrowException(new RuntimeException('DB connection lost'));
-
-        $exitCode = $this->commandTester->execute(['--type' => 'calendar_events']);
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
 
         $this->assertSame(Command::FAILURE, $exitCode);
-        $this->assertStringContainsString('DB connection lost', $this->commandTester->getDisplay());
+        $this->assertStringContainsString('DB connection lost', $tester->getDisplay());
+    }
+
+    // ── No XP rule for action → skip ─────────────────────────────────────────
+
+    public function testSkipsActionTypeWithNoXpRule(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50)]);
+        $this->fetchResults = [
+            'dedup' => [],
+            'goals' => [['game_event_id' => 1, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('No XP rule for goal_assisted', $output);
     }
 }

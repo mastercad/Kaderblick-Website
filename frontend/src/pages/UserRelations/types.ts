@@ -6,6 +6,10 @@ export interface UserRow {
   isEnabled: boolean;
   lockedAt: string | null;
   userRelations: Array<{ relationType?: { name: string }; entity: string }>;
+  staffTeamAssignments: Array<{ team?: { name: string }; type?: { name: string } | null }>;
+  staffClubAssignments: Array<{ club?: { name: string }; type?: { name: string } | null }>;
+  functionaryTeamAssignments: Array<{ team?: { name: string }; type?: { name: string } | null }>;
+  functionaryClubAssignments: Array<{ club?: { name: string }; type?: { name: string } | null }>;
 }
 
 export interface RegistrationRequestRow {

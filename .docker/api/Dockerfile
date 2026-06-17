@@ -124,6 +124,7 @@ RUN echo "SHELL=/bin/bash" > /etc/cron.d/symfony-crons \
 # =============================================================================
 FROM base AS base-dev
 
+# xdebug is pre-installed in php:8.3-fpm-alpine — only configuration needed
 RUN apk add --no-cache --virtual .xdebug-deps \
     $PHPIZE_DEPS \
     linux-headers \

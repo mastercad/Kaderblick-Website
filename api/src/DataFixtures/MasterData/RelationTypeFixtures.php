@@ -30,7 +30,15 @@ class RelationTypeFixtures extends Fixture implements FixtureGroupInterface
             ['observer', 'Beobachter', 'coach'],
             ['substitute', 'Vertretung', 'coach'],
             ['mentor', 'Mentor', 'coach'],
-            ['self_coach', 'Trainer selbst', 'coach']
+            ['self_coach', 'Trainer selbst', 'coach'],
+
+            // Functionary Relations
+            ['self_functionary', 'Funktionär selbst', 'functionary'],
+            ['representative', 'Vertreter', 'functionary'],
+
+            // Staff Relations
+            ['self_staff', 'Mitarbeiter selbst', 'staff'],
+            ['colleague', 'Kollege', 'staff'],
         ];
 
         foreach ($types as [$identifier, $name, $category]) {

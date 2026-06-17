@@ -76,10 +76,12 @@ const baseNavConfig: ReturnType<typeof useNavConfig> = {
       ],
     },
   ],
+  navigationGroups: [],
   navItemIconMap: {},
   isAdmin: false,
   isSupporter: false,
   isCoach: false,
+  isKassenwart: false,
 };
 
 const baseNotifications: ReturnType<typeof useNotifications> = {

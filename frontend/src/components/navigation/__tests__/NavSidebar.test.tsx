@@ -88,9 +88,11 @@ const baseNavConfig: ReturnType<typeof useNavConfig> = {
     dashboard: <span data-testid="icon-dashboard" />,
     calendar:  <span data-testid="icon-calendar" />,
   },
+  navigationGroups: [],
   isAdmin: false,
   isSupporter: false,
   isCoach: false,
+  isKassenwart: false,
 };
 
 const baseNotifications: ReturnType<typeof useNotifications> = {

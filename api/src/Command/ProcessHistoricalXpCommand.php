@@ -4,14 +4,9 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Entity\GameEvent;
-use App\Entity\Participation;
-use App\Entity\Player;
-use App\Entity\User;
-use App\Entity\UserLevel;
-use App\Entity\UserXpEvent;
-use App\Service\XPService;
+use App\Repository\XpRuleRepository;
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -23,13 +18,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:xp:process-historical',
-    description: 'Process historical events and award XP retroactively for events created before XP system was implemented'
+    description: 'Process historical events and award XP retroactively (optimized batch processing)'
 )]
 class ProcessHistoricalXpCommand extends Command
 {
+    private const BATCH_SIZE = 500;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private XPService $xpService
+        private XpRuleRepository $xpRuleRepository,
     ) {
         parent::__construct();
     }
@@ -40,19 +37,8 @@ class ProcessHistoricalXpCommand extends Command
             ->addOption('type', 't', InputOption::VALUE_OPTIONAL, 'Type of events to process (goals, game_events, calendar_events, profiles, all)', 'all')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Run without actually awarding XP')
             ->addOption('user-id', 'u', InputOption::VALUE_OPTIONAL, 'Process events only for specific user ID')
-            ->addOption('--force', 'f', InputOption::VALUE_NONE, 'Force processing even if XP events already exist')
-            ->setHelp(<<<'HELP'
-This command processes historical events that were created before the XP system was implemented
-and awards XP retroactively. It directly adds XP to users instead of creating XP events.
-
-Examples:
-  php bin/console app:xp:process-historical
-  php bin/console app:xp:process-historical --type=goals
-  php bin/console app:xp:process-historical --type=goals --user-id=5
-  php bin/console app:xp:process-historical --dry-run
-  php bin/console app:xp:process-historical --force
-
-HELP);
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force processing even if XP events already exist')
+            ->addOption('batch-size', 'b', InputOption::VALUE_OPTIONAL, 'Number of records per batch', (string) self::BATCH_SIZE);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -62,67 +48,71 @@ HELP);
         $dryRun = $input->getOption('dry-run');
         $userId = $input->getOption('user-id');
         $force = $input->getOption('force');
+        $batchSize = (int) $input->getOption('batch-size');
+
+        if ($batchSize < 1) {
+            $batchSize = self::BATCH_SIZE;
+        }
 
         if ($dryRun) {
             $io->warning('Running in DRY-RUN mode - no XP will be awarded');
         }
 
         $io->title('Processing Historical Events and Awarding XP Retroactively');
-        $io->text('This will award XP for events created before the XP system was implemented.');
+
+        // Pre-load XP rules into memory (eliminates thousands of DB queries)
+        $xpRules = $this->loadXpRules();
+        $io->text(sprintf('Loaded %d XP rules into memory.', count($xpRules)));
+
+        if ($force) {
+            $io->warning('Force mode enabled - resetting all XP events and levels.');
+            $this->resetAllXpData();
+        }
+
+        // Pre-load all existing XP event keys for O(1) deduplication
+        $processedKeys = $force ? [] : $this->loadProcessedKeys($userId ? (int) $userId : null);
+        $io->text(sprintf('Loaded %d existing XP event keys for deduplication.', count($processedKeys)));
 
         $totalProcessed = 0;
         $totalXpAwarded = 0;
 
-        if (!$force) {
-            $io->note('By default, events that already have associated XP events will be skipped. Use --force to override this behavior.');
-        } else {
-            $io->warning('Force mode enabled - existing XP events will be ignored, and XP may be awarded multiple times for the same event.');
-            $this->entityManager->getRepository(UserXpEvent::class)
-                ->createQueryBuilder('ue')
-                ->delete()
-                ->getQuery()
-                ->execute();
-
-            $this->entityManager->getRepository(UserLevel::class)
-                ->createQueryBuilder('ul')
-                ->update()
-                ->set('ul.xpTotal', '0')
-                ->set('ul.level', '1')
-                ->getQuery()
-                ->execute();
-        }
-
         try {
             if ('goals' === $type || 'all' === $type) {
-                [$processed, $xpAwarded] = $this->processGoals($io, $dryRun, $userId);
+                [$processed, $xpAwarded] = $this->processGoalsBatched($io, $dryRun, $userId, $batchSize, $xpRules, $processedKeys);
                 $totalProcessed += $processed;
                 $totalXpAwarded += $xpAwarded;
                 $io->success("Processed {$processed} goals, awarded {$xpAwarded} XP");
-                [$processed, $xpAwarded] = $this->processAssists($io, $dryRun, $userId);
+
+                [$processed, $xpAwarded] = $this->processAssistsBatched($io, $dryRun, $userId, $batchSize, $xpRules, $processedKeys);
                 $totalProcessed += $processed;
                 $totalXpAwarded += $xpAwarded;
                 $io->success("Processed {$processed} assists, awarded {$xpAwarded} XP");
             }
 
             if ('game_events' === $type || 'all' === $type) {
-                [$processed, $xpAwarded] = $this->processGameEvents($io, $dryRun, $userId);
+                [$processed, $xpAwarded] = $this->processGameEventsBatched($io, $dryRun, $userId, $batchSize, $xpRules, $processedKeys);
                 $totalProcessed += $processed;
                 $totalXpAwarded += $xpAwarded;
                 $io->success("Processed {$processed} game events, awarded {$xpAwarded} XP");
             }
 
             if ('calendar_events' === $type || 'all' === $type) {
-                [$processed, $xpAwarded] = $this->processCalendarEvents($io, $dryRun, $userId);
+                [$processed, $xpAwarded] = $this->processCalendarEventsBatched($io, $dryRun, $userId, $batchSize, $xpRules, $processedKeys);
                 $totalProcessed += $processed;
                 $totalXpAwarded += $xpAwarded;
                 $io->success("Processed {$processed} calendar event participations, awarded {$xpAwarded} XP");
             }
 
             if ('profiles' === $type || 'all' === $type) {
-                [$processed, $xpAwarded] = $this->processProfiles($io, $dryRun, $userId);
+                [$processed, $xpAwarded] = $this->processProfilesBatched($io, $dryRun, $userId, $batchSize, $xpRules, $processedKeys);
                 $totalProcessed += $processed;
                 $totalXpAwarded += $xpAwarded;
                 $io->success("Processed {$processed} user profiles, awarded {$xpAwarded} XP");
+            }
+
+            // Recalculate all user levels in bulk
+            if (!$dryRun && $totalProcessed > 0) {
+                $this->recalculateAllLevels($io);
             }
 
             $io->success("Total: {$totalProcessed} events processed, {$totalXpAwarded} XP awarded");
@@ -136,386 +126,518 @@ HELP);
     }
 
     /**
-     * @return array<int, int>
+     * Pre-loads all enabled XP rules keyed by actionType.
+     *
+     * @return array<string, int>
      */
-    private function processGoals(SymfonyStyle $io, bool $dryRun, ?string $userId): array
+    private function loadXpRules(): array
     {
-        $io->section('Processing Goals (50 XP per goal)');
-
-        $qb = $this->entityManager->getRepository(GameEvent::class)
-            ->createQueryBuilder('ge')
-            ->innerJoin('ge.player', 'p')
-            ->innerJoin('ge.gameEventType', 'get')
-            ->leftJoin('p.userRelations', 'ur')
-            ->leftJoin('ur.user', 'u')
-            ->where('u.id IS NOT NULL')
-            ->andWhere('(get.code IN (:goalEventTypes) OR get.code LIKE :likeGoal)')
-            ->andWhere('get.code != :ownGoal')
-            ->setParameter('goalEventTypes', ['goal'])
-            ->setParameter('likeGoal', '%_goal')
-            ->setParameter('ownGoal', 'own_goal');
-
-        if ($userId) {
-            $qb->andWhere('u.id = :userId')
-               ->setParameter('userId', $userId);
+        $rules = [];
+        foreach ($this->xpRuleRepository->findBy(['enabled' => true]) as $rule) {
+            $rules[$rule->getActionType()] = $rule->getXpValue();
         }
 
-        $gameEvents = $qb->getQuery()->getResult();
-
-        $processed = 0;
-        $totalXpAwarded = 0;
-
-        foreach ($gameEvents as $gameEvent) {
-            $player = $gameEvent->getPlayer();
-            $users = $this->retrieveUsersForPlayer($player);
-
-            foreach ($users as $user) {
-                // Check if XP already awarded for this goal
-                if ($this->hasXpEventForAction($user, 'goal_scored', $gameEvent->getId())) {
-                    continue;
-                }
-
-                if (!$dryRun) {
-                    $xp = $this->xpService->retrieveXPForAction('goal_scored');
-                    $this->xpService->addXPToUser($user, $xp);
-                    $this->createXpEventRecord($user, 'goal_scored', $gameEvent->getId(), $xp);
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                    $io->writeln("  ✓ GameEvent #{$gameEvent->getId()} → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
-                } else {
-                    $xp = $this->xpService->retrieveXPForAction('goal_scored');
-                    $io->writeln("  [DRY-RUN] Would award {$xp} XP for goal #{$gameEvent->getId()} to user #{$user->getId()} ({$user->getEmail()})");
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                }
-            }
-        }
-
-        return [$processed, $totalXpAwarded];
+        return $rules;
     }
 
     /**
-     * @return array<int, int>
+     * Loads all already-processed XP event keys into a HashSet for O(1) dedup.
+     *
+     * @return array<string, true>
      */
-    private function processAssists(SymfonyStyle $io, bool $dryRun, ?string $userId): array
+    private function loadProcessedKeys(?int $userId = null): array
     {
-        $io->section('Processing Assists (30 XP per assist)');
+        $conn = $this->entityManager->getConnection();
+        $sql = 'SELECT CONCAT(user_id, \':\', action_type, \':\', COALESCE(action_id, 0)) AS k FROM user_xp_events';
+        $params = [];
 
-        $qb = $this->entityManager->getRepository(GameEvent::class)
-            ->createQueryBuilder('ge')
-            ->innerJoin('ge.player', 'p')
-            ->innerJoin('ge.gameEventType', 'get')
-            ->leftJoin('p.userRelations', 'ur')
-            ->leftJoin('ur.user', 'u')
-            ->where('u.id IS NOT NULL')
-            ->andWhere('(get.code IN (:assistEventTypes) OR get.code LIKE :likeAssist)')
-            ->setParameter('assistEventTypes', ['assist'])
-            ->setParameter('likeAssist', '%_assist');
-
-        if ($userId) {
-            $qb->andWhere('u.id = :userId')
-               ->setParameter('userId', $userId);
+        if (null !== $userId) {
+            $sql .= ' WHERE user_id = :userId';
+            $params['userId'] = $userId;
         }
 
-        $gameEvents = $qb->getQuery()->getResult();
+        $rows = $conn->fetchAllAssociative($sql, $params);
 
-        $processed = 0;
-        $totalXpAwarded = 0;
-
-        foreach ($gameEvents as $gameEvent) {
-            $player = $gameEvent->getPlayer();
-            $users = $this->retrieveUsersForPlayer($player);
-
-            foreach ($users as $user) {
-                // Check if XP already awarded for this goal
-                if ($this->hasXpEventForAction($user, 'goal_assisted', $gameEvent->getId())) {
-                    continue;
-                }
-
-                if (!$dryRun) {
-                    $xp = $this->xpService->retrieveXPForAction('goal_assisted');
-                    $this->xpService->addXPToUser($user, $xp);
-                    $this->createXpEventRecord($user, 'goal_assisted', $gameEvent->getId(), $xp);
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                    $io->writeln("  ✓ GameEvent #{$gameEvent->getId()} → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
-                } else {
-                    $xp = $this->xpService->retrieveXPForAction('goal_assisted');
-                    $io->writeln("  [DRY-RUN] Would award {$xp} XP for goal #{$gameEvent->getId()} to user #{$user->getId()} ({$user->getEmail()})");
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                }
-            }
+        $keys = [];
+        foreach ($rows as $row) {
+            $keys[$row['k']] = true;
         }
 
-        return [$processed, $totalXpAwarded];
+        return $keys;
+    }
+
+    private function makeKey(int $userId, string $actionType, int $actionId): string
+    {
+        return $userId . ':' . $actionType . ':' . $actionId;
+    }
+
+    /** @param array<string, int> $xpRules */
+    private function getXpForAction(string $actionType, array $xpRules): int
+    {
+        return $xpRules[$actionType] ?? 0;
+    }
+
+    private function resetAllXpData(): void
+    {
+        $conn = $this->entityManager->getConnection();
+        $conn->executeStatement('DELETE FROM user_xp_events');
+        $conn->executeStatement('UPDATE user_levels SET xp_total = 0, level = 1');
     }
 
     /**
-     * @return array<int, int>
+     * Recalculates all user levels based on xp_total using bulk SQL.
      */
-    private function processGameEvents(SymfonyStyle $io, bool $dryRun, ?string $userId): array
+    private function recalculateAllLevels(SymfonyStyle $io): void
     {
-        $io->section('Processing Game Events (15 XP per event)');
+        $io->text('Recalculating all user levels...');
+        $conn = $this->entityManager->getConnection();
 
-        $qb = $this->entityManager->getRepository(GameEvent::class)
-            ->createQueryBuilder('ge')
-            ->leftJoin('ge.player', 'p')
-            ->leftJoin('p.userRelations', 'ur')
-            ->leftJoin('ur.user', 'u')
-            ->where('u.id IS NOT NULL');
+        // Level formula: floor((xp_total / 50) ^ (1/1.5))
+        // MySQL: FLOOR(POW(xp_total / 50, 1/1.5))
+        $conn->executeStatement('
+            UPDATE user_levels
+            SET level = GREATEST(1, FLOOR(POW(xp_total / 50.0, 0.6667))),
+                updated_at = NOW()
+            WHERE xp_total > 0
+        ');
+    }
 
-        if ($userId) {
-            $qb->andWhere('u.id = :userId')
-               ->setParameter('userId', $userId);
+    /**
+     * Batch-inserts XP events and accumulates XP per user.
+     *
+     * @param list<array{userId: int, actionType: string, actionId: int, xpValue: int}> $pendingInserts
+     * @param array<int, int>                                                           $userXpAccumulator userId => accumulated XP
+     */
+    private function batchInsertXpEvents(array $pendingInserts, array &$userXpAccumulator): void
+    {
+        if (empty($pendingInserts)) {
+            return;
         }
 
-        $gameEvents = $qb->getQuery()->getResult();
+        $conn = $this->entityManager->getConnection();
+        $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
+
+        $values = [];
+        $params = [];
+        $i = 0;
+        foreach ($pendingInserts as $insert) {
+            $values[] = "(:u{$i}, :at{$i}, :ai{$i}, :xp{$i}, 1, :ca{$i})";
+            $params["u{$i}"] = $insert['userId'];
+            $params["at{$i}"] = $insert['actionType'];
+            $params["ai{$i}"] = $insert['actionId'];
+            $params["xp{$i}"] = $insert['xpValue'];
+            $params["ca{$i}"] = $now;
+
+            $userXpAccumulator[$insert['userId']] = ($userXpAccumulator[$insert['userId']] ?? 0) + $insert['xpValue'];
+            ++$i;
+        }
+
+        $sql = 'INSERT INTO user_xp_events (user_id, action_type, action_id, xp_value, is_processed, created_at) VALUES ' . implode(', ', $values);
+        $conn->executeStatement($sql, $params);
+    }
+
+    /**
+     * Bulk-updates user_levels with accumulated XP totals.
+     *
+     * @param array<int, int> $userXpAccumulator userId => total XP to add
+     */
+    private function flushXpAccumulator(array &$userXpAccumulator): void
+    {
+        if (empty($userXpAccumulator)) {
+            return;
+        }
+
+        $conn = $this->entityManager->getConnection();
+
+        foreach ($userXpAccumulator as $userId => $xp) {
+            $conn->executeStatement(
+                'INSERT INTO user_levels (user_id, xp_total, level, updated_at) VALUES (:uid, :xp, 1, NOW())
+                 ON DUPLICATE KEY UPDATE xp_total = xp_total + :xp2, updated_at = NOW()',
+                ['uid' => $userId, 'xp' => $xp, 'xp2' => $xp]
+            );
+        }
+
+        $userXpAccumulator = [];
+    }
+
+    /**
+     * @param array<string, int>  $xpRules
+     * @param array<string, true> $processedKeys
+     *
+     * @return array{int, int} [processed, xpAwarded]
+     */
+    private function processGoalsBatched(SymfonyStyle $io, bool $dryRun, ?string $userId, int $batchSize, array $xpRules, array &$processedKeys): array
+    {
+        $io->section('Processing Goals');
+        $xp = $this->getXpForAction('goal_scored', $xpRules);
+        if (0 === $xp) {
+            $io->text('No XP rule for goal_scored, skipping.');
+
+            return [0, 0];
+        }
+
+        $conn = $this->entityManager->getConnection();
+        $sql = '
+            SELECT ge.id AS game_event_id, u.id AS user_id
+            FROM game_events ge
+            INNER JOIN players p ON ge.player_id = p.id
+            INNER JOIN game_event_types get ON ge.game_event_type_id = get.id
+            INNER JOIN user_relations ur ON ur.player_id = p.id
+            INNER JOIN relation_types rt ON ur.relation_type_id = rt.id AND rt.identifier = \'self_player\'
+            INNER JOIN users u ON ur.user_id = u.id
+            WHERE (get.code IN (\'goal\') OR get.code LIKE \'%_goal\')
+            AND get.code != \'own_goal\'
+        ';
+        $params = [];
+        if ($userId) {
+            $sql .= ' AND u.id = :userId';
+            $params['userId'] = (int) $userId;
+        }
+        $sql .= ' ORDER BY ge.id ASC';
+
+        return $this->processBatchedResults($conn, $sql, $params, 'goal_scored', $xp, $batchSize, $dryRun, $io, $processedKeys);
+    }
+
+    /**
+     * @param array<string, int>  $xpRules
+     * @param array<string, true> $processedKeys
+     *
+     * @return array{int, int}
+     */
+    private function processAssistsBatched(SymfonyStyle $io, bool $dryRun, ?string $userId, int $batchSize, array $xpRules, array &$processedKeys): array
+    {
+        $io->section('Processing Assists');
+        $xp = $this->getXpForAction('goal_assisted', $xpRules);
+        if (0 === $xp) {
+            $io->text('No XP rule for goal_assisted, skipping.');
+
+            return [0, 0];
+        }
+
+        $conn = $this->entityManager->getConnection();
+        $sql = '
+            SELECT ge.id AS game_event_id, u.id AS user_id
+            FROM game_events ge
+            INNER JOIN players p ON ge.player_id = p.id
+            INNER JOIN game_event_types get ON ge.game_event_type_id = get.id
+            INNER JOIN user_relations ur ON ur.player_id = p.id
+            INNER JOIN relation_types rt ON ur.relation_type_id = rt.id AND rt.identifier = \'self_player\'
+            INNER JOIN users u ON ur.user_id = u.id
+            WHERE (get.code IN (\'assist\') OR get.code LIKE \'%_assist\')
+        ';
+        $params = [];
+        if ($userId) {
+            $sql .= ' AND u.id = :userId';
+            $params['userId'] = (int) $userId;
+        }
+        $sql .= ' ORDER BY ge.id ASC';
+
+        return $this->processBatchedResults($conn, $sql, $params, 'goal_assisted', $xp, $batchSize, $dryRun, $io, $processedKeys);
+    }
+
+    /**
+     * @param array<string, int>  $xpRules
+     * @param array<string, true> $processedKeys
+     *
+     * @return array{int, int}
+     */
+    private function processGameEventsBatched(SymfonyStyle $io, bool $dryRun, ?string $userId, int $batchSize, array $xpRules, array &$processedKeys): array
+    {
+        $io->section('Processing Game Events');
+        $xp = $this->getXpForAction('game_event', $xpRules);
+        if (0 === $xp) {
+            $io->text('No XP rule for game_event, skipping.');
+
+            return [0, 0];
+        }
+
+        $conn = $this->entityManager->getConnection();
+        $sql = '
+            SELECT ge.id AS game_event_id, u.id AS user_id
+            FROM game_events ge
+            INNER JOIN players p ON ge.player_id = p.id
+            INNER JOIN user_relations ur ON ur.player_id = p.id
+            INNER JOIN relation_types rt ON ur.relation_type_id = rt.id AND rt.identifier = \'self_player\'
+            INNER JOIN users u ON ur.user_id = u.id
+        ';
+        $params = [];
+        if ($userId) {
+            $sql .= ' WHERE u.id = :userId';
+            $params['userId'] = (int) $userId;
+        }
+        $sql .= ' ORDER BY ge.id ASC';
+
+        return $this->processBatchedResults($conn, $sql, $params, 'game_event', $xp, $batchSize, $dryRun, $io, $processedKeys);
+    }
+
+    /**
+     * Generic batch processor for simple action types (goals, assists, game events).
+     *
+     * @param array<string, mixed> $params
+     * @param array<string, true>  $processedKeys
+     *
+     * @return array{int, int}
+     */
+    private function processBatchedResults(
+        Connection $conn,
+        string $sql,
+        array $params,
+        string $actionType,
+        int $xp,
+        int $batchSize,
+        bool $dryRun,
+        SymfonyStyle $io,
+        array &$processedKeys
+    ): array {
+        $rows = $conn->fetchAllAssociative($sql, $params);
+
         $processed = 0;
         $totalXpAwarded = 0;
+        $pendingInserts = [];
+        $userXpAccumulator = [];
 
-        foreach ($gameEvents as $gameEvent) {
-            $player = $gameEvent->getPlayer();
-            if (!$player) {
+        foreach ($rows as $row) {
+            $eventUserId = (int) $row['user_id'];
+            $eventId = (int) $row['game_event_id'];
+            $key = $this->makeKey($eventUserId, $actionType, $eventId);
+
+            if (isset($processedKeys[$key])) {
                 continue;
             }
 
-            $users = $this->retrieveUsersForPlayer($player);
-
-            foreach ($users as $user) {
-                if ($this->hasXpEventForAction($user, 'game_event', $gameEvent->getId())) {
-                    continue;
-                }
-
-                if (!$dryRun) {
-                    $xp = $this->xpService->retrieveXPForAction('game_event');
-                    $this->xpService->addXPToUser($user, $xp);
-                    $this->createXpEventRecord($user, 'game_event', $gameEvent->getId(), $xp);
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                    $io->writeln("  ✓ Game Event #{$gameEvent->getId()} → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
-                } else {
-                    $xp = $this->xpService->retrieveXPForAction('game_event');
-                    $io->writeln("  [DRY-RUN] Would award {$xp} XP for game event #{$gameEvent->getId()} to user #{$user->getId()} ({$user->getEmail()})");
-                    $totalXpAwarded += $xp;
-                    ++$processed;
-                }
+            if ($dryRun) {
+                $io->writeln("  [DRY-RUN] Would award {$xp} XP ({$actionType}) for event #{$eventId} to user #{$eventUserId}");
+            } else {
+                $pendingInserts[] = [
+                    'userId' => $eventUserId,
+                    'actionType' => $actionType,
+                    'actionId' => $eventId,
+                    'xpValue' => $xp,
+                ];
+                $processedKeys[$key] = true;
             }
+
+            $totalXpAwarded += $xp;
+            ++$processed;
+
+            if (!$dryRun && count($pendingInserts) >= $batchSize) {
+                $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+                $pendingInserts = [];
+            }
+        }
+
+        if (!$dryRun) {
+            $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+            $this->flushXpAccumulator($userXpAccumulator);
         }
 
         return [$processed, $totalXpAwarded];
     }
 
     /**
-     * Process calendar event participations (attending and non-attending responses).
+     * @param array<string, int>  $xpRules
+     * @param array<string, true> $processedKeys
      *
-     * @return array<int, int>
+     * @return array{int, int}
      */
-    private function processCalendarEvents(SymfonyStyle $io, bool $dryRun, ?string $userId): array
+    private function processCalendarEventsBatched(SymfonyStyle $io, bool $dryRun, ?string $userId, int $batchSize, array $xpRules, array &$processedKeys): array
     {
         $io->section('Processing Calendar Event Participations');
 
-        $qb = $this->entityManager->getRepository(Participation::class)
-            ->createQueryBuilder('p')
-            ->innerJoin('p.user', 'u')
-            ->innerJoin('p.event', 'ce')
-            ->innerJoin('p.status', 'ps')
-            ->leftJoin('ce.calendarEventType', 'cet')
-            ->where('u.id IS NOT NULL');
-
+        $conn = $this->entityManager->getConnection();
+        $sql = '
+            SELECT p.id AS participation_id, u.id AS user_id, ce.id AS event_id,
+                   ps.code AS status_code, cet.name AS event_type_name
+            FROM participations p
+            INNER JOIN users u ON p.user_id = u.id
+            INNER JOIN calendar_events ce ON p.event_id = ce.id
+            INNER JOIN participation_statuses ps ON p.status_id = ps.id
+            LEFT JOIN calendar_event_types cet ON ce.calendar_event_type_id = cet.id
+        ';
+        $params = [];
         if ($userId) {
-            $qb->andWhere('u.id = :userId')
-               ->setParameter('userId', $userId);
+            $sql .= ' WHERE u.id = :userId';
+            $params['userId'] = (int) $userId;
         }
+        $sql .= ' ORDER BY p.id ASC';
 
-        /** @var Participation[] $participations */
-        $participations = $qb->getQuery()->getResult();
+        $rows = $conn->fetchAllAssociative($sql, $params);
 
         $processed = 0;
         $totalXpAwarded = 0;
+        $pendingInserts = [];
+        $userXpAccumulator = [];
 
-        foreach ($participations as $participation) {
-            $user = $participation->getUser();
-            $event = $participation->getEvent();
-            $statusCode = $participation->getStatus()->getCode();
+        foreach ($rows as $row) {
+            $eventUserId = (int) $row['user_id'];
+            $eventId = (int) $row['event_id'];
+            $statusCode = $row['status_code'];
+            $eventTypeName = $row['event_type_name'] ?? '';
 
-            if (null === $user || null === $event || null === $event->getId()) {
+            $actionType = $this->resolveCalendarActionType($statusCode, $eventTypeName);
+            if (null === $actionType) {
                 continue;
             }
 
-            if ('attending' === $statusCode) {
-                $eventTypeName = $event->getCalendarEventType()?->getName() ?? '';
-                if ('Training' === $eventTypeName) {
-                    $actionType = 'training_attended';
-                } elseif (in_array($eventTypeName, ['Spiel', 'Turnier-Match'], true)) {
-                    $actionType = 'match_attended';
-                } else {
-                    $actionType = 'calendar_event';
-                }
-            } elseif (in_array($statusCode, ['not_attending', 'maybe', 'late'], true)) {
-                $actionType = 'participation_response';
-            } else {
-                continue;
-            }
-
-            if ($this->hasXpEventForAction($user, $actionType, $event->getId())) {
-                continue;
-            }
-
-            $xp = $this->xpService->retrieveXPForAction($actionType);
+            $xp = $this->getXpForAction($actionType, $xpRules);
             if ($xp <= 0) {
                 continue;
             }
 
-            if (!$dryRun) {
-                $this->xpService->addXPToUser($user, $xp);
-                $this->createXpEventRecord($user, $actionType, $event->getId(), $xp);
-                $totalXpAwarded += $xp;
-                ++$processed;
-                $io->writeln("  ✓ Participation #{$participation->getId()} ({$statusCode}) → {$actionType} → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
-            } else {
-                $io->writeln(
-                    "  [DRY-RUN] Would award {$xp} XP ({$actionType}) for participation"
-                    . " #{$participation->getId()} ({$statusCode}) to user #{$user->getId()} ({$user->getEmail()})"
-                );
-                $totalXpAwarded += $xp;
-                ++$processed;
+            $key = $this->makeKey($eventUserId, $actionType, $eventId);
+            if (isset($processedKeys[$key])) {
+                continue;
             }
+
+            if ($dryRun) {
+                $io->writeln("  [DRY-RUN] Would award {$xp} XP ({$actionType}) for event #{$eventId} to user #{$eventUserId}");
+            } else {
+                $pendingInserts[] = [
+                    'userId' => $eventUserId,
+                    'actionType' => $actionType,
+                    'actionId' => $eventId,
+                    'xpValue' => $xp,
+                ];
+                $processedKeys[$key] = true;
+            }
+
+            $totalXpAwarded += $xp;
+            ++$processed;
+
+            if (!$dryRun && count($pendingInserts) >= $batchSize) {
+                $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+                $pendingInserts = [];
+            }
+        }
+
+        if (!$dryRun) {
+            $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+            $this->flushXpAccumulator($userXpAccumulator);
         }
 
         return [$processed, $totalXpAwarded];
     }
 
-    /**
-     * @return array<int, int>
-     */
-    private function processProfiles(SymfonyStyle $io, bool $dryRun, ?string $userId): array
+    private function resolveCalendarActionType(string $statusCode, string $eventTypeName): ?string
     {
-        $io->section('Processing Profile Completeness (one-time award for current state)');
+        if ('attending' === $statusCode) {
+            if ('Training' === $eventTypeName) {
+                return 'training_attended';
+            }
+            if (in_array($eventTypeName, ['Spiel', 'Turnier-Match'], true)) {
+                return 'match_attended';
+            }
 
-        $qb = $this->entityManager->getRepository(User::class)
-            ->createQueryBuilder('u')
-            ->where('u.isEnabled = true');
-
-        if ($userId) {
-            $qb->andWhere('u.id = :userId')
-               ->setParameter('userId', $userId);
+            return 'calendar_event';
         }
 
-        $users = $qb->getQuery()->getResult();
+        if (in_array($statusCode, ['not_attending', 'maybe', 'late'], true)) {
+            return 'participation_response';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, int>  $xpRules
+     * @param array<string, true> $processedKeys
+     *
+     * @return array{int, int}
+     */
+    private function processProfilesBatched(SymfonyStyle $io, bool $dryRun, ?string $userId, int $batchSize, array $xpRules, array &$processedKeys): array
+    {
+        $io->section('Processing Profile Completeness');
+
+        $conn = $this->entityManager->getConnection();
+        $sql = '
+            SELECT u.id, u.first_name, u.last_name, u.email, u.avatar_filename,
+                   u.height, u.weight, u.shoe_size, u.shirt_size, u.pants_size,
+                   (SELECT COUNT(*) FROM user_relations ur WHERE ur.user_id = u.id) AS relation_count
+            FROM users u
+            WHERE u.is_enabled = 1
+        ';
+        $params = [];
+        if ($userId) {
+            $sql .= ' AND u.id = :userId';
+            $params['userId'] = (int) $userId;
+        }
+
+        $rows = $conn->fetchAllAssociative($sql, $params);
+
         $processed = 0;
         $totalXpAwarded = 0;
+        $pendingInserts = [];
+        $userXpAccumulator = [];
+        $milestones = [25, 50, 75, 100];
 
-        foreach ($users as $user) {
-            // Sicherstellen, dass UserLevel existiert
-            $userLevel = $user->getUserLevel();
-            if (null === $userLevel) {
-                $userLevel = new UserLevel();
-                $userLevel->setUser($user);
-                $userLevel->setXpTotal(0);
-                $userLevel->setLevel(1);
-                $userLevel->setUpdatedAt(new DateTimeImmutable());
-                $user->setUserLevel($userLevel);
-                $this->entityManager->persist($userLevel);
-            }
-            $completeness = $this->calculateProfileCompleteness($user);
-            // Award XP for milestones reached
-            $milestones = [25, 50, 75, 100];
+        foreach ($rows as $row) {
+            $profileUserId = (int) $row['id'];
+            $completeness = $this->calculateProfileCompletenessFromRow($row);
+
             foreach ($milestones as $milestone) {
-                if ($completeness >= $milestone) {
-                    $actionType = 'profile_completion_' . $milestone;
-                    if ($this->hasXpEventForAction($user, $actionType, $user->getId())) {
-                        continue;
-                    }
-                    if (!$dryRun) {
-                        $xp = $this->xpService->retrieveXPForAction($actionType);
-                        $this->xpService->addXPToUser($user, $xp);
-                        $this->createXpEventRecord($user, $actionType, $user->getId(), $xp);
-                        $totalXpAwarded += $xp;
-                        ++$processed;
-                        $io->writeln("  ✓ Profile {$milestone}% → User #{$user->getId()} ({$user->getEmail()}) +{$xp} XP");
-                    } else {
-                        $xp = $this->xpService->retrieveXPForAction($actionType);
-                        $io->writeln("  [DRY-RUN] Would award {$xp} XP for profile {$milestone}% to user #{$user->getId()} ({$user->getEmail()})");
-                        $totalXpAwarded += $xp;
-                        ++$processed;
-                    }
+                if ($completeness < $milestone) {
+                    continue;
+                }
+
+                $actionType = 'profile_completion_' . $milestone;
+                $xp = $this->getXpForAction($actionType, $xpRules);
+                if ($xp <= 0) {
+                    continue;
+                }
+
+                $key = $this->makeKey($profileUserId, $actionType, $profileUserId);
+                if (isset($processedKeys[$key])) {
+                    continue;
+                }
+
+                if ($dryRun) {
+                    $io->writeln("  [DRY-RUN] Would award {$xp} XP ({$actionType}) to user #{$profileUserId}");
+                } else {
+                    $pendingInserts[] = [
+                        'userId' => $profileUserId,
+                        'actionType' => $actionType,
+                        'actionId' => $profileUserId,
+                        'xpValue' => $xp,
+                    ];
+                    $processedKeys[$key] = true;
+                }
+
+                $totalXpAwarded += $xp;
+                ++$processed;
+
+                if (!$dryRun && count($pendingInserts) >= $batchSize) {
+                    $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+                    $pendingInserts = [];
                 }
             }
         }
 
+        if (!$dryRun) {
+            $this->batchInsertXpEvents($pendingInserts, $userXpAccumulator);
+            $this->flushXpAccumulator($userXpAccumulator);
+        }
+
         return [$processed, $totalXpAwarded];
     }
 
-    private function hasXpEventForAction(User $user, string $actionType, int $actionId): bool
-    {
-        $existingEvent = $this->entityManager->getRepository(UserXpEvent::class)
-            ->findOneBy([
-                'user' => $user,
-                'actionType' => $actionType,
-                'actionId' => $actionId,
-            ]);
-
-        return null !== $existingEvent;
-    }
-
-    private function createXpEventRecord(User $user, string $actionType, int $actionId, int $xpValue): void
-    {
-        if ($xpValue <= 0) {
-            return; // No XP rule configured for this action — skip silently
-        }
-
-        $xpEvent = new UserXpEvent();
-        $xpEvent->setUser($user);
-        $xpEvent->setActionType($actionType);
-        $xpEvent->setActionId($actionId);
-        $xpEvent->setXpValue($xpValue);
-        $xpEvent->setIsProcessed(true); // Already processed, just for record keeping
-        $xpEvent->setCreatedAt(new DateTimeImmutable());
-
-        $this->entityManager->persist($xpEvent);
-        $this->entityManager->flush();
-    }
-
-    private function calculateProfileCompleteness(User $user): int
+    /** @param array<string, mixed> $row */
+    private function calculateProfileCompletenessFromRow(array $row): int
     {
         $fields = [
-            'firstName' => null !== $user->getFirstName() && '' !== $user->getFirstName(),
-            'lastName' => null !== $user->getLastName() && '' !== $user->getLastName(),
-            'email' => null !== $user->getEmail() && '' !== $user->getEmail(),
-            'avatar' => null !== $user->getAvatarFilename(),
-            'height' => null !== $user->getHeight(),
-            'weight' => null !== $user->getWeight(),
-            'shoeSize' => null !== $user->getShoeSize(),
-            'shirtSize' => null !== $user->getShirtSize(),
-            'pantsSize' => null !== $user->getPantsSize(),
-            'hasUserRelations' => $user->getUserRelations()->count() > 0,
+            null !== $row['first_name'] && '' !== $row['first_name'],
+            null !== $row['last_name'] && '' !== $row['last_name'],
+            null !== $row['email'] && '' !== $row['email'],
+            null !== $row['avatar_filename'],
+            null !== $row['height'],
+            null !== $row['weight'],
+            null !== $row['shoe_size'],
+            null !== $row['shirt_size'],
+            null !== $row['pants_size'],
+            (int) $row['relation_count'] > 0,
         ];
 
-        $completedFields = array_filter($fields);
-        $totalFields = count($fields);
+        $completed = count(array_filter($fields));
 
-        return (int) round((count($completedFields) / $totalFields) * 100);
-    }
-
-    /**
-     * @return User[]
-     */
-    private function retrieveUsersForPlayer(?Player $player): array
-    {
-        if (!$player) {
-            return [];
-        }
-
-        $users = [];
-        foreach ($player->getUserRelations() as $userRelation) {
-            // Nur self_player-Relationen berücksichtigen
-            if ('self_player' !== $userRelation->getRelationType()->getIdentifier()) {
-                continue;
-            }
-            $users[] = $userRelation->getUser();
-        }
-
-        return $users;
+        return (int) round(($completed / count($fields)) * 100);
     }
 }

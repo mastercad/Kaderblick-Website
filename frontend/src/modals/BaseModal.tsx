@@ -125,6 +125,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
           pt: title ? 2 : 3,
           pb: (actions && (fullScreen || (isMobile && maxWidth === 'lg'))) ? '84px' : 2,
           px: 3,
+          overflowY: 'auto',
         }}
       >
         {children}
