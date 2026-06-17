@@ -185,22 +185,26 @@ const UsersTab: React.FC = () => {
     },
     {
       header: 'Zuordnungen',
-      render: u =>
-        u.userRelations?.length > 0 ? (
+      render: u => {
+        const allEntries: string[] = [
+          ...(u.userRelations ?? []).map(r => `${r.relationType?.name ?? '—'} von ${r.entity ?? '—'}`),
+          ...(u.staffTeamAssignments ?? []).map(a => `Staff${a.type ? ` (${a.type.name})` : ''}: ${a.team?.name ?? '—'}`),
+          ...(u.staffClubAssignments ?? []).map(a => `Staff${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
+          ...(u.functionaryTeamAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.team?.name ?? '—'}`),
+          ...(u.functionaryClubAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
+        ];
+        return allEntries.length > 0 ? (
           <Stack spacing={0.25}>
-            {u.userRelations.map((r, i) => (
-              <Typography key={i} variant="caption" sx={{
-                color: "text.secondary"
-              }}>
-                {r.relationType?.name} von {r.entity}
+            {allEntries.map((entry, i) => (
+              <Typography key={i} variant="caption" sx={{ color: 'text.secondary' }}>
+                {entry}
               </Typography>
             ))}
           </Stack>
         ) : (
-          <Typography variant="caption" sx={{
-            color: "text.disabled"
-          }}>Keine</Typography>
-        ),
+          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Keine</Typography>
+        );
+      },
     },
   ];
 
@@ -279,84 +283,39 @@ const UsersTab: React.FC = () => {
         </Stack>
 
         {/* Zuordnungen */}
-        {u.userRelations?.length > 0 && (
-          <>
-            <Divider sx={{ my: 1.25 }} />
-            <Box>
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{
-                  alignItems: "center",
-                  mb: 0.75
-                }}>
-                <AccountTreeIcon sx={{ fontSize: 13, color: 'primary.main' }} />
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.07em',
-                    color: 'primary.main'
-                  }}>
-                  Zuordnungen
-                </Typography>
-              </Stack>
-              <Stack direction="column" spacing={0.6}>
-                {u.userRelations.map((r, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      px: 1.25,
-                      py: 0.6,
-                      borderRadius: '8px',
-                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : '#f0f4ff',
-                      border: '1px solid',
-                      borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : '#c5d0f0',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: 'primary.main',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 700,
-                        color: "primary.dark",
-                        flexShrink: 0
-                      }}>
-                      {r.relationType?.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "text.secondary",
-                        flexShrink: 0
-                      }}>von</Typography>
-                    <Typography
-                      variant="caption"
-                      noWrap
-                      sx={{
-                        fontWeight: 500,
-                        color: "text.primary"
-                      }}>
-                      {r.entity}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
-            </Box>
-          </>
-        )}
+        {(() => {
+          const allEntries = [
+            ...(u.userRelations ?? []).map(r => ({ label: r.relationType?.name ?? '—', value: r.entity ?? '—' })),
+            ...(u.staffTeamAssignments ?? []).map(a => ({ label: `Staff${a.type ? ` (${a.type.name})` : ''}`, value: a.team?.name ?? '—' })),
+            ...(u.staffClubAssignments ?? []).map(a => ({ label: `Staff${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
+            ...(u.functionaryTeamAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.team?.name ?? '—' })),
+            ...(u.functionaryClubAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
+          ];
+          if (allEntries.length === 0) return null;
+          return (
+            <>
+              <Divider sx={{ my: 1.25 }} />
+              <Box>
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', mb: 0.75 }}>
+                  <AccountTreeIcon sx={{ fontSize: 13, color: 'primary.main' }} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'primary.main' }}>
+                    Zuordnungen
+                  </Typography>
+                </Stack>
+                <Stack direction="column" spacing={0.6}>
+                  {allEntries.map((entry, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.6, borderRadius: '8px', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : '#f0f4ff', border: '1px solid', borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : '#c5d0f0' }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0 }} />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.dark', flexShrink: 0 }}>{entry.label}</Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>von</Typography>
+                      <Typography variant="caption" noWrap sx={{ fontWeight: 500, color: 'text.primary' }}>{entry.value}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+            </>
+          );
+        })()}
       </CardContent>
 
       <Divider />

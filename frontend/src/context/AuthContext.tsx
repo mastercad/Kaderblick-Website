@@ -16,6 +16,7 @@ interface User {
   jacketSize?: string;
   isCoach?: boolean;
   isPlayer?: boolean;
+  isKassenwart?: boolean;
   needsRegistrationContext?: boolean;
   twoFactorEnabled?: boolean;
   twoFactorRequired?: boolean;

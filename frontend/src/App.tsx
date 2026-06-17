@@ -78,6 +78,11 @@ const PosterTemplates = lazy(() => import('./pages/admin/PosterTemplates'));
 const PosterTemplateEditor = lazy(() => import('./pages/admin/PosterTemplateEditor/index'));
 const SystemMaintenance = lazy(() => import('./pages/admin/SystemMaintenance'));
 const QuickEventPresets = lazy(() => import('./pages/admin/QuickEventPresets/index'));
+const StaffAssignments = lazy(() => import('./pages/admin/StaffAssignments'));
+const FunctionaryAssignments = lazy(() => import('./pages/admin/FunctionaryAssignments'));
+const CashBook = lazy(() => import('./pages/CashBook'));
+const MeinDeckel = lazy(() => import('./pages/MeinDeckel'));
+const Strafenkatalog = lazy(() => import('./pages/Strafenkatalog'));
 const Locations = lazy(() => import('./pages/Locations'));
 const Clubs = lazy(() => import('./pages/Clubs'));
 const Players = lazy(() => import('./pages/Players'));
@@ -404,6 +409,11 @@ function App() {
                     <Route path="/mein-feedback" element={<ProtectedRoute><MyFeedback /></ProtectedRoute>} />
                     <Route path="/mein-feedback/:id" element={<ProtectedRoute><MyFeedbackDetail /></ProtectedRoute>} />
                     <Route path="/admin/user-relations" element={<ProtectedRoute><UserRelations /></ProtectedRoute>} />
+                    <Route path="/admin/staff-assignments" element={<ProtectedRoute><StaffAssignments /></ProtectedRoute>} />
+                    <Route path="/admin/functionary-assignments" element={<ProtectedRoute><FunctionaryAssignments /></ProtectedRoute>} />
+                    <Route path="/kassenbuch" element={<ProtectedRoute><CashBook /></ProtectedRoute>} />
+                    <Route path="/mein-deckel" element={<ProtectedRoute><MeinDeckel /></ProtectedRoute>} />
+                    <Route path="/strafenkatalog" element={<ProtectedRoute><Strafenkatalog /></ProtectedRoute>} />
                     <Route path="/admin/title-xp-overview" element={<ProtectedRoute><AdminTitleXpOverview /></ProtectedRoute>} />
                     <Route path="/admin/xp-config" element={<ProtectedRoute><XpConfig /></ProtectedRoute>} />
                     <Route path="/admin/karten-regeln" element={<ProtectedRoute><CardRules /></ProtectedRoute>} />

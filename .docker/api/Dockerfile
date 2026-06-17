@@ -124,13 +124,8 @@ RUN echo "SHELL=/bin/bash" > /etc/cron.d/symfony-crons \
 # =============================================================================
 FROM base AS base-dev
 
-RUN apk add --no-cache --virtual .xdebug-deps \
-    $PHPIZE_DEPS \
-    linux-headers \
-    && pecl install xdebug \
-    && docker-php-ext-enable xdebug \
-    && apk del .xdebug-deps \
-    && echo "xdebug.mode=debug" > /usr/local/etc/php/conf.d/xdebug.ini \
+# xdebug is pre-installed in php:8.3-fpm-alpine — only configuration needed
+RUN echo "xdebug.mode=debug" > /usr/local/etc/php/conf.d/xdebug.ini \
     && echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/xdebug.ini \
     && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/xdebug.ini \
     && echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/xdebug.ini \

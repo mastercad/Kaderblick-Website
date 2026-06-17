@@ -36,6 +36,11 @@ import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BuildIcon from '@mui/icons-material/Build';
 import StyleIcon from '@mui/icons-material/Style';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
+import WorkIcon from '@mui/icons-material/Work';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import LocalBarIcon from '@mui/icons-material/LocalBar';
+import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -98,6 +103,7 @@ export const navigationGroups: NavGroup[] = [
     children: [
       { key: 'my-team',     label: 'Mein Team',   route: '/my-team' },
       { key: 'mein-verein', label: 'Mein Verein', route: '/mein-verein' },
+      { key: 'mein-deckel', label: 'Mein Deckel', route: '/mein-deckel' },
     ],
   },
   {
@@ -190,8 +196,10 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
     {
       section: 'Zuweisungen',
       items: [
-        { label: 'Benutzer', page: 'admin/user-relations', icon: <ManageAccountsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
-        { label: 'Videos',   href: '/videos/upload',       icon: <VideoLibraryIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+        { label: 'Benutzer',     page: 'admin/user-relations',          icon: <ManageAccountsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+        { label: 'Staff',        page: 'admin/staff-assignments',       icon: <WorkIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+        { label: 'Funktionäre',  page: 'admin/functionary-assignments', icon: <AccountBalanceIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
+        { label: 'Videos',       href: '/videos/upload',                icon: <VideoLibraryIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
       ],
     },
   ];
@@ -211,6 +219,9 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'tasks':                       <AssignmentIcon fontSize="small" />,
   'mein-spieltag':               <ChecklistIcon fontSize="small" />,
   'quick-event-konfigurationen': <TuneIcon fontSize="small" />,
+  'kassenbuch':                  <AccountBalanceWalletIcon fontSize="small" />,
+  'mein-deckel':                 <LocalBarIcon fontSize="small" />,
+  'strafenkatalog':              <GavelIcon fontSize="small" />,
   // Nav group icons
   'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
   'team':          <GroupsIcon fontSize="small" />,
@@ -241,6 +252,9 @@ export const navItemColorMap: Record<string, string> = {
   'watchlist':                   '#EC407A',
   'messages':                    '#29B6F6',
   'quick-event-konfigurationen': '#FF7043',
+  'kassenbuch':                  '#43A047',
+  'mein-deckel':                 '#FB8C00',
+  'strafenkatalog':              '#FF7043',
   // Nav groups
   'spielbetrieb': '#EF5350',
   'team':         '#66BB6A',
@@ -289,14 +303,37 @@ export function useNavConfig() {
   const rolesArray = Object.values(user?.roles ?? {});
   const isAdmin    = rolesArray.includes('ROLE_ADMIN') || rolesArray.includes('ROLE_SUPERADMIN');
   const isSupporter = rolesArray.includes('ROLE_SUPPORTER');
+  const isKassenwart = user?.isKassenwart ?? false;
+
+  const isCoach = user?.isCoach ?? false;
+
+  const teamGroup: NavGroup = {
+    key: 'team',
+    label: 'Team & Verein',
+    icon: <GroupsIcon fontSize="small" />,
+    color: '#66BB6A',
+    primaryRoute: '/my-team',
+    children: [
+      { key: 'my-team',     label: 'Mein Team',   route: '/my-team' },
+      { key: 'mein-verein', label: 'Mein Verein',  route: '/mein-verein' },
+      { key: 'mein-deckel', label: 'Mein Deckel',  route: '/mein-deckel' },
+      ...(isAdmin || isKassenwart ? [{ key: 'kassenbuch', label: 'Kassenbuch', route: '/kassenbuch' }] : []),
+      ...(isAdmin || isKassenwart || isCoach ? [{ key: 'strafenkatalog', label: 'Strafenkatalog', route: '/strafenkatalog' }] : []),
+    ],
+  };
+
+  const dynamicNavigationGroups = navigationGroups.map(g => g.key === 'team' ? teamGroup : g);
+
   return {
     navigationItems,
+    navigationGroups: dynamicNavigationGroups,
     trainerMenuItems,
     supporterMenuItems,
     adminMenuSections: getAdminMenuSections(isSuperAdmin),
     navItemIconMap,
     isAdmin,
     isSupporter,
-    isCoach: user?.isCoach ?? false,
+    isCoach,
+    isKassenwart,
   };
 }
