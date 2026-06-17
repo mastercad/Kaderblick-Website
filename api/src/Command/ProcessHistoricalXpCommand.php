@@ -378,8 +378,17 @@ class ProcessHistoricalXpCommand extends Command
      *
      * @return array{int, int}
      */
-    private function processBatchedResults(Connection $conn, string $sql, array $params, string $actionType, int $xp, int $batchSize, bool $dryRun, SymfonyStyle $io, array &$processedKeys): array
-    {
+    private function processBatchedResults(
+        Connection $conn,
+        string $sql,
+        array $params,
+        string $actionType,
+        int $xp,
+        int $batchSize,
+        bool $dryRun,
+        SymfonyStyle $io,
+        array &$processedKeys
+    ): array {
         $rows = $conn->fetchAllAssociative($sql, $params);
 
         $processed = 0;

@@ -75,7 +75,8 @@ class UserManagementController extends AbstractController
                         'userRelations' => array_map(fn (UserRelation $relation) => [
                             'id' => $relation->getId(),
                             'type' => $relation->getRelationType()->getName(),
-                            'entity' => $relation->getPlayer() ? $relation->getPlayer()->getFullName() : ($relation->getCoach() ? $relation->getCoach()->getFullName() : null),
+                            'entity' => $relation->getPlayer() ? $relation->getPlayer()->getFullName() :
+                                ($relation->getCoach() ? $relation->getCoach()->getFullName() : null),
                             'permissions' => $relation->getPermissions(),
                             'relationType' => [
                                 'id' => $relation->getRelationType()->getId(),
@@ -87,28 +88,32 @@ class UserManagementController extends AbstractController
                         'staffTeamAssignments' => array_map(fn (StaffTeamAssignment $a) => [
                             'id' => $a->getId(),
                             'team' => ['id' => $a->getTeam()?->getId(), 'name' => $a->getTeam()?->getName()],
-                            'type' => $a->getStaffTeamAssignmentType() ? ['id' => $a->getStaffTeamAssignmentType()->getId(), 'name' => $a->getStaffTeamAssignmentType()->getName()] : null,
+                            'type' => $a->getStaffTeamAssignmentType() ?
+                                ['id' => $a->getStaffTeamAssignmentType()->getId(), 'name' => $a->getStaffTeamAssignmentType()->getName()] : null,
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
                             'endDate' => $a->getEndDate()?->format('Y-m-d'),
                         ], $this->em->getRepository(StaffTeamAssignment::class)->findBy(['user' => $user])),
                         'staffClubAssignments' => array_map(fn (StaffClubAssignment $a) => [
                             'id' => $a->getId(),
                             'club' => ['id' => $a->getClub()?->getId(), 'name' => $a->getClub()?->getName()],
-                            'type' => $a->getStaffClubAssignmentType() ? ['id' => $a->getStaffClubAssignmentType()->getId(), 'name' => $a->getStaffClubAssignmentType()->getName()] : null,
+                            'type' => $a->getStaffClubAssignmentType() ?
+                                ['id' => $a->getStaffClubAssignmentType()->getId(), 'name' => $a->getStaffClubAssignmentType()->getName()] : null,
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
                             'endDate' => $a->getEndDate()?->format('Y-m-d'),
                         ], $this->em->getRepository(StaffClubAssignment::class)->findBy(['user' => $user])),
                         'functionaryTeamAssignments' => array_map(fn (FunctionaryTeamAssignment $a) => [
                             'id' => $a->getId(),
                             'team' => ['id' => $a->getTeam()?->getId(), 'name' => $a->getTeam()?->getName()],
-                            'type' => $a->getFunctionaryTeamAssignmentType() ? ['id' => $a->getFunctionaryTeamAssignmentType()->getId(), 'name' => $a->getFunctionaryTeamAssignmentType()->getName()] : null,
+                            'type' => $a->getFunctionaryTeamAssignmentType() ?
+                                ['id' => $a->getFunctionaryTeamAssignmentType()->getId(), 'name' => $a->getFunctionaryTeamAssignmentType()->getName()] : null,
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
                             'endDate' => $a->getEndDate()?->format('Y-m-d'),
                         ], $this->em->getRepository(FunctionaryTeamAssignment::class)->findBy(['user' => $user])),
                         'functionaryClubAssignments' => array_map(fn (FunctionaryClubAssignment $a) => [
                             'id' => $a->getId(),
                             'club' => ['id' => $a->getClub()?->getId(), 'name' => $a->getClub()?->getName()],
-                            'type' => $a->getFunctionaryClubAssignmentType() ? ['id' => $a->getFunctionaryClubAssignmentType()->getId(), 'name' => $a->getFunctionaryClubAssignmentType()->getName()] : null,
+                            'type' => $a->getFunctionaryClubAssignmentType() ?
+                                ['id' => $a->getFunctionaryClubAssignmentType()->getId(), 'name' => $a->getFunctionaryClubAssignmentType()->getName()] : null,
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
                             'endDate' => $a->getEndDate()?->format('Y-m-d'),
                         ], $this->em->getRepository(FunctionaryClubAssignment::class)->findBy(['user' => $user]))

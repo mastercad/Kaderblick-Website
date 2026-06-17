@@ -52,16 +52,26 @@ class AssignmentAdminController extends AbstractController
                 'startDate' => $a->getStartDate()?->format('Y-m-d'),
                 'endDate' => $a->getEndDate()?->format('Y-m-d'),
             ], $clubAssignments),
-            'users' => array_map(fn (User $u) => ['id' => $u->getId(), 'fullName' => $u->getFullName()],
-                $this->em->getRepository(User::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC'])),
-            'teams' => array_map(fn (Team $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(Team::class)->findBy([], ['name' => 'ASC'])),
-            'clubs' => array_map(fn (Club $c) => ['id' => $c->getId(), 'name' => $c->getName()],
-                $this->em->getRepository(Club::class)->findBy([], ['name' => 'ASC'])),
-            'teamAssignmentTypes' => array_map(fn (StaffTeamAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(StaffTeamAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])),
-            'clubAssignmentTypes' => array_map(fn (StaffClubAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(StaffClubAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])),
+            'users' => array_map(
+                fn (User $u) => ['id' => $u->getId(), 'fullName' => $u->getFullName()],
+                $this->em->getRepository(User::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC'])
+            ),
+            'teams' => array_map(
+                fn (Team $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(Team::class)->findBy([], ['name' => 'ASC'])
+            ),
+            'clubs' => array_map(
+                fn (Club $c) => ['id' => $c->getId(), 'name' => $c->getName()],
+                $this->em->getRepository(Club::class)->findBy([], ['name' => 'ASC'])
+            ),
+            'teamAssignmentTypes' => array_map(
+                fn (StaffTeamAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(StaffTeamAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])
+            ),
+            'clubAssignmentTypes' => array_map(
+                fn (StaffClubAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(StaffClubAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])
+            ),
         ]);
     }
 
@@ -182,7 +192,8 @@ class AssignmentAdminController extends AbstractController
                 'id' => $a->getId(),
                 'user' => ['id' => $a->getUser()?->getId(), 'fullName' => $a->getUser()?->getFullName()],
                 'team' => ['id' => $a->getTeam()?->getId(), 'name' => $a->getTeam()?->getName()],
-                'type' => $a->getFunctionaryTeamAssignmentType() ? ['id' => $a->getFunctionaryTeamAssignmentType()->getId(), 'name' => $a->getFunctionaryTeamAssignmentType()->getName()] : null,
+                'type' => $a->getFunctionaryTeamAssignmentType() ?
+                    ['id' => $a->getFunctionaryTeamAssignmentType()->getId(), 'name' => $a->getFunctionaryTeamAssignmentType()->getName()] : null,
                 'startDate' => $a->getStartDate()?->format('Y-m-d'),
                 'endDate' => $a->getEndDate()?->format('Y-m-d'),
             ], $teamAssignments),
@@ -190,20 +201,31 @@ class AssignmentAdminController extends AbstractController
                 'id' => $a->getId(),
                 'user' => ['id' => $a->getUser()?->getId(), 'fullName' => $a->getUser()?->getFullName()],
                 'club' => ['id' => $a->getClub()?->getId(), 'name' => $a->getClub()?->getName()],
-                'type' => $a->getFunctionaryClubAssignmentType() ? ['id' => $a->getFunctionaryClubAssignmentType()->getId(), 'name' => $a->getFunctionaryClubAssignmentType()->getName()] : null,
+                'type' => $a->getFunctionaryClubAssignmentType() ?
+                    ['id' => $a->getFunctionaryClubAssignmentType()->getId(), 'name' => $a->getFunctionaryClubAssignmentType()->getName()] : null,
                 'startDate' => $a->getStartDate()?->format('Y-m-d'),
                 'endDate' => $a->getEndDate()?->format('Y-m-d'),
             ], $clubAssignments),
-            'users' => array_map(fn (User $u) => ['id' => $u->getId(), 'fullName' => $u->getFullName()],
-                $this->em->getRepository(User::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC'])),
-            'teams' => array_map(fn (Team $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(Team::class)->findBy([], ['name' => 'ASC'])),
-            'clubs' => array_map(fn (Club $c) => ['id' => $c->getId(), 'name' => $c->getName()],
-                $this->em->getRepository(Club::class)->findBy([], ['name' => 'ASC'])),
-            'teamAssignmentTypes' => array_map(fn (FunctionaryTeamAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(FunctionaryTeamAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])),
-            'clubAssignmentTypes' => array_map(fn (FunctionaryClubAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
-                $this->em->getRepository(FunctionaryClubAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])),
+            'users' => array_map(
+                fn (User $u) => ['id' => $u->getId(), 'fullName' => $u->getFullName()],
+                $this->em->getRepository(User::class)->findBy([], ['lastName' => 'ASC', 'firstName' => 'ASC'])
+            ),
+            'teams' => array_map(
+                fn (Team $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(Team::class)->findBy([], ['name' => 'ASC'])
+            ),
+            'clubs' => array_map(
+                fn (Club $c) => ['id' => $c->getId(), 'name' => $c->getName()],
+                $this->em->getRepository(Club::class)->findBy([], ['name' => 'ASC'])
+            ),
+            'teamAssignmentTypes' => array_map(
+                fn (FunctionaryTeamAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(FunctionaryTeamAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])
+            ),
+            'clubAssignmentTypes' => array_map(
+                fn (FunctionaryClubAssignmentType $t) => ['id' => $t->getId(), 'name' => $t->getName()],
+                $this->em->getRepository(FunctionaryClubAssignmentType::class)->findBy(['active' => true], ['name' => 'ASC'])
+            ),
         ]);
     }
 
