@@ -43,7 +43,17 @@ class WidgetController extends AbstractController
         $em->persist($widget);
         $em->flush();
 
-        return $this->json(['status' => 'success']);
+        return $this->json(['widget' => [
+            'id'       => $widget->getId(),
+            'type'     => $widget->getType(),
+            'name'     => null,
+            'width'    => $widget->getWidth(),
+            'position' => $widget->getPosition(),
+            'config'   => $widget->getConfig(),
+            'isDefault' => $widget->isDefault(),
+            'isEnabled' => $widget->isEnabled(),
+            'reportId'  => null,
+        ]]);
     }
 
     #[Route('/{id}', name: 'api_widget_remove', methods: ['DELETE'])]

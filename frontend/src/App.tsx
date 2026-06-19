@@ -61,6 +61,7 @@ const UserRelations = lazy(() => import('./pages/UserRelations'));
 const SurveyList = lazy(() => import('./pages/SurveyList'));
 const SurveyFill = lazy(() => import('./pages/SurveyFill'));
 const Formations = lazy(() => import('./pages/Formations'));
+const Inventar = lazy(() => import('./pages/Inventar'));
 const FeedbackAdmin = lazy(() => import('./pages/Feedback'));
 const FeedbackDetail = lazy(() => import('./pages/FeedbackDetail'));
 const GithubIssueDetail = lazy(() => import('./pages/GithubIssueDetail'));
@@ -431,6 +432,7 @@ function App() {
                     <Route path="/news/:id" element={<ProtectedRoute><NewsDetail /></ProtectedRoute>} />
                     <Route path="locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />
                     <Route path="formations" element={<ProtectedRoute><Formations /></ProtectedRoute>} />
+                    <Route path="/inventar" element={<ProtectedRoute><Inventar /></ProtectedRoute>} />
                     <Route path="clubs" element={<ProtectedRoute><Clubs /></ProtectedRoute>} />
                     <Route path="coaches" element={<ProtectedRoute><Coaches /></ProtectedRoute>} />
                     <Route path="players" element={<ProtectedRoute><Players /></ProtectedRoute>} />

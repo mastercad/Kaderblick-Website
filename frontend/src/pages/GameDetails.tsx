@@ -119,6 +119,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   // ── Video play handlers ──────────────────────────────────────────────────
 
   const handleOpenPlayVideo = (video: Video) => {
+    hook.loadGameEvents();
     setVideoToPlay(video);
     setPlayVideoModalOpen(true);
   };
@@ -126,6 +127,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const handleClosePlayVideo = () => {
     setPlayVideoModalOpen(false);
     setVideoToPlay(null);
+    hook.loadGameEvents();
   };
 
   const handleCreateEventFromVideo = async () => {
@@ -422,6 +424,7 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
         onSetVideoEventInitialMinute={setVideoEventInitialMinute}
         onSetEventToEdit={hook.setEventToEdit}
         onEventFormSuccess={hook.handleEventFormSuccess}
+        onEventUpdated={hook.loadGameEvents}
         videoDialogOpen={hook.videoDialogOpen}
         videoDialogLoading={hook.videoDialogLoading}
         videoToEdit={hook.videoToEdit}

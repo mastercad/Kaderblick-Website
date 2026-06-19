@@ -222,6 +222,7 @@ export const navItemIconMap: Record<string, React.ReactNode> = {
   'kassenbuch':                  <AccountBalanceWalletIcon fontSize="small" />,
   'mein-deckel':                 <LocalBarIcon fontSize="small" />,
   'strafenkatalog':              <GavelIcon fontSize="small" />,
+  'inventar':                    <CheckroomIcon fontSize="small" />,
   // Nav group icons
   'spielbetrieb':  <SportsSoccerIcon fontSize="small" />,
   'team':          <GroupsIcon fontSize="small" />,
@@ -255,6 +256,7 @@ export const navItemColorMap: Record<string, string> = {
   'kassenbuch':                  '#43A047',
   'mein-deckel':                 '#FB8C00',
   'strafenkatalog':              '#FF7043',
+  'inventar':                    '#0288D1',
   // Nav groups
   'spielbetrieb': '#EF5350',
   'team':         '#66BB6A',
@@ -304,6 +306,7 @@ export function useNavConfig() {
   const isAdmin    = rolesArray.includes('ROLE_ADMIN') || rolesArray.includes('ROLE_SUPERADMIN');
   const isSupporter = rolesArray.includes('ROLE_SUPPORTER');
   const isKassenwart = user?.isKassenwart ?? false;
+  const isZeugwart = user?.isZeugwart ?? false;
 
   const isCoach = user?.isCoach ?? false;
 
@@ -319,6 +322,7 @@ export function useNavConfig() {
       { key: 'mein-deckel', label: 'Mein Deckel',  route: '/mein-deckel' },
       ...(isAdmin || isKassenwart ? [{ key: 'kassenbuch', label: 'Kassenbuch', route: '/kassenbuch' }] : []),
       ...(isAdmin || isKassenwart || isCoach ? [{ key: 'strafenkatalog', label: 'Strafenkatalog', route: '/strafenkatalog' }] : []),
+      ...(isAdmin || isZeugwart || isCoach ? [{ key: 'inventar', label: 'Inventar', route: '/inventar' }] : []),
     ],
   };
 

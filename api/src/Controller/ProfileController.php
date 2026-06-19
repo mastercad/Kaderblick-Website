@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\FunctionaryClubAssignment;
 use App\Entity\FunctionaryTeamAssignment;
 use App\Entity\RegistrationRequest;
+use App\Entity\StaffTeamAssignment;
 use App\Entity\User;
 use App\Event\ProfileCompletenessReachedEvent;
 use App\Event\ProfileUpdatedEvent;
@@ -67,6 +68,14 @@ class ProfileController extends AbstractController
             }
         }
 
+        $isZeugwart = false;
+        foreach ($this->entityManager->getRepository(StaffTeamAssignment::class)->findBy(['user' => $user]) as $a) {
+            if ('Zeugwart' === $a->getStaffTeamAssignmentType()?->getName()) {
+                $isZeugwart = true;
+                break;
+            }
+        }
+
         $hasUserRelations = $user->getUserRelations()->count() > 0;
         $hasRegistrationRequests = $this->entityManager->getRepository(RegistrationRequest::class)
             ->count(['user' => $user]) > 0;
@@ -97,6 +106,7 @@ class ProfileController extends AbstractController
             'isCoach' => $isCoach,
             'isPlayer' => $isPlayer,
             'isKassenwart' => $isKassenwart,
+            'isZeugwart' => $isZeugwart,
             'avatarFile' => $user->getAvatarFilename(),
             'googleAvatarUrl' => $user->getGoogleAvatarUrl(),
             'useGoogleAvatar' => $user->isUseGoogleAvatar(),

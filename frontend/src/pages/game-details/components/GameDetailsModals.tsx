@@ -36,6 +36,7 @@ interface GameDetailsModalsProps {
   onSetVideoEventInitialMinute: (minute: number | undefined) => void;
   onSetEventToEdit: (event: GameEvent | null) => void;
   onEventFormSuccess: () => void;
+  onEventUpdated: () => Promise<void>;
 
   // Video CRUD modal
   videoDialogOpen: boolean;
@@ -98,6 +99,7 @@ const GameDetailsModals = ({
   onSetVideoEventInitialMinute,
   onSetEventToEdit,
   onEventFormSuccess,
+  onEventUpdated,
   videoDialogOpen,
   videoDialogLoading,
   videoToEdit,
@@ -141,7 +143,7 @@ const GameDetailsModals = ({
         gameEvents={gameEvents}
         gameStartDate={gameStartDate || ''}
         gameId={gameId}
-        onEventUpdated={async () => {}}
+        onEventUpdated={onEventUpdated}
         allVideos={videos}
         youtubeLinks={youtubeLinks}
         onCreateEventAtPosition={onCreateEventFromVideoAtPosition}

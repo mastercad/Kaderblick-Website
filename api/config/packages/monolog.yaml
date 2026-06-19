@@ -11,7 +11,7 @@ when@dev:
             main:
                 type: rotating_file
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
-                level: debug
+                level: warning
                 channels: ["!event", "!cron", "!xp_processing", "!security"]
                 max_files: 30
             cron:
