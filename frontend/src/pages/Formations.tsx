@@ -340,6 +340,7 @@ const Formations: React.FC = () => {
         setFormations(Array.isArray(active.formations) ? active.formations : []);
         setArchivedFormations(Array.isArray(archived.formations) ? archived.formations : []);
       })
+      .catch((err) => console.error('Formations laden fehlgeschlagen:', err))
       .finally(() => setLoading(false));
   };
 

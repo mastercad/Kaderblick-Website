@@ -19,4 +19,6 @@ mkdir -p /var/www/symfony/public/uploads/team-banners
 chown -R www-data:www-data /var/www/symfony/public
 chmod -R 775 /var/www/symfony/public
 
+su -s /bin/bash www-data -c "php /var/www/symfony/bin/console cache:clear"
+
 exec "$@"

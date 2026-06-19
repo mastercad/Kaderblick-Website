@@ -34,6 +34,7 @@ import { DynamicConfirmationModal } from '../modals/DynamicConfirmationModal';
 import { deleteWidget } from '../services/deleteWidget';
 import { WidgetRefreshProvider, useWidgetRefresh } from '../context/WidgetRefreshContext';
 import { ReportBuilderModal, type Report } from '../modals/ReportBuilder';
+import { BirthdaysWidget } from '../widgets/BirthdaysWidget';
 import { QuickRsvpWidget } from '../widgets/QuickRsvpWidget';
 
 export default function Dashboard() {
@@ -401,6 +402,7 @@ function DashboardContent() {
               widget.type === 'news' ? 'Neuigkeiten' :
               widget.type === 'messages' ? 'Nachrichten' :
               widget.type === 'calendar' ? 'Kalender' :
+              widget.type === 'birthdays' ? 'Geburtstage' :
               widget.type === 'report' ? widget.name || 'Report' :
               widget.type}
             loading={isRefreshing(widget.id)}
@@ -414,12 +416,14 @@ function DashboardContent() {
             {widget.type === 'news' && <NewsWidget widgetId={widget.id} config={widget.config} />}
             {widget.type === 'messages' && <MessagesWidget widgetId={widget.id} config={widget.config} />}
             {widget.type === 'calendar' && <CalendarWidget widgetId={widget.id} config={widget.config} />}
+            {widget.type === 'birthdays' && <BirthdaysWidget widgetId={widget.id} />}
             {widget.type === 'report' && <ReportWidget config={widget.config} reportId={widget.reportId} widgetId={widget.id} />}
             {![
               'upcoming_events',
               'news',
               'messages',
               'calendar',
+              'birthdays',
               'report'
             ].includes(widget.type) && (
               <Box sx={{ color: 'text.secondary', fontSize: 16, textAlign: 'center' }}>
@@ -441,6 +445,7 @@ function DashboardContent() {
             w.type === 'news' ? 'Neuigkeiten' :
             w.type === 'messages' ? 'Nachrichten' :
             w.type === 'calendar' ? 'Kalender' :
+            w.type === 'birthdays' ? 'Geburtstage' :
             w.type === 'report' ? 'Report' : w.type}"`;
         })()} wirklich entfernt werden?`}
         confirmText="Löschen"

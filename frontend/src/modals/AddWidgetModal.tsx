@@ -6,6 +6,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import CakeIcon from '@mui/icons-material/Cake';
 import EmailIcon from '@mui/icons-material/Email';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 import EventIcon from '@mui/icons-material/Event';
@@ -24,6 +25,7 @@ const widgetOptions = [
   { type: 'messages', label: 'Nachrichten', icon: <EmailIcon /> },
   { type: 'news', label: 'Neuigkeiten', icon: <NewspaperIcon /> },
   { type: 'upcoming_events', label: 'Anstehende Termine', icon: <EventIcon /> },
+  { type: 'birthdays', label: 'Geburtstage', icon: <CakeIcon /> },
   { type: 'report', label: 'Statistik Widget', icon: <DescriptionIcon /> },
 ];
 
