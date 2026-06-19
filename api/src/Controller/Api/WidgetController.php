@@ -44,15 +44,15 @@ class WidgetController extends AbstractController
         $em->flush();
 
         return $this->json(['widget' => [
-            'id'       => $widget->getId(),
-            'type'     => $widget->getType(),
-            'name'     => null,
-            'width'    => $widget->getWidth(),
+            'id' => $widget->getId(),
+            'type' => $widget->getType(),
+            'name' => null,
+            'width' => $widget->getWidth(),
             'position' => $widget->getPosition(),
-            'config'   => $widget->getConfig(),
+            'config' => $widget->getConfig(),
             'isDefault' => $widget->isDefault(),
             'isEnabled' => $widget->isEnabled(),
-            'reportId'  => null,
+            'reportId' => null,
         ]]);
     }
 

@@ -59,6 +59,7 @@ class InventoryItem
     #[ORM\JoinColumn(name: 'created_by_user_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?User $createdByUser = null;
 
+    /** @var Collection<int, InventoryCheckout> */
     #[ORM\OneToMany(mappedBy: 'inventoryItem', targetEntity: InventoryCheckout::class, cascade: ['persist', 'remove'])]
     private Collection $checkouts;
 

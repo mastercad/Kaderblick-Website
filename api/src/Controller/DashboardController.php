@@ -429,7 +429,7 @@ class DashboardController extends AbstractController
     /** @return array<string, mixed> */
     private function getBirthdayWidgetContent(User $user): array
     {
-        $today    = new DateTimeImmutable('today midnight');
+        $today = new DateTimeImmutable('today midnight');
         $tomorrow = $today->modify('+1 day');
 
         // Collect all team IDs the user is connected to (date-only, active assignments)
@@ -464,7 +464,7 @@ class DashboardController extends AbstractController
         $byPlayer = [];
         foreach ($assignments as $pta) {
             $player = $pta->getPlayer();
-            $pid    = $player->getId();
+            $pid = $player->getId();
             if (!isset($byPlayer[$pid])) {
                 $byPlayer[$pid] = ['player' => $player, 'teams' => []];
             }
@@ -473,29 +473,29 @@ class DashboardController extends AbstractController
 
         // Build window: last 7 days as 'mm-dd' => daysAgo
         $window = [];
-        for ($i = 0; $i <= 6; $i++) {
+        for ($i = 0; $i <= 6; ++$i) {
             $window[$today->modify("-{$i} days")->format('m-d')] = $i;
         }
 
         $birthdays = [];
         foreach ($byPlayer as ['player' => $player, 'teams' => $teams]) {
             $birthdate = $player->getBirthdate();
-            $md        = $birthdate->format('m-d');
+            $md = $birthdate->format('m-d');
 
             if (!isset($window[$md])) {
                 continue;
             }
 
             $daysAgo = $window[$md];
-            $age     = (int) $today->diff($birthdate)->y;
+            $age = (int) $today->diff($birthdate)->y;
 
             $birthdays[] = [
-                'id'        => $player->getId(),
-                'name'      => $player->getFullName(),
+                'id' => $player->getId(),
+                'name' => $player->getFullName(),
                 'birthdate' => $birthdate->format('Y-m-d'),
-                'age'       => $age,
-                'daysAgo'   => $daysAgo,
-                'teams'     => array_values(array_unique($teams)),
+                'age' => $age,
+                'daysAgo' => $daysAgo,
+                'teams' => array_values(array_unique($teams)),
             ];
         }
 
@@ -548,10 +548,10 @@ class DashboardController extends AbstractController
     {
         $todayStr = $today->format('Y-m-d');
 
-        if ($start !== null && $start->format('Y-m-d') > $todayStr) {
+        if (null !== $start && $start->format('Y-m-d') > $todayStr) {
             return false;
         }
-        if ($end !== null && $end->format('Y-m-d') < $todayStr) {
+        if (null !== $end && $end->format('Y-m-d') < $todayStr) {
             return false;
         }
 

@@ -3,7 +3,6 @@
 namespace App\Controller\Api;
 
 use App\Entity\Club;
-use App\Entity\CoachTeamAssignment;
 use App\Entity\FunctionaryClubAssignment;
 use App\Entity\FunctionaryTeamAssignment;
 use App\Entity\InventoryCheckout;
@@ -40,7 +39,7 @@ class InventoryController extends AbstractController
     {
         if ($this->isGranted('ROLE_ADMIN')) {
             return array_map(
-                static fn(Team $t) => $t->getId(),
+                static fn (Team $t) => $t->getId(),
                 $this->em->getRepository(Team::class)->findAll()
             );
         }
@@ -71,7 +70,7 @@ class InventoryController extends AbstractController
     {
         if ($this->isGranted('ROLE_ADMIN')) {
             return array_map(
-                static fn(Club $c) => $c->getId(),
+                static fn (Club $c) => $c->getId(),
                 $this->em->getRepository(Club::class)->findAll()
             );
         }
@@ -119,6 +118,9 @@ class InventoryController extends AbstractController
         return false;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function serializeItem(InventoryItem $item): array
     {
         $activeCheckoutQty = 0;
@@ -131,41 +133,44 @@ class InventoryController extends AbstractController
         }
 
         return [
-            'id'                => $item->getId(),
-            'name'              => $item->getName(),
-            'description'       => $item->getDescription(),
-            'category'          => $item->getCategory(),
-            'totalQuantity'     => $item->getTotalQuantity(),
+            'id' => $item->getId(),
+            'name' => $item->getName(),
+            'description' => $item->getDescription(),
+            'category' => $item->getCategory(),
+            'totalQuantity' => $item->getTotalQuantity(),
             'checkedOutQuantity' => $activeCheckoutQty,
             'availableQuantity' => max(0, $item->getTotalQuantity() - $activeCheckoutQty),
-            'unit'              => $item->getUnit(),
-            'condition'         => $item->getCondition(),
-            'notes'             => $item->getNotes(),
-            'teamId'            => $item->getTeam()?->getId(),
-            'teamName'          => $item->getTeam()?->getName(),
-            'clubId'            => $item->getClub()?->getId(),
-            'clubName'          => $item->getClub()?->getName(),
-            'createdAt'         => $item->getCreatedAt()->format('c'),
-            'updatedAt'         => $item->getUpdatedAt()?->format('c'),
-            'activeCheckouts'   => $activeCheckouts,
+            'unit' => $item->getUnit(),
+            'condition' => $item->getCondition(),
+            'notes' => $item->getNotes(),
+            'teamId' => $item->getTeam()?->getId(),
+            'teamName' => $item->getTeam()?->getName(),
+            'clubId' => $item->getClub()?->getId(),
+            'clubName' => $item->getClub()?->getName(),
+            'createdAt' => $item->getCreatedAt()->format('c'),
+            'updatedAt' => $item->getUpdatedAt()?->format('c'),
+            'activeCheckouts' => $activeCheckouts,
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function serializeCheckout(InventoryCheckout $checkout): array
     {
         return [
-            'id'              => $checkout->getId(),
-            'itemId'          => $checkout->getInventoryItem()?->getId(),
-            'itemName'        => $checkout->getInventoryItem()?->getName(),
-            'itemUnit'        => $checkout->getInventoryItem()?->getUnit(),
-            'userId'          => $checkout->getUser()?->getId(),
-            'borrowerName'    => $checkout->getDisplayName(),
-            'quantity'        => $checkout->getQuantity(),
-            'checkedOutAt'    => $checkout->getCheckedOutAt()->format('c'),
-            'dueDate'         => $checkout->getDueDate()?->format('Y-m-d'),
-            'returnedAt'      => $checkout->getReturnedAt()?->format('c'),
-            'isReturned'      => $checkout->isReturned(),
-            'note'            => $checkout->getNote(),
+            'id' => $checkout->getId(),
+            'itemId' => $checkout->getInventoryItem()?->getId(),
+            'itemName' => $checkout->getInventoryItem()?->getName(),
+            'itemUnit' => $checkout->getInventoryItem()?->getUnit(),
+            'userId' => $checkout->getUser()?->getId(),
+            'borrowerName' => $checkout->getDisplayName(),
+            'quantity' => $checkout->getQuantity(),
+            'checkedOutAt' => $checkout->getCheckedOutAt()->format('c'),
+            'dueDate' => $checkout->getDueDate()?->format('Y-m-d'),
+            'returnedAt' => $checkout->getReturnedAt()?->format('c'),
+            'isReturned' => $checkout->isReturned(),
+            'note' => $checkout->getNote(),
             'checkedOutByUserId' => $checkout->getCheckedOutByUser()?->getId(),
         ];
     }
@@ -182,8 +187,8 @@ class InventoryController extends AbstractController
             return $this->json(['items' => [], 'canWrite' => false]);
         }
 
-        $teamIds  = $this->getAccessibleTeamIds($user);
-        $clubIds  = $this->getAccessibleClubIds($user);
+        $teamIds = $this->getAccessibleTeamIds($user);
+        $clubIds = $this->getAccessibleClubIds($user);
 
         $filterTeamId = $request->query->get('teamId');
         $filterClubId = $request->query->get('clubId');
@@ -193,13 +198,13 @@ class InventoryController extends AbstractController
             ->orderBy('i.category', 'ASC')
             ->addOrderBy('i.name', 'ASC');
 
-        if ($filterTeamId !== null) {
+        if (null !== $filterTeamId) {
             $tid = (int) $filterTeamId;
             if (!in_array($tid, $teamIds, true) && !$this->isGranted('ROLE_ADMIN')) {
                 return $this->json(['message' => 'Kein Zugriff auf dieses Team'], Response::HTTP_FORBIDDEN);
             }
             $qb->andWhere('i.team = :team')->setParameter('team', $tid);
-        } elseif ($filterClubId !== null) {
+        } elseif (null !== $filterClubId) {
             $cid = (int) $filterClubId;
             if (!in_array($cid, $clubIds, true) && !$this->isGranted('ROLE_ADMIN')) {
                 return $this->json(['message' => 'Kein Zugriff auf diesen Verein'], Response::HTTP_FORBIDDEN);
@@ -225,10 +230,10 @@ class InventoryController extends AbstractController
         $items = $qb->getQuery()->getResult();
 
         return $this->json([
-            'items'    => array_map(fn(InventoryItem $i) => $this->serializeItem($i), $items),
+            'items' => array_map(fn (InventoryItem $i) => $this->serializeItem($i), $items),
             'canWrite' => $this->canAccess($user),
-            'teamIds'  => $teamIds,
-            'clubIds'  => $clubIds,
+            'teamIds' => $teamIds,
+            'clubIds' => $clubIds,
         ]);
     }
 
@@ -374,7 +379,7 @@ class InventoryController extends AbstractController
             $checkouts[] = $this->serializeCheckout($checkout);
         }
 
-        usort($checkouts, static fn($a, $b) => strcmp($b['checkedOutAt'], $a['checkedOutAt']));
+        usort($checkouts, static fn ($a, $b) => strcmp($b['checkedOutAt'], $a['checkedOutAt']));
 
         return $this->json(['checkouts' => $checkouts]);
     }
@@ -418,7 +423,7 @@ class InventoryController extends AbstractController
         $checkouts = $qb->getQuery()->getResult();
 
         return $this->json([
-            'checkouts' => array_map(fn(InventoryCheckout $c) => $this->serializeCheckout($c), $checkouts),
+            'checkouts' => array_map(fn (InventoryCheckout $c) => $this->serializeCheckout($c), $checkouts),
         ]);
     }
 
@@ -468,7 +473,7 @@ class InventoryController extends AbstractController
         }
 
         if (!empty($data['dueDate'])) {
-            $due = \DateTime::createFromFormat('Y-m-d', $data['dueDate']);
+            $due = DateTime::createFromFormat('Y-m-d', $data['dueDate']);
             if ($due) {
                 $checkout->setDueDate($due);
             }
@@ -524,26 +529,26 @@ class InventoryController extends AbstractController
             $team = $this->em->getRepository(Team::class)->find($tid);
             if ($team) {
                 $teams[] = [
-                    'id'       => $team->getId(),
-                    'name'     => $team->getName(),
+                    'id' => $team->getId(),
+                    'name' => $team->getName(),
                     'assigned' => in_array($team->getId(), $directTeamIds, true),
                 ];
             }
         }
-        usort($teams, static fn($a, $b) => strcmp($a['name'], $b['name']));
+        usort($teams, static fn ($a, $b) => strcmp($a['name'], $b['name']));
 
         $clubs = [];
         foreach ($clubIds as $cid) {
             $club = $this->em->getRepository(Club::class)->find($cid);
             if ($club) {
                 $clubs[] = [
-                    'id'       => $club->getId(),
-                    'name'     => $club->getName(),
+                    'id' => $club->getId(),
+                    'name' => $club->getName(),
                     'assigned' => in_array($club->getId(), $directClubIds, true),
                 ];
             }
         }
-        usort($clubs, static fn($a, $b) => strcmp($a['name'], $b['name']));
+        usort($clubs, static fn ($a, $b) => strcmp($a['name'], $b['name']));
 
         return $this->json(['teams' => $teams, 'clubs' => $clubs]);
     }
