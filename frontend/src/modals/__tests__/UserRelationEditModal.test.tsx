@@ -34,16 +34,30 @@ jest.mock('@mui/material', () => ({
   Box:              (p: any) => <div>{p.children}</div>,
   Typography:       (p: any) => <span>{p.children}</span>,
   IconButton:       (p: any) => <button onClick={p.onClick} aria-label={p['aria-label']}>{p.children}</button>,
-  TextField:        (p: any) => (
-    <select
-      data-testid={`select-${p.label}`}
-      value={p.value ?? ''}
-      disabled={p.disabled}
-      onChange={(e) => p.onChange?.({ target: { value: e.target.value } })}
-    >
-      {p.children}
-    </select>
-  ),
+  TextField:        (p: any) => {
+    if (p.type === 'date') {
+      return (
+        <input
+          data-testid={`input-${p.label}`}
+          type="date"
+          value={p.value ?? ''}
+          disabled={p.disabled}
+          onChange={(e) => p.onChange?.(e)}
+        />
+      );
+    }
+
+    return (
+      <select
+        data-testid={`select-${p.label}`}
+        value={p.value ?? ''}
+        disabled={p.disabled}
+        onChange={(e) => p.onChange?.({ target: { value: e.target.value } })}
+      >
+        {p.children}
+      </select>
+    );
+  },
   MenuItem: (p: any) => {
     // Recursively extract text to avoid invalid HTML (<div> inside <option>)
     function extractText(node: any): string {
@@ -190,8 +204,8 @@ describe('UserRelationEditModal', () => {
 
     fireEvent.click(screen.getByText('Team-Zuständigkeit hinzufügen'));
     fireEvent.change(screen.getByTestId('select-Team auswählen'), { target: { value: '31' } });
-    fireEvent.change(screen.getAllByTestId('select-Von (optional)')[0], { target: { value: '2026-07-01' } });
-    fireEvent.change(screen.getAllByTestId('select-Bis (optional)')[0], { target: { value: '2027-06-30' } });
+    fireEvent.change(screen.getAllByTestId('input-Von (optional)')[0], { target: { value: '2026-07-01' } });
+    fireEvent.change(screen.getAllByTestId('input-Bis (optional)')[0], { target: { value: '2027-06-30' } });
     fireEvent.click(screen.getByText('Vereinszuständigkeit hinzufügen'));
     fireEvent.change(screen.getByTestId('select-Verein auswählen'), { target: { value: '41' } });
     fireEvent.click(screen.getByText('Speichern'));
@@ -207,8 +221,8 @@ describe('UserRelationEditModal', () => {
     await renderModal();
     fireEvent.click(screen.getByText('Team-Zuständigkeit hinzufügen'));
     fireEvent.change(screen.getByTestId('select-Team auswählen'), { target: { value: '31' } });
-    fireEvent.change(screen.getAllByTestId('select-Von (optional)')[0], { target: { value: '2027-01-01' } });
-    fireEvent.change(screen.getAllByTestId('select-Bis (optional)')[0], { target: { value: '2026-12-31' } });
+    fireEvent.change(screen.getAllByTestId('input-Von (optional)')[0], { target: { value: '2027-01-01' } });
+    fireEvent.change(screen.getAllByTestId('input-Bis (optional)')[0], { target: { value: '2026-12-31' } });
     fireEvent.click(screen.getByText('Speichern'));
 
     expect(mockShowToast).toHaveBeenCalledWith('Das Bis-Datum darf nicht vor dem Von-Datum liegen.', 'error');
