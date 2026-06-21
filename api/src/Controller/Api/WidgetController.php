@@ -79,7 +79,6 @@ class WidgetController extends AbstractController
         return $this->json(['widget' => [
             'id' => $widget->getId(),
             'type' => $widget->getType(),
-<<<<<<< HEAD
             'name' => $report?->getName(),
             'description' => $report?->getDescription(),
             'width' => $widget->getWidth(),
@@ -88,15 +87,6 @@ class WidgetController extends AbstractController
             'default' => $widget->isDefault(),
             'enabled' => $widget->isEnabled(),
             'reportId' => $report?->getId(),
-=======
-            'name' => null,
-            'width' => $widget->getWidth(),
-            'position' => $widget->getPosition(),
-            'config' => $widget->getConfig(),
-            'isDefault' => $widget->isDefault(),
-            'isEnabled' => $widget->isEnabled(),
-            'reportId' => null,
->>>>>>> origin/main
         ]]);
     }
 
