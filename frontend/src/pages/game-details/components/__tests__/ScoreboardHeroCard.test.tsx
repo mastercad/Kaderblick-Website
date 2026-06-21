@@ -104,6 +104,8 @@ describe('ScoreboardHeroCard', () => {
         startDate: '2025-07-16T14:00:00.000Z',
         endDate: '2025-07-16T16:00:00.000Z',
         calendarEventType: { id: 1, name: 'Spiel' },
+        isCancelled: false,
+        isExternal: false
       },
     });
     render(<ScoreboardHeroCard {...defaultProps} game={game} />);

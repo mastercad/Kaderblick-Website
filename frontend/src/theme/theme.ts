@@ -114,10 +114,21 @@ function buildTheme(mode: PaletteMode) {
         defaultProps: { disableElevation: true },
         styleOverrides: {
           root: { minHeight: 42, borderRadius: 10, paddingInline: 16, textTransform: 'none' },
-          containedPrimary: {
-            background: dark ? 'linear-gradient(135deg, #72d44c, #54b936)' : 'linear-gradient(135deg, #1f7a35, #2f9445)',
-            boxShadow: dark ? '0 8px 22px rgba(73,171,48,0.18)' : '0 8px 20px rgba(31,122,53,0.17)',
-            '&:hover': { boxShadow: dark ? '0 10px 28px rgba(73,171,48,0.26)' : '0 10px 26px rgba(31,122,53,0.23)' },
+          contained: {
+            '&.MuiButton-containedPrimary': {
+              background: dark
+                ? 'linear-gradient(135deg, #72d44c, #54b936)'
+                : 'linear-gradient(135deg, #1f7a35, #2f9445)',
+              boxShadow: dark
+                ? '0 8px 22px rgba(73,171,48,0.18)'
+                : '0 8px 20px rgba(31,122,53,0.17)',
+
+              '&:hover': {
+                boxShadow: dark
+                  ? '0 10px 28px rgba(73,171,48,0.26)'
+                  : '0 10px 26px rgba(31,122,53,0.23)',
+              },
+            },
           },
           outlined: { borderColor: alpha(palette.text.primary, 0.2), '&:hover': { borderColor: palette.primary.main } },
         },

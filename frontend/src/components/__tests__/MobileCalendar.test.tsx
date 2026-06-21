@@ -192,7 +192,7 @@ describe('MobileCalendar', () => {
 
   describe('cancelled events', () => {
     it('renders cancelled events with strikethrough prefix', () => {
-      const cancelled: MobileCalendarEvent = { ...TRAINING, isCancelled: true };
+      const cancelled: MobileCalendarEvent = { ...TRAINING, cancelled: true };
       renderCalendar([cancelled]);
       fireEvent.click(screen.getByText('15'));
       // The component prepends "❌ " to cancelled event titles

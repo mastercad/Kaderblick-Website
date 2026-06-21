@@ -65,6 +65,8 @@ const mockGame: Game = {
     startDate: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
     endDate: new Date(Date.now() + 70 * 60 * 1000).toISOString(),
     calendarEventType: { id: 1, name: 'Spiel' },
+    isCancelled: false,
+    isExternal: false
   },
 };
 
