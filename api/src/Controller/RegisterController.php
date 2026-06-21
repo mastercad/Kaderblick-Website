@@ -48,7 +48,8 @@ class RegisterController extends AbstractController
         $user->setEmail($data['email'])
             ->setPassword($passwordHasher->hashPassword($user, $data['password']))
             ->setFirstName($firstName)
-            ->setLastName($lastName);
+            ->setLastName($lastName)
+            ->setRoles(['ROLE_GUEST']);
 
         $this->verificationService->createVerificationToken($user);
 

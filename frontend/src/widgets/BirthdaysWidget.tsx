@@ -60,7 +60,7 @@ export const BirthdaysWidget: React.FC<{ widgetId: string }> = ({ widgetId }) =>
   if (!birthdays.length) {
     return (
       <Typography variant="body2" align="center" sx={{ color: 'text.secondary' }}>
-        Keine Geburtstage in den letzten 7 Tagen
+        Keine Geburtstage in den nächsten 7 Tagen
       </Typography>
     );
   }

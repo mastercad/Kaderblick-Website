@@ -188,6 +188,7 @@ class DashboardEndToEndTest extends ApiWebTestCase
 
         $report = new ReportDefinition();
         $report->setName('Mein Test-Report');
+        $report->setUser($this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']));
         $this->em->persist($report);
         $this->em->flush();
 
@@ -196,7 +197,7 @@ class DashboardEndToEndTest extends ApiWebTestCase
             'reportId' => $report->getId(),
         ];
 
-        $client->jsonRequest('PUT', '/widget', $payload);
+        $client->jsonRequest('POST', '/api/widget', $payload);
         $this->assertResponseIsSuccessful();
 
         $body = json_decode($client->getResponse()->getContent(), true);
@@ -210,7 +211,7 @@ class DashboardEndToEndTest extends ApiWebTestCase
         $client = $this->client;
         $this->authenticateUser($client, 'user1@example.com');
 
-        $client->jsonRequest('PUT', '/widget', ['type' => 'news']);
+        $client->jsonRequest('POST', '/api/widget', ['type' => 'news']);
         $this->assertResponseIsSuccessful();
 
         $body = json_decode($client->getResponse()->getContent(), true);

@@ -64,6 +64,9 @@ jest.mock('@mui/material', () => ({
   Alert:            (p: any) => <div role="alert">{p.children}</div>,
   Paper:            (p: any) => <div>{p.children}</div>,
   Stack:            (p: any) => <div>{p.children}</div>,
+  Accordion:        (p: any) => <section data-testid="assignment-accordion" data-default-expanded={p.defaultExpanded ? 'true' : 'false'}>{p.children}</section>,
+  AccordionSummary: (p: any) => <div>{p.children}</div>,
+  AccordionDetails: (p: any) => <div>{p.children}</div>,
 }));
 
 jest.mock('@mui/icons-material/Add',             () => () => null);
@@ -71,6 +74,10 @@ jest.mock('@mui/icons-material/DeleteOutlined',   () => () => null);
 jest.mock('@mui/icons-material/SportsSoccer',    () => () => null);
 jest.mock('@mui/icons-material/Sports',          () => () => null);
 jest.mock('@mui/icons-material/PersonAddAlt1',   () => () => null);
+jest.mock('@mui/icons-material/Work',            () => () => null);
+jest.mock('@mui/icons-material/AccountBalance',  () => () => null);
+jest.mock('@mui/icons-material/AdminPanelSettings', () => () => null);
+jest.mock('@mui/icons-material/ExpandMore',       () => () => null);
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 const user = { id: 42, fullName: 'Max Mustermann' };
@@ -88,7 +95,11 @@ const apiResponse = {
     { id: 20, fullName: 'Karl Trainer', teams: ['1. Mannschaft'] },
   ],
   permissions: ['view', 'edit'],
+  teams: [{ id: 31, name: 'U17' }],
+  clubs: [{ id: 41, name: 'SV Beispiel' }],
   currentAssignments: { players: [], coaches: [] },
+  currentAdminTeamAssignments: [],
+  currentAdminClubAssignments: [],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -142,6 +153,66 @@ describe('UserRelationEditModal', () => {
     await renderModal();
     expect(screen.getByText('Spieler')).toBeInTheDocument();
     expect(screen.getByText('Trainer')).toBeInTheDocument();
+  });
+
+  it('ordnet häufige Beziehungen vor seltenen Verwaltungszuordnungen an', async () => {
+    await renderModal();
+    const headings = ['Spieler & Trainer', 'Staff & Funktionäre', 'Administration'];
+    const positions = headings.map(text => screen.getByText(text).compareDocumentPosition(document.body));
+    expect(screen.getByText('Spieler & Trainer')).toBeInTheDocument();
+    expect(screen.getByText('Staff & Funktionäre')).toBeInTheDocument();
+    expect(screen.getByText('Administration')).toBeInTheDocument();
+    expect(screen.getByText('Spieler & Trainer').compareDocumentPosition(screen.getByText('Staff & Funktionäre')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Staff & Funktionäre').compareDocumentPosition(screen.getByText('Administration')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(positions).toHaveLength(3);
+  });
+
+  it('öffnet mobile-first nur Spieler und Trainer standardmäßig', async () => {
+    await renderModal();
+    const accordions = screen.getAllByTestId('assignment-accordion');
+    expect(accordions).toHaveLength(3);
+    expect(accordions[0]).toHaveAttribute('data-default-expanded', 'true');
+    expect(accordions[1]).toHaveAttribute('data-default-expanded', 'false');
+    expect(accordions[2]).toHaveAttribute('data-default-expanded', 'false');
+  });
+
+  it('zeigt direkte administrative Team- und Vereinszuständigkeiten im letzten Bereich', async () => {
+    await renderModal();
+    expect(screen.getByText('Team-Administration')).toBeInTheDocument();
+    expect(screen.getByText('Vereinsadministration')).toBeInTheDocument();
+  });
+
+  it('sendet ausgewählte Admin-Zuständigkeiten mit ihrem Zeitraum', async () => {
+    mockApiJson
+      .mockResolvedValueOnce(apiResponse)
+      .mockResolvedValueOnce({ status: 'success', message: 'Gespeichert' });
+    await renderModal();
+
+    fireEvent.click(screen.getByText('Team-Zuständigkeit hinzufügen'));
+    fireEvent.change(screen.getByTestId('select-Team auswählen'), { target: { value: '31' } });
+    fireEvent.change(screen.getAllByTestId('select-Von (optional)')[0], { target: { value: '2026-07-01' } });
+    fireEvent.change(screen.getAllByTestId('select-Bis (optional)')[0], { target: { value: '2027-06-30' } });
+    fireEvent.click(screen.getByText('Vereinszuständigkeit hinzufügen'));
+    fireEvent.change(screen.getByTestId('select-Verein auswählen'), { target: { value: '41' } });
+    fireEvent.click(screen.getByText('Speichern'));
+
+    await waitFor(() => expect(mockApiJson).toHaveBeenCalledTimes(2));
+    expect(mockApiJson.mock.calls[1][1].body).toEqual(expect.objectContaining({
+      adminTeamAssignments: [{ teamId: 31, startDate: '2026-07-01', endDate: '2027-06-30' }],
+      adminClubAssignments: [{ clubId: 41, startDate: null, endDate: null }],
+    }));
+  });
+
+  it('verhindert einen Zeitraum mit Ende vor Beginn bereits im Frontend', async () => {
+    await renderModal();
+    fireEvent.click(screen.getByText('Team-Zuständigkeit hinzufügen'));
+    fireEvent.change(screen.getByTestId('select-Team auswählen'), { target: { value: '31' } });
+    fireEvent.change(screen.getAllByTestId('select-Von (optional)')[0], { target: { value: '2027-01-01' } });
+    fireEvent.change(screen.getAllByTestId('select-Bis (optional)')[0], { target: { value: '2026-12-31' } });
+    fireEvent.click(screen.getByText('Speichern'));
+
+    expect(mockShowToast).toHaveBeenCalledWith('Das Bis-Datum darf nicht vor dem Von-Datum liegen.', 'error');
+    expect(mockApiJson).toHaveBeenCalledTimes(1);
   });
 
   it('zeigt Team-Namen im Spieler-Select', async () => {

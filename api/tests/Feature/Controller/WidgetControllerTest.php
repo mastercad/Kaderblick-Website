@@ -3,6 +3,7 @@
 namespace App\Tests\Feature\Controller;
 
 use App\Entity\DashboardWidget;
+use App\Entity\ReportDefinition;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -42,6 +43,61 @@ class WidgetControllerTest extends WebTestCase
         $this->client->request('DELETE', '/api/widget/' . $widget->getId());
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testCreateReportWidgetPersistsReportRelation(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+        $report = (new ReportDefinition())
+            ->setUser($user)
+            ->setName('Meine Auswertung');
+        $this->entityManager->persist($report);
+        $this->entityManager->flush();
+
+        $this->client->loginUser($user);
+        $this->client->jsonRequest('POST', '/api/widget', [
+            'type' => 'report',
+            'reportId' => $report->getId(),
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true);
+        $this->assertSame($report->getId(), $body['widget']['reportId']);
+        $this->assertSame('Meine Auswertung', $body['widget']['name']);
+
+        $widget = $this->entityManager->getRepository(DashboardWidget::class)->find($body['widget']['id']);
+        self::assertNotNull($widget);
+        $this->assertSame($report->getId(), $widget->getReportDefinition()?->getId());
+        $this->assertSame($user->getId(), $widget->getUser()->getId());
+    }
+
+    public function testCreateReportWidgetRequiresReportId(): void
+    {
+        $user = $this->loadUser('user6@example.com');
+        $this->client->loginUser($user);
+
+        $this->client->jsonRequest('POST', '/api/widget', ['type' => 'report']);
+
+        $this->assertResponseStatusCodeSame(400);
+    }
+
+    public function testCreateReportWidgetRejectsAnotherUsersPrivateReport(): void
+    {
+        $owner = $this->loadUser('user7@example.com');
+        $requestingUser = $this->loadUser('user6@example.com');
+        $report = (new ReportDefinition())
+            ->setUser($owner)
+            ->setName('Private Auswertung');
+        $this->entityManager->persist($report);
+        $this->entityManager->flush();
+
+        $this->client->loginUser($requestingUser);
+        $this->client->jsonRequest('POST', '/api/widget', [
+            'type' => 'report',
+            'reportId' => $report->getId(),
+        ]);
+
+        $this->assertResponseStatusCodeSame(403);
     }
 
     private function loadUser(string $email): User

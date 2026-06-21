@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\Controller;
 
+use App\Entity\Club;
 use App\Entity\Coach;
 use App\Entity\Player;
 use App\Entity\Position;
+use App\Entity\Team;
 use App\Entity\User;
+use App\Entity\UserClubAdminAssignment;
+use App\Entity\UserTeamAdminAssignment;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -55,6 +59,13 @@ class UserManagementControllerTest extends WebTestCase
 
         // Reset targetUser to a clean known state before each test
         $this->targetUser->setRoles(['ROLE_USER']);
+        $this->targetUser->setRoleBeforeScopedAdmin(null);
+        foreach ($this->em->getRepository(UserTeamAdminAssignment::class)->findBy(['user' => $this->targetUser]) as $assignment) {
+            $this->em->remove($assignment);
+        }
+        foreach ($this->em->getRepository(UserClubAdminAssignment::class)->findBy(['user' => $this->targetUser]) as $assignment) {
+            $this->em->remove($assignment);
+        }
         $this->targetUser->setIsEnabled(true);
         $this->targetUser->setLockedAt(null);
         $this->em->flush();
@@ -141,7 +152,7 @@ class UserManagementControllerTest extends WebTestCase
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         self::assertArrayHasKey('user', $data);
         self::assertArrayHasKey('available_roles', $data);
-        self::assertArrayHasKey('current_roles', $data);
+        self::assertArrayHasKey('current_role', $data);
         self::assertArrayHasKey('ROLE_USER', $data['available_roles']);
         self::assertArrayHasKey('ROLE_ADMIN', $data['available_roles']);
     }
@@ -156,7 +167,7 @@ class UserManagementControllerTest extends WebTestCase
             'POST',
             '/admin/users/' . $this->targetUser->getId() . '/roles',
             server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['roles' => ['ROLE_USER']], JSON_THROW_ON_ERROR)
+            content: json_encode(['role' => 'ROLE_USER'], JSON_THROW_ON_ERROR)
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
@@ -170,7 +181,7 @@ class UserManagementControllerTest extends WebTestCase
             'POST',
             '/admin/users/' . $this->targetUser->getId() . '/roles',
             server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['roles' => ['ROLE_USER', 'ROLE_ADMIN']], JSON_THROW_ON_ERROR)
+            content: json_encode(['role' => 'ROLE_SUPPORTER'], JSON_THROW_ON_ERROR)
         );
 
         self::assertResponseIsSuccessful();
@@ -178,24 +189,23 @@ class UserManagementControllerTest extends WebTestCase
         self::assertTrue($data['success']);
 
         $this->em->refresh($this->targetUser);
-        self::assertContains('ROLE_ADMIN', $this->targetUser->getRoles());
+        self::assertSame(['ROLE_SUPPORTER'], $this->targetUser->getRoles());
     }
 
-    public function testUpdateRolesAlwaysKeepsRoleUser(): void
+    public function testUpdateRolesRejectsMissingRole(): void
     {
         $this->authenticate($this->adminUser);
 
-        // Send no roles → ROLE_USER should still be added automatically
         $this->client->request(
             'POST',
             '/admin/users/' . $this->targetUser->getId() . '/roles',
             server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['roles' => []], JSON_THROW_ON_ERROR)
+            content: json_encode([], JSON_THROW_ON_ERROR)
         );
 
-        self::assertResponseIsSuccessful();
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
         $this->em->refresh($this->targetUser);
-        self::assertContains('ROLE_USER', $this->targetUser->getRoles());
+        self::assertSame(['ROLE_USER'], $this->targetUser->getRoles());
     }
 
     // ── toggleStatus() GET /admin/users/{id}/toggle-status ────────────────────
@@ -382,7 +392,151 @@ class UserManagementControllerTest extends WebTestCase
         self::assertArrayHasKey('currentAssignments', $data);
         self::assertArrayHasKey('relationTypes', $data);
         self::assertArrayHasKey('permissions', $data);
+        self::assertArrayHasKey('currentAdminTeamAssignments', $data);
+        self::assertArrayHasKey('currentAdminClubAssignments', $data);
         self::assertSame($this->targetUser->getId(), $data['user']['id']);
+    }
+
+    public function testAssigningTeamAdminScopeCreatesDirectAssignmentAndRole(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        self::assertNotNull($team);
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['adminTeamAssignments' => [['teamId' => $team->getId()]]], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseIsSuccessful();
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_TEAM_ADMIN'], $this->targetUser->getRoles());
+        self::assertSame('ROLE_USER', $this->targetUser->getRoleBeforeScopedAdmin());
+        self::assertNotNull($this->em->getRepository(UserTeamAdminAssignment::class)->findOneBy([
+            'user' => $this->targetUser,
+            'team' => $team,
+        ]));
+    }
+
+    public function testFutureAdminScopeIsStoredButDoesNotPromoteUserYet(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        self::assertNotNull($team);
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['adminTeamAssignments' => [[
+                'teamId' => $team->getId(),
+                'startDate' => '2099-07-01',
+                'endDate' => '2099-12-31',
+            ]]], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseIsSuccessful();
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_USER'], $this->targetUser->getRoles());
+        $assignment = $this->em->getRepository(UserTeamAdminAssignment::class)->findOneBy(['user' => $this->targetUser]);
+        self::assertSame('2099-07-01', $assignment?->getStartDate()?->format('Y-m-d'));
+        self::assertSame('2099-12-31', $assignment->getEndDate()?->format('Y-m-d'));
+    }
+
+    public function testMultiplePeriodsForSameTeamAreAllowed(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        self::assertNotNull($team);
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['adminTeamAssignments' => [
+                ['teamId' => $team->getId(), 'startDate' => '2025-01-01', 'endDate' => '2025-06-30'],
+                ['teamId' => $team->getId(), 'startDate' => '2099-01-01', 'endDate' => '2099-06-30'],
+            ]], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(2, $this->em->getRepository(UserTeamAdminAssignment::class)->findBy([
+            'user' => $this->targetUser,
+            'team' => $team,
+        ]));
+    }
+
+    public function testAdminScopeRejectsEndDateBeforeStartDate(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        self::assertNotNull($team);
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['adminTeamAssignments' => [[
+                'teamId' => $team->getId(),
+                'startDate' => '2027-01-01',
+                'endDate' => '2026-12-31',
+            ]]], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        self::assertNull($this->em->getRepository(UserTeamAdminAssignment::class)->findOneBy(['user' => $this->targetUser]));
+    }
+
+    public function testClubScopeTakesPrecedenceAndRemovingAllScopesRestoresBaseRole(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        $club = $this->em->getRepository(Club::class)->findOneBy([]);
+        self::assertNotNull($team);
+        self::assertNotNull($club);
+        $this->targetUser->setRoles(['ROLE_SUPPORTER']);
+        $this->em->flush();
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode([
+                'adminTeamAssignments' => [['teamId' => $team->getId()]],
+                'adminClubAssignments' => [['clubId' => $club->getId()]],
+            ], JSON_THROW_ON_ERROR),
+        );
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_CLUB_ADMIN'], $this->targetUser->getRoles());
+        self::assertSame('ROLE_SUPPORTER', $this->targetUser->getRoleBeforeScopedAdmin());
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['adminTeamAssignments' => [], 'adminClubAssignments' => []], JSON_THROW_ON_ERROR),
+        );
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_SUPPORTER'], $this->targetUser->getRoles());
+        self::assertNull($this->targetUser->getRoleBeforeScopedAdmin());
+    }
+
+    public function testScopedAdminRolesCannotBeAssignedThroughRoleEndpoint(): void
+    {
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/roles',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['role' => 'ROLE_TEAM_ADMIN'], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_USER'], $this->targetUser->getRoles());
     }
 
     // ── deleteUser() DELETE /admin/users/{id} ─────────────────────────────────

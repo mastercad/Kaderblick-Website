@@ -74,6 +74,9 @@ export default function NavMobileBottomBar({
         pb: MOBILE_BOTTOM_NAV_SAFE_AREA,
         boxSizing: 'border-box',
         overflow: 'hidden',
+        borderTop: isHome ? 'none' : '1px solid',
+        borderColor: 'divider',
+        boxShadow: isHome ? 'none' : '0 -12px 32px rgba(0,0,0,0.10)',
         transform: 'translateZ(0)',
         WebkitTransform: 'translateZ(0)',
         willChange: viewportPinnedNav ? 'top, left, width' : 'auto',
@@ -108,10 +111,10 @@ export default function NavMobileBottomBar({
           },
         }}
       >
-        <BottomNavigationAction label="Dashboard" value="dashboard" icon={<DashboardIcon />}    onClick={() => go('/dashboard')} sx={{ '&.Mui-selected': { color: '#26A69A' } }} />
-        <BottomNavigationAction label="Kalender"  value="calendar"  icon={<CalendarMonthIcon />} onClick={() => go('/calendar')}  sx={{ '&.Mui-selected': { color: '#FFA726' } }} />
-        <BottomNavigationAction label="Spiele"    value="games"     icon={<SportsSoccerIcon />}  onClick={() => go('/games')}     sx={{ '&.Mui-selected': { color: '#EF5350' } }} />
-        <BottomNavigationAction label="Mein Team" value="my-team"   icon={<GroupsIcon />}        onClick={() => go('/my-team')}   sx={{ '&.Mui-selected': { color: '#66BB6A' } }} />
+        <BottomNavigationAction label="Dashboard" value="dashboard" icon={<DashboardIcon />}    onClick={() => go('/dashboard')} />
+        <BottomNavigationAction label="Kalender"  value="calendar"  icon={<CalendarMonthIcon />} onClick={() => go('/calendar')} />
+        <BottomNavigationAction label="Spiele"    value="games"     icon={<SportsSoccerIcon />}  onClick={() => go('/games')} />
+        <BottomNavigationAction label="Mein Team" value="my-team"   icon={<GroupsIcon />}        onClick={() => go('/my-team')} />
         <BottomNavigationAction label="Mehr"      value="more"      icon={<MoreHorizIcon />}     onClick={onMobileMenuToggle} />
       </BottomNavigation>
     </Paper>

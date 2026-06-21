@@ -86,7 +86,7 @@ class SupporterRequestAdminController extends AbstractController
         /** @var User $admin */
         $admin = $this->getUser();
         $user = $supporterRequest->getUser();
-        $user->addRole('ROLE_SUPPORTER');
+        $user->setBaseRole('ROLE_SUPPORTER');
 
         $supporterRequest->setStatus(SupporterRequest::STATUS_APPROVED)
             ->setProcessedAt(new DateTime())

@@ -50,7 +50,11 @@ const Footer: React.FC = () => {
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             &copy; {new Date().getFullYear()} Kaderblick
             {buildNumber && (
-              <Box component="span" style={{ color: '#CCCCCC', fontSize: '0.85em', marginLeft: 8 }} title={`Build: ${buildNumber}`}>
+              <Box
+                component="span"
+                style={{ color: 'inherit', fontSize: '0.85em', fontWeight: 650, marginLeft: 8 }}
+                title={`Build: ${buildNumber}`}
+              >
                 v{buildNumber}
               </Box>
             )}

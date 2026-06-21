@@ -248,6 +248,23 @@ export default function Toolbox({ onAddPlaceholder, onAddCustomText, background,
               color: "text.secondary"
             }}>Hintergrundbild</Typography>}
           />
+
+          {background.imageUrl && (
+            <Box>
+              <Typography variant="caption" sx={{
+                color: "text.secondary"
+              }}>
+                Deckkraft der Farbschicht: {Math.round((background.colorOpacity ?? 0) * 100)}%
+              </Typography>
+              <Slider
+                min={0} max={1} step={0.05}
+                value={background.colorOpacity ?? 0}
+                onChange={(_, v) => onBgChange({ ...background, colorOpacity: v as number })}
+                size="small" color="primary"
+              />
+            </Box>
+          )}
+
           {imageEnabled && (
             <Stack spacing={1.5} sx={{ mt: 1 }}>
               <Button
@@ -298,22 +315,6 @@ export default function Toolbox({ onAddPlaceholder, onAddCustomText, background,
                       </Tooltip>
                     </Box>
                   ))}
-                </Box>
-              )}
-
-              {background.imageUrl && (
-                <Box>
-                  <Typography variant="caption" sx={{
-                    color: "text.secondary"
-                  }}>
-                    Deckkraft der Farbschicht: {Math.round((background.colorOpacity ?? 0) * 100)}%
-                  </Typography>
-                  <Slider
-                    min={0} max={1} step={0.05}
-                    value={background.colorOpacity ?? 0}
-                    onChange={(_, v) => onBgChange({ ...background, colorOpacity: v as number })}
-                    size="small" color="primary"
-                  />
                 </Box>
               )}
             </Stack>

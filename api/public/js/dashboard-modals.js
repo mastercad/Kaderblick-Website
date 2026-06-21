@@ -156,8 +156,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function createWidget(type, reportId) {
-    await fetch('/widget', {
-            method: 'PUT',
+    await fetch('/api/widget', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: type, reportId: reportId })
     }).then((response) => {

@@ -25,7 +25,10 @@ jest.mock('../../context/AuthContext', () => ({
 }));
 
 jest.mock('../../context/ThemeContext', () => ({
-  useTheme: () => ({ mode: 'light', toggleTheme: jest.fn() }),
+  useTheme: () => ({
+    mode: 'light', preference: 'system', toggleTheme: jest.fn(),
+    setTheme: jest.fn(), setPreference: jest.fn(),
+  }),
 }));
 
 // ─── MUI styles ───────────────────────────────────────────────────────────────

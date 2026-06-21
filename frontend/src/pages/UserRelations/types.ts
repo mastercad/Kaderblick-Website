@@ -2,6 +2,8 @@ export interface UserRow {
   id: number;
   fullName: string;
   email: string;
+  roles: string[];
+  baseRole?: string;
   isVerified: boolean;
   isEnabled: boolean;
   lockedAt: string | null;
@@ -10,6 +12,8 @@ export interface UserRow {
   staffClubAssignments: Array<{ club?: { name: string }; type?: { name: string } | null }>;
   functionaryTeamAssignments: Array<{ team?: { name: string }; type?: { name: string } | null }>;
   functionaryClubAssignments: Array<{ club?: { name: string }; type?: { name: string } | null }>;
+  adminTeamAssignments: Array<{ team?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
+  adminClubAssignments: Array<{ club?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
 }
 
 export interface RegistrationRequestRow {

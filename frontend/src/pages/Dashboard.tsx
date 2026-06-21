@@ -220,20 +220,26 @@ function DashboardContent() {
   };
 
   return (
-    <Box sx={{ width: '100%', height: '100%', minWidth: 320, p: { xs: 1, md: 3 } }}>
-      {/* ── Quick RSVP: nur für Spieler und Trainer ── */}
-      {(user?.isPlayer || user?.isCoach) && <QuickRsvpWidget />}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Dashboard{user?.firstName ? ` – ${user.firstName}` : ''}
-        </Typography>
+    <Box sx={{ width: '100%', height: '100%', minWidth: 320, maxWidth: 1840, mx: 'auto', p: { xs: 1.5, sm: 2, md: 3.5 } }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-end' }, justifyContent: 'space-between', gap: 2, mb: { xs: 2, md: 3 } }}>
+        <Box>
+          <Typography variant="overline" sx={{ color: 'primary.main', display: 'block', mb: 0.25 }}>Dein Vereinsalltag</Typography>
+          <Typography variant="h4" component="h1">
+            {user?.firstName ? `Willkommen zurück, ${user.firstName}` : 'Willkommen zurück'}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>Alles Wichtige für deinen Tag auf einen Blick.</Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setAddModalOpen(true)}
+          sx={{ alignSelf: { xs: 'stretch', sm: 'center' } }}
         >
           Widget hinzufügen
         </Button>
+      </Box>
+      {/* Wichtigste offene Aktion zuerst, besonders auf Mobilgeräten. */}
+      {(user?.isPlayer || user?.isCoach) && <QuickRsvpWidget />}
       {/* AddWidgetModal */}
       <AddWidgetModal
         open={addModalOpen}
@@ -296,7 +302,6 @@ function DashboardContent() {
           ))}
         </div>
       </SelectReportModal>
-      </Box>
       {/* ── Empty dashboard state ── */}
       {!loading && widgets.length === 0 && (
         <Paper

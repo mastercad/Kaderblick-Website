@@ -75,5 +75,3 @@ export async function deletePosterImage(url: string): Promise<void> {
   if (!filename) throw new Error('Ungültige Bild-URL');
   await apiJson<void>(`/api/admin/poster-images/${encodeURIComponent(filename)}`, { method: 'DELETE' });
 }
-
-

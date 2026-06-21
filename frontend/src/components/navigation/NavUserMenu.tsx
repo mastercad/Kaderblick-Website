@@ -12,11 +12,14 @@ import MessageIcon from '@mui/icons-material/Message';
 import LinkIcon from '@mui/icons-material/Link';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import CookieIcon from '@mui/icons-material/Cookie';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUnreadMessageCount } from '../../hooks/useUnreadMessageCount';
 import { useConsent } from '../../context/ConsentContext';
 import CookieSettingsDialog from '../CookieSettingsDialog';
+import { useTheme } from '../../context/ThemeContext';
 
 interface NavUserMenuProps {
   anchorEl: HTMLElement | null;
@@ -35,10 +38,16 @@ export default function NavUserMenu({
   const unreadMessageCount = useUnreadMessageCount();
   const navigate = useNavigate();
   const { consentRecord, handleAcceptAll, handleSaveCustom } = useConsent();
+  const { mode, toggleTheme } = useTheme();
   const [cookieDialogOpen, setCookieDialogOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+    onClose();
+  };
+
+  const handleToggleTheme = () => {
+    toggleTheme();
     onClose();
   };
 
@@ -91,6 +100,12 @@ export default function NavUserMenu({
           Nachrichten
         </MenuItem>
         <Divider />
+        <MenuItem onClick={handleToggleTheme}>
+          {mode === 'dark'
+            ? <LightModeIcon fontSize="small" sx={{ color: 'primary.main', mr: 1 }} />
+            : <DarkModeIcon fontSize="small" sx={{ color: 'primary.main', mr: 1 }} />}
+          {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        </MenuItem>
         <MenuItem onClick={() => { onClose(); setCookieDialogOpen(true); }}>
           <CookieIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} />
           Cookie-Einstellungen

@@ -13,7 +13,6 @@ use App\Repository\DashboardWidgetRepository;
 use App\Repository\MessageRepository;
 use App\Repository\NewsRepository;
 use App\Service\DefaultDashboardService;
-use App\Service\PushNotificationService;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -240,85 +239,6 @@ class DashboardController extends AbstractController
     }
 
     #[IsGranted('IS_AUTHENTICATED')]
-    #[Route('/widget', name: 'widget_create', methods: ['PUT'])]
-    public function createWidget(Request $request, EntityManagerInterface $em, PushNotificationService $pushNotificationService): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-        $type = $data['type'] ?? null;
-        $type = strtolower($type);
-
-        if (empty($type)) {
-            return $this->json(['error' => 'Widget type is required'], 400);
-        }
-
-        $reportId = $data['reportId'] ?? null;
-        $position = $data['position'] ?? 0;
-        $width = $data['width'] ?? 4;
-        $report = null;
-
-        if ('report' === $type) {
-            if (empty($reportId)) {
-                return $this->json(['error' => 'Report ID is required'], 400);
-            }
-
-            /** @var User $user */
-            $user = $this->getUser();
-            $report = $em->getRepository(ReportDefinition::class)->find($reportId);
-            if (null === $report) {
-                return $this->json(['error' => 'Report not found'], 404);
-            }
-        }
-
-        /** @var User $user */
-        $user = $this->getUser();
-
-        $pushNotificationService->sendNotification(
-            $user,
-            'Widget created',
-            'A new widget has been created on your dashboard.'
-        );
-
-        $widget = new DashboardWidget();
-        $widget->setUser($user);
-        $widget->setType($data['type']);
-        $widget->setPosition($position);
-        $widget->setWidth($width);
-        $widget->setConfig($data['config'] ?? []);
-        $widget->setEnabled(true);
-        $widget->setReportDefinition($report);
-
-        $em->persist($widget);
-        $em->flush();
-
-        return $this->json([
-            'status' => 'success',
-            'widget' => [
-                'id' => $widget->getId(),
-                'type' => $widget->getType(),
-                'name' => $report?->getName(),
-                'position' => $widget->getPosition(),
-                'width' => $widget->getWidth(),
-                'config' => $widget->getConfig(),
-                'reportId' => $widget->getReportDefinition() ? $widget->getReportDefinition()->getId() : null
-            ]
-        ]);
-    }
-
-    #[IsGranted('IS_AUTHENTICATED')]
-    #[Route('widget/{id}', name: 'widget_delete', methods: ['DELETE'])]
-    public function deleteWidget(DashboardWidget $widget, EntityManagerInterface $em): JsonResponse
-    {
-        if ($widget->getUser() !== $this->getUser()) {
-            return $this->json(['error' => 'Access denied'], 403);
-        }
-
-        $em->remove($widget);
-        $em->flush();
-
-        return $this->json(['status' => 'success']);
-    }
-
-    #[IsGranted('IS_AUTHENTICATED')]
     #[Route('/app/dashboard/widgets/positions', name: 'widget_position', methods: ['PUT'])]
     public function updateWidgetPosition(Request $request, EntityManagerInterface $em): JsonResponse
     {
@@ -432,74 +352,127 @@ class DashboardController extends AbstractController
         $today = new DateTimeImmutable('today midnight');
         $tomorrow = $today->modify('+1 day');
 
-        // Collect all team IDs the user is connected to (date-only, active assignments)
         $teamIds = $this->getConnectedTeamIds($user, $today);
 
         if (empty($teamIds) && !$this->isGranted('ROLE_ADMIN')) {
             return ['type' => 'birthdays', 'birthdays' => []];
         }
 
-        // Find all active PlayerTeamAssignments, optionally filtered by team
-        $qb = $this->em->getRepository(PlayerTeamAssignment::class)
-            ->createQueryBuilder('pta')
-            ->join('pta.player', 'p')
-            ->join('pta.team', 't')
-            ->where('pta.startDate IS NULL OR pta.startDate < :tomorrow')
-            ->andWhere('pta.endDate IS NULL OR pta.endDate >= :today')
-            ->andWhere('p.birthdate IS NOT NULL')
-            ->setParameter('today', $today)
-            ->setParameter('tomorrow', $tomorrow);
+        $window = [];
 
-        if (!$this->isGranted('ROLE_ADMIN') || !empty($teamIds)) {
-            if (!empty($teamIds)) {
-                $qb->andWhere('pta.team IN (:teamIds)')
-                   ->setParameter('teamIds', array_keys($teamIds));
-            }
+        for ($i = 0; $i <= 7; ++$i) {
+            $date = $today->modify("+{$i} days");
+            $window[$date->format('m-d')] = $i;
+        }
+
+        $conn = $this->em->getConnection();
+
+        $sql = <<<SQL
+            SELECT pta.id
+            FROM player_team_assignments pta
+            INNER JOIN players p ON p.id = pta.player_id
+            WHERE (pta.start_date IS NULL OR pta.start_date < :tomorrow)
+            AND (pta.end_date IS NULL OR pta.end_date >= :today)
+            AND p.birthdate IS NOT NULL
+        SQL;
+
+        $params = [
+            'today' => $today->format('Y-m-d'),
+            'tomorrow' => $tomorrow->format('Y-m-d'),
+        ];
+
+        $types = [];
+
+        if (!empty($teamIds)) {
+            $sql .= ' AND pta.team_id IN (:teamIds)';
+            $params['teamIds'] = array_keys($teamIds);
+            $types['teamIds'] = \Doctrine\DBAL\ArrayParameterType::INTEGER;
+        }
+
+        $birthdayConditions = [];
+
+        foreach ($window as $monthDay => $daysUntil) {
+            [$month, $day] = explode('-', $monthDay);
+
+            $birthdayConditions[] = sprintf(
+                '(MONTH(p.birthdate) = :birthMonth%d AND DAYOFMONTH(p.birthdate) = :birthDay%d)',
+                $daysUntil,
+                $daysUntil
+            );
+
+            $params["birthMonth{$daysUntil}"] = (int) $month;
+            $params["birthDay{$daysUntil}"] = (int) $day;
+        }
+
+        $sql .= ' AND (' . implode(' OR ', $birthdayConditions) . ')';
+
+        $assignmentIds = $conn->executeQuery($sql, $params, $types)->fetchFirstColumn();
+
+        if (empty($assignmentIds)) {
+            return ['type' => 'birthdays', 'birthdays' => []];
         }
 
         /** @var PlayerTeamAssignment[] $assignments */
-        $assignments = $qb->getQuery()->getResult();
+        $assignments = $this->em->getRepository(PlayerTeamAssignment::class)
+            ->createQueryBuilder('pta')
+            ->join('pta.player', 'p')
+            ->addSelect('p')
+            ->join('pta.team', 't')
+            ->addSelect('t')
+            ->where('pta.id IN (:ids)')
+            ->setParameter('ids', $assignmentIds)
+            ->getQuery()
+            ->getResult();
 
-        // Group by player, collect team names
         $byPlayer = [];
+
         foreach ($assignments as $pta) {
             $player = $pta->getPlayer();
             $pid = $player->getId();
+
             if (!isset($byPlayer[$pid])) {
-                $byPlayer[$pid] = ['player' => $player, 'teams' => []];
+                $byPlayer[$pid] = [
+                    'player' => $player,
+                    'teams' => [],
+                ];
             }
+
             $byPlayer[$pid]['teams'][] = $pta->getTeam()->getName();
         }
 
-        // Build window: last 7 days as 'mm-dd' => daysAgo
-        $window = [];
-        for ($i = 0; $i <= 6; ++$i) {
-            $window[$today->modify("-{$i} days")->format('m-d')] = $i;
-        }
-
         $birthdays = [];
+
         foreach ($byPlayer as ['player' => $player, 'teams' => $teams]) {
             $birthdate = $player->getBirthdate();
-            $md = $birthdate->format('m-d');
 
-            if (!isset($window[$md])) {
+            if (!$birthdate instanceof DateTimeInterface) {
                 continue;
             }
 
-            $daysAgo = $window[$md];
-            $age = (int) $today->diff($birthdate)->y;
+            $monthDay = $birthdate->format('m-d');
+
+            if (!isset($window[$monthDay])) {
+                continue;
+            }
+
+            $daysUntil = $window[$monthDay];
+            $birthdayDate = $today->modify("+{$daysUntil} days");
 
             $birthdays[] = [
                 'id' => $player->getId(),
                 'name' => $player->getFullName(),
                 'birthdate' => $birthdate->format('Y-m-d'),
-                'age' => $age,
-                'daysAgo' => $daysAgo,
+                'age' => (int) $birthdate->diff($birthdayDate)->y,
+                'daysUntil' => $daysUntil,
                 'teams' => array_values(array_unique($teams)),
             ];
         }
 
-        usort($birthdays, static fn ($a, $b) => $a['daysAgo'] - $b['daysAgo']);
+        usort(
+            $birthdays,
+            static fn (array $a, array $b): int => $a['daysUntil'] <=> $b['daysUntil']
+                ?: $a['name'] <=> $b['name']
+        );
 
         return ['type' => 'birthdays', 'birthdays' => $birthdays];
     }

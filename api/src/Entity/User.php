@@ -9,6 +9,7 @@ use Deprecated;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use InvalidArgumentException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -34,7 +35,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /** @var array<string> */
     #[ORM\Column(type: 'json')]
-    private array $roles = [];
+    private array $roles = ['ROLE_GUEST'];
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $roleBeforeScopedAdmin = null;
 
     #[ORM\Column(type: 'string')]
     private string $password;
@@ -327,38 +331,76 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        $roles = $this->roles;
+        return [$this->roles[0] ?? 'ROLE_GUEST'];
+    }
 
-        if ($this->isVerified) {
-            $roles[] = 'ROLE_USER';
-        } else {
-            $roles[] = 'ROLE_GUEST';
-        }
-
-        if ($this->userRelations->count() > 0) {
-            $roles[] = 'ROLE_RELATED_USER';
-        }
-
-        return array_unique($roles);
+    public function getRole(): string
+    {
+        return $this->getRoles()[0];
     }
 
     /**
-     * @param array<string> $roles
+     * @param list<string> $roles
      */
     public function setRoles(array $roles): self
     {
-        $this->roles = $roles;
+        $roles = array_values(array_unique($roles));
+        if (1 !== count($roles) || '' === $roles[0]) {
+            throw new InvalidArgumentException('A user must have exactly one role.');
+        }
+
+        $this->roles = [$roles[0]];
 
         return $this;
     }
 
     public function addRole(string $role): self
     {
-        $this->roles[] = $role;
+        return $this->setRoles([$role]);
+    }
 
-        $this->roles = array_unique($this->roles);
+    public function getRoleBeforeScopedAdmin(): ?string
+    {
+        return $this->roleBeforeScopedAdmin;
+    }
+
+    public function getBaseRole(): string
+    {
+        if (in_array($this->getRole(), ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
+            return $this->roleBeforeScopedAdmin ?? 'ROLE_USER';
+        }
+
+        return $this->getRole();
+    }
+
+    public function setRoleBeforeScopedAdmin(?string $role): self
+    {
+        if (null !== $role && in_array($role, ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
+            throw new InvalidArgumentException('The fallback role cannot be a scoped admin role.');
+        }
+
+        $this->roleBeforeScopedAdmin = $role;
 
         return $this;
+    }
+
+    public function setBaseRole(string $role): self
+    {
+        if (in_array($role, ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
+            throw new InvalidArgumentException('Scoped admin roles must be assigned through an administration scope.');
+        }
+
+        if (in_array($role, ['ROLE_ADMIN', 'ROLE_SUPERADMIN'], true)) {
+            $this->roleBeforeScopedAdmin = null;
+
+            return $this->setRoles([$role]);
+        }
+
+        if (in_array($this->getRole(), ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
+            return $this->setRoleBeforeScopedAdmin($role);
+        }
+
+        return $this->setRoles([$role]);
     }
 
     public function getPassword(): string
@@ -1247,5 +1289,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->showInHallOfFame = $showInHallOfFame;
 
         return $this;
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return in_array($role, $this->getRoles(), true);
     }
 }

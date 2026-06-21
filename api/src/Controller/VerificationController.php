@@ -55,9 +55,7 @@ class VerificationController extends AbstractController
              ->setVerificationToken(null)
              ->setVerificationExpires(null);
 
-        if (!in_array('ROLE_USER', $user->getRoles(), true)) {
-            $user->addRole('ROLE_USER');
-        }
+        $user->setBaseRole('ROLE_USER');
 
         $this->em->flush();
 
@@ -149,9 +147,7 @@ class VerificationController extends AbstractController
         $user->setIsVerified(true)
              ->setIsEnabled(true);
 
-        if (!in_array('ROLE_USER', $user->getRoles(), true)) {
-            $user->addRole('ROLE_USER');
-        }
+        $user->setBaseRole('ROLE_USER');
 
         $this->em->persist($user);
         $this->em->flush();

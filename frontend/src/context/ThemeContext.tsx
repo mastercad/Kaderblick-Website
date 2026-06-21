@@ -3,12 +3,17 @@ import { isFunctionalAllowed } from '../services/cookieConsentService';
 import { useConsent } from './ConsentContext';
 import * as localStorageService from '../services/localStorageService';
 
-type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark';
+export type ThemePreference = 'system' | ThemeMode;
 
 interface ThemeContextType {
+  /** Tatsächlich aktiver Modus nach Auflösung der Präferenz. */
   mode: ThemeMode;
+  /** Vom Benutzer gewählte Quelle; standardmäßig folgt die App dem Gerät. */
+  preference: ThemePreference;
   toggleTheme: () => void;
   setTheme: (mode: ThemeMode) => void;
+  setPreference: (preference: ThemePreference) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -16,55 +21,45 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { functionalAllowed } = useConsent();
 
-  const [mode, setMode] = useState<ThemeMode>(() => {
-    // Gespeicherte Präferenz nur lesen wenn funktionale Cookies erlaubt sind
+  const getSystemMode = (): ThemeMode =>
+    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+  const [systemMode, setSystemMode] = useState<ThemeMode>(getSystemMode);
+  const [preference, setPreferenceState] = useState<ThemePreference>(() => {
     if (isFunctionalAllowed()) {
       const saved = localStorageService.getItem('theme-mode');
-      if (saved === 'light' || saved === 'dark') {
+      if (saved === 'system' || saved === 'light' || saved === 'dark') {
         return saved;
       }
     }
-
-    // Fallback auf System-Präferenz
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-
-    return 'light';
+    return 'system';
   });
+  const mode: ThemeMode = preference === 'system' ? systemMode : preference;
 
-  // Wenn Consent erteilt wird: aktuelles Theme speichern
-  // Wenn Consent entzogen wird: gespeichertes Theme löschen (clearCategory erledigt das)
   useEffect(() => {
     if (functionalAllowed) {
-      localStorageService.setItem('theme-mode', mode);
+      localStorageService.setItem('theme-mode', preference);
     }
-  }, [mode, functionalAllowed]);
+  }, [preference, functionalAllowed]);
 
-  // Höre auf System-Theme-Änderungen
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Nur ändern wenn kein explizit gespeichertes Theme vorhanden (oder Consent fehlt)
-      if (!isFunctionalAllowed() || !localStorageService.getItem('theme-mode')) {
-        setMode(e.matches ? 'dark' : 'light');
-      }
-    };
+    const handleChange = (e: MediaQueryListEvent) => setSystemMode(e.matches ? 'dark' : 'light');
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const toggleTheme = () => {
-    setMode(prev => prev === 'light' ? 'dark' : 'light');
+    setPreferenceState(mode === 'light' ? 'dark' : 'light');
   };
 
   const setTheme = (newMode: ThemeMode) => {
-    setMode(newMode);
+    setPreferenceState(newMode);
   };
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ mode, preference, toggleTheme, setTheme, setPreference: setPreferenceState }}>
       {children}
     </ThemeContext.Provider>
   );

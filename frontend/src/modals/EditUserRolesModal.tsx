@@ -1,77 +1,57 @@
-import React, { useState } from 'react';
-import { Button, FormGroup, FormControlLabel, Checkbox, Box } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, MenuItem, TextField } from '@mui/material';
 import BaseModal from './BaseModal';
 
 const ALL_ROLES = [
-  'ROLE_GUEST',
-  'ROLE_USER',
-  'ROLE_SUPPORTER',
-  'ROLE_CLUB',
-  'ROLE_ADMIN',
-  'ROLE_SUPERADMIN',
+  { value: 'ROLE_GUEST', label: 'Gast' },
+  { value: 'ROLE_USER', label: 'Benutzer' },
+  { value: 'ROLE_SUPPORTER', label: 'Supporter' },
+  { value: 'ROLE_CLUB', label: 'Verein' },
+  { value: 'ROLE_ADMIN', label: 'Administrator' },
+  { value: 'ROLE_SUPERADMIN', label: 'Super-Administrator' },
 ];
 
 interface EditUserRolesModalProps {
   open: boolean;
   onClose: () => void;
-  user: any;
-  onSave: (roles: string[]) => void;
+  user: { fullName?: string; email?: string; roles?: string[]; baseRole?: string } | undefined;
+  onSave: (role: string) => void;
 }
 
 const EditUserRolesModal: React.FC<EditUserRolesModalProps> = ({ open, onClose, user, onSave }) => {
-  // Normalize roles to always be an array
-  const normalizeRoles = (roles: any): string[] => {
-    if (Array.isArray(roles)) return roles;
-    if (roles && typeof roles === 'object') return Object.values(roles);
-    return [];
-  };
-  const [roles, setRoles] = useState<string[]>(normalizeRoles(user?.roles));
+  const [role, setRole] = useState('ROLE_GUEST');
 
-  React.useEffect(() => {
-    setRoles(normalizeRoles(user?.roles));
+  useEffect(() => {
+    setRole(user?.baseRole || (Array.isArray(user?.roles) && user.roles[0] ? user.roles[0] : 'ROLE_GUEST'));
   }, [user]);
-
-  const handleToggle = (role: string) => {
-    setRoles((prev) => {
-      // prev should always be an array, but double check
-      const arr = Array.isArray(prev) ? prev : normalizeRoles(prev);
-      return arr.includes(role) ? arr.filter((r) => r !== role) : [...arr, role];
-    });
-  };
-
-  const handleSave = () => {
-    onSave(roles);
-  };
 
   return (
     <BaseModal
       open={open}
       onClose={onClose}
       maxWidth="xs"
-      title={`Rollen bearbeiten für ${user?.fullName || user?.email}`}
+      title={`Rolle bearbeiten für ${user?.fullName || user?.email || ''}`}
       actions={
         <>
           <Button onClick={onClose} variant="outlined" color="secondary">Abbrechen</Button>
-          <Button onClick={handleSave} variant="contained" color="primary">Speichern</Button>
+          <Button onClick={() => onSave(role)} variant="contained" color="primary">Speichern</Button>
         </>
       }
     >
-      <Box sx={{ mt: 1 }}>
-        <FormGroup>
-          {ALL_ROLES.map((role) => (
-            <FormControlLabel
-              key={role}
-              control={
-                <Checkbox
-                  checked={roles.includes(role)}
-                  onChange={() => handleToggle(role)}
-                />
-              }
-              label={role.replace('ROLE_', '')}
-            />
-          ))}
-        </FormGroup>
-      </Box>
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Team- und Vereinsadministratoren werden über ihre Zuständigkeiten im Zuordnungen-Modal festgelegt.
+      </Alert>
+      <TextField
+        select
+        fullWidth
+        label="Rolle"
+        value={role}
+        onChange={(event) => setRole(event.target.value)}
+      >
+        {ALL_ROLES.map((option) => (
+          <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+        ))}
+      </TextField>
     </BaseModal>
   );
 };

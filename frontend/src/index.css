@@ -52,12 +52,11 @@
   --app-header-height: 56px;
   --app-header-height-transition: height 0.25s ease;
   --sidebar-width: 0px;
-  font-family: 'Roboto flex', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter Variable', Inter, 'Roboto Flex', system-ui, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 300;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
   background-color: transparent;
 
   text-rendering: optimizeLegibility;
@@ -92,11 +91,11 @@ body.app-scrolled {
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: inherit;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  text-decoration: none;
 }
 
 body {
@@ -109,35 +108,70 @@ body {
   overscroll-behavior: none;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+button {
+  font-family: inherit;
+  cursor: pointer;
 }
 
-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.kb-app-main {
+  isolation: isolate;
+}
+
+.kb-app-main::before {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  inset: var(--app-header-height) 0 auto var(--sidebar-width);
+  height: min(32rem, 55vh);
+  background: radial-gradient(circle at 88% 0%, rgba(80, 170, 70, 0.075), transparent 48%);
+}
+
+.kb-app-shell .rbc-toolbar button {
+  min-width: auto;
+  min-height: 34px;
+  padding: 0.35rem 0.7rem;
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #FFFFFF;
-  background-color: #4E4E4E;
-  cursor: pointer;
-  transition: border-color 0.25s;
-  /* Better touch targets */
-/*  min-height: 44px;*/
-  min-width: 44px;
+  border-color: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+  background: transparent;
+  font-weight: 600;
 }
-button:hover {
-  border-color: #646cff;
+
+.kb-app-shell .rbc-toolbar button:hover,
+.kb-app-shell .rbc-toolbar button:focus,
+.kb-app-shell .rbc-toolbar button.rbc-active {
+  color: #72d44c;
+  border-color: color-mix(in srgb, #72d44c 55%, transparent);
+  background: color-mix(in srgb, #72d44c 10%, transparent);
+  box-shadow: none;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+
+.kb-app-shell .rbc-month-view,
+.kb-app-shell .rbc-time-view,
+.kb-app-shell .rbc-time-header-content,
+.kb-app-shell .rbc-day-bg,
+.kb-app-shell .rbc-month-row,
+.kb-app-shell .rbc-header,
+.kb-app-shell .rbc-timeslot-group,
+.kb-app-shell .rbc-time-content,
+.kb-app-shell .rbc-agenda-table,
+.kb-app-shell .rbc-agenda-table th,
+.kb-app-shell .rbc-agenda-table td {
+  border-color: var(--kb-calendar-border) !important;
+}
+
+.kb-app-shell .rbc-off-range-bg {
+  background: var(--kb-calendar-off-range);
+}
+
+.kb-app-shell .rbc-today {
+  background: var(--kb-calendar-muted);
+}
+
+.kb-app-shell .rbc-show-more {
+  color: inherit;
+  background: transparent;
 }
 
 .rbc-date-cell,

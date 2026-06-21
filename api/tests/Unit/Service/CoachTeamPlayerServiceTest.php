@@ -11,6 +11,7 @@ use App\Entity\RelationType;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Entity\UserRelation;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use App\Service\UserTeamAccessService;
 use DateTime;
@@ -24,13 +25,16 @@ class CoachTeamPlayerServiceTest extends TestCase
 {
     /** @var \PHPUnit\Framework\MockObject\MockObject&UserTeamAccessService */
     private UserTeamAccessService $accessService;
+    private AdminScopeService $adminScopeService;
 
     private CoachTeamPlayerService $service;
 
     protected function setUp(): void
     {
         $this->accessService = $this->createMock(UserTeamAccessService::class);
-        $this->service = new CoachTeamPlayerService($this->accessService);
+        $this->adminScopeService = $this->createMock(AdminScopeService::class);
+        $this->adminScopeService->method('getAdministeredTeams')->willReturn([]);
+        $this->service = new CoachTeamPlayerService($this->accessService, $this->adminScopeService);
     }
 
     // =========================================================================

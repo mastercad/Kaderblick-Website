@@ -48,7 +48,7 @@ const PAYLOAD_TYPE_MAP: Record<PosterPayload['templateId'], PosterType> = {
 
 export interface SharePosterDialogProps {
   open: boolean;
-  onClose: () => void;
+  onClose: (e: React.MouseEvent) => void;
   payload: PosterPayload;
 }
 

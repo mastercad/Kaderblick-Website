@@ -6,7 +6,7 @@ import { apiJson } from '../utils/api';
  * @returns Promise<void>
  */
 export async function deleteWidget(widgetId: string): Promise<void> {
-  await apiJson(`/widget/${widgetId}`, {
+  await apiJson(`/api/widget/${widgetId}`, {
     method: 'DELETE',
   });
 }

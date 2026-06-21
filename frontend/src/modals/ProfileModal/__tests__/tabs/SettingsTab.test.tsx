@@ -31,7 +31,8 @@ const healthyPush: PushHealthReport = {
 
 const defaultProps = {
   themeMode: 'light' as const,
-  onToggleTheme: jest.fn(),
+  themePreference: 'system' as const,
+  onThemePreferenceChange: jest.fn(),
   pushHealth: healthyPush,
   pushChecking: false,
   pushTestResult: null,
@@ -59,23 +60,22 @@ describe('SettingsTab', () => {
     expect(screen.getByText('Design')).toBeInTheDocument();
   });
 
-  it('shows "Light Mode" label in light mode', () => {
-    render(<SettingsTab {...defaultProps} themeMode="light" />);
-    expect(screen.getByText('Light Mode')).toBeInTheDocument();
+  it('uses the device setting by default', () => {
+    render(<SettingsTab {...defaultProps} />);
+    expect(screen.getByRole('button', { name: 'Systemeinstellung' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Folgt automatisch deinem Gerät/)).toBeInTheDocument();
   });
 
-  it('shows "Dark Mode" label in dark mode', () => {
+  it('shows the currently resolved system mode', () => {
     render(<SettingsTab {...defaultProps} themeMode="dark" />);
-    expect(screen.getByText('Dark Mode')).toBeInTheDocument();
+    expect(screen.getByText(/Aktuell ist Dunkel aktiv/)).toBeInTheDocument();
   });
 
-  it('calls onToggleTheme when theme switch clicked', () => {
-    const onToggleTheme = jest.fn();
-    render(<SettingsTab {...defaultProps} onToggleTheme={onToggleTheme} />);
-    // MUI Switch renders with role="switch"
-    const switches = screen.getAllByRole('switch');
-    fireEvent.click(switches[0]);
-    expect(onToggleTheme).toHaveBeenCalledTimes(1);
+  it('allows an explicit dark-mode override', () => {
+    const onThemePreferenceChange = jest.fn();
+    render(<SettingsTab {...defaultProps} onThemePreferenceChange={onThemePreferenceChange} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dunkler Modus' }));
+    expect(onThemePreferenceChange).toHaveBeenCalledWith('dark');
   });
 
   it('renders Push-Benachrichtigungen section', () => {

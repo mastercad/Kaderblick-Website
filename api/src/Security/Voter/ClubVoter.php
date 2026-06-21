@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Club;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
@@ -16,6 +17,10 @@ final class ClubVoter extends Voter
     public const EDIT = 'CLUB_EDIT';
     public const VIEW = 'CLUB_VIEW';
     public const DELETE = 'CLUB_DELETE';
+
+    public function __construct(private readonly AdminScopeService $adminScopeService)
+    {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -36,6 +41,11 @@ final class ClubVoter extends Voter
             case self::CREATE:
             case self::EDIT:
             case self::DELETE:
+                /** @var Club $subject */
+                if (self::CREATE !== $attribute && $this->adminScopeService->canAdministerClub($user, $subject)) {
+                    return true;
+                }
+
                 if (
                     in_array('ROLE_ADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())

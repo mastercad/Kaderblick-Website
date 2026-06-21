@@ -88,6 +88,13 @@ describe('BaseModal – Rendering', () => {
     expect(screen.getByLabelText('close')).toBeInTheDocument();
   });
 
+  it('rendert auch ohne Titel einen Close-Button', async () => {
+    const onClose = jest.fn();
+    renderModal({ title: undefined, onClose });
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('rendert keinen Close-Button wenn showCloseButton=false', () => {
     renderModal({ showCloseButton: false });
     expect(screen.queryByLabelText('close')).not.toBeInTheDocument();

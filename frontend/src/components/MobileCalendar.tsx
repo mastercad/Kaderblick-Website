@@ -424,6 +424,7 @@ export const MobileCalendar: React.FC<MobileCalendarProps> = ({
               const endDate = new Date(ev.end);
               const timeStr = formatTimeRange(startDate, endDate);
               const color = ev.eventType?.color ?? theme.palette.primary.main;
+              console.debug(ev);
 
               return (
                 <Box

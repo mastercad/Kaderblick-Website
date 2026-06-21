@@ -119,11 +119,11 @@ export const HtmlPosterRenderer = React.forwardRef<HTMLDivElement, HtmlPosterRen
         )}
 
         {/* ── Overlay-Farbe ── */}
-        {bg.overlayColor && (bg.overlayOpacity ?? 0) > 0 && (
+        {bg.color && (bg.colorOpacity ?? 0) > 0 && (
           <div
             style={{
               position: 'absolute', inset: 0, zIndex: 2,
-              background: bg.overlayColor, opacity: bg.overlayOpacity,
+              background: bg.color, opacity: bg.colorOpacity,
               pointerEvents: 'none',
             }}
           />

@@ -31,8 +31,8 @@ export function PageTabBar() {
         sx={{
           minHeight: 44,
           '& .MuiTab-root': { fontSize: '0.85rem', minHeight: 44, py: 0 },
-          '& .MuiTabs-indicator': { backgroundColor: group.color },
-          '& .Mui-selected': { color: `${group.color} !important` },
+          '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
+          '& .Mui-selected': { color: 'primary.main !important' },
         }}
       >
         {group.children.map(child => (

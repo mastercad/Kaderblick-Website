@@ -224,7 +224,7 @@ function App() {
   // Reguläre Browser unterstützen NUR Farben (kein Bild möglich).
   // Home (Hero-Bereich): dunkles Hero-Overlay
   // Home (Landing-Sections): heller Landing-Hintergrund
-  // Alle anderen Seiten: AppBar-Grün #018606 passend zum Gradient-Start
+  // Eingeloggte Anwendung: ruhige Shell-Farbe passend zum aktiven Theme.
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) return;
@@ -234,11 +234,13 @@ function App() {
       color = '#0d110e';
     } else if (isHome) {
       color = '#f5f1e8';
+    } else if (user) {
+      color = mode === 'dark' ? '#080d0a' : '#ffffff';
     } else {
-      color = '#018606';
+      color = '#1f7a35';
     }
     meta.setAttribute('content', color);
-  }, [isHome, isOnHeroSection]);
+  }, [isHome, isOnHeroSection, mode, user]);
 
   // Refresh-Funktion
   const handleRefresh = async () => {
@@ -333,7 +335,7 @@ function App() {
               isEnabled={true}
               isPullToRefreshEnabled={true}
             >
-              <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+              <Box className={showAuthenticatedAppChrome ? 'kb-app-shell' : undefined} sx={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
                 <Navigation
                   onOpenAuth={() => { setAuthInitialTab('login'); setShowAuth(true); }}
                   onOpenDemo={() => setShowDemoRequest(true)}
@@ -354,7 +356,7 @@ function App() {
                         width: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
                         transition: 'width 0.22s ease, top 0.25s ease, height 0.25s ease',
                         zIndex: (t) => t.zIndex.appBar - 1,
-                        borderRight: `1px solid ${muiTheme.palette.divider}`,
+                        borderRight: `1px solid ${currentTheme.palette.divider}`,
                         overflow: 'hidden',
                       }}
                     >
@@ -365,10 +367,10 @@ function App() {
                       />
                     </Box>
                   )}
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, backgroundColor: 'background.default' }}>
                 {!isHome && showAuthenticatedAppChrome && <PushWarningBanner />}
                 {!isHome && showAuthenticatedAppChrome && <TwoFactorWarningBanner onOpenSettings={() => { setProfileInitialTab(2); setShowProfile(true); }} />}
-              <Box component="main" sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: showAuthenticatedAppChrome ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
+              <Box component="main" className={showAuthenticatedAppChrome ? 'kb-app-main' : undefined} sx={{ flex: 1, width: '100%', position: 'relative', pb: { xs: showAuthenticatedAppChrome ? 'calc(64px + env(safe-area-inset-bottom, 0px))' : 0, md: 0 } }}>
                 {showAuthenticatedAppChrome && <PageTabBar />}
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>

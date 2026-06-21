@@ -683,6 +683,7 @@ class GamesController extends ApiController
                     'weatherData' => $calendarEvent->getWeatherData() ? [
                         'weatherCode' => $calendarEvent->getWeatherData()->getDailyWeatherData()['weathercode'] ?? [],
                     ] : [],
+                    'isCancelled' => $calendarEvent->isCancelled()
                 ] : null,
                 'gameType' => [
                     'id' => $game->getGameType()->getId(),

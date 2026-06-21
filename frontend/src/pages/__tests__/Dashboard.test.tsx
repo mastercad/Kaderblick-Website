@@ -274,7 +274,8 @@ describe('Dashboard — initial load', () => {
 
   it('shows the user name in the heading', async () => {
     await renderAndWait();
-    expect(screen.getByText('Dashboard – Max')).toBeInTheDocument();
+    expect(screen.getByText('Willkommen zurück, Max')).toBeInTheDocument();
+    expect(screen.getByText('Alles Wichtige für deinen Tag auf einen Blick.')).toBeInTheDocument();
   });
 });
 

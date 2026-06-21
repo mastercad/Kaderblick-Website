@@ -11,8 +11,10 @@ use Throwable;
 
 class CoachTeamPlayerService
 {
-    public function __construct(private readonly UserTeamAccessService $accessService)
-    {
+    public function __construct(
+        private readonly UserTeamAccessService $accessService,
+        private readonly AdminScopeService $adminScopeService,
+    ) {
     }
 
     /**
@@ -22,7 +24,7 @@ class CoachTeamPlayerService
      */
     public function collectCoachTeams(User $user): array
     {
-        return $this->accessService->getSelfCoachTeams($user);
+        return $this->accessService->getSelfCoachTeams($user) + $this->adminScopeService->getAdministeredTeams($user);
     }
 
     /**

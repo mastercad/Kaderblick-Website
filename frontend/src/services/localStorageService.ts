@@ -33,7 +33,7 @@ import { isCategoryConsented, type ConsentCategory } from './cookieConsentServic
  * Jeder neue Key MUSS hier eingetragen werden.
  */
 export const STORAGE_REGISTRY = {
-  /** Persistierter Theme-Modus (hell/dunkel) */
+  /** Persistierte Theme-Präferenz (System/hell/dunkel) */
   'theme-mode':                    'functional',
   /** Letzte Ansicht im Nachrichten-Dialog (chronologisch / nach Kontakt) */
   'messages.viewMode':             'functional',

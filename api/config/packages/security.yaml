@@ -68,6 +68,8 @@ security:
         ROLE_USER:        [ROLE_GUEST]
         ROLE_SUPPORTER:   [ROLE_USER]
         ROLE_CLUB:        [ROLE_SUPPORTER]
+        ROLE_TEAM_ADMIN:  [ROLE_CLUB]
+        ROLE_CLUB_ADMIN:  [ROLE_CLUB]
         ROLE_ADMIN:       [ROLE_CLUB]
         ROLE_SUPERADMIN:  [ROLE_ADMIN]
 
