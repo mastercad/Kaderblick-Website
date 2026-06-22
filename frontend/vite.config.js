@@ -3,6 +3,45 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { execSync } from 'child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+function appShellManifestTransform(entries) {
+  const entriesByUrl = new Map(entries.map(entry => [entry.url, entry]));
+  const keep = new Set(['index.html', 'manifest.webmanifest', 'registerSW.js']);
+  const queue = ['index.html'];
+
+  while (queue.length > 0) {
+    const currentUrl = queue.shift();
+    if (!currentUrl) continue;
+
+    let source;
+    try {
+      source = readFileSync(resolve('dist', currentUrl), 'utf8');
+    } catch {
+      continue;
+    }
+
+    const references = currentUrl.endsWith('.css')
+      ? [...source.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(match => match[1])
+      : [...source.matchAll(/(?:src|href)=["']([^"']+)["']/g)].map(match => match[1]);
+
+    for (const reference of references) {
+      if (/^(?:data:|https?:)/.test(reference)) continue;
+      const cleanUrl = new URL(reference, `https://app.local/${currentUrl}`).pathname.replace(/^\//, '');
+      // Modern service-worker capable browsers can use AVIF or WebP. Avoid
+      // precaching the 357 KB legacy JPEG in addition to both modern formats.
+      if (cleanUrl === 'images/landing_page/background_central.jpg') continue;
+      if (!entriesByUrl.has(cleanUrl) || keep.has(cleanUrl)) continue;
+      keep.add(cleanUrl);
+    }
+  }
+
+  return {
+    manifest: entries.filter(entry => keep.has(entry.url)),
+    warnings: [],
+  };
+}
 
 // Get git commit hash for build info
 let commitHash;
@@ -71,11 +110,12 @@ export default defineConfig({
         ]
       },
       injectManifest: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB - Hauptbundle ist >2MB
-        globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,avif,webp,woff,woff2,svg,ico,json,webmanifest}'],
         globIgnores: [
           'uploads/**',
-        ]
+        ],
+        manifestTransforms: [appShellManifestTransform],
       }
     }),
   ],
@@ -100,76 +140,5 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) {
-            return undefined;
-          }
-
-          if (id.includes('react-big-calendar') || id.includes('/moment/') || id.includes('/moment-timezone')) {
-            return 'calendar-vendor';
-          }
-
-          if (id.includes('@tiptap') || id.includes('/prosemirror-') || id.includes('/orderedmap/') || id.includes('/rope-sequence/') || id.includes('/w3c-keyname/')) {
-            return 'editor-vendor';
-          }
-
-          if (id.includes('@mui/icons-material')) {
-            return 'mui-icons-vendor';
-          }
-
-          if (id.includes('@mui/x-charts') || id.includes('chart.js') || id.includes('react-chartjs-2')) {
-            return 'charts-vendor';
-          }
-
-          if (id.includes('@dnd-kit') || id.includes('@hello-pangea/dnd')) {
-            return 'dnd-vendor';
-          }
-
-          if (id.includes('html2canvas') || id.includes('react-easy-crop') || id.includes('qrcode.react')) {
-            return 'media-vendor';
-          }
-
-          if (id.includes('workbox')) {
-            return 'pwa-vendor';
-          }
-
-          if (id.includes('/lodash/') || id.includes('/lodash-es/')) {
-            return 'lodash-vendor';
-          }
-
-          if (id.includes('/react-icons/')) {
-            return 'icons-vendor';
-          }
-
-          if (id.includes('/linkifyjs/')) {
-            return 'linkify-vendor';
-          }
-
-          if (id.includes('/react-youtube/') || id.includes('/youtube-player/')) {
-            return 'youtube-vendor';
-          }
-
-          if (id.includes('/@popperjs/core/')) {
-            return 'popper-vendor';
-          }
-
-          if (id.includes('@mui') || id.includes('@emotion')) {
-            return 'mui-vendor';
-          }
-
-          if (id.includes('react-router')) {
-            return 'router-vendor';
-          }
-
-          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
-            return 'react-vendor';
-          }
-
-          return 'vendor';
-        }
-      }
-    }
   }
 })

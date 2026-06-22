@@ -73,8 +73,3 @@ createRoot(rootElement).render(
     </HelmetProvider>
   </StrictMode>
 );
-
-// App-Ready-Event dispatchen nach dem ersten Render
-setTimeout(() => {
-  window.dispatchEvent(new Event('app-ready'));
-}, 100);

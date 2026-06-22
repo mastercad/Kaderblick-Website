@@ -425,7 +425,10 @@ function buildHtml(baseHtml, page) {
     : '';
   html = html.replace('</head>', `${pageJsonLdHtml}\n${snapshotStyles}</head>`);
   html = html.replace(/<body[^>]*>/, '<body>');
-  html = html.replace(/<div id="preload-fallback"[\s\S]*?<div id="root" style="display:none;">[\s\S]*?<\/div>/, `<div id="root">${page.body}</div>`);
+  html = html.replace(
+    /<div id="preload-fallback"[\s\S]*?<div id="root" style="display:none;">[\s\S]*?<\/div>/,
+    `<div id="prerender-snapshot">${page.body}</div><div id="root" style="display:none;"></div>`,
+  );
   return html;
 }
 

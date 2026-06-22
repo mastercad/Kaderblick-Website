@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import Box from '@mui/material/Box';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { apiJson } from '../utils/api';
-import RegistrationContextDialog from '../modals/RegistrationContextDialog';
 import { isPublicSeoPath } from '../seo/siteConfig';
 import { useViewportPinnedBottomNav, MOBILE_BOTTOM_NAV_HEIGHT } from './navigation/useViewportPinnedBottomNav';
 import NavAppBar from './navigation/NavAppBar';
@@ -13,6 +12,8 @@ import NavMobileDrawer from './navigation/NavMobileDrawer';
 import NavMobileBottomBar from './navigation/NavMobileBottomBar';
 import NavNotificationCenter from './navigation/NavNotificationCenter';
 import NavUserMenu from './navigation/NavUserMenu';
+
+const RegistrationContextDialog = lazy(() => import('../modals/RegistrationContextDialog'));
 
 
 interface NavigationProps {
@@ -103,10 +104,11 @@ export default function Navigation({ onOpenAuth, onOpenDemo, onOpenProfile, onOp
         onRequestLink={() => setShowRelationModal(true)}
       />
 
-      <RegistrationContextDialog
-        open={showRelationModal}
-        onClose={() => setShowRelationModal(false)}
-      />
+      <Suspense fallback={null}>
+        {showRelationModal && (
+          <RegistrationContextDialog open onClose={() => setShowRelationModal(false)} />
+        )}
+      </Suspense>
     </>
   );
 }

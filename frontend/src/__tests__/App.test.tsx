@@ -1,6 +1,6 @@
 /**
  * Tests für App.tsx:
- *  - isLoading=true  → rendert null (Preload-Screen bleibt sichtbar)
+ *  - isLoading=true  → öffentliche Seiten rendern sofort, private warten
  *  - isLoading=false → App wird gerendert
  *  - ?modal=messages + eingeloggter User → MessagesModal öffnet sich
  *  - ?modal=register + kein User → AuthModal öffnet sich (register-Tab)
@@ -273,9 +273,16 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('App – isLoading=true', () => {
-  it('rendert null solange isLoading=true', () => {
+  it('rendert eine öffentliche Seite bereits während des Auth-Checks', () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: true });
-    const { container } = renderApp('/');
+    renderApp('/');
+    expect(screen.getByTestId('seo')).toBeInTheDocument();
+    expect(screen.getByTestId('home-page')).toBeInTheDocument();
+  });
+
+  it('wartet auf privaten Seiten weiterhin auf den Auth-Check', () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: true });
+    const { container } = renderApp('/dashboard');
     expect(container.firstChild).toBeNull();
   });
 });
