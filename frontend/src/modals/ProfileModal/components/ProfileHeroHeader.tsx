@@ -75,7 +75,7 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
         ? `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.dark, 0.45)} 0%, ${alpha(muiTheme.palette.primary.main, 0.18)} 100%)`
         : `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.10)} 0%, ${alpha(muiTheme.palette.primary.light, 0.05)} 100%)`,
       borderBottom: '1px solid', borderColor: 'divider',
-      px: { xs: 2, sm: 3 }, py: 2.5,
+      pl: { xs: 2, sm: 3 }, pr: { xs: 7, sm: 8 }, py: 2.5,
       display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 3 }, flexWrap: 'wrap',
     }}>
       {/* ── Avatar ──────────────────────────────────────────────────────────── */}
@@ -96,14 +96,18 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
         <Tooltip title="Profilbild ändern">
           <IconButton
             size="small"
+            aria-label="Profilbild ändern"
             onClick={onEditAvatar}
             sx={{
-              position: 'absolute', bottom: -4, right: -4,
-              bgcolor: 'primary.main', color: 'white', width: 26, height: 26,
+              position: 'absolute', bottom: -6, right: -6,
+              bgcolor: 'primary.main', color: 'primary.contrastText',
+              width: 36, height: 36, minWidth: '36px !important', minHeight: '36px !important',
+              border: '3px solid', borderColor: 'background.paper',
+              boxShadow: 2,
               '&:hover': { bgcolor: 'primary.dark' },
             }}
           >
-            <EditIcon sx={{ fontSize: 13 }} />
+            <EditIcon sx={{ fontSize: 17 }} />
           </IconButton>
         </Tooltip>
 
@@ -111,14 +115,18 @@ export function ProfileHeroHeader(props: ProfileHeroHeaderProps) {
           <Tooltip title={isGoogleAvatar ? 'Google-Profilbild deaktivieren' : 'Profilbild entfernen'}>
             <IconButton
               size="small"
+              aria-label={isGoogleAvatar ? 'Google-Profilbild deaktivieren' : 'Profilbild entfernen'}
               onClick={isGoogleAvatar ? onDisableGoogleAvatar : onRemoveAvatar}
               sx={{
-                position: 'absolute', top: -4, right: -4,
-                bgcolor: 'error.main', color: 'white', width: 22, height: 22,
-                '&:hover': { bgcolor: 'error.dark' },
+                position: 'absolute', bottom: -6, left: -6,
+                bgcolor: 'background.paper', color: 'error.main',
+                width: 36, height: 36, minWidth: '36px !important', minHeight: '36px !important',
+                border: '1px solid', borderColor: 'divider',
+                boxShadow: 2,
+                '&:hover': { bgcolor: 'error.main', color: 'error.contrastText' },
               }}
             >
-              <FaTrashAlt style={{ fontSize: 10 }} />
+              <FaTrashAlt style={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
         )}

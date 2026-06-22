@@ -56,24 +56,24 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
   const setActiveRef = (el: HTMLElement | null) => { activeItemRef.current = el; };
   const isActive     = (key: string) => isNavItemActive(pathname, key);
 
-  const iconSx = (active: boolean, color?: string) => ({
+  const iconSx = (active: boolean, _color?: string) => ({
     minWidth: 0,
     mr: collapsed ? 0 : 1.5,
     justifyContent: 'center',
-    color: color ?? (active ? 'primary.main' : 'text.secondary'),
-    opacity: color ? (active ? 1 : 0.65) : 1,
+    color: active ? 'primary.main' : 'text.secondary',
+    opacity: active ? 1 : 0.78,
     transition: 'color 0.15s, opacity 0.15s',
   });
 
-  const itemSx = (itemColor?: string) => ({
+  const itemSx = (_itemColor?: string) => ({
     borderRadius: 2,
     mx: 0.5,
     mb: 0.25,
     minHeight: 40,
     px: 1.5,
     justifyContent: collapsed ? 'center' : 'flex-start',
-    '&.Mui-selected': { bgcolor: alpha(itemColor ?? theme.palette.primary.main, 0.1), color: itemColor ?? 'primary.main' },
-    '&.Mui-selected:hover': { bgcolor: alpha(itemColor ?? theme.palette.primary.main, 0.15) },
+    '&.Mui-selected': { bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' },
+    '&.Mui-selected:hover': { bgcolor: alpha(theme.palette.primary.main, 0.17) },
   });
 
   return (
@@ -82,7 +82,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
       sx={{
         width: '100%',
         height: '100%',
-        bgcolor: 'background.paper',
+        bgcolor: theme.palette.mode === 'dark' ? '#0b120e' : '#fbfdfb',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -112,7 +112,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                   <ListItemText
                     primary={item.label}
                     slotProps={{
-                      primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                      primary: { sx: { fontWeight: active ? 700 : 500, fontSize: '0.88rem', color: active ? 'primary.main' : 'text.primary' } }
                     }}
                   />
                 )}
@@ -156,7 +156,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                       <ListItemText
                         primary={item.label}
                         slotProps={{
-                          primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                          primary: { sx: { fontWeight: active ? 700 : 500, fontSize: '0.88rem', color: active ? 'primary.main' : 'text.primary' } }
                         }}
                       />
                     )}
@@ -202,7 +202,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
                       <ListItemText
                         primary={item.label}
                         slotProps={{
-                          primary: { sx: { fontWeight: active ? 700 : 400, fontSize: '0.9rem', color: active ? (color ?? 'primary.main') : 'text.primary' } }
+                          primary: { sx: { fontWeight: active ? 700 : 500, fontSize: '0.88rem', color: active ? 'primary.main' : 'text.primary' } }
                         }}
                       />
                     )}

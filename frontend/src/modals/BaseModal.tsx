@@ -118,7 +118,26 @@ const BaseModal: React.FC<BaseModalProps> = ({
           )}
         </DialogTitle>
       )}
-      {/* Content */}
+      {!title && showCloseButton && (
+        <IconButton
+          aria-label="Schließen"
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            top: { xs: 8, sm: 12 },
+            right: { xs: 8, sm: 12 },
+            zIndex: 2,
+            color: 'text.secondary',
+            bgcolor: 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
+            '&:hover': { color: 'primary.main', bgcolor: 'action.hover' },
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      )}
       {/* Content */}
       <DialogContent
         sx={{

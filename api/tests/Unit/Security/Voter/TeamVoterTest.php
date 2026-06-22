@@ -5,6 +5,7 @@ namespace App\Tests\Unit\Security\Voter;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\TeamVoter;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -17,12 +18,14 @@ class TeamVoterTest extends TestCase
 {
     /** @var MockObject&CoachTeamPlayerService */
     private CoachTeamPlayerService $coachTeamPlayerService;
+    private AdminScopeService $adminScopeService;
     private TeamVoter $voter;
 
     protected function setUp(): void
     {
         $this->coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
-        $this->voter = new TeamVoter($this->coachTeamPlayerService);
+        $this->adminScopeService = $this->createMock(AdminScopeService::class);
+        $this->voter = new TeamVoter($this->coachTeamPlayerService, $this->adminScopeService);
     }
 
     // -------------------------------------------------------------------------

@@ -73,52 +73,37 @@ describe('ProfileHeroHeader', () => {
 
   it('shows edit avatar button', () => {
     render(<ProfileHeroHeader {...defaultProps} />);
-    // The edit button is always present; there should be at least 1 icon button rendered beside the avatar
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('button', { name: 'Profilbild ändern' })).toBeInTheDocument();
   });
 
   it('calls onEditAvatar when edit avatar button clicked', () => {
     const onEditAvatar = jest.fn();
     render(<ProfileHeroHeader {...defaultProps} onEditAvatar={onEditAvatar} />);
-    // The edit button is the first icon button (bottom-right of avatar)
-    const buttons = screen.getAllByRole('button');
-    // Find the button that has EditIcon (first avatar-area button that triggers onEditAvatar)
-    // Since we can't easily distinguish by icon, click all small icon buttons and verify onEditAvatar is called
-    const iconButtons = buttons.filter(b => b.textContent === '' || b.querySelector('svg'));
-    // The edit avatar button is rendered first in avatar section
-    fireEvent.click(iconButtons[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Profilbild ändern' }));
     expect(onEditAvatar).toHaveBeenCalledTimes(1);
   });
 
   it('shows remove avatar button when hasAvatar is true', () => {
     render(<ProfileHeroHeader {...defaultProps} hasAvatar={true} />);
-    // With hasAvatar=true there should be 3 buttons: edit, remove, and the link button
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: 'Profilbild entfernen' })).toBeInTheDocument();
   });
 
   it('calls onRemoveAvatar when remove avatar button clicked', () => {
     const onRemoveAvatar = jest.fn();
     render(<ProfileHeroHeader {...defaultProps} hasAvatar={true} onRemoveAvatar={onRemoveAvatar} />);
-    const buttons = screen.getAllByRole('button');
-    // The remove button is the second icon button in avatar area (top-right)
-    fireEvent.click(buttons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Profilbild entfernen' }));
     expect(onRemoveAvatar).toHaveBeenCalledTimes(1);
   });
 
   it('shows disable google avatar button when isGoogleAvatar is true', () => {
     render(<ProfileHeroHeader {...defaultProps} isGoogleAvatar={true} />);
-    // With isGoogleAvatar=true there should be 3 buttons: edit, disable-google, and the link button
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: 'Google-Profilbild deaktivieren' })).toBeInTheDocument();
   });
 
   it('calls onDisableGoogleAvatar when google avatar button clicked', () => {
     const onDisableGoogleAvatar = jest.fn();
     render(<ProfileHeroHeader {...defaultProps} isGoogleAvatar={true} onDisableGoogleAvatar={onDisableGoogleAvatar} />);
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Google-Profilbild deaktivieren' }));
     expect(onDisableGoogleAvatar).toHaveBeenCalledTimes(1);
   });
 

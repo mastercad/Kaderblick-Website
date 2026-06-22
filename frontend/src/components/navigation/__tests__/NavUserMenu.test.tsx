@@ -37,6 +37,11 @@ jest.mock('../../../context/ConsentContext', () => ({
   useConsent: jest.fn(),
 }));
 
+const mockToggleTheme = jest.fn();
+jest.mock('../../../context/ThemeContext', () => ({
+  useTheme: () => ({ mode: 'dark', preference: 'dark', toggleTheme: mockToggleTheme }),
+}));
+
 jest.mock('../../CookieSettingsDialog', () =>
   (function MockCookieSettingsDialog(
     {
@@ -170,6 +175,11 @@ describe('rendering', () => {
     renderMenu();
     expect(screen.getByText('Logout')).toBeInTheDocument();
   });
+
+  it('offers the opposite color mode', () => {
+    renderMenu();
+    expect(screen.getByText('Light Mode')).toBeInTheDocument();
+  });
 });
 
 // ── Link request visibility ───────────────────────────────────────────────────
@@ -223,6 +233,13 @@ describe('menu item actions', () => {
     await waitFor(() => {
       expect(mockLogout).toHaveBeenCalledTimes(1);
     });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches the color mode and closes the menu', () => {
+    renderMenu();
+    fireEvent.click(screen.getByText('Light Mode'));
+    expect(mockToggleTheme).toHaveBeenCalledTimes(1);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 });

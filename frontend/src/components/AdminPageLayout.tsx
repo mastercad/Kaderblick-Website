@@ -84,7 +84,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
   return (
     <Box
       sx={{
-        p: { xs: 1, sm: 2, md: 3 },
+        p: { xs: 1.5, sm: 2, md: 3 },
         maxWidth: maxWidth,
         mx: "auto"
       }}>
@@ -94,11 +94,12 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           position: 'sticky',
           top: 'var(--app-header-height)',
           zIndex: 10,
-          bgcolor: 'background.default',
-          pt: 1.5,
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(8,13,10,0.94)' : 'rgba(243,246,242,0.94)',
+          backdropFilter: 'blur(14px)',
+          pt: { xs: 1, sm: 1.5 },
           pb: filterControls && !loading ? 0 : 1.5,
-          mx: { xs: -1, sm: -2, md: -3 },
-          px: { xs: 1, sm: 2, md: 3 },
+          mx: { xs: -1.5, sm: -2, md: -3 },
+          px: { xs: 1.5, sm: 2, md: 3 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           mb: 2,
@@ -108,22 +109,23 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
           direction="row"
           sx={{
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: { xs: 'stretch', sm: 'center' },
             mb: filterControls && !loading ? 1 : 0,
             flexWrap: "wrap",
-            gap: 1
+            gap: { xs: 1.5, sm: 1 }
           }}>
           <Stack direction="row" spacing={1.5} sx={{
             alignItems: "center"
           }}>
-            {React.cloneElement(icon, { sx: { fontSize: 32, color: 'primary.main', ...((icon as any).props?.sx || {}) } })}
+            {React.cloneElement(icon, { sx: { fontSize: { xs: 26, sm: 30 }, color: 'primary.main', ...((icon as any).props?.sx || {}) } })}
             <Typography variant="h4" sx={{ fontWeight: 700 }}>{title}</Typography>
             {!loading && itemCount != null && (
               <Chip label={itemCount} size="small" color="primary" variant="outlined" />
             )}
           </Stack>
-          <Stack direction="row" spacing={1.5} sx={{
-            alignItems: "center"
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{
+            alignItems: { xs: 'stretch', sm: 'center' },
+            width: { xs: '100%', sm: 'auto' },
           }}>
             {onSearchChange != null && (
               <TextField
@@ -131,7 +133,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
                 placeholder={searchPlaceholder}
                 value={search || ''}
                 onChange={e => onSearchChange(e.target.value)}
-                sx={{ minWidth: 200 }}
+                sx={{ minWidth: { sm: 220 }, width: { xs: '100%', sm: 'auto' } }}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -147,7 +149,7 @@ export const AdminPageLayout: React.FC<AdminPageLayoutProps> = ({
               />
             )}
             {onCreate && createLabel && (
-              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate} size="medium">
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreate} size="medium" sx={{ width: { xs: '100%', sm: 'auto' } }}>
                 {createLabel}
               </Button>
             )}

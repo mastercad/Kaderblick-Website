@@ -71,6 +71,8 @@ export interface CalendarEvent {
   startDate: string;
   endDate: string;
   calendarEventType: CalendarEventType;
+  isCancelled: boolean,
+  isExternal: boolean
 }
 
 import type { League } from './league';

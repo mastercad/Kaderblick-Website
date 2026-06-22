@@ -94,6 +94,19 @@ describe('Footer-Links', () => {
     renderFooter();
     expect(screen.getByText('Dokumentation')).toBeInTheDocument();
   });
+
+  it('zeigt die Buildnummer mit der kontrastreichen Footer-Textfarbe', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ build: '2.1.0-test' }),
+    } as Response);
+
+    renderFooter();
+
+    const version = await screen.findByTitle('Build: 2.1.0-test');
+    expect(version).toHaveTextContent('v2.1.0-test');
+    expect(version).toHaveStyle({ color: 'inherit', fontWeight: '650' });
+  });
 });
 
 // ── CookieSettingsButton Sichtbarkeit ─────────────────────────────────────────

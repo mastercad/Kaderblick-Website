@@ -34,7 +34,11 @@ jest.mock('@mui/material/styles', () => ({
       between: (a: string, b: string) => `(min-width:600px) and (max-width:900px)`,
       up: (bp: string) => `(min-width:600px)`,
     },
-    palette: {},
+    palette: {
+      mode: 'dark',
+      text: { secondary: 'rgba(231,240,233,0.72)' },
+      divider: 'rgba(184,220,191,0.13)',
+    },
   }),
 }));
 
@@ -83,6 +87,9 @@ function HookConsumer(props: {
       <span data-testid="hasScales">{String(!!(options as any).scales)}</span>
       <span data-testid="responsive">{String((options as any).responsive)}</span>
       <span data-testid="legendDisplay">{String((options as any).plugins?.legend?.display)}</span>
+      <span data-testid="chartColor">{String((options as any).color)}</span>
+      <span data-testid="gridColor">{String((options as any).scales?.y?.grid?.color)}</span>
+      <span data-testid="tooltipBackground">{String((options as any).plugins?.tooltip?.backgroundColor)}</span>
       <span data-testid="pluginId">{dataLabelsPlugin.id}</span>
     </div>
   );
@@ -106,6 +113,13 @@ describe('useChartOptions', () => {
   it('returns dataLabelsPlugin with id=inlineDataLabels', () => {
     render(<HookConsumer type="bar" />);
     expect(screen.getByTestId('pluginId').textContent).toBe('inlineDataLabels');
+  });
+
+  it('uses theme-aware colors for labels, grids and tooltips', () => {
+    render(<HookConsumer type="bar" />);
+    expect(screen.getByTestId('chartColor')).toHaveTextContent('rgba(231,240,233,0.72)');
+    expect(screen.getByTestId('gridColor')).toHaveTextContent('rgba(184,220,191,0.13)');
+    expect(screen.getByTestId('tooltipBackground')).toHaveTextContent('#1a251e');
   });
 
   // ── Chart height ──

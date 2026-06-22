@@ -48,6 +48,9 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     const legendFontSize = isMobile ? 10 : isTablet ? 11 : 12;
     const tickFontSize = isMobile ? 9 : isTablet ? 10 : 12;
     const tooltipFontSize = isMobile ? 11 : 13;
+    const textColor = muiTheme.palette.text.secondary;
+    const gridColor = muiTheme.palette.divider;
+    const tooltipBackground = muiTheme.palette.mode === 'dark' ? '#1a251e' : '#142118';
 
     const legendPosition = isMobile ? ('bottom' as const) : ('top' as const);
     const legendBoxWidth = isMobile ? 8 : isTablet ? 10 : 14;
@@ -72,6 +75,7 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      color: textColor,
       layout: {
         padding: isMobile
           ? { left: 2, right: 2, top: 4, bottom: 4 }
@@ -83,6 +87,7 @@ export function useChartOptions(deps: ChartOptionsDeps) {
           position: isPieType ? pieLegendPosition : legendPosition,
           maxWidth: undefined as number | undefined,
           labels: {
+            color: textColor,
             usePointStyle: true,
             pointStyle: 'circle',
             boxWidth: legendBoxWidth,
@@ -106,6 +111,11 @@ export function useChartOptions(deps: ChartOptionsDeps) {
         title: { display: false },
         tooltip: {
           enabled: true,
+          backgroundColor: tooltipBackground,
+          titleColor: '#f5f8f5',
+          bodyColor: '#e4ebe5',
+          borderColor: muiTheme.palette.divider,
+          borderWidth: 1,
           titleFont: { size: tooltipFontSize },
           bodyFont: { size: tooltipFontSize },
           padding: isMobile ? 6 : 10,
@@ -127,6 +137,7 @@ export function useChartOptions(deps: ChartOptionsDeps) {
             scales: {
               x: {
                 ticks: {
+                  color: textColor,
                   font: { size: tickFontSize },
                   ...(isHorizontalBar ? {} : {
                     maxRotation: xTickRotation,
@@ -142,10 +153,11 @@ export function useChartOptions(deps: ChartOptionsDeps) {
                     },
                   }),
                 },
-                grid: { display: isHorizontalBar ? true : !isMobile },
+                grid: { display: isHorizontalBar ? true : !isMobile, color: gridColor },
               },
               y: {
                 ticks: {
+                  color: textColor,
                   font: { size: tickFontSize },
                   ...(isHorizontalBar
                     ? {
@@ -162,7 +174,7 @@ export function useChartOptions(deps: ChartOptionsDeps) {
                     : { ...(isMobile ? { maxTicksLimit: 6 } : {}) }),
                 },
                 grid: {
-                  ...(isMobile && !isHorizontalBar ? { color: 'rgba(0,0,0,0.05)' } : {}),
+                  color: gridColor,
                 },
               },
             },
@@ -191,6 +203,9 @@ export function useChartOptions(deps: ChartOptionsDeps) {
     cfgShowLegend,
     cfgShowLabels,
     isHorizontalBar,
+    muiTheme.palette.divider,
+    muiTheme.palette.mode,
+    muiTheme.palette.text.secondary,
   ]);
 
   const chartHeight = useMemo(() => {

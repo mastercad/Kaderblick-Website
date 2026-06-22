@@ -10,8 +10,11 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ComputerIcon from '@mui/icons-material/Computer';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
@@ -25,10 +28,12 @@ import { SectionCard } from '../components/SectionCard';
 import { getPushStatusColor, getPushStatusLabel } from '../hooks/usePushNotifications';
 import type { PushHealthReport } from '../../../services/pushHealthMonitor';
 import { useHolidays, HOLIDAY_STATE_LABELS, type HolidayStateCode } from '../../../context/HolidayContext';
+import type { ThemeMode, ThemePreference } from '../../../context/ThemeContext';
 
 interface SettingsTabProps {
-  themeMode: 'light' | 'dark';
-  onToggleTheme: () => void;
+  themeMode: ThemeMode;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
   pushHealth: PushHealthReport | null;
   pushChecking: boolean;
   pushTestResult: { success: boolean; message: string } | null;
@@ -49,7 +54,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({
-  themeMode, onToggleTheme,
+  themeMode, themePreference, onThemePreferenceChange,
   pushHealth, pushChecking, pushTestResult, pushEnabling,
   onEnablePush, onTestPush, onCheckPush,
   twoFactorEnabled, emailOtpEnabled, twoFactorRequired, twoFactorBackupCount,
@@ -62,19 +67,35 @@ export function SettingsTab({
     <>
       <SectionCard
         title="Design"
-        icon={themeMode === 'dark' ? <Brightness7Icon fontSize="small" /> : <Brightness4Icon fontSize="small" />}
+        icon={themePreference === 'system'
+          ? <ComputerIcon fontSize="small" />
+          : themeMode === 'dark' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
       >
-        <FormControlLabel
-          control={<Switch checked={themeMode === 'dark'} onChange={onToggleTheme} color="primary" />}
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {themeMode === 'dark'
-                ? <Brightness7Icon fontSize="small" color="primary" />
-                : <Brightness4Icon fontSize="small" />}
-              <Typography variant="body2">{themeMode === 'dark' ? 'Dark Mode' : 'Light Mode'}</Typography>
-            </Box>
-          }
-        />
+        <Stack spacing={1.25}>
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            value={themePreference}
+            onChange={(_, value: ThemePreference | null) => value && onThemePreferenceChange(value)}
+            aria-label="Farbschema"
+            sx={{
+              '& .MuiToggleButton-root': {
+                display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 0.75,
+                py: 1, px: 1, textTransform: 'none', fontWeight: 650,
+              },
+              '& .Mui-selected': { color: 'primary.main' },
+            }}
+          >
+            <ToggleButton value="system" aria-label="Systemeinstellung"><ComputerIcon fontSize="small" />System</ToggleButton>
+            <ToggleButton value="light" aria-label="Heller Modus"><LightModeIcon fontSize="small" />Hell</ToggleButton>
+            <ToggleButton value="dark" aria-label="Dunkler Modus"><DarkModeIcon fontSize="small" />Dunkel</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {themePreference === 'system'
+              ? `Folgt automatisch deinem Gerät. Aktuell ist ${themeMode === 'dark' ? 'Dunkel' : 'Hell'} aktiv.`
+              : `Die App verwendet immer den ${themeMode === 'dark' ? 'dunklen' : 'hellen'} Modus.`}
+          </Typography>
+        </Stack>
       </SectionCard>
       <SectionCard
         title="Push-Benachrichtigungen"

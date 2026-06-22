@@ -59,12 +59,12 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
           ? 'rgba(11, 14, 12, 0.92)'
           : isHome
           ? 'transparent'
-          : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-        backdropFilter: showHomeMarketingHeader ? 'blur(14px)' : undefined,
+          : theme.palette.mode === 'dark' ? 'rgba(8,13,10,0.90)' : 'rgba(255,255,255,0.90)',
         backgroundColor: 'transparent',
         boxShadow: 'none',
-        color: isHome ? '#fff' : 'primary.contrastText',
-        borderBottom: showHomeMarketingHeader ? '1px solid rgba(255,255,255,0.08)' : 'none',
+        color: isHome ? '#fff' : 'text.primary',
+        borderBottom: showHomeMarketingHeader ? '1px solid rgba(255,255,255,0.08)' : `1px solid ${theme.palette.divider}`,
+        backdropFilter: showHomeMarketingHeader || !isHome ? 'blur(18px) saturate(140%)' : undefined,
         transition: 'background 0.3s, min-height 0.25s ease',
       }}
     >
@@ -73,7 +73,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
           display: 'flex',
           alignItems: 'center',
           justifyContent: showHomeMarketingHeader ? 'space-between' : 'flex-start',
-          color: isHome ? '#fff' : 'primary.contrastText',
+          color: isHome ? '#fff' : 'text.primary',
           px: { xs: 1.25, sm: 2, lg: 3 },
           height: 'var(--app-header-height)',
           transition: 'height 0.25s ease',
@@ -91,7 +91,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
             alignItems: 'center',
             gap: '0.35rem',
             fontFamily: "'ImpactWeb', Impact, 'Arial Black', sans-serif",
-            fontSize: showHomeMarketingHeader ? (isMobile ? '1.2rem' : '1.6rem') : (isScrolled ? '1.1rem' : '2rem'),
+            fontSize: showHomeMarketingHeader ? (isMobile ? '1.2rem' : '1.6rem') : (isScrolled ? '1rem' : (isMobile ? '1.25rem' : '1.45rem')),
             letterSpacing: showHomeMarketingHeader ? '-0.03em' : undefined,
             lineHeight: 1,
             transition: 'font-size 0.25s ease',
@@ -113,7 +113,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
               </>
             ) : (
               <>
-                <span style={{ color: '#018606', textShadow: '0 1px 6px #fff, 0 0px 2px #fff' }}>K</span>ADERBLICK
+                <span style={{ color: theme.palette.primary.main }}>K</span><span style={{ color: theme.palette.text.primary }}>ADERBLICK</span>
               </>
             )}
           </span>
@@ -124,7 +124,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
             <Tooltip title="Benachrichtigungen">
               <IconButton
                 onClick={onOpenNotifications}
-                sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.75, transition: 'padding 0.25s ease' }}
+                sx={{ color: isHome ? '#fff' : theme.palette.text.secondary, p: 0.75, transition: 'padding 0.25s ease' }}
               >
                 <Badge
                   badgeContent={unreadCount}
@@ -145,7 +145,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={onOpenUserMenu}
-              sx={{ color: isHome ? '#fff' : theme.palette.primary.contrastText, p: 0.5, transition: 'padding 0.25s ease' }}
+              sx={{ color: isHome ? '#fff' : theme.palette.text.secondary, p: 0.5, transition: 'padding 0.25s ease' }}
             >
               <Badge
                 variant="dot"

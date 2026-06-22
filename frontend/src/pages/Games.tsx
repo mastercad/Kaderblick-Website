@@ -224,15 +224,26 @@ export default function Games() {
         sx={{
           position: 'relative',
           overflow: 'hidden',
-          border: isRunning ? `2px solid ${theme.palette.success.main}` : '1px solid',
           borderColor: isRunning ? 'success.main' : 'divider',
           transition: 'box-shadow 0.2s, transform 0.15s',
           '&:hover': {
             boxShadow: theme.shadows[6],
             transform: 'translateY(-2px)',
           },
+          border: game?.calendarEvent?.isCancelled
+            ? '2px dashed rgba(255,255,255,0.5)'
+            : game?.calendarEvent?.isExternal
+            ? '1px dashed rgba(255,255,255,0.6)'
+            : isRunning 
+            ? `2px solid ${theme.palette.success.main}`
+            : '0px'
         }}
       >
+        <Box
+          sx={{
+            opacity: game?.calendarEvent?.isCancelled ? 0.45 : game?.calendarEvent?.isExternal ? 0.75 : 0.9,
+          }}
+        >
         {/* Competition label — top right, non-interactive */}
         {(game.league || game.cup || game.gameType) && (
           <Box
@@ -369,7 +380,7 @@ export default function Games() {
                     textTransform: 'uppercase',
                     letterSpacing: 1,
                   }}>
-                    vs
+                    { game?.calendarEvent?.isCancelled ? '❌' : 'vs' }
                   </Typography>
                 )}
               </Box>
@@ -406,68 +417,74 @@ export default function Games() {
             borderColor: 'divider',
             pt: 0.75,
             cursor: 'pointer',
-          }}>
-            {/* Date & Time */}
-            {game.calendarEvent?.startDate && (
-              <Chip
-                icon={<CalendarIcon sx={{ fontSize: '0.9rem !important' }} />}
-                label={`${formatDateShort(game.calendarEvent.startDate)}, ${formatTimeShort(game.calendarEvent.startDate)}${game.calendarEvent?.endDate ? ` - ${formatTimeShort(game.calendarEvent.endDate)}` : ''}`}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.75rem', height: 28, '& .MuiChip-icon': { ml: 0.5 } }}
+        }}>
+          {/* Date & Time */}
+          {game.calendarEvent?.startDate && (
+            <Chip
+              icon={<CalendarIcon sx={{ fontSize: '0.9rem !important' }} />}
+              label={`${formatDateShort(game.calendarEvent.startDate)}, ${formatTimeShort(game.calendarEvent.startDate)}${game.calendarEvent?.endDate ? ` - ${formatTimeShort(game.calendarEvent.endDate)}` : ''}`}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem', height: 28, '& .MuiChip-icon': { ml: 0.5 } }}
+            />
+          )}
+
+          {/* Location */}
+          {game.location && (
+            <Box
+              onClick={e => e.stopPropagation()}
+              sx={{ display: 'inline-flex', '& a': { fontSize: '0.75rem' }, '& svg': { fontSize: '0.9rem !important' } }}
+            >
+              <Location
+                id={game.location.id}
+                name={game.location.name}
+                address={game.location.address}
+                longitude={game.location.longitude}
+                latitude={game.location.latitude}
               />
-            )}
-
-            {/* Location */}
-            {game.location && (
-              <Box
-                onClick={e => e.stopPropagation()}
-                sx={{ display: 'inline-flex', '& a': { fontSize: '0.75rem' }, '& svg': { fontSize: '0.9rem !important' } }}
-              >
-                <Location
-                  id={game.location.id}
-                  name={game.location.name}
-                  address={game.location.address}
-                  longitude={game.location.longitude}
-                  latitude={game.location.latitude}
-                />
-              </Box>
-            )}
-
-            {/* Weather + Share */}
-            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  openWeatherModal(game.calendarEvent ? game.calendarEvent.id : null);
-                }}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  '&:hover': { opacity: 0.7 },
-                }}
-                title="Wetterdetails anzeigen"
-              >
-                <WeatherDisplay
-                  code={Array.isArray(game.weatherData?.weatherCode) ? game.weatherData.weatherCode[0] : undefined}
-                  theme={'light'}
-                  size={24}
-                />
-              </Box>
-              {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
-                <SharePosterButton
-                  payload={
-                    hasScore
-                      ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: score!.homeScore, awayScore: score!.awayScore } } }
-                      : { templateId: 'game-announcement', data: { game } }
-                  }
-                  label={hasScore ? 'Ergebnis teilen' : 'Ankündigung teilen'}
-                />
-              )}
             </Box>
+          )}
+
+          {/* Weather + Share */}
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                openWeatherModal(game.calendarEvent ? game.calendarEvent.id : null);
+              }}
+              sx={{
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                '&:hover': { opacity: 0.7 },
+              }}
+              title="Wetterdetails anzeigen"
+            >
+              <WeatherDisplay
+                code={Array.isArray(game.weatherData?.weatherCode) ? game.weatherData.weatherCode[0] : undefined}
+                theme={'light'}
+                size={24}
+              />
+            </Box>
+            {!isRunning && (hasScore || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
+            <Box
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}>
+              <SharePosterButton
+                payload={
+                  hasScore
+                    ? { templateId: 'game-result', data: { gameWithScore: { game, homeScore: score!.homeScore, awayScore: score!.awayScore } } }
+                    : { templateId: 'game-announcement', data: { game } }
+                }
+                label={hasScore ? 'Ergebnis teilen' : 'Ankündigung teilen'}
+              />
+            </Box>
+            )}
           </Box>
+        </Box>
 
         {/* Live Action Button */}
         {isRunning && (
@@ -486,8 +503,27 @@ export default function Games() {
             </Button>
           </Box>
         )}
+        </Box>
 
-
+        {game?.calendarEvent?.isCancelled && (
+          <Box sx={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              bgcolor: alpha(theme.palette.error.main, 0.1),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              pointerEvents: 'none' 
+            }}
+          >
+            <Typography variant="h6" sx={{ color: theme.palette.error.main, fontSize: 46, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, opacity: 1}}>
+              Abgesagt
+            </Typography>
+          </Box>
+        )}
       </Card>
     );
   };

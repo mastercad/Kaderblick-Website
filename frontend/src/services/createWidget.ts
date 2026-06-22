@@ -2,7 +2,7 @@ import { apiJson } from '../utils/api';
 import { WidgetData } from './dashboardWidgets';
 
 export async function createWidget({ type, reportId }: { type: string; reportId?: number }): Promise<WidgetData> {
-  const res = await apiJson('/api/widget/add', {
+  const res = await apiJson('/api/widget', {
     method: 'POST',
     body: {
       type,

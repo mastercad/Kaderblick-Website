@@ -55,7 +55,8 @@ const DashboardWidgetInner = (
         display: 'flex', 
         flexDirection: 'column', 
         boxSizing: 'border-box',
-        p: { xs: 0.5, sm: 1 },
+        p: 0,
+        overflow: 'hidden',
         '& .MuiCardHeader-action': {
           alignSelf: 'flex-start',
           marginTop: 0
@@ -72,8 +73,8 @@ const DashboardWidgetInner = (
           }}>
             {dragHandle}
             <Box sx={{ 
-              fontSize: { xs: '0.9rem', sm: '1.25rem' },
-              fontWeight: 500,
+              fontSize: { xs: '0.95rem', sm: '1.05rem' },
+              fontWeight: 700,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
@@ -83,7 +84,7 @@ const DashboardWidgetInner = (
           </Box>
         }
         action={
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: 0.25 }}>
             <IconButton 
               size={isMobile ? "small" : "medium"} 
               onClick={onRefresh} 
@@ -134,8 +135,11 @@ const DashboardWidgetInner = (
           </Box>
         }
         sx={{ 
-          pb: 0, 
-          minHeight: { xs: 48, sm: 56 },
+        px: { xs: 1.5, sm: 2 },
+        py: { xs: 1.25, sm: 1.5 },
+        minHeight: { xs: 52, sm: 60 },
+        borderBottom: '1px solid',
+        borderColor: 'divider',
           '& .MuiCardHeader-content': {
             overflow: 'hidden'
           }
@@ -147,8 +151,8 @@ const DashboardWidgetInner = (
         flexDirection: 'column', 
         alignItems: 'flex-start', 
         justifyContent: 'flex-start', 
-        minHeight: { xs: 120, sm: 160 }, 
-        p: { xs: 1, sm: 2 },
+        minHeight: { xs: 120, sm: 160 },
+        p: { xs: 1.5, sm: 2 },
         '&:last-child': {
           paddingBottom: { xs: 1, sm: 2 }
         }

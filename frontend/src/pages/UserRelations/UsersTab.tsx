@@ -52,6 +52,12 @@ function initials(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 }
 
+function assignmentPeriod(start?: string | null, end?: string | null): string {
+  if (!start && !end) return '';
+  const format = (value: string) => new Intl.DateTimeFormat('de-DE').format(new Date(`${value}T00:00:00`));
+  return ` (${start ? `ab ${format(start)}` : ''}${start && end ? ', ' : ''}${end ? `bis ${format(end)}` : ''})`;
+}
+
 const UsersTab: React.FC = () => {
   const theme   = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -192,6 +198,8 @@ const UsersTab: React.FC = () => {
           ...(u.staffClubAssignments ?? []).map(a => `Staff${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
           ...(u.functionaryTeamAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.team?.name ?? '—'}`),
           ...(u.functionaryClubAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
+          ...(u.adminTeamAssignments ?? []).map(a => `Team-Admin: ${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
+          ...(u.adminClubAssignments ?? []).map(a => `Vereinsadmin: ${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
         ];
         return allEntries.length > 0 ? (
           <Stack spacing={0.25}>
@@ -290,6 +298,8 @@ const UsersTab: React.FC = () => {
             ...(u.staffClubAssignments ?? []).map(a => ({ label: `Staff${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
             ...(u.functionaryTeamAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.team?.name ?? '—' })),
             ...(u.functionaryClubAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
+            ...(u.adminTeamAssignments ?? []).map(a => ({ label: 'Team-Admin', value: `${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
+            ...(u.adminClubAssignments ?? []).map(a => ({ label: 'Vereinsadmin', value: `${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
           ];
           if (allEntries.length === 0) return null;
           return (
@@ -339,7 +349,7 @@ const UsersTab: React.FC = () => {
           onClick={() => setRolesModal({ open: true, user: u })}
           sx={{ fontSize: '0.7rem', flex: '1 1 auto' }}
         >
-          Rollen
+          Rolle
         </Button>
         <Button
           size="small"
@@ -438,7 +448,7 @@ const UsersTab: React.FC = () => {
                   }} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Rollen bearbeiten">
+              <Tooltip title="Rolle bearbeiten">
                 <IconButton size="small" color="info" onClick={() => setRolesModal({ open: true, user: u })}>
                   <AdminPanelSettingsIcon fontSize="small" />
                 </IconButton>
@@ -490,23 +500,23 @@ const UsersTab: React.FC = () => {
         open={!!rolesModal?.open}
         onClose={() => setRolesModal(null)}
         user={rolesModal?.user}
-        onSave={async (roles) => {
+        onSave={async (role) => {
           if (!rolesModal?.user) return;
           try {
             const res = await apiJson(`/admin/users/${rolesModal.user.id}/roles`, {
               method: 'POST',
-              body: { roles },
+              body: { role },
               headers: { 'Content-Type': 'application/json' },
             });
             if (res?.success) {
               loadUsers();
               setRolesModal(null);
-              toast.showToast(res.message || 'Rollen gespeichert', 'success');
+              toast.showToast(res.message || 'Rolle gespeichert', 'success');
             } else {
-              toast.showToast(res?.message || res?.error || 'Fehler beim Speichern der Rollen', 'error');
+              toast.showToast(res?.message || res?.error || 'Fehler beim Speichern der Rolle', 'error');
             }
           } catch (e: any) {
-            toast.showToast(e?.message || 'Fehler beim Speichern der Rollen', 'error');
+            toast.showToast(e?.message || 'Fehler beim Speichern der Rolle', 'error');
           }
         }}
       />

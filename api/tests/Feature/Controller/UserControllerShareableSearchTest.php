@@ -142,7 +142,7 @@ class UserControllerShareableSearchTest extends WebTestCase
             ->setFirstName($firstName)
             ->setLastName('Test')
             ->setPassword('test')
-            ->setRoles(['ROLE_USER', 'ROLE_SUPPORTER'])
+            ->setRoles(['ROLE_SUPPORTER'])
             ->setIsEnabled(true)
             ->setIsVerified(true);
         $this->em->persist($user);

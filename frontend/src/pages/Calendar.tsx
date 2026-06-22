@@ -171,9 +171,9 @@ function CalendarInner() {
       style: {
         backgroundColor,
         borderRadius: '4px',
-        opacity: event.cancelled ? 0.45 : event.isExternal ? 0.75 : 0.9,
+        opacity: event.isCancelled ? 0.45 : event.isExternal ? 0.75 : 0.9,
         color: 'white',
-        border: event.cancelled
+        border: event.isCancelled
           ? '2px dashed rgba(255,255,255,0.5)'
           : event.isExternal
           ? '1px dashed rgba(255,255,255,0.6)'

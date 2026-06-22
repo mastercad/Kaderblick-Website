@@ -32,7 +32,7 @@ export function SharePosterButton({
   payload,
   label = 'Poster teilen',
   size = 'small',
-  stopPropagation = true,
+  stopPropagation = true
 }: SharePosterButtonProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const posterType = PAYLOAD_TYPE_MAP[payload.templateId];
@@ -40,8 +40,7 @@ export function SharePosterButton({
 
   if (loading || !hasTemplates) return null;
 
-  function handleClick(e: React.MouseEvent) {
-    if (stopPropagation) e.stopPropagation();
+  function handleClick() {
     setDialogOpen(true);
   }
 
@@ -54,7 +53,9 @@ export function SharePosterButton({
       <Tooltip title={label} arrow>
         <IconButton
           size={size}
-          onClick={handleClick}
+          onClick={() => {
+            handleClick();
+          }}
           aria-label={label}
           data-testid="share-poster-btn"
         >

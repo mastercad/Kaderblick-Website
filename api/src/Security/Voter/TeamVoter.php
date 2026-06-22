@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Team;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -18,8 +19,10 @@ final class TeamVoter extends Voter
     public const VIEW = 'TEAM_VIEW';
     public const DELETE = 'TEAM_DELETE';
 
-    public function __construct(private readonly CoachTeamPlayerService $coachTeamPlayerService)
-    {
+    public function __construct(
+        private readonly CoachTeamPlayerService $coachTeamPlayerService,
+        private readonly AdminScopeService $adminScopeService,
+    ) {
     }
 
     protected function supports(string $attribute, mixed $subject): bool
@@ -49,13 +52,17 @@ final class TeamVoter extends Voter
 
             case self::EDIT:
             case self::DELETE:
+                /** @var Team $subject */
+                if ($this->adminScopeService->canAdministerTeam($user, $subject)) {
+                    return true;
+                }
+
                 // ADMIN darf immer bearbeiten/löschen
                 if (in_array('ROLE_ADMIN', $user->getRoles())) {
                     return true;
                 }
 
                 // Coach darf nur Teams bearbeiten/löschen, denen er aktuell aktiv zugeordnet ist
-                /** @var Team $subject */
                 $coachTeams = $this->coachTeamPlayerService->collectCoachTeams($user);
 
                 return isset($coachTeams[$subject->getId()]);

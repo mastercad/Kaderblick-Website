@@ -48,7 +48,7 @@ import { apiJson } from '../utils/api';
 
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, initialTab = 0 }) => {
-  const { mode, toggleTheme } = useTheme();
+  const { mode, preference, setPreference } = useTheme();
   const { user } = useAuth();
   const userRoles = Object.values(user?.roles ?? {});
 
@@ -218,7 +218,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose, onSave, init
           <TabPanel value={activeTab} index={2}>
             <SettingsTab
               themeMode={mode}
-              onToggleTheme={toggleTheme}
+              themePreference={preference}
+              onThemePreferenceChange={setPreference}
               pushHealth={pushHealth}
               pushChecking={pushChecking}
               pushTestResult={pushTestResult}
