@@ -4,6 +4,7 @@ import {
 	Checkbox, FormControlLabel, FormGroup, Divider, Chip,
 	CircularProgress, Alert, Paper, Stack, Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import SportsSoccerIcon from '@mui/icons-material/SportsSoccer';
@@ -259,7 +260,17 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 		const entityLabel = isPlayer ? 'Spieler auswählen' : 'Trainer auswählen';
 
 		return (
-			<Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3, borderColor: isPlayer ? 'primary.light' : 'secondary.light', bgcolor: isPlayer ? 'primary.50' : 'secondary.50', position: 'relative' }}>
+			<Paper variant="outlined" sx={(theme) => {
+				const accent = isPlayer ? theme.palette.primary.main : theme.palette.secondary.main;
+				return {
+					p: 2,
+					mb: 2,
+					borderRadius: 3,
+					borderColor: alpha(accent, theme.palette.mode === 'dark' ? 0.5 : 0.35),
+					bgcolor: alpha(accent, theme.palette.mode === 'dark' ? 0.09 : 0.05),
+					position: 'relative',
+				};
+			}}>
 				<IconButton size="small" color="error" onClick={() => handleRemove(category, idx)} aria-label="Zuordnung entfernen" sx={{ position: 'absolute', top: 8, right: 8 }}>
 					<DeleteOutlineIcon fontSize="small" />
 				</IconButton>
@@ -322,10 +333,16 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 		const entityValue = isTeam ? (row.teamId ?? '') : (row.clubId ?? '');
 		const entityField = isTeam ? 'teamId' : 'clubId';
 		const accentColor = (kind === 'staffTeam' || kind === 'staffClub') ? '#e65100' : '#1565c0';
-		const bgColor = (kind === 'staffTeam' || kind === 'staffClub') ? '#fff8f5' : '#f0f4ff';
 
 		return (
-			<Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3, borderColor: accentColor + '66', bgcolor: bgColor, position: 'relative' }}>
+			<Paper variant="outlined" sx={(theme) => ({
+				p: 2,
+				mb: 2,
+				borderRadius: 3,
+				borderColor: alpha(accentColor, theme.palette.mode === 'dark' ? 0.65 : 0.4),
+				bgcolor: alpha(accentColor, theme.palette.mode === 'dark' ? 0.12 : 0.04),
+				position: 'relative',
+			})}>
 				<IconButton size="small" color="error" onClick={() => removeAssignment(setter, idx)} aria-label="Zuordnung entfernen" sx={{ position: 'absolute', top: 8, right: 8 }}>
 					<DeleteOutlineIcon fontSize="small" />
 				</IconButton>

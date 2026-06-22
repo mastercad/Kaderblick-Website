@@ -10,17 +10,13 @@ import { HomeScrollProvider, useHomeScroll } from './context/HomeScrollContext';
 import { NavigationProgressProvider } from './context/NavigationProgressContext';
 import { useAuth } from './context/AuthContext';
 import { Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
-import Home from './pages/Home';
 import ProtectedRoute from './pages/ProtectedRoute';
 import Navigation from './components/Navigation';
 import NavSidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
 import * as localStorageService from './services/localStorageService';
 import { PageTabBar } from './components/navigation/PageTabBar';
 import FabStackRoot from './components/FabStackRoot';
-import Imprint from './pages/Imprint';
-import Privacy from './pages/Privacy';
 import Footer from './components/Footer';
-import LandingPageFooter from './components/LandingPageFooter';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -104,14 +100,6 @@ const Cups = lazy(() => import('./pages/Cups'));
 const Cameras = lazy(() => import('./pages/Cameras'));
 const VideoTypes = lazy(() => import('./pages/VideoTypes'));
 const Teams = lazy(() => import('./pages/Teams'));
-const FeaturesOverview = lazy(() => import('./pages/FeaturesOverview'));
-const BenefitsOverview = lazy(() => import('./pages/BenefitsOverview'));
-const PricingOverview = lazy(() => import('./pages/PricingOverview'));
-const FeatureDetail = lazy(() => import('./pages/FeatureDetail'));
-const Faq = lazy(() => import('./pages/Faq'));
-const ContactPage = lazy(() => import('./pages/Contact'));
-const AboutUs = lazy(() => import('./pages/AboutUs'));
-const PublicIntentPage = lazy(() => import('./pages/PublicIntentPage'));
 const Matchday = lazy(() => import('./pages/Matchday'));
 const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const HallOfFame = lazy(() => import('./pages/HallOfFame'));
@@ -135,6 +123,19 @@ function RouteFallback() {
       }}
     />
   );
+}
+
+function LoadPublicApp() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const target = location.pathname === '/'
+      ? '/'
+      : `${location.pathname}${location.search}${location.hash}`;
+    window.location.replace(target);
+  }, [location]);
+
+  return null;
 }
 
 function RouteSeoBoundary() {
@@ -377,22 +378,24 @@ function App() {
                 {showAuthenticatedAppChrome && <PageTabBar />}
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route path="/" element={user ? <Navigate to={(location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/dashboard'} replace /> : <Home />} />
-                    <Route path="/funktionen" element={<FeaturesOverview />} />
-                    <Route path="/vorteile" element={<BenefitsOverview />} />
-                    <Route path="/preise" element={<PricingOverview />} />
-                    <Route path="/funktionen/:slug" element={<FeatureDetail />} />
-                    <Route path="/für-trainer" element={<PublicIntentPage />} />
-                    <Route path="/für-eltern" element={<PublicIntentPage />} />
-                    <Route path="/für-jugendleitung" element={<PublicIntentPage />} />
-                    <Route path="/fuer-trainer" element={<Navigate to="/für-trainer" replace />} />
-                    <Route path="/fuer-eltern" element={<Navigate to="/für-eltern" replace />} />
-                    <Route path="/fuer-jugendleitung" element={<Navigate to="/für-jugendleitung" replace />} />
-                    <Route path="/spielanalyse-software" element={<PublicIntentPage />} />
-                    <Route path="/faq" element={<Faq />} />
+                    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LoadPublicApp />} />
+                    <Route path="/funktionen/*" element={<LoadPublicApp />} />
+                    <Route path="/vorteile" element={<LoadPublicApp />} />
+                    <Route path="/preise" element={<LoadPublicApp />} />
+                    <Route path="/für-trainer" element={<LoadPublicApp />} />
+                    <Route path="/für-eltern" element={<LoadPublicApp />} />
+                    <Route path="/für-jugendleitung" element={<LoadPublicApp />} />
+                    <Route path="/fuer-trainer" element={<LoadPublicApp />} />
+                    <Route path="/fuer-eltern" element={<LoadPublicApp />} />
+                    <Route path="/fuer-jugendleitung" element={<LoadPublicApp />} />
+                    <Route path="/spielanalyse-software" element={<LoadPublicApp />} />
+                    <Route path="/faq" element={<LoadPublicApp />} />
+                    <Route path="/ueber-uns" element={<LoadPublicApp />} />
+                    <Route path="/kontakt" element={<LoadPublicApp />} />
+                    <Route path="/imprint" element={<LoadPublicApp />} />
+                    <Route path="/privacy" element={<LoadPublicApp />} />
+                    <Route path="/live/*" element={<LoadPublicApp />} />
                     <Route path="/wissenspool" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
-                    <Route path="/ueber-uns" element={<AboutUs />} />
-                    <Route path="/kontakt" element={<ContactPage />} />
                     <Route path="/verify-email/:token" element={<VerifyEmail />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
@@ -461,8 +464,6 @@ function App() {
                     <Route path="/mein-spieltag" element={<ProtectedRoute><Matchday /></ProtectedRoute>} />
                     <Route path="/mein-spieltag/:eventId" element={<ProtectedRoute><Matchday /></ProtectedRoute>} />
                     <Route path="/hall-of-fame" element={<HallOfFame />} />
-                    <Route path="/imprint" element={<Imprint />} />
-                    <Route path="/privacy" element={<Privacy />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </Suspense>
@@ -491,11 +492,9 @@ function App() {
                 {showContact && <ContactModal open onClose={() => setShowContact(false)} />}
               </Suspense>
               <CookieBanner />
-              {!isHome && (showAuthenticatedAppChrome ? (
+              {!isHome && showAuthenticatedAppChrome && (
                 <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>
-              ) : (
-                <LandingPageFooter />
-              ))}
+              )}
                 </Box>{/* end content column */}
                 </Box>{/* end flex-row sidebar+content */}
             </Box>

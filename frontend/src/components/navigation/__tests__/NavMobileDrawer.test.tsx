@@ -40,13 +40,14 @@ const mockUseNotifications = useNotifications as jest.MockedFunction<typeof useN
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const theme = createTheme();
+const darkTheme = createTheme({ palette: { mode: 'dark' } });
 
 const mockOnClose       = jest.fn();
 const mockOnOpenQRShare = jest.fn();
 
-function renderDrawer(open = true) {
+function renderDrawer(open = true, activeTheme = theme) {
   return render(
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={activeTheme}>
       <NavMobileDrawer
         open={open}
         onClose={mockOnClose}
@@ -117,6 +118,13 @@ describe('open / close', () => {
 // ── Standard navigation tiles ─────────────────────────────────────────────────
 
 describe('standard navigation tiles', () => {
+  it('uses a dark tile surface in dark mode', () => {
+    renderDrawer(true, darkTheme);
+    const tile = screen.getByText('Neuigkeiten').closest('button');
+
+    expect(tile).toHaveStyle({ backgroundColor: 'rgba(255, 255, 255, 0.08)' });
+  });
+
   it('renders Neuigkeiten tile', () => {
     renderDrawer();
     expect(screen.getByText('Neuigkeiten')).toBeInTheDocument();

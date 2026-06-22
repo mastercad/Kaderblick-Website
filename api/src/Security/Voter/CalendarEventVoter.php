@@ -12,6 +12,7 @@ use App\Entity\PlayerTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Enum\CalendarEventPermissionType;
+use App\Service\AdminScopeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -28,7 +29,8 @@ final class CalendarEventVoter extends Voter
     public const CANCEL = 'CALENDAR_EVENT_CANCEL';
 
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AdminScopeService $adminScopeService,
     ) {
     }
 
@@ -298,49 +300,30 @@ final class CalendarEventVoter extends Voter
         return null !== $coachTeamAssignment;
     }
 
-    /**
-     * Only admins, superadmins, and coaches of related teams can cancel events.
-     */
+    /** Only superadmins and admins/coaches responsible for an associated team or club may cancel. */
     private function canCancelCalendarEvent(CalendarEvent $calendarEvent, User $user): bool
     {
-        // Global admins can always cancel
-        if (
-            in_array('ROLE_ADMIN', $user->getRoles())
-            || in_array('ROLE_SUPERADMIN', $user->getRoles())
-        ) {
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
             return true;
         }
 
-        // Creator can cancel
-        if ($calendarEvent->getCreatedBy()?->getId() === $user->getId()) {
-            return true;
-        }
-
-        // For games: coach of home or away team
-        if ($calendarEvent->getGame()) {
-            $game = $calendarEvent->getGame();
-            $homeTeam = $game->getHomeTeam();
-            $awayTeam = $game->getAwayTeam();
-
-            if ($homeTeam && $this->isCoachOfTeam($user, $homeTeam)) {
-                return true;
-            }
-            if ($awayTeam && $this->isCoachOfTeam($user, $awayTeam)) {
+        foreach ($this->getEventTeams($calendarEvent) as $team) {
+            if (
+                $this->adminScopeService->hasAssignedScopeForTeam($user, $team)
+                || $this->isCoachOfTeam($user, $team)
+            ) {
                 return true;
             }
         }
 
-        // For events with team permissions: coach of any associated team
+        // A club-wide event has no concrete team; its club admins may still manage its status.
         foreach ($calendarEvent->getPermissions() as $permission) {
-            if (CalendarEventPermissionType::TEAM === $permission->getPermissionType() && $permission->getTeam()) {
-                if ($this->isCoachOfTeam($user, $permission->getTeam())) {
-                    return true;
-                }
-            }
-            if (CalendarEventPermissionType::CLUB === $permission->getPermissionType() && $permission->getClub()) {
-                if ($this->isCoachInClub($user, $permission->getClub())) {
-                    return true;
-                }
+            if (
+                CalendarEventPermissionType::CLUB === $permission->getPermissionType()
+                && $permission->getClub()
+                && $this->adminScopeService->hasAssignedScopeForClub($user, $permission->getClub())
+            ) {
+                return true;
             }
         }
 
@@ -377,21 +360,5 @@ final class CalendarEventVoter extends Voter
             ->getOneOrNullResult();
 
         return null !== $coachTeamAssignment;
-    }
-
-    private function isCoachInClub(User $user, Club $club): bool
-    {
-        $coachClubAssignment = $this->entityManager->getRepository(CoachClubAssignment::class)
-            ->createQueryBuilder('cca')
-            ->innerJoin('cca.coach', 'c')
-            ->innerJoin('c.userRelations', 'ur')
-            ->where('ur.user = :user')
-            ->andWhere('cca.club = :club')
-            ->setParameter('user', $user)
-            ->setParameter('club', $club)
-            ->getQuery()
-            ->getOneOrNullResult();
-
-        return null !== $coachClubAssignment;
     }
 }

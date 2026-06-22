@@ -17,6 +17,9 @@ const EXACT_PUBLIC_PATHS = new Set([
   '/für-trainer',
   '/für-eltern',
   '/für-jugendleitung',
+  '/fuer-trainer',
+  '/fuer-eltern',
+  '/fuer-jugendleitung',
   '/spielanalyse-software',
   '/faq',
   '/kontakt',
@@ -46,5 +49,5 @@ export function isPublicSeoPath(pathname: string): boolean {
     return true;
   }
 
-  return normalizedPath.startsWith('/funktionen/');
+  return normalizedPath.startsWith('/funktionen/') || normalizedPath.startsWith('/live/');
 }

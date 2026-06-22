@@ -20,7 +20,7 @@ function buildTheme(mode: PaletteMode) {
     success: dark
       ? { main: '#64cf63', light: '#94e492', dark: '#389d3c', contrastText: '#071008' }
       : { main: '#238636', light: '#48a95b', dark: '#175c28', contrastText: '#ffffff' },
-    warning: { main: dark ? '#f0b84b' : '#b66a08' },
+    warning: { main: dark ? '#f0b84b' : '#b66a08', contrastText: '#071008' },
     error: { main: dark ? '#ff6b6b' : '#c9363e' },
     info: { main: dark ? '#65b8e8' : '#2479a8' },
     background: dark
@@ -141,7 +141,15 @@ function buildTheme(mode: PaletteMode) {
       MuiChip: {
         styleOverrides: {
           root: { borderRadius: 8, fontWeight: 620 },
-          filled: { backgroundColor: alpha(palette.primary.main, 0.11) },
+          // Only neutral chips use the subtle brand tint. Applying this background
+          // to every filled chip breaks semantic colors: e.g. color="primary"
+          // keeps primary.contrastText while its solid background gets replaced.
+          filled: {
+            '&.MuiChip-colorDefault': {
+              backgroundColor: alpha(palette.primary.main, 0.11),
+              color: palette.text.primary,
+            },
+          },
         },
       },
       MuiOutlinedInput: {

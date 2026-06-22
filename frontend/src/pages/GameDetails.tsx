@@ -35,6 +35,7 @@ import { QuickEventFab } from '../modals/quick-event/components/QuickEventFab';
 import { QuickEventPanel } from '../modals/quick-event/components/QuickEventPanel';
 import { useQuickEventConfig } from '../modals/quick-event/useQuickEventConfig';
 import { SupporterApplicationModal } from '../modals/SupporterApplicationModal';
+import LiveTickerControls from './game-details/components/LiveTickerControls';
 
 function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
   const theme = useTheme();
@@ -289,6 +290,9 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onFinishGame={() => hook.setConfirmFinishOpen(true)}
         />
       </Box>
+      {game.permissions?.can_manage_live_ticker && (
+        <LiveTickerControls game={game} onChanged={hook.handleLiveTickerChanged} />
+      )}
       {/* ── Share poster button ──────────────────────────────────────────── */}
       {!hook.isGameRunning() && (hook.isFinished || !game.calendarEvent?.startDate || new Date(game.calendarEvent.startDate) > new Date()) && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>

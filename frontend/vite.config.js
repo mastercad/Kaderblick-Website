@@ -10,6 +10,12 @@ function appShellManifestTransform(entries) {
   const entriesByUrl = new Map(entries.map(entry => [entry.url, entry]));
   const keep = new Set(['index.html', 'manifest.webmanifest', 'registerSW.js']);
   const queue = ['index.html'];
+  const publicEntry = entries.find(entry => /^assets\/mountPublicApp-.*\.js$/.test(entry.url));
+
+  if (publicEntry) {
+    keep.add(publicEntry.url);
+    queue.push(publicEntry.url);
+  }
 
   while (queue.length > 0) {
     const currentUrl = queue.shift();
@@ -24,6 +30,8 @@ function appShellManifestTransform(entries) {
 
     const references = currentUrl.endsWith('.css')
       ? [...source.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(match => match[1])
+      : currentUrl.endsWith('.js')
+        ? [...source.matchAll(/(?:from\s*|import\s*)["']\.\/([^"']+)["']/g)].map(match => `./${match[1]}`)
       : [...source.matchAll(/(?:src|href)=["']([^"']+)["']/g)].map(match => match[1]);
 
     for (const reference of references) {
@@ -34,6 +42,7 @@ function appShellManifestTransform(entries) {
       if (cleanUrl === 'images/landing_page/background_central.jpg') continue;
       if (!entriesByUrl.has(cleanUrl) || keep.has(cleanUrl)) continue;
       keep.add(cleanUrl);
+      if (cleanUrl.endsWith('.js')) queue.push(cleanUrl);
     }
   }
 

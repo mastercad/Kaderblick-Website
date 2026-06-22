@@ -135,6 +135,35 @@ class GamesController extends ApiController
         ]);
     }
 
+    #[Route('/{id}/public-live-ticker', name: 'public_live_ticker_update', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    public function updatePublicLiveTicker(Game $game, Request $request): JsonResponse
+    {
+        if (!$this->isGranted(GameVoter::EDIT, $game)) {
+            return $this->json(['error' => 'Zugriff verweigert'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!is_array($data) || !array_key_exists('enabled', $data) || !is_bool($data['enabled'])) {
+            return $this->json(['error' => 'Das Feld "enabled" muss ein Boolean sein.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($data['enabled'] && (null === $game->getCalendarEvent() || null === $game->getHomeTeam() || null === $game->getAwayTeam())) {
+            return $this->json(['error' => 'Der Liveticker benötigt einen Spieltermin und zwei Mannschaften.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($data['enabled'] && null === $game->getPublicLiveTickerToken()) {
+            $game->setPublicLiveTickerToken(bin2hex(random_bytes(24)));
+        }
+        $game->setPublicLiveTickerEnabled($data['enabled']);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'enabled' => $game->isPublicLiveTickerEnabled(),
+            'token' => $game->getPublicLiveTickerToken(),
+            'publicPath' => $game->getPublicLiveTickerToken() ? '/live/' . $game->getPublicLiveTickerToken() : null,
+        ]);
+    }
+
     /**
      * Update timing fields for a game (halfDuration, halftimeBreakDuration, firstHalfExtraTime, secondHalfExtraTime).
      */
@@ -395,6 +424,8 @@ class GamesController extends ApiController
                 'firstHalfExtraTime' => $game->getFirstHalfExtraTime(),
                 'secondHalfExtraTime' => $game->getSecondHalfExtraTime(),
                 'matchPlan' => $canViewMatchPlan ? $matchPlan : null,
+                'publicLiveTickerEnabled' => $game->isPublicLiveTickerEnabled(),
+                'publicLiveTickerToken' => $game->getPublicLiveTickerToken(),
                 'permissions' => [
                     'can_create_videos' => $this->isGranted(VideoVoter::CREATE, $game->getHomeTeam()) || $this->isGranted(VideoVoter::CREATE, $game->getAwayTeam()),
                     'can_edit_videos' => $this->isGranted(VideoVoter::EDIT, $game->getHomeTeam()) || $this->isGranted(VideoVoter::EDIT, $game->getAwayTeam()),
@@ -405,6 +436,7 @@ class GamesController extends ApiController
                     'can_manage_match_plan' => $canManageMatchPlan,
                     'can_publish_match_plan' => $this->isGranted(MatchPlanVoter::PUBLISH, $game),
                     'can_view_match_plan' => $canViewMatchPlan,
+                    'can_manage_live_ticker' => $this->isGranted(GameVoter::EDIT, $game),
                 ]
             ];
         };

@@ -107,6 +107,10 @@ describe('isPublicSeoPath', () => {
     expect(isPublicSeoPath('/funktionen/some/deep/path')).toBe(true);
   });
 
+  it('returns true for a public live ticker path', () => {
+    expect(isPublicSeoPath('/live/abc123')).toBe(true);
+  });
+
   it('returns false for /dashboard (private route)', () => {
     expect(isPublicSeoPath('/dashboard')).toBe(false);
   });

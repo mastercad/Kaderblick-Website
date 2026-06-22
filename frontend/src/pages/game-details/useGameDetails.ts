@@ -126,6 +126,14 @@ export function useGameDetails(propGameId?: number, onBack?: () => void) {
     }
   };
 
+  const handleLiveTickerChanged = (state: { enabled: boolean; token: string | null }) => {
+    setGame(current => current ? {
+      ...current,
+      publicLiveTickerEnabled: state.enabled,
+      publicLiveTickerToken: state.token,
+    } : current);
+  };
+
   const loadVideos = async () => {
     if (!gameId) return;
     try {
@@ -423,6 +431,7 @@ export function useGameDetails(propGameId?: number, onBack?: () => void) {
     // Handlers
     loadGameDetails,
     loadGameEvents,
+    handleLiveTickerChanged,
     handleBack,
     handleDeleteEvent,
     handleEventFormSuccess,

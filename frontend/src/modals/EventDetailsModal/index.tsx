@@ -21,7 +21,6 @@ import BaseModal from '../BaseModal';
 import WeatherModal from '../WeatherModal';
 import TeamRideDetailsModal from '../TeamRideDetailsModal';
 import Location from '../../components/Location';
-import TourTooltip from '../../components/TourTooltip';
 
 // Sub-modules
 import { useEventParticipation } from './hooks/useEventParticipation';
@@ -43,32 +42,6 @@ import { SharePosterButton } from '../../pages/PosterGenerator/components/ShareP
 import type { EventDetailsModalProps } from './types';
 
 export type { EventDetailsModalProps } from './types';
-
-const tourSteps = [
-  {
-    target: 'event-details',
-    content: 'Hier findest du alle wichtigen Infos zum Event. Schau dich ruhig um!',
-  },
-  {
-    target: 'event-action-button',
-    content:
-      'Hier kannst du dich zum Event anmelden oder abmelden. Nach dem Klick öffnet sich ein Fenster, wo du optional eine Nachricht hinterlassen kannst.',
-  },
-  {
-    target: 'participations-list',
-    content: 'In der Teilnehmerliste siehst du, wer sich sonst noch angemeldet hat.',
-  },
-  {
-    target: 'weather-information',
-    content:
-      'Hier findest du Informationen zum voraussichtlichen Wetter. Wetterinformationen werden nur über die Zeit des Events angezeigt.',
-  },
-  {
-    target: 'teamride-information',
-    content:
-      'Hier findest du Informationen zu Fahrgemeinschaften, kannst eine Fahrgemeinschaft anbieten bzw. einen Platz buchen.',
-  },
-];
 
 export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   open,
@@ -240,7 +213,13 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         }
         maxWidth="sm"
         actions={
-          <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', gap: 1 }}>
+          <Box sx={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            gap: { xs: 0.5, sm: 1 },
+            flexWrap: 'nowrap',
+          }}>
             {/* Löschen – ganz links, visuell isoliert */}
             {event.permissions?.canDelete && onDelete && (
               <Tooltip title="Termin löschen" arrow>
@@ -260,40 +239,85 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
               alignItems: "center"
             }}>
               {event.permissions?.canEdit && onEdit && (
-                <Button
-                  onClick={onEdit}
-                  variant="outlined"
-                  size="small"
-                  startIcon={<EditIcon />}
-                  sx={{ borderRadius: 2 }}
-                >
-                  Bearbeiten
-                </Button>
+                isMobile ? (
+                  <Tooltip title="Termin bearbeiten" arrow enterTouchDelay={600} leaveTouchDelay={1500}>
+                    <IconButton
+                      onClick={onEdit}
+                      color="success"
+                      size="small"
+                      aria-label="Termin bearbeiten"
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    onClick={onEdit}
+                    variant="outlined"
+                    size="small"
+                    startIcon={<EditIcon />}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Bearbeiten
+                  </Button>
+                )
               )}
               {event.permissions?.canCancel && !event.cancelled && (
-                <Button
-                  onClick={() => setCancelDialogOpen(true)}
-                  color="warning"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<CancelIcon />}
-                  sx={{ borderRadius: 2 }}
-                >
-                  Absagen
-                </Button>
+                isMobile ? (
+                  <Tooltip title="Event absagen" arrow enterTouchDelay={600} leaveTouchDelay={1500}>
+                    <IconButton
+                      onClick={() => setCancelDialogOpen(true)}
+                      color="warning"
+                      size="small"
+                      aria-label="Event absagen"
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+                    >
+                      <CancelIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    onClick={() => setCancelDialogOpen(true)}
+                    color="warning"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<CancelIcon />}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Absagen
+                  </Button>
+                )
               )}
               {event.permissions?.canCancel && event.cancelled && (
-                <Button
-                  onClick={reactivateEvent}
-                  color="success"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RestoreIcon />}
-                  disabled={reactivating}
-                  sx={{ borderRadius: 2 }}
-                >
-                  {reactivating ? 'Wird reaktiviert…' : 'Reaktivieren'}
-                </Button>
+                isMobile ? (
+                  <Tooltip title={reactivating ? 'Wird reaktiviert…' : 'Event reaktivieren'} arrow enterTouchDelay={600} leaveTouchDelay={1500}>
+                    <span>
+                      <IconButton
+                        onClick={reactivateEvent}
+                        color="success"
+                        size="small"
+                        aria-label={reactivating ? 'Wird reaktiviert…' : 'Event reaktivieren'}
+                        disabled={reactivating}
+                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+                      >
+                        {reactivating ? <CircularProgress size={18} color="inherit" /> : <RestoreIcon fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    onClick={reactivateEvent}
+                    color="success"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<RestoreIcon />}
+                    disabled={reactivating}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {reactivating ? 'Wird reaktiviert…' : 'Reaktivieren'}
+                  </Button>
+                )
               )}
             </Stack>
 
@@ -315,7 +339,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
               onClick={onClose}
               variant="contained"
               size={isMobile ? 'small' : 'medium'}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: 2, flexShrink: 0 }}
             >
               Schließen
             </Button>
@@ -496,7 +520,6 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         eventId={event.id}
         eventTitle={event.title}
       />
-      <TourTooltip steps={tourSteps} />
       {/* ──────────────────────────── Dialogs ──────────────────────────── */}
       <NoteDialog
         open={noteDialogOpen}

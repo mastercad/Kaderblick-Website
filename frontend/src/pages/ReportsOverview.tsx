@@ -179,7 +179,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                   mt: 1,
                   p: 1,
                   overflow: 'hidden',
-                  bgcolor: 'grey.50',
+                  bgcolor: 'background.paper',
                 }}
               >
                 <ReportWidget reportId={report.id} />

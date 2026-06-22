@@ -37,7 +37,7 @@ jest.mock('./seo/siteConfig', () => {
   function isPublicSeoPath(pathname: string): boolean {
     const normalizedPath = normalizePathname(pathname);
     if (EXACT_PUBLIC_PATHS.has(normalizedPath)) return true;
-    return normalizedPath.startsWith('/funktionen/');
+    return normalizedPath.startsWith('/funktionen/') || normalizedPath.startsWith('/live/');
   }
 
   return {

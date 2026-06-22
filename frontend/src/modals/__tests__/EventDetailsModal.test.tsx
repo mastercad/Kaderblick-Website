@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { EventDetailsModal, EventDetailsModalProps } from '../EventDetailsModal';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -32,7 +32,6 @@ jest.mock('../EventDetailsModal/components/PlayerOverviewModal', () => ({ Player
 // Mock WeatherDisplay and Location
 jest.mock('../../components/WeatherIcons', () => ({ WeatherDisplay: () => <div data-testid="WeatherDisplay" /> }));
 jest.mock('../../components/Location', () => () => <div data-testid="Location" />);
-jest.mock('../../components/TourTooltip', () => ({ children }: any) => <>{children}</>);
 
 // Mock NoteDialog to pass through real component AND expose bypass for pendingStatusId=null coverage
 jest.mock('../EventDetailsModal/dialogs/NoteDialog', () => {
@@ -969,6 +968,11 @@ describe('EventDetailsModal', () => {
       render(<EventDetailsModal {...defaultProps} event={cancellableEvent} />);
     });
     expect(screen.getByTestId('Dialog')).toBeInTheDocument();
+    const actions = within(screen.getByTestId('DialogActions'));
+    expect(actions.getByRole('button', { name: 'Termin bearbeiten' })).toBeInTheDocument();
+    expect(actions.getByRole('button', { name: 'Event absagen' })).toBeInTheDocument();
+    expect(actions.queryByText('Bearbeiten')).not.toBeInTheDocument();
+    expect(actions.queryByText('Absagen')).not.toBeInTheDocument();
     (useMediaQuery as jest.Mock).mockReturnValue(false);
   });
 
@@ -982,7 +986,9 @@ describe('EventDetailsModal', () => {
     await act(async () => {
       render(<EventDetailsModal {...defaultProps} event={reactivatableEvent} />);
     });
-    expect(screen.getByText('Reaktivieren')).toBeInTheDocument();
+    const actions = within(screen.getByTestId('DialogActions'));
+    expect(actions.getByRole('button', { name: 'Event reaktivieren' })).toBeInTheDocument();
+    expect(actions.queryByText('Reaktivieren')).not.toBeInTheDocument();
     (useMediaQuery as jest.Mock).mockReturnValue(false);
   });
 

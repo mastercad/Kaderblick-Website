@@ -160,6 +160,17 @@ export interface GameTimingData {
   secondHalfExtraTime?: number | null;
 }
 
+export async function updatePublicLiveTicker(gameId: number, enabled: boolean): Promise<{
+  enabled: boolean;
+  token: string | null;
+  publicPath: string | null;
+}> {
+  return apiJson('/api/games/' + gameId + '/public-live-ticker', {
+    method: 'PATCH',
+    body: { enabled },
+  });
+}
+
 export async function updateGameTiming(gameId: number, data: GameTimingData): Promise<{
   success: boolean;
   halfDuration: number;

@@ -1,23 +1,10 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App';
-import { ToastProvider } from './context/ToastContext';
-import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from '@mui/material/styles';
-import { ThemeProvider as CustomThemeProvider } from './context/ThemeContext';
-import { ConsentProvider } from './context/ConsentContext';
-import { HolidayProvider } from './context/HolidayContext';
-import { BrowserRouter } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
-import { lightTheme } from './theme/theme';
+import { shouldUsePublicEntrypoint } from './entrypoints/selectEntrypoint';
 
 // @ts-ignore
 import '@fontsource-variable/inter';
 // @ts-ignore
 import '@fontsource/anton';
 import './index.css';
-import './styles/tour-tool-tip.css';
-import './styles/mobile-responsive.css';
 
 // Service Worker Update & Legacy-Cleanup
 // VitePWA registriert /sw.js automatisch via registerSW.js (im index.html injiziert).
@@ -52,24 +39,10 @@ if ('serviceWorker' in navigator) {
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <HelmetProvider>
-      <ConsentProvider>
-        <CustomThemeProvider>
-          <HolidayProvider>
-            <ThemeProvider theme={lightTheme}>
-              <AuthProvider>
-                <BrowserRouter>
-                  <ToastProvider>
-                    <App />
-                  </ToastProvider>
-                </BrowserRouter>
-              </AuthProvider>
-            </ThemeProvider>
-          </HolidayProvider>
-        </CustomThemeProvider>
-      </ConsentProvider>
-    </HelmetProvider>
-  </StrictMode>
-);
+const shouldLoadPublicApp = shouldUsePublicEntrypoint(window.location.pathname, window.location.search);
+
+if (shouldLoadPublicApp) {
+  import('./entrypoints/mountPublicApp').then(({ mountPublicApp }) => mountPublicApp(rootElement));
+} else {
+  import('./entrypoints/mountAuthenticatedApp').then(({ mountAuthenticatedApp }) => mountAuthenticatedApp(rootElement));
+}

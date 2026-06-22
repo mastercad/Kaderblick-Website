@@ -20,7 +20,8 @@ import { lightTheme, darkTheme } from '../theme';
 
 /** Konvertiert einen #rrggbb-Hex-Wert in [r, g, b] (0-255). */
 function hexToRgb(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '');
+  const raw = hex.replace('#', '');
+  const clean = raw.length === 3 ? raw.split('').map(channel => channel + channel).join('') : raw;
   if (clean.length !== 6) throw new Error(`Ungültiger Hex-Wert: ${hex}`);
   return [
     parseInt(clean.slice(0, 2), 16),
@@ -132,6 +133,8 @@ const dark = {
   secondaryContrast: darkTheme.palette.secondary.contrastText,
 };
 
+const semanticChipColors = ['primary', 'secondary', 'success', 'warning', 'error', 'info'] as const;
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('Theme – WCAG Kontrastanforderungen', () => {
@@ -144,14 +147,13 @@ describe('Theme – WCAG Kontrastanforderungen', () => {
     label: string,
   ) => {
     const ratio = contrastRatio(fg, bg);
-    expect(ratio).toBeGreaterThanOrEqual(minRatio);
-    // Ausgabe im Fehlerfall: `expect(2.78).toBeGreaterThanOrEqual(4.5) › ${label}`
     if (ratio < minRatio) {
       // Explizite Meldung damit der Fehler sofort verständlich ist
       throw new Error(
         `[${label}]\n  fg: ${fg}\n  bg: ${bg}\n  Kontrast: ${ratio.toFixed(2)}:1\n  Minimum:  ${minRatio}:1`,
       );
     }
+    expect(ratio).toBeGreaterThanOrEqual(minRatio);
   };
 
   // ── Light Theme ──────────────────────────────────────────────────────────
@@ -229,6 +231,40 @@ describe('Theme – WCAG Kontrastanforderungen', () => {
   // ── Regressionsschutz: text.secondary darf NICHT dunkel sein ─────────────
 
   describe('Regressionsschutz', () => {
+    it.each([
+      ['light', lightTheme],
+      ['dark', darkTheme],
+    ] as const)('%s: gefüllte semantische Chips behalten ihre kontrastreiche Palette', (_mode, theme) => {
+      for (const color of semanticChipColors) {
+        assertContrast(
+          theme.palette[color].contrastText,
+          theme.palette[color].main,
+          WCAG_AA_NORMAL_TEXT,
+          `${theme.palette.mode} filled ${color} chip`,
+        );
+      }
+
+      const filled = theme.components?.MuiChip?.styleOverrides?.filled as Record<string, unknown>;
+      expect(filled).not.toHaveProperty('backgroundColor');
+      expect(Object.keys(filled)).toContain('&.MuiChip-colorDefault');
+    });
+
+    it.each([
+      ['light', lightTheme],
+      ['dark', darkTheme],
+    ] as const)('%s: neutraler gefüllter Chip bleibt lesbar', (_mode, theme) => {
+      const filled = theme.components?.MuiChip?.styleOverrides?.filled as Record<string, Record<string, string>>;
+      const defaultStyles = filled['&.MuiChip-colorDefault'];
+      const [r, g, b] = blendOnBackground(defaultStyles.backgroundColor, theme.palette.background.paper);
+
+      assertContrast(
+        defaultStyles.color,
+        `rgb(${r}, ${g}, ${b})`,
+        WCAG_AA_NORMAL_TEXT,
+        `${theme.palette.mode} default filled chip`,
+      );
+    });
+
     it('dark text.secondary ist NICHT fast-schwarz (kein #131111-Bug)', () => {
       // Stellt sicher dass niemand versehentlich wieder einen dunklen Wert einträgt.
       // Blended effective color muss heller als 50% sein (L > 0.20).

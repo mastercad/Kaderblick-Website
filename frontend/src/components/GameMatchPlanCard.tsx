@@ -1197,7 +1197,20 @@ export default function GameMatchPlanCard({ game, onUpdated }: GameMatchPlanCard
               {isReadOnlyPlayerView ? 'Match-Plan des Trainers' : 'Formationen für dieses Spiel'}
             </Typography>
             <Chip size="small" label={`${sortedPhases.length} gespeichert`} sx={{ fontWeight: 700 }} />
-            <Chip size="small" color={publicationStatus.color} icon={matchPlan.published ? <VisibilityIcon /> : <LockOpenIcon />} label={publicationStatus.label} sx={{ fontWeight: 700 }} />
+            <Chip
+              size="small"
+              color={publicationStatus.color}
+              icon={matchPlan.published ? <VisibilityIcon /> : <LockOpenIcon />}
+              label={publicationStatus.label}
+              sx={{
+                fontWeight: 700,
+                ...(matchPlan.published && {
+                  bgcolor: 'success.main',
+                  color: 'success.contrastText',
+                  '& .MuiChip-icon': { color: 'inherit' },
+                }),
+              }}
+            />
           </Box>
           {canPublishMatchPlan && (
             <Button
