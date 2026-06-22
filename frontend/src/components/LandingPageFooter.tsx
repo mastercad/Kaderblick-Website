@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Box, Button, Container, Link, Stack, Typography, useTheme } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import { Link as RouterLink } from 'react-router-dom';
@@ -6,7 +6,8 @@ import CookieSettingsButton from './CookieSettingsButton';
 import { useAuth } from '../context/AuthContext';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
-import DemoRequestModal from '../modals/DemoRequestModal';
+
+const DemoRequestModal = lazy(() => import('../modals/DemoRequestModal'));
 
 const LandingPageFooter: React.FC = () => {
   const [demoModalOpen, setDemoModalOpen] = useState(false);
@@ -75,7 +76,9 @@ const LandingPageFooter: React.FC = () => {
         </Stack>
       </Container>
 
-      <DemoRequestModal open={demoModalOpen} onClose={() => setDemoModalOpen(false)} />
+      <Suspense fallback={null}>
+        {demoModalOpen && <DemoRequestModal open onClose={() => setDemoModalOpen(false)} />}
+      </Suspense>
 
     </Box>
   );

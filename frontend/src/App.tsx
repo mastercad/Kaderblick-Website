@@ -12,9 +12,6 @@ import { useAuth } from './context/AuthContext';
 import { Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import Home from './pages/Home';
 import ProtectedRoute from './pages/ProtectedRoute';
-import AuthModal from './modals/AuthModal';
-import ProfileModal from './modals/ProfileModal';
-import { MessagesModal } from './modals/MessagesModal';
 import Navigation from './components/Navigation';
 import NavSidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_STORAGE_KEY } from './components/navigation/NavSidebar';
 import * as localStorageService from './services/localStorageService';
@@ -32,10 +29,6 @@ import UnlockAccount from './pages/UnlockAccount';
 import { PullToRefresh } from './components/PullToRefresh';
 import { PushWarningBanner } from './components/PushWarningBanner';
 import { TwoFactorWarningBanner } from './components/TwoFactorWarningBanner';
-import RegistrationContextDialog from './modals/RegistrationContextDialog';
-import QRCodeShareModal from './modals/QRCodeShareModal';
-import ContactModal from './modals/ContactModal';
-import DemoRequestModal from './modals/DemoRequestModal';
 import Seo from './seo/Seo';
 import LinearProgress from '@mui/material/LinearProgress';
 import CookieBanner from './components/CookieBanner';
@@ -48,6 +41,13 @@ import {
 } from './seo/siteConfig';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AuthModal = lazy(() => import('./modals/AuthModal'));
+const ProfileModal = lazy(() => import('./modals/ProfileModal'));
+const MessagesModal = lazy(() => import('./modals/MessagesModal').then(module => ({ default: module.MessagesModal })));
+const RegistrationContextDialog = lazy(() => import('./modals/RegistrationContextDialog'));
+const QRCodeShareModal = lazy(() => import('./modals/QRCodeShareModal'));
+const ContactModal = lazy(() => import('./modals/ContactModal'));
+const DemoRequestModal = lazy(() => import('./modals/DemoRequestModal'));
 const Calendar = lazy(() => import('./pages/Calendar'));
 const Reports = lazy(() => import('./pages/ReportsOverview'));
 const GamesContainer = lazy(() => import('./pages/GamesContainer'));
@@ -192,6 +192,7 @@ function App() {
 
   const isHome = location.pathname === '/' || location.pathname === '';
   const isPublicSeoRoute = isPublicSeoPath(location.pathname);
+  const effectiveTheme = isPublicSeoRoute ? lightTheme : currentTheme;
   const showAuthenticatedAppChrome = !!user;
   const showLoginButton = !isHome || (isHome && isOnHeroSection);
 
@@ -279,12 +280,13 @@ function App() {
     };
   }, []);
 
-  // Signal when app is ready (auth loaded)
+  // Public pages are ready independently of the authentication probe. Private
+  // routes keep their previous behaviour and wait for the resolved session.
   useEffect(() => {
-    if (!isLoading) {
+    if (isPublicSeoRoute || !isLoading) {
       window.dispatchEvent(new Event('app-ready'));
     }
-  }, [isLoading]);
+  }, [isLoading, isPublicSeoRoute]);
 
   // Show registration context dialog when the user has no player/coach links yet (server-driven flag)
   useEffect(() => {
@@ -317,13 +319,14 @@ function App() {
     };
   }, []);
 
-  // Keep rendering even during loading - preload screen will stay visible
-  if (isLoading) {
-    return null; // Return null while loading, preload screen stays visible
+  // Public pages must not wait for the authentication probe. They can render
+  // with an anonymous user and react to a resolved session afterwards.
+  if (isLoading && !isPublicSeoRoute) {
+    return null;
   }
 
   return (
-    <MuiThemeProvider theme={currentTheme}>
+    <MuiThemeProvider theme={effectiveTheme}>
       <CssBaseline />
       <RouteSeoBoundary />
       <NavigationProgressProvider>
@@ -464,24 +467,29 @@ function App() {
                   </Routes>
                 </Suspense>
               </Box>
-              <AuthModal open={showAuth} onClose={() => setShowAuth(false)} initialTab={authInitialTab} />
-              <DemoRequestModal open={showDemoRequest} onClose={() => setShowDemoRequest(false)} />
-              <ProfileModal
-                open={showProfile}
-                onClose={() => { setShowProfile(false); setProfileInitialTab(0); }}
-                initialTab={profileInitialTab}
-              />
-              <MessagesModal
-                open={showMessages}
-                onClose={() => { setShowMessages(false); setMessagesInitialId(undefined); }}
-                initialMessageId={messagesInitialId}
-              />
-              <RegistrationContextDialog
-                open={showRegistrationContext}
-                onClose={() => setShowRegistrationContext(false)}
-              />
-              <QRCodeShareModal open={showQRShare} onClose={() => setShowQRShare(false)} />
-              <ContactModal open={showContact} onClose={() => setShowContact(false)} />
+              <Suspense fallback={null}>
+                {showAuth && <AuthModal open onClose={() => setShowAuth(false)} initialTab={authInitialTab} />}
+                {showDemoRequest && <DemoRequestModal open onClose={() => setShowDemoRequest(false)} />}
+                {showProfile && (
+                  <ProfileModal
+                    open
+                    onClose={() => { setShowProfile(false); setProfileInitialTab(0); }}
+                    initialTab={profileInitialTab}
+                  />
+                )}
+                {showMessages && (
+                  <MessagesModal
+                    open
+                    onClose={() => { setShowMessages(false); setMessagesInitialId(undefined); }}
+                    initialMessageId={messagesInitialId}
+                  />
+                )}
+                {showRegistrationContext && (
+                  <RegistrationContextDialog open onClose={() => setShowRegistrationContext(false)} />
+                )}
+                {showQRShare && <QRCodeShareModal open onClose={() => setShowQRShare(false)} />}
+                {showContact && <ContactModal open onClose={() => setShowContact(false)} />}
+              </Suspense>
               <CookieBanner />
               {!isHome && (showAuthenticatedAppChrome ? (
                 <Box sx={{ pb: { xs: 'calc(56px + env(safe-area-inset-bottom, 0px))', md: 0 } }}><Footer /></Box>

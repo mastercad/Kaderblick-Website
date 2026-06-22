@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
   Box,
@@ -22,15 +22,16 @@ import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import { Link as RouterLink } from 'react-router-dom';
-import AuthModal from '../modals/AuthModal';
 import ContactForm from '../components/public/ContactForm';
 import ObfuscatedEmail from '../components/public/ObfuscatedEmail';
-import DemoRequestModal from '../modals/DemoRequestModal';
 import PublicSiteHeader from '../components/public/PublicSiteHeader';
 import { useHomeScroll } from '../context/HomeScrollContext';
 import LandingPageFooter from '../components/LandingPageFooter';
 import Seo from '../seo/Seo';
 import '../styles/public-home.css';
+
+const AuthModal = lazy(() => import('../modals/AuthModal'));
+const DemoRequestModal = lazy(() => import('../modals/DemoRequestModal'));
 
 const heroHighlights = [
   {
@@ -135,7 +136,7 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <link rel="preload" as="image" href="/images/landing_page/background_central.jpg" fetchPriority="high" />
+        <link rel="preload" as="image" href="/images/landing_page/background_central.avif" type="image/avif" fetchPriority="high" />
       </Helmet>
       <Seo
         title="Kaderblick - Vereinssoftware für Fußballvereine, Trainer und Teams"
@@ -352,8 +353,10 @@ export default function Home() {
         
       </Box>
 
-      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
-      <DemoRequestModal open={demoModalOpen} onClose={() => setDemoModalOpen(false)} />
+      <Suspense fallback={null}>
+        {authModalOpen && <AuthModal open onClose={() => setAuthModalOpen(false)} />}
+        {demoModalOpen && <DemoRequestModal open onClose={() => setDemoModalOpen(false)} />}
+      </Suspense>
     </>
   );
 }

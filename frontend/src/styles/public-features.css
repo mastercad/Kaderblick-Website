@@ -46,6 +46,11 @@
   position: absolute;
   inset: 0;
   background-image: url(/images/landing_page/background_central.jpg);
+  background-image: image-set(
+    url('/images/landing_page/background_central.avif') type('image/avif'),
+    url('/images/landing_page/background_central.webp') type('image/webp'),
+    url('/images/landing_page/background_central.jpg') type('image/jpeg')
+  );
   background-size: auto 100%;
   background-position: 100% 34%;
   background-repeat: no-repeat;
@@ -802,6 +807,16 @@
 }
 
 @media (max-width: 599px) {
+  .public-features-hero-overlay {
+    background-image: url('/images/landing_page/background_central-mobile.webp');
+    background-image: image-set(
+      url('/images/landing_page/background_central-mobile.avif') type('image/avif'),
+      url('/images/landing_page/background_central-mobile.webp') type('image/webp')
+    );
+    background-size: cover;
+    background-position: center;
+  }
+
   .public-features-shell {
     padding-left: 0.75rem;
     padding-right: 0.75rem;

@@ -18,8 +18,9 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/images/kaderblick_website_appicon.png" />
 
-    <!-- Preload LCP background image (Preload-Screen Hero) -->
-    <link rel="preload" href="/images/landing_page/background_central.jpg" as="image" fetchpriority="high" />
+    <!-- Preload the viewport-specific LCP background image. -->
+    <link rel="preload" href="/images/landing_page/background_central-mobile.avif" as="image" type="image/avif" media="(max-width: 600px)" fetchpriority="high" />
+    <link rel="preload" href="/images/landing_page/background_central.avif" as="image" type="image/avif" media="(min-width: 601px)" fetchpriority="high" />
 
     <!-- Preload ImpactWeb font -->
     <link rel="preload" href="/fonts/ImpactLTStd.woff2" as="font" type="font/woff2" crossorigin />
@@ -99,6 +100,11 @@
         position: absolute;
         inset: 0;
         background-image: url('/images/landing_page/background_central.jpg');
+        background-image: image-set(
+          url('/images/landing_page/background_central.avif') type('image/avif'),
+          url('/images/landing_page/background_central.webp') type('image/webp'),
+          url('/images/landing_page/background_central.jpg') type('image/jpeg')
+        );
         background-size: auto 100%;
         background-position: 100% 46%;
         background-repeat: no-repeat;
@@ -308,6 +314,16 @@
       }
 
       @media (max-width: 600px) {
+        .preload-screen::before {
+          background-image: url('/images/landing_page/background_central-mobile.webp');
+          background-image: image-set(
+            url('/images/landing_page/background_central-mobile.avif') type('image/avif'),
+            url('/images/landing_page/background_central-mobile.webp') type('image/webp')
+          );
+          background-size: cover;
+          background-position: center;
+        }
+
         .preload-shell {
           padding: 0 1rem;
         }
@@ -410,19 +426,32 @@
     <script type="module">
       window.removePreloadScreen = function() {
         const preload = document.getElementById('preload-fallback');
+        const prerenderSnapshot = document.getElementById('prerender-snapshot');
+        const placeholder = preload || prerenderSnapshot;
         const root = document.getElementById('root');
         const body = document.body;
         
-        if (preload && root) {
+        if (placeholder && root) {
           root.style.display = 'block';
+
+          // Production pages contain a static SEO snapshot next to the client
+          // root. Swap it atomically once React has committed its first render.
+          if (prerenderSnapshot) {
+            prerenderSnapshot.remove();
+            body.style.position = 'static';
+            body.style.overflow = 'auto';
+            body.style.width = 'auto';
+            body.style.height = 'auto';
+            return;
+          }
           
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              preload.style.transition = 'opacity 0.3s ease-out';
-              preload.style.opacity = '0';
+              placeholder.style.transition = 'opacity 0.3s ease-out';
+              placeholder.style.opacity = '0';
               
               setTimeout(() => {
-                preload.remove();
+                placeholder.remove();
                 body.style.position = 'static';
                 body.style.overflow = 'auto';
                 body.style.width = 'auto';

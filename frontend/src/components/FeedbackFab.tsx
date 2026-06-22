@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Fab from '@mui/material/Fab';
 import Tooltip from '@mui/material/Tooltip';
 import FeedbackIcon from '@mui/icons-material/Feedback';
-import FeedbackModal from '../modals/FeedbackModal';
+
+const FeedbackModal = lazy(() => import('../modals/FeedbackModal'));
 
 const FeedbackFab: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -20,7 +21,9 @@ const FeedbackFab: React.FC = () => {
           <FeedbackIcon sx={{ color: isHome ? '#fff' : 'primary' }} />
         </Fab>
       </Tooltip>
-      <FeedbackModal open={open} onClose={() => setOpen(false)} />
+      <Suspense fallback={null}>
+        {open && <FeedbackModal open onClose={() => setOpen(false)} />}
+      </Suspense>
     </>
   );
 };
