@@ -94,7 +94,7 @@ jobs:
 
       - name: Update Frontend Coverage Badge
         if: inputs.is_main_push
-        uses: schneegans/dynamic-badges-action@v1.7.0
+        uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ env.GIST_TOKEN }}
           gistID: ${{ env.COVERAGE_GIST_ID }}
@@ -286,7 +286,7 @@ jobs:
 
       - name: Update Backend Coverage Badge
         if: inputs.is_main_push
-        uses: schneegans/dynamic-badges-action@v1.7.0
+        uses: schneegans/dynamic-badges-action@v1.8.0
         with:
           auth: ${{ env.GIST_TOKEN }}
           gistID: ${{ env.COVERAGE_GIST_ID }}
