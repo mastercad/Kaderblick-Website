@@ -131,7 +131,19 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
                   color="error"
                   max={99}
                   overlap="circular"
-                  sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 16, height: 16 } }}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: theme.palette.mode === 'dark' ? '0.6875rem' : '0.65rem',
+                      fontWeight: theme.palette.mode === 'dark' ? 700 : undefined,
+                      minWidth: 16,
+                      height: 16,
+                      ...(theme.palette.mode === 'dark' && {
+                        color: '#fff',
+                        backgroundColor: '#d9434b',
+                        border: '1px solid #080d0a',
+                      }),
+                    },
+                  }}
                 >
                   {unreadCount > 0
                     ? <NotificationsIcon sx={{ fontSize: isScrolled ? '1.2rem' : '1.5rem', transition: 'font-size 0.25s ease' }} />

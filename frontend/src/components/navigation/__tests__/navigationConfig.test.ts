@@ -9,6 +9,8 @@ import {
   navigationItems,
   trainerMenuItems,
   navItemIconMap,
+  getVisibleRoleMenus,
+  navigationGroups,
 } from '../navigationConfig';
 
 // ── isNavItemActive ───────────────────────────────────────────────────────────
@@ -238,5 +240,54 @@ describe('getAdminMenuSections', () => {
       expect(labels).toContain('Benutzer');
       expect(labels).toContain('Videos');
     });
+  });
+});
+
+describe('getVisibleRoleMenus', () => {
+  it('keeps duplicate routes in the highest-priority role menu only', () => {
+    const result = getVisibleRoleMenus({
+      navigationGroups,
+      isCoach: true,
+      isSupporter: true,
+      isAdmin: true,
+      isSuperAdmin: true,
+    });
+
+    const trainerKeys = result.trainerMenuItems.map(item => item.key);
+    const supporterKeys = result.supporterMenuItems.map(item => item.key);
+    const adminPages = result.adminMenuSections.flatMap(section =>
+      section.items.map(item => item.page ?? item.href),
+    );
+
+    expect(trainerKeys).toContain('formations');
+    expect(trainerKeys).toContain('quick-event-konfigurationen');
+    expect(supporterKeys).not.toContain('quick-event-konfigurationen');
+    expect(adminPages).not.toEqual(expect.arrayContaining([
+      'news',
+      'tasks',
+      'formations',
+      'players',
+      'teams',
+      'admin/unknown-game-events',
+    ]));
+    expect(adminPages).toContain('admin/xp-config');
+  });
+
+  it('keeps admin entries when the higher-priority role is absent', () => {
+    const result = getVisibleRoleMenus({
+      navigationGroups,
+      isCoach: false,
+      isSupporter: false,
+      isAdmin: true,
+      isSuperAdmin: false,
+    });
+    const adminPages = result.adminMenuSections.flatMap(section =>
+      section.items.map(item => item.page ?? item.href),
+    );
+
+    expect(adminPages).toContain('formations');
+    expect(adminPages).toContain('players');
+    expect(adminPages).not.toContain('news');
+    expect(adminPages).not.toContain('tasks');
   });
 });

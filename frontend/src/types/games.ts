@@ -107,6 +107,8 @@ export interface Game {
   matchPlan?: MatchPlan | null;
   /** Rundenbezeichnung für die PDF-Spielplanansicht (z.B. "Halbfinale"). */
   round?: string | null;
+  publicLiveTickerEnabled?: boolean;
+  publicLiveTickerToken?: string | null;
   permissions?: {
     can_create_videos?: boolean;
     can_view_videos?: boolean;
@@ -121,6 +123,7 @@ export interface Game {
     can_manage_match_plan?: boolean;
     can_publish_match_plan?: boolean;
     can_view_match_plan?: boolean;
+    can_manage_live_ticker?: boolean;
   };
 }
 

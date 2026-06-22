@@ -16,7 +16,7 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 import PollIcon from '@mui/icons-material/Poll';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme, alpha, type Theme } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import { useNavConfig, isNavItemActive, navItemColorMap } from './navigationConfig';
 import { useNavigationProgress } from '../../context/NavigationProgressContext';
@@ -27,18 +27,28 @@ interface NavMobileDrawerProps {
   onOpenQRShare: () => void;
 }
 
-const tileBaseSx = (active: boolean, primary: string) => ({
+const tileBaseSx = (active: boolean, primary: string, theme: Theme) => ({
   display: 'flex', flexDirection: 'column' as const, alignItems: 'center',
   justifyContent: 'center', p: 1.5, borderRadius: 2, width: '100%',
-  bgcolor: active ? alpha(primary, 0.1) : 'grey.100',
-  border: `1px solid ${active ? alpha(primary, 0.35) : '#e0e0e0'}`,
+  bgcolor: active
+    ? alpha(primary, theme.palette.mode === 'dark' ? 0.22 : 0.1)
+    : theme.palette.mode === 'dark'
+      ? alpha(theme.palette.common.white, 0.08)
+      : theme.palette.grey[100],
+  border: `1px solid ${active ? alpha(primary, 0.45) : theme.palette.divider}`,
   transition: 'all 0.15s',
-  '&:hover': { bgcolor: active ? alpha(primary, 0.15) : 'grey.200' },
+  '&:hover': {
+    bgcolor: active
+      ? alpha(primary, theme.palette.mode === 'dark' ? 0.3 : 0.15)
+      : theme.palette.mode === 'dark'
+        ? alpha(theme.palette.common.white, 0.14)
+        : theme.palette.grey[200],
+  },
   '&:active': { transform: 'scale(0.94)' },
 });
 
 export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMobileDrawerProps) {
-  const { trainerMenuItems, adminMenuSections, isAdmin, isCoach } = useNavConfig();
+  const { trainerMenuItems, supporterMenuItems, adminMenuSections, isAdmin, isCoach, isSupporter } = useNavConfig();
   const theme = useTheme();
   const { navigateWithProgress: navigate } = useNavigationProgress();
   const { pathname } = useLocation();
@@ -111,7 +121,7 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
           ] as { key: string; label: string; icon: React.ReactElement; color: string }[]).map((tile) => {
             const isActive = active(tile.key);
             return (
-              <ButtonBase key={tile.key} onClick={() => go(`/${tile.key}`)} sx={tileBaseSx(isActive, tile.color)}>
+              <ButtonBase key={tile.key} onClick={() => go(`/${tile.key}`)} sx={tileBaseSx(isActive, tile.color, theme)}>
                 <Box sx={{ color: tile.color, opacity: isActive ? 1 : 0.65, mb: 0.5, lineHeight: 0, transition: 'opacity 0.15s' }}>{tile.icon}</Box>
                 <TileLabel label={tile.label} isActive={isActive} activeColor={tile.color} />
               </ButtonBase>
@@ -121,7 +131,7 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
 
         {/* Trainer-Bereich — driven by trainerMenuItems in navigationConfig.tsx.
             Adding an item there automatically makes it appear here. */}
-        {isCoach && (
+        {isCoach && trainerMenuItems.length > 0 && (
           <>
             <SectionHeader title="Trainer" />
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
@@ -129,8 +139,29 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
                 const color = navItemColorMap[item.key] ?? '#90A4AE';
                 const isActive = active(item.key);
                 return (
-                  <ButtonBase key={item.key} onClick={() => go(`/${item.key}`)} sx={tileBaseSx(isActive, color)}>
+                  <ButtonBase key={item.key} onClick={() => go(`/${item.key}`)} sx={tileBaseSx(isActive, color, theme)}>
                     <Box sx={{ color, opacity: isActive ? 1 : 0.65, mb: 0.5, lineHeight: 0, transition: 'opacity 0.15s' }}>
+                      {React.cloneElement(item.icon as React.ReactElement<{ sx?: object }>, { sx: { fontSize: 28 } })}
+                    </Box>
+                    <TileLabel label={item.label} isActive={isActive} activeColor={color} />
+                  </ButtonBase>
+                );
+              })}
+            </Box>
+          </>
+        )}
+
+        {/* Supporter-Bereich */}
+        {isSupporter && supporterMenuItems.length > 0 && (
+          <>
+            <SectionHeader title="Supporter" />
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 1 }}>
+              {supporterMenuItems.map((item) => {
+                const color = navItemColorMap[item.key] ?? '#90A4AE';
+                const isActive = active(item.key);
+                return (
+                  <ButtonBase key={item.key} onClick={() => go(`/${item.key}`)} sx={tileBaseSx(isActive, color, theme)}>
+                    <Box sx={{ color, opacity: isActive ? 1 : 0.65, mb: 0.5, lineHeight: 0 }}>
                       {React.cloneElement(item.icon as React.ReactElement<{ sx?: object }>, { sx: { fontSize: 28 } })}
                     </Box>
                     <TileLabel label={item.label} isActive={isActive} activeColor={color} />
@@ -168,7 +199,7 @@ export default function NavMobileDrawer({ open, onClose, onOpenQRShare }: NavMob
                       <ButtonBase
                         key={item.label}
                         onClick={() => { onClose(); if (item.page) navigate(`/${item.page}`); else if (item.href) navigate(item.href!); }}
-                        sx={tileBaseSx(isActive, primary)}
+                        sx={tileBaseSx(isActive, primary, theme)}
                       >
                         <Box sx={{ color: isActive ? 'primary.main' : 'text.secondary', mb: 0.5, lineHeight: 0 }}>
                           {React.cloneElement(item.icon as React.ReactElement<any>, { sx: { fontSize: 28, color: 'inherit' } })}

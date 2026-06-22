@@ -298,6 +298,65 @@ export const supporterMenuItems: TrainerMenuItem[] = [
   { key: 'quick-event-konfigurationen', label: 'Quick-Event Konfiguration', icon: <TuneIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> },
 ];
 
+interface VisibleRoleMenusOptions {
+  navigationGroups: NavGroup[];
+  isCoach: boolean;
+  isSupporter: boolean;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
+}
+
+/**
+ * Builds the role menus in display order and lets the first occurrence of a
+ * route win: user navigation -> trainer -> supporter -> admin/superadmin.
+ */
+export function getVisibleRoleMenus({
+  navigationGroups: visibleNavigationGroups,
+  isCoach,
+  isSupporter,
+  isAdmin,
+  isSuperAdmin,
+}: VisibleRoleMenusOptions) {
+  const claimedRoutes = new Set<string>();
+  const normalizeRoute = (route: string) => `/${route}`.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+  const claimRoute = (route: string) => {
+    const normalizedRoute = normalizeRoute(route);
+    if (claimedRoutes.has(normalizedRoute)) return false;
+    claimedRoutes.add(normalizedRoute);
+    return true;
+  };
+
+  // The regular user navigation has the highest priority. For groups, all
+  // child routes are visible navigation entries and therefore reserved.
+  navigationItems.forEach((item) => {
+    const group = visibleNavigationGroups.find(candidate => candidate.key === item.key);
+    if (group) group.children.forEach(child => claimRoute(child.route));
+    else claimRoute(getNavItemRoute(item.key));
+  });
+
+  const visibleTrainerMenuItems = isCoach
+    ? trainerMenuItems.filter(item => claimRoute(`/${item.key}`))
+    : [];
+  const visibleSupporterMenuItems = isSupporter
+    ? supporterMenuItems.filter(item => claimRoute(`/${item.key}`))
+    : [];
+
+  const visibleAdminMenuSections = isAdmin
+    ? getAdminMenuSections(isSuperAdmin)
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => claimRoute(item.page ?? item.href ?? '')),
+      }))
+      .filter(section => section.items.length > 0)
+    : [];
+
+  return {
+    trainerMenuItems: visibleTrainerMenuItems,
+    supporterMenuItems: visibleSupporterMenuItems,
+    adminMenuSections: visibleAdminMenuSections,
+  };
+}
+
 // ── Hook: assembles role-dependent nav config ──────────────────────────────────
 
 export function useNavConfig() {
@@ -327,13 +386,18 @@ export function useNavConfig() {
   };
 
   const dynamicNavigationGroups = navigationGroups.map(g => g.key === 'team' ? teamGroup : g);
+  const visibleRoleMenus = getVisibleRoleMenus({
+    navigationGroups: dynamicNavigationGroups,
+    isCoach,
+    isSupporter,
+    isAdmin,
+    isSuperAdmin,
+  });
 
   return {
     navigationItems,
     navigationGroups: dynamicNavigationGroups,
-    trainerMenuItems,
-    supporterMenuItems,
-    adminMenuSections: getAdminMenuSections(isSuperAdmin),
+    ...visibleRoleMenus,
     navItemIconMap,
     isAdmin,
     isSupporter,

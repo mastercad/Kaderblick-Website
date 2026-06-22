@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Entity\CalendarEvent;
 use App\Entity\Game;
+use App\Entity\GameEvent;
+use App\Entity\GameEventType;
 use App\Entity\GameType;
 use App\Entity\League;
 use App\Entity\Team;
 use App\Service\GameSchedulePdfService;
+use App\Service\GoalCountingService;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,6 +38,7 @@ class GameSchedulePdfServiceTest extends TestCase
         $this->service = new GameSchedulePdfService(
             $this->createMock(Environment::class),
             $this->createMock(EntityManagerInterface::class),
+            new GoalCountingService(),
             sys_get_temp_dir(), // projectDir — logo lookup only
         );
     }
@@ -49,6 +55,7 @@ class GameSchedulePdfServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->createMock(Environment::class),
                 $this->createMock(EntityManagerInterface::class),
+                new GoalCountingService(),
                 sys_get_temp_dir(),
             ])
             ->onlyMethods(['loadGames'])
@@ -302,5 +309,49 @@ class GameSchedulePdfServiceTest extends TestCase
             '/^\d{2}\.\d{2}\.\d{4} um \d{2}:\d{2} Uhr$/',
             $data['generated_at'],
         );
+    }
+
+    public function testGameFallsBackToGoalEventsWhenStoredScoreAndFinishedFlagAreMissing(): void
+    {
+        $home = (new Team())->setName('Heim');
+        $away = (new Team())->setName('Gast');
+        $this->setId($home, 1);
+        $this->setId($away, 2);
+
+        $game = $this->makeGame('Ligaspiel');
+        $game
+            ->setHomeTeam($home)
+            ->setAwayTeam($away)
+            ->setCalendarEvent((new CalendarEvent())->setStartDate(new DateTimeImmutable('2025-08-01 19:00')));
+
+        $goalType = (new GameEventType())->setCode('goal');
+        $game->addGameEvent((new GameEvent())->setTeam($home)->setGameEventType($goalType));
+        $game->addGameEvent((new GameEvent())->setTeam($home)->setGameEventType($goalType));
+        $game->addGameEvent((new GameEvent())->setTeam($away)->setGameEventType($goalType));
+
+        $data = $this->serviceWithGames([$game])->buildTemplateData($home, 2025);
+
+        self::assertTrue($data['rows'][0]['has_score']);
+        self::assertSame(2, $data['rows'][0]['home_score']);
+        self::assertSame(1, $data['rows'][0]['away_score']);
+    }
+
+    public function testTeamNamesDoNotExposeZeroWidthSpacesAsQuestionMarksInPdf(): void
+    {
+        $home = (new Team())->setName("SpG SG Wurgwitz/\u{200B}SG 90 Braunsdorf");
+        $away = (new Team())->setName("Motor Wilsdruff /\u{200B} SG Kesselsdorf");
+        $this->setId($home, 1);
+        $this->setId($away, 2);
+
+        $game = $this->makeGame('Pokalspiel');
+        $game
+            ->setHomeTeam($home)
+            ->setAwayTeam($away)
+            ->setCalendarEvent((new CalendarEvent())->setStartDate(new DateTimeImmutable('2025-08-01 19:00')));
+
+        $data = $this->serviceWithGames([$game])->buildTemplateData($home, 2025);
+
+        self::assertSame('SpG SG Wurgwitz/SG 90 Braunsdorf', $data['rows'][0]['home_team_name']);
+        self::assertSame('Motor Wilsdruff / SG Kesselsdorf', $data['rows'][0]['away_team_name']);
     }
 }

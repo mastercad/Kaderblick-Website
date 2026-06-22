@@ -122,7 +122,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
         })}
 
         {/* Trainer-Bereich */}
-        {isCoach && (
+        {isCoach && trainerMenuItems.length > 0 && (
           <>
             <Divider sx={{ my: 1 }} />
             {!collapsed && (
@@ -168,7 +168,7 @@ export default function NavSidebar({ onOpenQRShare, collapsed, onToggle }: NavSi
         )}
 
         {/* Supporter-Bereich */}
-        {isSupporter && !isAdmin && (
+        {isSupporter && supporterMenuItems.length > 0 && (
           <>
             <Divider sx={{ my: 1 }} />
             {!collapsed && (

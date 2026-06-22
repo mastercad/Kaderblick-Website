@@ -15,6 +15,7 @@ use App\Entity\User;
 use App\Entity\UserRelation;
 use App\Enum\CalendarEventPermissionType;
 use App\Security\Voter\CalendarEventVoter;
+use App\Service\AdminScopeService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,23 +36,47 @@ class CalendarEventVoterTest extends TestCase
     /** @var EntityManagerInterface&\PHPUnit\Framework\MockObject\MockObject */
     private EntityManagerInterface $entityManager;
 
+    /** @var AdminScopeService&\PHPUnit\Framework\MockObject\MockObject */
+    private AdminScopeService $adminScopeService;
+
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->voter = new CalendarEventVoter($this->entityManager);
+        $this->adminScopeService = $this->createMock(AdminScopeService::class);
+        $this->voter = new CalendarEventVoter($this->entityManager, $this->adminScopeService);
     }
 
     // ─── CANCEL permission tests ───
 
-    public function testCancelAsAdminGranted(): void
+    public function testCancelAsAdminOfParticipatingTeamGranted(): void
     {
         $admin = $this->createUser(1, ['ROLE_ADMIN']);
-        $event = $this->createEvent(2);
+        $team = $this->createMock(Team::class);
+        $game = $this->createMock(Game::class);
+        $game->method('getHomeTeam')->willReturn($team);
+        $game->method('getAwayTeam')->willReturn(null);
+        $event = $this->createEvent(2, $game);
         $token = $this->createToken($admin);
+        $this->adminScopeService->method('hasAssignedScopeForTeam')->with($admin, $team)->willReturn(true);
 
         $result = $this->voter->vote($token, $event, [CalendarEventVoter::CANCEL]);
 
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
+    public function testCancelAsPlatformAdminWithoutParticipatingTeamScopeDenied(): void
+    {
+        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $team = $this->createMock(Team::class);
+        $game = $this->createMock(Game::class);
+        $game->method('getHomeTeam')->willReturn($team);
+        $game->method('getAwayTeam')->willReturn(null);
+        $event = $this->createEvent(2, $game);
+        $this->mockRepositoryQuery(false);
+
+        $result = $this->voter->vote($this->createToken($admin), $event, [CalendarEventVoter::CANCEL]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
     public function testCancelAsSuperadminGranted(): void
@@ -65,7 +90,7 @@ class CalendarEventVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testCancelAsCreatorGranted(): void
+    public function testCancelAsCreatorWithoutTeamResponsibilityDenied(): void
     {
         $user = $this->createUser(1);
         $event = $this->createEvent(1); // creator ID matches user ID
@@ -73,7 +98,7 @@ class CalendarEventVoterTest extends TestCase
 
         $result = $this->voter->vote($token, $event, [CalendarEventVoter::CANCEL]);
 
-        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
     public function testCancelAsUnrelatedUserDenied(): void
@@ -164,7 +189,7 @@ class CalendarEventVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testCancelAsCoachOfPermissionClubGranted(): void
+    public function testCancelAsAdminOfPermissionClubGranted(): void
     {
         $user = $this->createUser(1);
         $club = $this->createMock(Club::class);
@@ -179,7 +204,7 @@ class CalendarEventVoterTest extends TestCase
         $event = $this->createEvent(2, null, $permissions);
 
         $token = $this->createToken($user);
-        $this->mockRepositoryQuery(true);
+        $this->adminScopeService->method('hasAssignedScopeForClub')->with($user, $club)->willReturn(true);
 
         $result = $this->voter->vote($token, $event, [CalendarEventVoter::CANCEL]);
 

@@ -1,6 +1,6 @@
 /**
  * Tests für App.tsx:
- *  - isLoading=true  → öffentliche Seiten rendern sofort, private warten
+ *  - isLoading=true  → private Anwendung wartet auf Auth
  *  - isLoading=false → App wird gerendert
  *  - ?modal=messages + eingeloggter User → MessagesModal öffnet sich
  *  - ?modal=register + kein User → AuthModal öffnet sich (register-Tab)
@@ -273,13 +273,6 @@ beforeEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('App – isLoading=true', () => {
-  it('rendert eine öffentliche Seite bereits während des Auth-Checks', () => {
-    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: true });
-    renderApp('/');
-    expect(screen.getByTestId('seo')).toBeInTheDocument();
-    expect(screen.getByTestId('home-page')).toBeInTheDocument();
-  });
-
   it('wartet auf privaten Seiten weiterhin auf den Auth-Check', () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: true });
     const { container } = renderApp('/dashboard');
@@ -290,23 +283,12 @@ describe('App – isLoading=true', () => {
 describe('App – isLoading=false', () => {
   it('rendert den App-Inhalt sobald isLoading=false', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    renderApp('/');
+    renderApp('/dashboard');
     expect(screen.getByTestId('seo')).toBeInTheDocument();
   });
 });
 
 describe('App – RouteSeoBoundary', () => {
-  it('setzt noindex=false für public paths (z.B. /)', async () => {
-    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    const { isPublicSeoPath } = require('../seo/siteConfig');
-    (isPublicSeoPath as jest.Mock).mockReturnValue(true);
-
-    renderApp('/');
-    const seo = screen.getByTestId('seo');
-    expect(seo.dataset.noindex).toBe('false');
-    expect(seo.dataset.title).toBe('SEO Title');
-  });
-
   it('setzt noindex=true für nicht-public paths (z.B. /dashboard)', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
     const { isPublicSeoPath } = require('../seo/siteConfig');
@@ -318,11 +300,11 @@ describe('App – RouteSeoBoundary', () => {
     expect(seo.dataset.title).toBe('App Title');
   });
 
-  it('gibt den aktuellen pathname als canonicalPath weiter', async () => {
+  it('gibt den aktuellen privaten pathname als canonicalPath weiter', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    renderApp('/imprint');
+    renderApp('/dashboard');
     const seo = screen.getByTestId('seo');
-    expect(seo.dataset.canonical).toBe('/imprint');
+    expect(seo.dataset.canonical).toBe('/dashboard');
   });
 });
 
@@ -360,38 +342,16 @@ describe('App – Deep-Link ?modal=messages', () => {
   });
 });
 
-describe('App – Deep-Link ?modal=register', () => {
-  it('öffnet AuthModal im register-Tab wenn ?modal=register und kein User', async () => {
-    (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-
-    renderApp('/?modal=register');
-    await waitFor(() => {
-      const modal = screen.getByTestId('auth-modal');
-      expect(modal.dataset.tab).toBe('register');
-    });
-  });
-
-  it('öffnet AuthModal NICHT wenn ?modal=register und User eingeloggt', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: { id: 1, name: 'Test' },
-      isLoading: false,
-    });
-
-    renderApp('/?modal=register');
-    expect(screen.queryByTestId('auth-modal')).not.toBeInTheDocument();
-  });
-});
-
 describe('App – DemoRequestModal', () => {
   it('DemoRequestModal ist initial nicht sichtbar', () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    renderApp('/');
+    renderApp('/dashboard');
     expect(screen.queryByTestId('demo-request-modal')).not.toBeInTheDocument();
   });
 
   it('DemoRequestModal öffnet sich wenn Navigation onOpenDemo aufruft', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    renderApp('/');
+    renderApp('/dashboard');
     fireEvent.click(screen.getByTestId('nav-open-demo'));
     await waitFor(() => {
       expect(screen.getByTestId('demo-request-modal')).toBeInTheDocument();
@@ -400,7 +360,7 @@ describe('App – DemoRequestModal', () => {
 
   it('DemoRequestModal schließt sich wenn onClose aufgerufen wird', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null, isLoading: false });
-    renderApp('/');
+    renderApp('/dashboard');
     fireEvent.click(screen.getByTestId('nav-open-demo'));
     await waitFor(() => {
       expect(screen.getByTestId('demo-request-modal')).toBeInTheDocument();

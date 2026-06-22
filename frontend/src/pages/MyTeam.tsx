@@ -319,7 +319,7 @@ export default function MyTeam() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Kader
               </Typography>
-              <Chip label={`${currentTeam.playerCount} Spieler`} size="small" color="primary" />
+              <Chip label={`${currentTeam.playerCount} Spieler`} size="small" color="primary" variant="outlined" />
               {currentTeam.coachCount > 0 && (
                 <Chip label={`${currentTeam.coachCount} Trainer`} size="small" color="secondary" variant="outlined" />
               )}

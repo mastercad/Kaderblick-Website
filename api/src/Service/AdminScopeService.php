@@ -19,7 +19,12 @@ class AdminScopeService
 
     public function canAdministerTeam(User $user, Team $team, ?DateTimeInterface $date = null): bool
     {
-        if ($this->isPlatformAdmin($user) || $this->teamAssignments->userAdministersTeam($user, $team, $date)) {
+        return $this->isPlatformAdmin($user) || $this->hasAssignedScopeForTeam($user, $team, $date);
+    }
+
+    public function hasAssignedScopeForTeam(User $user, Team $team, ?DateTimeInterface $date = null): bool
+    {
+        if ($this->teamAssignments->userAdministersTeam($user, $team, $date)) {
             return true;
         }
 
@@ -34,8 +39,12 @@ class AdminScopeService
 
     public function canAdministerClub(User $user, Club $club, ?DateTimeInterface $date = null): bool
     {
-        return $this->isPlatformAdmin($user)
-            || $this->clubAssignments->userAdministersClub($user, $club, $date);
+        return $this->isPlatformAdmin($user) || $this->hasAssignedScopeForClub($user, $club, $date);
+    }
+
+    public function hasAssignedScopeForClub(User $user, Club $club, ?DateTimeInterface $date = null): bool
+    {
+        return $this->clubAssignments->userAdministersClub($user, $club, $date);
     }
 
     /** @return array<int, Team> keyed by team ID */

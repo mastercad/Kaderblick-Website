@@ -191,7 +191,12 @@ function TeamCard({ team }: { team: TeamSeasonData }) {
                 label={formLabel(r)}
                 color={formColor(r)}
                 size="small"
-                sx={{ fontWeight: 700, minWidth: 28 }}
+                sx={{
+                  minWidth: 28,
+                  fontWeight: 700,
+                  bgcolor: `${formColor(r)}.main`,
+                  color: `${formColor(r)}.contrastText`,
+                }}
               />
             ))}
           </Stack>

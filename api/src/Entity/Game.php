@@ -161,6 +161,16 @@ class Game
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $matchPlan = null;
 
+    /** Controls whether the deliberately reduced live ticker can be read without an account. */
+    #[Groups(['game:read'])]
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $publicLiveTickerEnabled = false;
+
+    /** Unguessable identifier used by the public ticker URL. */
+    #[Groups(['game:read'])]
+    #[ORM\Column(type: 'string', length: 64, nullable: true, unique: true)]
+    private ?string $publicLiveTickerToken = null;
+
     /**
      * @var Collection<int, Video>
      */
@@ -477,6 +487,30 @@ class Game
     public function setRound(?string $round): self
     {
         $this->round = $round;
+
+        return $this;
+    }
+
+    public function isPublicLiveTickerEnabled(): bool
+    {
+        return $this->publicLiveTickerEnabled;
+    }
+
+    public function setPublicLiveTickerEnabled(bool $enabled): self
+    {
+        $this->publicLiveTickerEnabled = $enabled;
+
+        return $this;
+    }
+
+    public function getPublicLiveTickerToken(): ?string
+    {
+        return $this->publicLiveTickerToken;
+    }
+
+    public function setPublicLiveTickerToken(?string $token): self
+    {
+        $this->publicLiveTickerToken = $token;
 
         return $this;
     }

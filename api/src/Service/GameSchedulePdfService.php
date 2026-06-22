@@ -33,6 +33,7 @@ class GameSchedulePdfService
     public function __construct(
         private readonly Environment $twig,
         private readonly EntityManagerInterface $em,
+        private readonly GoalCountingService $goalCountingService,
         private readonly string $projectDir,
     ) {
     }
@@ -80,20 +81,38 @@ class GameSchedulePdfService
             $homeTeam = $game->getHomeTeam();
             $awayTeam = $game->getAwayTeam();
 
-            $hasScore = $game->isFinished()
-                && null !== $game->getHomeScore()
-                && null !== $game->getAwayScore();
+            $homeScore = $game->getHomeScore();
+            $awayScore = $game->getAwayScore();
+            $hasStoredScore = null !== $homeScore && null !== $awayScore;
+            $gameEvents = $game->getGameEvents()->toArray();
+            $hasEvents = [] !== $gameEvents;
+
+            // Compatibility fallback for historical games whose denormalized
+            // score columns have not been backfilled yet. Events are sufficient
+            // evidence that a score exists even when isFinished was never set.
+            if (!$hasStoredScore && ($game->isFinished() || $hasEvents)) {
+                $scores = $this->goalCountingService->collectScores(
+                    $gameEvents,
+                    $game,
+                );
+                $homeScore = $scores['home'];
+                $awayScore = $scores['away'];
+            }
+
+            $hasScore = ($hasStoredScore || $game->isFinished() || $hasEvents)
+                && null !== $homeScore
+                && null !== $awayScore;
 
             $rows[] = [
                 'round_label' => $roundLabel,
                 'date' => $date,
-                'home_team_name' => $homeTeam?->getName() ?? 'TBD',
-                'away_team_name' => $awayTeam?->getName() ?? 'TBD',
+                'home_team_name' => $this->pdfSafeText($homeTeam?->getName() ?? 'TBD'),
+                'away_team_name' => $this->pdfSafeText($awayTeam?->getName() ?? 'TBD'),
                 'is_home' => $homeTeam?->getId() === $team->getId(),
                 'kick_off' => $date ? $date->format('H:i') : null,
                 'has_score' => $hasScore,
-                'home_score' => $hasScore ? $game->getHomeScore() : null,
-                'away_score' => $hasScore ? $game->getAwayScore() : null,
+                'home_score' => $hasScore ? $homeScore : null,
+                'away_score' => $hasScore ? $awayScore : null,
                 'is_finished' => $game->isFinished(),
                 'game_type_name' => $game->getGameType()->getName(),
                 'league_name' => $game->getLeague()?->getName(),
@@ -107,6 +126,7 @@ class GameSchedulePdfService
 
         return [
             'team' => $team,
+            'team_name' => $this->pdfSafeText($team->getName()),
             'season' => $season,
             'season_display' => $season . '/' . substr((string) ($season + 1), 2),
             'rows' => $rows,
@@ -121,7 +141,7 @@ class GameSchedulePdfService
     protected function loadGames(Team $team, DateTimeInterface $seasonStart, DateTimeInterface $seasonEnd): array
     {
         return $this->em->createQuery(
-            'SELECT g, gt, ce, ht, at, loc, lg, cup
+            'SELECT g, gt, ce, ht, at, loc, lg, cup, ge, get
              FROM App\Entity\Game g
              INNER JOIN g.gameType gt
              LEFT JOIN g.calendarEvent ce
@@ -130,6 +150,8 @@ class GameSchedulePdfService
              LEFT JOIN g.location loc
              LEFT JOIN g.league lg
              LEFT JOIN g.cup cup
+             LEFT JOIN g.gameEvents ge
+             LEFT JOIN ge.gameEventType get
              WHERE (g.homeTeam = :team OR g.awayTeam = :team)
                AND ce.startDate >= :seasonStart
                AND ce.startDate <= :seasonEnd
@@ -186,5 +208,11 @@ class GameSchedulePdfService
         }
 
         return 'data:image/png;base64,' . base64_encode($logoData);
+    }
+
+    /** Remove invisible Unicode format characters unsupported by Dompdf's base fonts. */
+    private function pdfSafeText(string $text): string
+    {
+        return preg_replace('/\p{Cf}+/u', '', $text) ?? $text;
     }
 }
