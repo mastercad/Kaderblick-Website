@@ -8,6 +8,7 @@ use App\Entity\Club;
 use App\Entity\PenaltyType;
 use App\Entity\Team;
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
 class PenaltyTypeTest extends TestCase
@@ -181,6 +182,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertNull($this->penaltyType->getTeam());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetAndGetTeam(): void
     {
         $team = $this->createMock(Team::class);
@@ -188,6 +190,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertSame($team, $this->penaltyType->getTeam());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetTeamToNull(): void
     {
         $team = $this->createMock(Team::class);
@@ -196,6 +199,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertNull($this->penaltyType->getTeam());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetTeamReturnsSelf(): void
     {
         $team = $this->createMock(Team::class);
@@ -203,11 +207,13 @@ class PenaltyTypeTest extends TestCase
         $this->assertSame($this->penaltyType, $result);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testClubDefaultsToNull(): void
     {
         $this->assertNull($this->penaltyType->getClub());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetAndGetClub(): void
     {
         $club = $this->createMock(Club::class);
@@ -215,6 +221,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertSame($club, $this->penaltyType->getClub());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetClubToNull(): void
     {
         $club = $this->createMock(Club::class);
@@ -223,6 +230,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertNull($this->penaltyType->getClub());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testSetClubReturnsSelf(): void
     {
         $club = $this->createMock(Club::class);
@@ -246,6 +254,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertTrue($this->penaltyType->isGlobal());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testIsGlobalReturnsFalseWhenTeamIsSet(): void
     {
         $team = $this->createMock(Team::class);
@@ -253,6 +262,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertFalse($this->penaltyType->isGlobal());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testIsGlobalReturnsFalseWhenClubIsSet(): void
     {
         $club = $this->createMock(Club::class);
@@ -260,6 +270,7 @@ class PenaltyTypeTest extends TestCase
         $this->assertFalse($this->penaltyType->isGlobal());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testIsGlobalReturnsFalseWhenBothTeamAndClubAreSet(): void
     {
         $team = $this->createMock(Team::class);

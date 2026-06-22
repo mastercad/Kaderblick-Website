@@ -184,11 +184,11 @@ class DashboardEndToEndTest extends ApiWebTestCase
     public function testCreateReportWidgetReturnsNameInResponse(): void
     {
         $client = $this->client;
-        $this->authenticateUser($client, 'user1@example.com');
+        $this->authenticateUser($client, 'user10@example.com');
 
         $report = new ReportDefinition();
         $report->setName('Mein Test-Report');
-        $report->setUser($this->em->getRepository(User::class)->findOneBy(['email' => 'user1@example.com']));
+        $report->setUser($this->em->getRepository(User::class)->findOneBy(['email' => 'user10@example.com']));
         $this->em->persist($report);
         $this->em->flush();
 
@@ -209,7 +209,7 @@ class DashboardEndToEndTest extends ApiWebTestCase
     public function testCreateNonReportWidgetReturnsNullName(): void
     {
         $client = $this->client;
-        $this->authenticateUser($client, 'user1@example.com');
+        $this->authenticateUser($client, 'user10@example.com');
 
         $client->jsonRequest('POST', '/api/widget', ['type' => 'news']);
         $this->assertResponseIsSuccessful();

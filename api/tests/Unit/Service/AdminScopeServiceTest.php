@@ -7,6 +7,7 @@ use App\Repository\UserClubAdminAssignmentRepository;
 use App\Repository\UserTeamAdminAssignmentRepository;
 use App\Service\AdminScopeService;
 use DateTimeImmutable;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -25,6 +26,7 @@ class AdminScopeServiceTest extends TestCase
         $this->service = new AdminScopeService($this->teamAssignments, $this->clubAssignments);
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testTeamAssignmentPromotesUserAndRemembersBaseRole(): void
     {
         $user = (new User())->setRoles(['ROLE_SUPPORTER']);
@@ -35,6 +37,7 @@ class AdminScopeServiceTest extends TestCase
         self::assertSame('ROLE_SUPPORTER', $user->getRoleBeforeScopedAdmin());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testClubAssignmentHasPrecedenceOverTeamAssignment(): void
     {
         $user = (new User())->setRoles(['ROLE_USER']);
@@ -44,6 +47,7 @@ class AdminScopeServiceTest extends TestCase
         self::assertSame('ROLE_CLUB_ADMIN', $user->getRole());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testRemovingLastScopeRestoresPreviousRole(): void
     {
         $user = (new User())
@@ -56,6 +60,7 @@ class AdminScopeServiceTest extends TestCase
         self::assertNull($user->getRoleBeforeScopedAdmin());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testPlatformAdminRoleIsNeverChangedByScopes(): void
     {
         $user = (new User())->setRoles(['ROLE_ADMIN']);
@@ -66,6 +71,7 @@ class AdminScopeServiceTest extends TestCase
         self::assertNull($user->getRoleBeforeScopedAdmin());
     }
 
+    #[AllowMockObjectsWithoutExpectations]
     public function testChangingBaseRoleDoesNotRemoveActiveScopedAdminRole(): void
     {
         $user = (new User())

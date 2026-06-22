@@ -8,7 +8,6 @@ use App\Entity\Player;
 use App\Entity\Position;
 use App\Entity\Team;
 use App\Entity\User;
-use App\Entity\UserClubAdminAssignment;
 use App\Entity\UserTeamAdminAssignment;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -52,22 +51,9 @@ class UserManagementControllerTest extends WebTestCase
         self::assertNotNull($regularUser, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
         $this->regularUser = $regularUser;
 
-        /** @var User $targetUser */
-        $targetUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user7@example.com']);
-        self::assertNotNull($targetUser, 'Fixture user user7@example.com not found. Ensure fixtures (group=test) are loaded.');
-        $this->targetUser = $targetUser;
-
-        // Reset targetUser to a clean known state before each test
-        $this->targetUser->setRoles(['ROLE_USER']);
-        $this->targetUser->setRoleBeforeScopedAdmin(null);
-        foreach ($this->em->getRepository(UserTeamAdminAssignment::class)->findBy(['user' => $this->targetUser]) as $assignment) {
-            $this->em->remove($assignment);
-        }
-        foreach ($this->em->getRepository(UserClubAdminAssignment::class)->findBy(['user' => $this->targetUser]) as $assignment) {
-            $this->em->remove($assignment);
-        }
-        $this->targetUser->setIsEnabled(true);
-        $this->targetUser->setLockedAt(null);
+        // The target is deliberately owned by this test. Fixture users may be used
+        // for authentication, but their persisted state must never be modified.
+        $this->targetUser = $this->makeUser('test-um-target', ['ROLE_USER']);
         $this->em->flush();
     }
 
@@ -491,6 +477,8 @@ class UserManagementControllerTest extends WebTestCase
 
     public function testClubScopeTakesPrecedenceAndRemovingAllScopesRestoresBaseRole(): void
     {
+        $targetUserId = $this->targetUser->getId();
+        self::assertNotNull($targetUserId);
         $team = $this->em->getRepository(Team::class)->findOneBy([]);
         $club = $this->em->getRepository(Club::class)->findOneBy([]);
         self::assertNotNull($team);
@@ -501,7 +489,7 @@ class UserManagementControllerTest extends WebTestCase
 
         $this->client->request(
             'POST',
-            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            '/admin/users/' . $targetUserId . '/assign',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode([
                 'adminTeamAssignments' => [['teamId' => $team->getId()]],
@@ -514,10 +502,14 @@ class UserManagementControllerTest extends WebTestCase
 
         $this->client->request(
             'POST',
-            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            '/admin/users/' . $targetUserId . '/assign',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode(['adminTeamAssignments' => [], 'adminClubAssignments' => []], JSON_THROW_ON_ERROR),
         );
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $targetUser = $this->em->find(User::class, $targetUserId);
+        self::assertInstanceOf(User::class, $targetUser);
+        $this->targetUser = $targetUser;
         $this->em->refresh($this->targetUser);
         self::assertSame(['ROLE_SUPPORTER'], $this->targetUser->getRoles());
         self::assertNull($this->targetUser->getRoleBeforeScopedAdmin());
@@ -599,15 +591,19 @@ class UserManagementControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
-        // Reset targetUser to clean state in case the test left it modified
-        $this->em->refresh($this->targetUser);
-        $this->targetUser->setRoles(['ROLE_USER']);
-        $this->targetUser->setIsEnabled(true);
-        $this->targetUser->setLockedAt(null);
-        $this->em->flush();
-        // Clean up any temporary user created by testDeleteUserRemovesUser if it still exists
-        $this->em->getConnection()->executeStatement("DELETE FROM users WHERE email LIKE 'test-um-todelete%'");
-        $this->em->close();
+        if (isset($this->em, $this->emailSuffix, $this->targetUser)) {
+            // Scoped assignments use ON DELETE CASCADE. The wildcard also catches
+            // the disposable user from testDeleteUserRemovesUser after a failure.
+            $this->em->getConnection()->executeStatement(
+                'DELETE dashboard_widgets FROM dashboard_widgets INNER JOIN users ON users.id = dashboard_widgets.user_id WHERE users.email LIKE ?',
+                ['test-um-%-' . $this->emailSuffix . '@test.example.com'],
+            );
+            $this->em->getConnection()->executeStatement(
+                'DELETE FROM users WHERE email LIKE ?',
+                ['test-um-%-' . $this->emailSuffix . '@test.example.com'],
+            );
+            $this->em->close();
+        }
         parent::tearDown();
         restore_exception_handler();
     }

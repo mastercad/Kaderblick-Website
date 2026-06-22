@@ -23,6 +23,7 @@ use App\Entity\UserTeamAdminAssignment;
 use App\Service\AdminScopeService;
 use App\Service\DefaultDashboardService;
 use App\Service\NotificationService;
+use App\Service\RoleManager;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
@@ -55,6 +56,7 @@ class UserManagementController extends AbstractController
         private NotificationService $notificationService,
         private DefaultDashboardService $defaultDashboardService,
         private AdminScopeService $adminScopeService,
+        private RoleManager $roleManager,
     ) {
     }
 
@@ -178,7 +180,9 @@ class UserManagementController extends AbstractController
             return $this->json(['error' => 'Bitte wähle eine gültige Rolle aus.'], Response::HTTP_BAD_REQUEST);
         }
 
-        if (!$this->isGranted('ASSIGN_ROLE', [0 => $user, 1 => $selectedRole])) {
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        if (!$this->roleManager->canAssignRole($currentUser, $user, $selectedRole)) {
             return $this->json(['error' => 'You do not have permission to assign this role to this user.'], Response::HTTP_FORBIDDEN);
         }
 
