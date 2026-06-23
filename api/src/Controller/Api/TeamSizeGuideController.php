@@ -306,8 +306,10 @@ class TeamSizeGuideController extends AbstractController
             $person = method_exists($assignment, 'getPlayer') ? $assignment->getPlayer() : $assignment->getCoach();
             foreach ($person->getUserRelations() as $relation) {
                 $supporterUser = $relation->getUser();
-                if (!in_array('ROLE_SUPPORTER', $supporterUser->getRoles(), true)
-                    || in_array($supporterUser->getId(), $addedUserIds, true)) {
+                if (
+                    !in_array('ROLE_SUPPORTER', $supporterUser->getRoles(), true)
+                    || in_array($supporterUser->getId(), $addedUserIds, true)
+                ) {
                     continue;
                 }
                 $addedUserIds[] = $supporterUser->getId();
