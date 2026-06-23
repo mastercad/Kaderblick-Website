@@ -347,8 +347,8 @@ export default function HallOfFame() {
                       <Box>
                         <Typography
                           variant="subtitle1"
-                          color="white"
                           sx={{
+                            color: '#fff',
                             fontWeight: 700,
                             lineHeight: 1.2
                           }}>

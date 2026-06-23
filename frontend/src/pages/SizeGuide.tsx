@@ -49,6 +49,8 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import CloseIcon from '@mui/icons-material/Close';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import SearchIcon from '@mui/icons-material/Search';
 import EmptyStateHint from '../components/EmptyStateHint';
 
 interface Player {
@@ -82,6 +84,20 @@ interface Supporter {
 }
 
 type Candidate = (Player & { role: 'player' }) | (Coach & { role: 'coach' }) | (Supporter & { role: 'supporter' });
+
+type OrderItemKey = 'shirt_size' | 'shorts_size' | 'jacket_size' | 'socks_size' | 'shoe_size';
+type OrderSelection = Record<string, OrderItemKey[]>;
+
+const ORDER_ITEMS: Array<{ key: OrderItemKey; label: string; shortLabel: string }> = [
+  { key: 'shirt_size', label: 'Trikot', shortLabel: 'Trikots' },
+  { key: 'shorts_size', label: 'Hose', shortLabel: 'Hosen' },
+  { key: 'jacket_size', label: 'Trainingsjacke', shortLabel: 'Jacken' },
+  { key: 'socks_size', label: 'Stutzen', shortLabel: 'Stutzen' },
+  { key: 'shoe_size', label: 'Schuhe', shortLabel: 'Schuhe' },
+];
+
+const memberKey = (member: Candidate) => `${member.role}:${member.id}`;
+const hasSize = (member: Candidate, key: OrderItemKey) => Boolean(member[key] && member[key] !== '0');
 
 interface Team {
   team_id: number;
@@ -428,6 +444,170 @@ const ReminderDialog: React.FC<ReminderDialogProps> = ({ open, candidates, sendi
   );
 };
 
+// ─── OrderDialog ────────────────────────────────────────────────────────────
+
+interface OrderDialogProps {
+  open: boolean;
+  team: Team | null;
+  downloading: boolean;
+  onClose: () => void;
+  onExport: (selection: OrderSelection) => void;
+}
+
+const OrderDialog: React.FC<OrderDialogProps> = ({ open, team, downloading, onClose, onExport }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [selection, setSelection] = useState<OrderSelection>({});
+  const [search, setSearch] = useState('');
+
+  const members: Candidate[] = team ? [
+    ...team.players.map(member => ({ ...member, role: 'player' as const })),
+    ...team.coaches.map(member => ({ ...member, role: 'coach' as const })),
+    ...team.supporters.map(member => ({ ...member, role: 'supporter' as const })),
+  ] : [];
+
+  useEffect(() => {
+    if (open) {
+      setSelection({});
+      setSearch('');
+    }
+  }, [open, team?.team_id]);
+
+  const selectedItemCount = Object.values(selection).reduce((sum, items) => sum + items.length, 0);
+  const selectedPersonCount = Object.values(selection).filter(items => items.length > 0).length;
+  const filteredMembers = members.filter(member => member.name.toLocaleLowerCase().includes(search.toLocaleLowerCase().trim()));
+
+  const setMemberItems = (member: Candidate, items: OrderItemKey[]) => {
+    setSelection(previous => {
+      const next = { ...previous };
+      if (items.length > 0) next[memberKey(member)] = items;
+      else delete next[memberKey(member)];
+      return next;
+    });
+  };
+
+  const toggleItem = (member: Candidate, item: OrderItemKey) => {
+    const current = selection[memberKey(member)] ?? [];
+    setMemberItems(member, current.includes(item) ? current.filter(key => key !== item) : [...current, item]);
+  };
+
+  const selectForEveryone = (item?: OrderItemKey) => {
+    const next: OrderSelection = {};
+    members.forEach(member => {
+      const available = ORDER_ITEMS
+        .filter(product => (!item || product.key === item) && hasSize(member, product.key))
+        .map(product => product.key);
+      if (available.length > 0) next[memberKey(member)] = available;
+    });
+    setSelection(next);
+  };
+
+  const roleLabel = (role: Candidate['role']) => role === 'player' ? 'Spieler' : role === 'coach' ? 'Trainer' : 'Staff / Supporter';
+
+  return (
+    <Dialog open={open} onClose={downloading ? undefined : onClose} fullScreen={isMobile} fullWidth maxWidth="md">
+      <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: 2, pr: 7 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Bestellung zusammenstellen</Typography>
+        <Typography variant="body2" color="text.secondary">{team?.team_name} · Wähle nur, was wirklich gebraucht wird.</Typography>
+        <IconButton aria-label="Schließen" onClick={onClose} disabled={downloading} sx={{ position: 'absolute', right: 8, top: 10 }}>
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers sx={{ px: { xs: 1.5, sm: 3 }, py: 2, bgcolor: 'background.default' }}>
+        <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Schnellauswahl</Typography>
+          <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}>
+            <Button size="small" variant="contained" onClick={() => selectForEveryone()} sx={{ textTransform: 'none' }}>
+              Alles fürs Team
+            </Button>
+            {ORDER_ITEMS.map(item => (
+              <Button key={item.key} size="small" variant="outlined" onClick={() => selectForEveryone(item.key)} sx={{ textTransform: 'none' }}>
+                Nur {item.shortLabel}
+              </Button>
+            ))}
+            <Button size="small" color="inherit" onClick={() => setSelection({})} disabled={selectedItemCount === 0} sx={{ textTransform: 'none' }}>
+              Auswahl leeren
+            </Button>
+          </Stack>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            Artikel ohne hinterlegte Größe werden ausgelassen.
+          </Typography>
+        </Paper>
+
+        <TextField
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="Name suchen …"
+          size="small"
+          fullWidth
+          sx={{ mb: 2, bgcolor: 'background.paper' }}
+          slotProps={{ input: { startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} /> } }}
+        />
+
+        <Stack spacing={1.25}>
+          {filteredMembers.map(member => {
+            const key = memberKey(member);
+            const selected = selection[key] ?? [];
+            const availableItems = ORDER_ITEMS.filter(item => hasSize(member, item.key)).map(item => item.key);
+            const allSelected = availableItems.length > 0 && availableItems.every(item => selected.includes(item));
+            return (
+              <Paper key={key} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', borderColor: selected.length ? 'primary.main' : 'divider' }}>
+                <ListItemButton
+                  onClick={() => setMemberItems(member, allSelected ? [] : availableItems)}
+                  disabled={availableItems.length === 0}
+                  sx={{ py: 1.25, px: 1.5 }}
+                >
+                  <Checkbox checked={allSelected} indeterminate={selected.length > 0 && !allSelected} tabIndex={-1} disableRipple />
+                  <ListItemText
+                    primary={<Typography variant="body2" sx={{ fontWeight: 700 }}>{member.name}</Typography>}
+                    secondary={`${roleLabel(member.role)} · ${selected.length} von ${availableItems.length} ausgewählt`}
+                  />
+                </ListItemButton>
+                <Divider />
+                <Box sx={{ p: 1, display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(5, 1fr)' }, gap: 0.75 }}>
+                  {ORDER_ITEMS.map(item => {
+                    const available = hasSize(member, item.key);
+                    return (
+                      <Button
+                        key={item.key}
+                        variant={selected.includes(item.key) ? 'contained' : 'outlined'}
+                        color={available ? 'primary' : 'inherit'}
+                        disabled={!available}
+                        onClick={() => toggleItem(member, item.key)}
+                        aria-pressed={selected.includes(item.key)}
+                        sx={{ minHeight: 54, px: 0.75, textTransform: 'none', display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}
+                      >
+                        <span>{item.label}</span>
+                        <strong>{available ? member[item.key] : 'Größe fehlt'}</strong>
+                      </Button>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            );
+          })}
+          {filteredMembers.length === 0 && <Alert severity="info">Keine Person mit diesem Namen gefunden.</Alert>}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 1.5, gap: 1, justifyContent: 'space-between', boxShadow: '0 -4px 14px rgba(0,0,0,0.08)' }}>
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>{selectedItemCount} Artikel</Typography>
+          <Typography variant="caption" color="text.secondary">für {selectedPersonCount} Personen</Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <PictureAsPdfIcon />}
+          disabled={downloading || selectedItemCount === 0}
+          onClick={() => onExport(selection)}
+          sx={{ minHeight: 44, textTransform: 'none', fontWeight: 700 }}
+        >
+          {downloading ? 'PDF wird erstellt …' : 'Bestell-PDF erstellen'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 // ─── Hauptkomponente ────────────────────────────────────────────────────────
 
 const SizeGuide: React.FC = () => {
@@ -436,6 +616,7 @@ const SizeGuide: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [reminderSending, setReminderSending] = useState(false);
   const [reminderSnackbar, setReminderSnackbar] = useState<{ open: boolean; success: boolean; message: string }>({ open: false, success: true, message: '' });
   const [reminderDialog, setReminderDialog] = useState<{
@@ -476,7 +657,7 @@ const SizeGuide: React.FC = () => {
         `/api/teams/${teamId}/size-guide-remind`,
         {
           method: 'POST',
-          body: JSON.stringify({ exclude: excludedIds, createTask, taskDueDate }),
+          body: { exclude: excludedIds, createTask, taskDueDate },
           headers: { 'Content-Type': 'application/json' },
         }
       );
@@ -494,16 +675,28 @@ const SizeGuide: React.FC = () => {
     }
   };
 
-  const handleDownloadPdf = async (teamId: number, teamName: string) => {
+  const handleDownloadPdf = async (teamId: number, selection: OrderSelection) => {
     setPdfDownloading(true);
     try {
-      const blob = await apiBlob(`/api/teams/${teamId}/size-guide-pdf`);
+      const orders = Object.entries(selection)
+        .filter(([, items]) => items.length > 0)
+        .map(([key, items]) => {
+          const [role, memberId] = key.split(':');
+          return { role, memberId: Number(memberId), items };
+        });
+      const blob = await apiBlob(`/api/teams/${teamId}/size-guide-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: { orders },
+      });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
+      setOrderDialogOpen(false);
       // Revoke after a short delay to allow the new tab to load the blob
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (e) {
       console.error('PDF-Öffnen fehlgeschlagen', e);
+      setReminderSnackbar({ open: true, success: false, message: 'Die Bestell-PDF konnte nicht erstellt werden.' });
     } finally {
       setPdfDownloading(false);
     }
@@ -585,7 +778,7 @@ const SizeGuide: React.FC = () => {
                 color: "text.secondary",
                 mt: 0.25
               }}>
-              Ausrüstungsgrößen der Spieler deines Teams
+              Ausrüstungsgrößen von Spielern, Trainern und Staff
             </Typography>
           </Box>
         </Stack>
@@ -700,7 +893,7 @@ const SizeGuide: React.FC = () => {
                 }}
               >
                 <Stack
-                  direction="row"
+                  direction={{ xs: 'column', sm: 'row' }}
                   spacing={1.5}
                   sx={{
                     alignItems: "center",
@@ -764,20 +957,20 @@ const SizeGuide: React.FC = () => {
                   <Button
                     variant="contained"
                     size="small"
-                    startIcon={pdfDownloading ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdfIcon />}
+                    startIcon={<AddShoppingCartIcon />}
                     disabled={pdfDownloading}
-                    onClick={() => handleDownloadPdf(team.team_id, team.team_name)}
+                    onClick={() => setOrderDialogOpen(true)}
                     sx={{
                       borderRadius: 2,
                       fontWeight: 600,
                       fontSize: '0.78rem',
                       textTransform: 'none',
-                      bgcolor: 'error.main',
+                      bgcolor: 'primary.main',
                       flex: { xs: 1, sm: 'initial' },
-                      '&:hover': { bgcolor: 'error.dark' },
+                      '&:hover': { bgcolor: 'primary.dark' },
                     }}
                   >
-                    {pdfDownloading ? 'Wird erstellt…' : 'PDF exportieren'}
+                    Bestellung erstellen
                   </Button>
                 </Stack>
               </Box>
@@ -803,7 +996,7 @@ const SizeGuide: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       {[
-                        { label: 'Spieler', icon: null, align: 'left' as const },
+                        { label: 'Person', icon: null, align: 'left' as const },
                         { label: 'Hose', icon: <CheckroomIcon sx={{ fontSize: 14 }} />, align: 'center' as const },
                         { label: 'Trikot', icon: <CheckroomIcon sx={{ fontSize: 14 }} />, align: 'center' as const },
                         { label: 'Jacke', icon: <CheckroomIcon sx={{ fontSize: 14 }} />, align: 'center' as const },
@@ -1155,6 +1348,13 @@ const SizeGuide: React.FC = () => {
         sending={reminderSending}
         onClose={() => setReminderDialog(d => ({ ...d, open: false }))}
         onConfirm={handleConfirmReminder}
+      />
+      <OrderDialog
+        open={orderDialogOpen}
+        team={selectedTeam}
+        downloading={pdfDownloading}
+        onClose={() => setOrderDialogOpen(false)}
+        onExport={selection => selectedTeam && handleDownloadPdf(selectedTeam.team_id, selection)}
       />
       <Snackbar
         open={reminderSnackbar.open}

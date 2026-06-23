@@ -424,62 +424,68 @@ describe('SizeGuide page', () => {
 
   // ── PDF export ────────────────────────────────────────────────────────────────
 
-  it('renders the PDF export button', async () => {
+  it('renders the order builder button', async () => {
     await act(async () => { render(<SizeGuide />); });
 
     await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
+      expect(screen.getByText('Bestellung erstellen')).toBeInTheDocument();
     });
   });
 
-  it('calls apiBlob with the correct URL when PDF button is clicked', async () => {
+  it('opens a flexible order builder with quick selections', async () => {
     await act(async () => { render(<SizeGuide />); });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
 
-    await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Bestellung zusammenstellen')).toBeInTheDocument();
+    expect(screen.getByText('Alles fürs Team')).toBeInTheDocument();
+    expect(screen.getByText('Nur Trikots')).toBeInTheDocument();
+    expect(screen.getByText('Auswahl leeren')).toBeInTheDocument();
+  });
 
-    await act(async () => {
-      fireEvent.click(screen.getByText(/PDF exportieren/i));
-    });
+  it('posts only the selected articles to the PDF endpoint', async () => {
+    await act(async () => { render(<SizeGuide />); });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
+    await act(async () => { fireEvent.click(await screen.findByText('Nur Trikots')); });
+    await act(async () => { fireEvent.click(screen.getByText('Bestell-PDF erstellen')); });
 
-    await waitFor(() => {
-      expect(mockApiBlob).toHaveBeenCalledWith('/api/teams/1/size-guide-pdf');
-    });
+    await waitFor(() => expect(mockApiBlob).toHaveBeenCalled());
+    const [url, options] = mockApiBlob.mock.calls[0];
+    expect(url).toBe('/api/teams/1/size-guide-pdf');
+    expect(options.method).toBe('POST');
+    const payload = options.body;
+    expect(payload.orders).toHaveLength(2);
+    expect(payload.orders.every((order: { items: string[] }) => order.items.join(',') === 'shirt_size')).toBe(true);
+  });
+
+  it('does not allow exporting an empty order', async () => {
+    await act(async () => { render(<SizeGuide />); });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
+
+    expect((await screen.findByText('Bestell-PDF erstellen')).closest('button')).toBeDisabled();
   });
 
   it('opens the PDF blob URL in a new tab', async () => {
     await act(async () => { render(<SizeGuide />); });
-
-    await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText(/PDF exportieren/i));
-    });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
+    await act(async () => { fireEvent.click(await screen.findByText('Nur Trikots')); });
+    await act(async () => { fireEvent.click(screen.getByText('Bestell-PDF erstellen')); });
 
     await waitFor(() => {
       expect(mockWindowOpen).toHaveBeenCalledWith('blob:mock-url', '_blank');
     });
   });
 
-  it('shows "Wird erstellt…" while the PDF is downloading', async () => {
+  it('shows progress while the PDF is downloading', async () => {
     // Never resolve so we can observe the in-progress label
     mockApiBlob.mockReturnValue(new Promise(() => {}));
 
     await act(async () => { render(<SizeGuide />); });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
+    await act(async () => { fireEvent.click(await screen.findByText('Nur Trikots')); });
+    act(() => { fireEvent.click(screen.getByText('Bestell-PDF erstellen')); });
 
     await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(screen.getByText(/PDF exportieren/i));
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/Wird erstellt/i)).toBeInTheDocument();
+      expect(screen.getByText(/PDF wird erstellt/i)).toBeInTheDocument();
     });
   });
 
@@ -487,36 +493,13 @@ describe('SizeGuide page', () => {
     mockApiBlob.mockReturnValue(new Promise(() => {}));
 
     await act(async () => { render(<SizeGuide />); });
+    await act(async () => { fireEvent.click(await screen.findByText('Bestellung erstellen')); });
+    await act(async () => { fireEvent.click(await screen.findByText('Nur Trikots')); });
+    act(() => { fireEvent.click(screen.getByText('Bestell-PDF erstellen')); });
 
     await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(screen.getByText(/PDF exportieren/i));
-    });
-
-    await waitFor(() => {
-      // The button should be disabled during download
-      const btn = screen.getByText(/Wird erstellt/i).closest('button');
+      const btn = screen.getByText(/PDF wird erstellt/i).closest('button');
       expect(btn).toBeDisabled();
-    });
-  });
-
-  it('re-enables the PDF button after download completes', async () => {
-    await act(async () => { render(<SizeGuide />); });
-
-    await waitFor(() => {
-      expect(screen.getByText(/PDF exportieren/i)).toBeInTheDocument();
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText(/PDF exportieren/i));
-    });
-
-    await waitFor(() => {
-      const btn = screen.getByText(/PDF exportieren/i).closest('button');
-      expect(btn).not.toBeDisabled();
     });
   });
 

@@ -110,12 +110,114 @@ final class BillingManagerTest extends TestCase
             self::assertStringContainsString('unit_amount%5D=1000', (string) $options['body']);
             self::assertStringContainsString('interval%5D=month', (string) $options['body']);
 
-            return new MockResponse('{"url":"https://pay.example.test/session"}');
+            return new MockResponse('{"id":"cs_test_session","url":"https://pay.example.test/session"}');
         });
 
         $url = $this->manager($http)->createCheckout($this->user, [17]);
 
         self::assertSame('https://pay.example.test/session', $url);
+    }
+
+    public function testPendingCheckoutCanBeDiscardedAndStartedAgain(): void
+    {
+        $userId = new ReflectionProperty(User::class, 'id');
+        $userId->setValue($this->user, 42);
+        $authenticatedUser = clone $this->user;
+        $userId->setValue($authenticatedUser, 43);
+        $pending = new BillingSubscription($this->user);
+        $pending->addTeam($this->team);
+        $id = new ReflectionProperty(BillingSubscription::class, 'id');
+        $id->setValue($pending, 23);
+        $this->existingLink = new BillingSubscriptionTeam($pending, $this->team);
+        $this->em->expects(self::once())->method('remove')->with($pending)->willReturnCallback(function (): void {
+            $this->existingLink = null;
+        });
+        $http = new MockHttpClient(static fn () => new MockResponse('{"id":"cs_test_retry","url":"https://pay.example.test/retry"}'));
+
+        $url = $this->manager($http)->restartPendingCheckout($authenticatedUser, [17]);
+
+        self::assertSame('https://pay.example.test/retry', $url);
+    }
+
+    public function testAnotherAuthorizedTreasurerExpiresOpenCheckoutAndStartsTheirOwn(): void
+    {
+        $userId = new ReflectionProperty(User::class, 'id');
+        $userId->setValue($this->user, 42);
+        $otherTreasurer = clone $this->user;
+        $userId->setValue($otherTreasurer, 43);
+        $pending = (new BillingSubscription($this->user))->setProviderCheckoutSessionId('cs_test_previous_payer');
+        $pending->addTeam($this->team);
+        $subscriptionId = new ReflectionProperty(BillingSubscription::class, 'id');
+        $subscriptionId->setValue($pending, 23);
+        $this->existingLink = new BillingSubscriptionTeam($pending, $this->team);
+        $this->em->expects(self::once())->method('remove')->with($pending)->willReturnCallback(function (): void {
+            $this->existingLink = null;
+        });
+        $responses = [
+            new MockResponse('{"id":"cs_test_previous_payer","status":"open","url":"https://pay.example.test/old"}'),
+            new MockResponse('{"id":"cs_test_previous_payer","status":"expired"}'),
+            new MockResponse('{"id":"cs_test_new_payer","url":"https://pay.example.test/new"}'),
+        ];
+        $requests = 0;
+        $http = new MockHttpClient(static function (string $method, string $url) use (&$requests, $responses): MockResponse {
+            if (0 === $requests) {
+                self::assertSame('GET', $method);
+                self::assertStringEndsWith('/checkout/sessions/cs_test_previous_payer', $url);
+            } elseif (1 === $requests) {
+                self::assertSame('POST', $method);
+                self::assertStringEndsWith('/checkout/sessions/cs_test_previous_payer/expire', $url);
+            } else {
+                self::assertSame('POST', $method);
+                self::assertStringEndsWith('/checkout/sessions', $url);
+            }
+
+            return $responses[$requests++];
+        });
+
+        $url = $this->manager($http)->restartPendingCheckout($otherTreasurer, [17]);
+
+        self::assertSame('https://pay.example.test/new', $url);
+        self::assertSame(3, $requests);
+    }
+
+    public function testOpenStripeCheckoutIsResumedInsteadOfDuplicated(): void
+    {
+        $pending = (new BillingSubscription($this->user))->setProviderCheckoutSessionId('cs_test_open');
+        $this->existingLink = new BillingSubscriptionTeam($pending, $this->team);
+        $this->em->expects(self::never())->method('remove');
+        $http = new MockHttpClient(static function (string $method, string $url): MockResponse {
+            self::assertSame('GET', $method);
+            self::assertStringEndsWith('/checkout/sessions/cs_test_open', $url);
+
+            return new MockResponse('{"id":"cs_test_open","status":"open","url":"https://pay.example.test/resume"}');
+        });
+
+        $url = $this->manager($http)->restartPendingCheckout($this->user, [17]);
+
+        self::assertSame('https://pay.example.test/resume', $url);
+    }
+
+    public function testCompletedStripeCheckoutCannotBeDuplicated(): void
+    {
+        $pending = (new BillingSubscription($this->user))->setProviderCheckoutSessionId('cs_test_complete');
+        $this->existingLink = new BillingSubscriptionTeam($pending, $this->team);
+        $this->em->expects(self::never())->method('remove');
+        $http = new MockHttpClient(static fn () => new MockResponse('{"id":"cs_test_complete","status":"complete"}'));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('bei Stripe bereits abgeschlossen');
+        $this->manager($http)->restartPendingCheckout($this->user, [17]);
+    }
+
+    public function testStripeConfirmedPendingCheckoutCannotBeStartedTwice(): void
+    {
+        $pending = (new BillingSubscription($this->user))->setProviderSubscriptionId('sub_confirmed');
+        $this->existingLink = new BillingSubscriptionTeam($pending, $this->team);
+        $http = new MockHttpClient(static fn () => self::fail('Payment API must not be called'));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('bereits bestätigt');
+        $this->manager($http)->restartPendingCheckout($this->user, [17]);
     }
 
     public function testTeamInTestPhaseCannotBeCharged(): void

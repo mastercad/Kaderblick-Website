@@ -308,8 +308,19 @@ class SizeGuidePdfServiceTest extends TestCase
 
     public function testBuildTemplateDataLogoIsNullWhenFileDoesNotExist(): void
     {
-        // sys_get_temp_dir() as projectDir means public/images/logo.png won't exist
+        // sys_get_temp_dir() as projectDir means the Kaderblick mark won't exist
         $this->assertNull($this->build('Team', [])['logoBase64']);
+    }
+
+    public function testBuildTemplateDataEmbedsKaderblickSvgFromProject(): void
+    {
+        $service = new SizeGuidePdfService($this->createMock(Environment::class), dirname(__DIR__, 3));
+        $method = new ReflectionMethod(SizeGuidePdfService::class, 'buildTemplateData');
+        $data = $method->invoke($service, 'Team', []);
+
+        $this->assertIsArray($data);
+        $this->assertIsString($data['logoBase64']);
+        $this->assertStringStartsWith('data:image/png;base64,', $data['logoBase64']);
     }
 
     public function testBuildTemplateDataGeneratedAtMatchesDateFormat(): void

@@ -571,6 +571,49 @@ class TeamSizeGuideControllerTest extends TestCase
         $this->controller->sizeGuidePdf(1);
     }
 
+    public function testPdfPostExportsOnlyExplicitlySelectedItems(): void
+    {
+        $user = $this->makeUser(7, 'Spieler', 'M', 'L', 42.0, 'S', 'XL');
+        $player = $this->makePlayer('Spieler', [$this->makeRelation('self_player', $user)]);
+        $team = $this->makeTeam(1, 'U17', [$this->makePlayerAssignment($player)]);
+        $this->coachTeamPlayerService->method('collectCoachTeams')->willReturn([$team]);
+
+        $this->sizeGuidePdfService
+            ->expects($this->once())
+            ->method('generatePdf')
+            ->with('U17', $this->callback(static fn (array $members): bool => 1 === count($members)
+                && ['shirt_size'] === $members[0]['ordered_items']
+                && 'L' === $members[0]['shirt_size']
+                && null === $members[0]['shorts_size']
+                && null === $members[0]['shoe_size']))
+            ->willReturn('%PDF');
+
+        $request = Request::create(
+            '/api/teams/1/size-guide-pdf',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['orders' => [['role' => 'player', 'memberId' => 7, 'items' => ['shirt_size']]]], JSON_THROW_ON_ERROR),
+        );
+
+        $response = $this->controller->sizeGuidePdf(1, $request);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function testPdfPostRejectsAnEmptyOrder(): void
+    {
+        $team = $this->makeTeam(1, 'U17');
+        $this->coachTeamPlayerService->method('collectCoachTeams')->willReturn([$team]);
+        $request = Request::create('/api/teams/1/size-guide-pdf', 'POST', [], [], [], [], '{"orders":[]}');
+
+        $response = $this->controller->sizeGuidePdf(1, $request);
+
+        $this->assertSame(400, $response->getStatusCode());
+    }
+
     public function testPdfActivePlayerWithNullShoeSizeIsIncluded(): void
     {
         $user = $this->makeUser(1, 'Anna', 'S', 'S', null, 'S', 'S');

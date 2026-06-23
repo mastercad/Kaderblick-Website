@@ -45,6 +45,25 @@ final class StripeBillingClient
     }
 
     /** @return array<string, mixed> */
+    public function get(string $path): array
+    {
+        if ('' === $this->secretKey()) {
+            throw new RuntimeException('Stripe ist noch nicht konfiguriert.');
+        }
+
+        $response = $this->httpClient->request('GET', self::API . $path, [
+            'auth_bearer' => $this->secretKey(),
+            'headers' => ['Stripe-Version' => '2025-06-30.basil'],
+        ]);
+        $data = $response->toArray(false);
+        if ($response->getStatusCode() >= 400) {
+            throw new RuntimeException((string) ($data['error']['message'] ?? 'Stripe-Anfrage fehlgeschlagen.'));
+        }
+
+        return $data;
+    }
+
+    /** @return array<string, mixed> */
     public function verifyWebhook(string $payload, string $signatureHeader): array
     {
         $parts = [];

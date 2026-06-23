@@ -131,18 +131,88 @@ final class BillingManager
                 'metadata' => ['billing_subscription_id' => (string) $subscription->getId()],
                 'subscription_data' => ['metadata' => ['billing_subscription_id' => (string) $subscription->getId()]],
             ]);
+            $sessionId = (string) ($session['id'] ?? '');
+            $url = (string) ($session['url'] ?? '');
+            if ('' === $sessionId || '' === $url) {
+                throw new RuntimeException('Stripe hat keine gültige Zahlungsseite zurückgegeben.');
+            }
+            $subscription->setProviderCheckoutSessionId($sessionId);
+            $this->em->flush();
         } catch (Throwable $e) {
             $this->em->remove($subscription);
             $this->em->flush();
             throw new RuntimeException('Die Zahlungsseite konnte nicht geöffnet werden. Bitte versuche es später erneut.', 0, $e);
         }
 
-        return (string) ($session['url'] ?? throw new RuntimeException('Die Zahlungsseite konnte nicht geöffnet werden.'));
+        return $url;
+    }
+
+    /** @param list<int> $teamIds */
+    public function restartPendingCheckout(User $user, array $teamIds): string
+    {
+        if ([] === $teamIds) {
+            throw new RuntimeException('Es wurde keine offene Aktivierung ausgewählt.');
+        }
+
+        $manageable = [];
+        foreach ($this->manageableTeams($user) as $team) {
+            $manageable[$team->getId()] = $team;
+        }
+
+        /** @var array<int, BillingSubscription> $pendingSubscriptions */
+        $pendingSubscriptions = [];
+        foreach (array_values(array_unique($teamIds)) as $teamId) {
+            if (!isset($manageable[$teamId])) {
+                throw new RuntimeException('Mindestens ein Team darf von diesem Benutzer nicht abgerechnet werden.');
+            }
+            /** @var ?BillingSubscriptionTeam $link */
+            $link = $this->em->getRepository(BillingSubscriptionTeam::class)->findOneBy(['team' => $manageable[$teamId]]);
+            $subscription = $link?->getSubscription();
+            if (
+                !$subscription
+                || BillingSubscription::STATUS_PENDING !== $subscription->getStatus()
+            ) {
+                throw new RuntimeException('Diese Aktivierung kann nicht neu gestartet werden.');
+            }
+            foreach ($subscription->getTeams() as $subscriptionTeam) {
+                if (!isset($manageable[$subscriptionTeam->getId()])) {
+                    throw new RuntimeException('Du darfst nicht alle Teams dieser Aktivierung abrechnen.');
+                }
+            }
+            if ($subscription->getProviderCustomerId() || $subscription->getProviderSubscriptionId()) {
+                throw new RuntimeException('Stripe hat den Abschluss bereits bestätigt. Bitte lade den Status erneut.');
+            }
+            if ($checkoutSessionId = $subscription->getProviderCheckoutSessionId()) {
+                $checkoutSession = $this->stripe->get('/checkout/sessions/' . rawurlencode($checkoutSessionId));
+                $checkoutStatus = (string) ($checkoutSession['status'] ?? '');
+                if ('complete' === $checkoutStatus) {
+                    throw new RuntimeException('Der Zahlungsabschluss wurde bei Stripe bereits abgeschlossen. Bitte lade den Status erneut.');
+                }
+                if ('open' === $checkoutStatus) {
+                    if ($this->sameUser($subscription->getPayer(), $user) && is_string($checkoutSession['url'] ?? null) && '' !== $checkoutSession['url']) {
+                        return $checkoutSession['url'];
+                    }
+                    $this->stripe->post('/checkout/sessions/' . rawurlencode($checkoutSessionId) . '/expire', []);
+                }
+            }
+            $pendingSubscriptions[(int) $subscription->getId()] = $subscription;
+        }
+
+        $restartTeamIds = [];
+        foreach ($pendingSubscriptions as $subscription) {
+            foreach ($subscription->getTeams() as $team) {
+                $restartTeamIds[] = $team->getId();
+            }
+            $this->em->remove($subscription);
+        }
+        $this->em->flush();
+
+        return $this->createCheckout($user, $restartTeamIds);
     }
 
     public function createPortal(BillingSubscription $subscription, User $user): string
     {
-        if ($subscription->getPayer() !== $user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+        if (!$this->sameUser($subscription->getPayer(), $user) && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
             throw new RuntimeException('Dieses Abonnement darf nicht verwaltet werden.');
         }
         if (!$subscription->getProviderCustomerId()) {
@@ -196,5 +266,10 @@ final class BillingManager
         $today = new DateTimeImmutable('today');
 
         return (null === $start || $start <= $today) && (null === $end || $end >= $today);
+    }
+
+    private function sameUser(User $left, User $right): bool
+    {
+        return $left === $right || (null !== $left->getId() && $left->getId() === $right->getId());
     }
 }
