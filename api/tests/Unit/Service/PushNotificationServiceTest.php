@@ -19,10 +19,10 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PushNotificationServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private LoggerInterface&MockObject $logger;
-    private ParameterBagInterface&MockObject $params;
-    private WebPush&MockObject $webPush;
+    private EntityManagerInterface & MockObject $em;
+    private LoggerInterface & MockObject $logger;
+    private ParameterBagInterface & MockObject $params;
+    private WebPush & MockObject $webPush;
     private PushNotificationService $service;
 
     protected function setUp(): void
@@ -341,7 +341,7 @@ class PushNotificationServiceTest extends TestCase
     // ======================================================================
 
     /** @param array<int, PushSubscription&MockObject> $subscriptions */
-    private function createUserWithSubscriptions(array $subscriptions): User&MockObject
+    private function createUserWithSubscriptions(array $subscriptions): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(42);
@@ -350,7 +350,7 @@ class PushNotificationServiceTest extends TestCase
         return $user;
     }
 
-    private function createPushSubscription(string $endpoint, string $publicKey, string $authToken): PushSubscription&MockObject
+    private function createPushSubscription(string $endpoint, string $publicKey, string $authToken): PushSubscription & MockObject
     {
         $sub = $this->createMock(PushSubscription::class);
         $sub->method('getEndpoint')->willReturn($endpoint);
@@ -360,7 +360,7 @@ class PushNotificationServiceTest extends TestCase
         return $sub;
     }
 
-    private function createSuccessReport(string $endpoint): MessageSentReport&MockObject
+    private function createSuccessReport(string $endpoint): MessageSentReport & MockObject
     {
         $report = $this->createMock(MessageSentReport::class);
         $report->method('getEndpoint')->willReturn($endpoint);
@@ -370,7 +370,7 @@ class PushNotificationServiceTest extends TestCase
         return $report;
     }
 
-    private function createExpiredReport(string $endpoint): MessageSentReport&MockObject
+    private function createExpiredReport(string $endpoint): MessageSentReport & MockObject
     {
         $report = $this->createMock(MessageSentReport::class);
         $report->method('getEndpoint')->willReturn($endpoint);
@@ -381,7 +381,7 @@ class PushNotificationServiceTest extends TestCase
         return $report;
     }
 
-    private function createFailedReport(string $endpoint, bool $expired = false): MessageSentReport&MockObject
+    private function createFailedReport(string $endpoint, bool $expired = false): MessageSentReport & MockObject
     {
         $report = $this->createMock(MessageSentReport::class);
         $report->method('getEndpoint')->willReturn($endpoint);

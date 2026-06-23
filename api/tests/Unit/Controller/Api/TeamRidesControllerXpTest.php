@@ -29,9 +29,9 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class TeamRidesControllerXpTest extends TestCase
 {
     private TeamRidesController $controller;
-    private EventDispatcherInterface&MockObject $dispatcher;
-    private CalendarEventRepository&MockObject $eventRepo;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private EventDispatcherInterface & MockObject $dispatcher;
+    private CalendarEventRepository & MockObject $eventRepo;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     protected function setUp(): void
     {

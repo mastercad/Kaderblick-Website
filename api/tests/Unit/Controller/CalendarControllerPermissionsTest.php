@@ -39,14 +39,14 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class CalendarControllerPermissionsTest extends TestCase
 {
     private CalendarEventReadController $controller;
-    private TeamMembershipService&MockObject $membershipService;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private EntityManagerInterface&MockObject $em;
-    private Security&MockObject $security;
+    private TeamMembershipService & MockObject $membershipService;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private EntityManagerInterface & MockObject $em;
+    private Security & MockObject $security;
     /** @var EntityRepository<CalendarEventType>&MockObject */
-    private EntityRepository&MockObject $eventTypeRepo;
+    private EntityRepository & MockObject $eventTypeRepo;
     /** @var EntityRepository<TaskAssignment>&MockObject */
-    private EntityRepository&MockObject $taskAssignmentRepo;
+    private EntityRepository & MockObject $taskAssignmentRepo;
 
     private const TOURNAMENT_TYPE_ID = 5;
 
@@ -249,7 +249,7 @@ class CalendarControllerPermissionsTest extends TestCase
         return $data[0]['permissions'];
     }
 
-    private function makeTournamentType(int $id): CalendarEventType&MockObject
+    private function makeTournamentType(int $id): CalendarEventType & MockObject
     {
         $type = $this->createMock(CalendarEventType::class);
         $type->method('getId')->willReturn($id);
@@ -259,7 +259,7 @@ class CalendarControllerPermissionsTest extends TestCase
         return $type;
     }
 
-    private function makeCalendarEventMock(?int $typeId): CalendarEvent&MockObject
+    private function makeCalendarEventMock(?int $typeId): CalendarEvent & MockObject
     {
         $start = new DateTime('2026-06-15 10:00:00');
         $end = new DateTime('2026-06-15 12:00:00');

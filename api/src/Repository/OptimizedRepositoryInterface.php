@@ -28,12 +28,12 @@ interface OptimizedRepositoryInterface
      *
      * @return array<string, mixed>|T|null
      */
-    public function fetchFullEntry(int $id, ?UserInterface $user = null): array|object|null;
+    public function fetchFullEntry(int $id, ?UserInterface $user = null): array | object | null;
 
     /**
      * Lädt einen einzelnen Eintrag mit minimal benötigten Feldern (für Frontend/API).
      *
      * @return array<string, mixed>|T|null
      */
-    public function fetchOptimizedEntry(int $id, ?UserInterface $user = null): array|object|null;
+    public function fetchOptimizedEntry(int $id, ?UserInterface $user = null): array | object | null;
 }

@@ -749,7 +749,7 @@ class CustomSchemaTool extends SchemaTool
     }
 
     /** @return mixed[] */
-    private function gatherColumnOptions(JoinColumnMapping|FieldMapping|DiscriminatorColumnMapping $mapping): array
+    private function gatherColumnOptions(JoinColumnMapping | FieldMapping | DiscriminatorColumnMapping $mapping): array
     {
         $mappingOptions = $mapping->options ?? [];
 

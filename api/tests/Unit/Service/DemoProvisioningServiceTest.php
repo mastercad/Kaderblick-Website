@@ -14,8 +14,8 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 #[AllowMockObjectsWithoutExpectations]
 class DemoProvisioningServiceTest extends TestCase
 {
-    private HttpClientInterface&\PHPUnit\Framework\MockObject\MockObject $httpClient;
-    private LoggerInterface&\PHPUnit\Framework\MockObject\MockObject $logger;
+    private HttpClientInterface & \PHPUnit\Framework\MockObject\MockObject $httpClient;
+    private LoggerInterface & \PHPUnit\Framework\MockObject\MockObject $logger;
     private DemoProvisioningService $service;
 
     protected function setUp(): void

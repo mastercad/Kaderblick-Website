@@ -25,7 +25,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 class SurveyVoterTest extends TestCase
 {
     private SurveyVoter $voter;
-    private MockObject&EntityManagerInterface $entityManager;
+    private MockObject & EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {

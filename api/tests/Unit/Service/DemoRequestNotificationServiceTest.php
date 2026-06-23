@@ -30,15 +30,15 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 #[AllowMockObjectsWithoutExpectations]
 class DemoRequestNotificationServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private NotificationService&MockObject $notificationService;
-    private EmailService&MockObject $emailService;
-    private ParameterBagInterface&MockObject $params;
-    private LoggerInterface&MockObject $logger;
+    private EntityManagerInterface & MockObject $em;
+    private NotificationService & MockObject $notificationService;
+    private EmailService & MockObject $emailService;
+    private ParameterBagInterface & MockObject $params;
+    private LoggerInterface & MockObject $logger;
     private DemoRequestNotificationService $service;
 
     /** @var EntityRepository<User>&MockObject */
-    private EntityRepository&MockObject $userRepository;
+    private EntityRepository & MockObject $userRepository;
 
     protected function setUp(): void
     {
@@ -82,7 +82,7 @@ class DemoRequestNotificationServiceTest extends TestCase
     }
 
     /** Creates a mock User that appears to have ROLE_SUPERADMIN in getRoles(). */
-    private function makeSuperadmin(int $id = 1, string $email = 'admin@example.com'): User&MockObject
+    private function makeSuperadmin(int $id = 1, string $email = 'admin@example.com'): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getRoles')->willReturn(['ROLE_SUPERADMIN', 'ROLE_USER']);
@@ -93,7 +93,7 @@ class DemoRequestNotificationServiceTest extends TestCase
     }
 
     /** Creates a mock User that does NOT have ROLE_SUPERADMIN. */
-    private function makeRegularUser(): User&MockObject
+    private function makeRegularUser(): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getRoles')->willReturn(['ROLE_USER']);

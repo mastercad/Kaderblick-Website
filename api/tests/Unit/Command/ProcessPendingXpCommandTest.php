@@ -19,9 +19,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class ProcessPendingXpCommandTest extends TestCase
 {
-    private XPEventProcessor&MockObject $xpEventProcessor;
-    private LoggerInterface&MockObject $logger;
-    private HeartbeatService&MockObject $heartbeatService;
+    private XPEventProcessor & MockObject $xpEventProcessor;
+    private LoggerInterface & MockObject $logger;
+    private HeartbeatService & MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void

@@ -20,10 +20,10 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class SendSurveyRemindersCommandTest extends TestCase
 {
-    private SurveyRepository&MockObject $surveyRepository;
-    private SurveyNotificationService&MockObject $notificationService;
-    private LoggerInterface&MockObject $logger;
-    private HeartbeatService&MockObject $heartbeatService;
+    private SurveyRepository & MockObject $surveyRepository;
+    private SurveyNotificationService & MockObject $notificationService;
+    private LoggerInterface & MockObject $logger;
+    private HeartbeatService & MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void

@@ -32,22 +32,22 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CashBookControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private TokenStorageInterface&MockObject $tokenStorage;
+    private EntityManagerInterface & MockObject $em;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private TokenStorageInterface & MockObject $tokenStorage;
     private CashBookController $controller;
 
     /** @var EntityRepository<CashBook>&MockObject */
-    private EntityRepository&MockObject $cashBookRepo;
+    private EntityRepository & MockObject $cashBookRepo;
 
     /** @var EntityRepository<CashBookEntry>&MockObject */
-    private EntityRepository&MockObject $cashBookEntryRepo;
+    private EntityRepository & MockObject $cashBookEntryRepo;
 
     /** @var EntityRepository<FunctionaryTeamAssignment>&MockObject */
-    private EntityRepository&MockObject $teamAssignmentRepo;
+    private EntityRepository & MockObject $teamAssignmentRepo;
 
     /** @var EntityRepository<FunctionaryClubAssignment>&MockObject */
-    private EntityRepository&MockObject $clubAssignmentRepo;
+    private EntityRepository & MockObject $clubAssignmentRepo;
 
     protected function setUp(): void
     {
@@ -80,7 +80,7 @@ class CashBookControllerTest extends TestCase
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private function loginAs(int $id = 1): User&MockObject
+    private function loginAs(int $id = 1): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -93,7 +93,7 @@ class CashBookControllerTest extends TestCase
         return $user;
     }
 
-    private function makeCashBook(int $id = 1, bool $hasTeam = true): CashBook&MockObject
+    private function makeCashBook(int $id = 1, bool $hasTeam = true): CashBook & MockObject
     {
         $cashBook = $this->createMock(CashBook::class);
         $cashBook->method('getId')->willReturn($id);
@@ -122,7 +122,7 @@ class CashBookControllerTest extends TestCase
         CashBook $cashBook,
         string $type = 'income',
         float $amount = 100.0,
-    ): CashBookEntry&MockObject {
+    ): CashBookEntry & MockObject {
         $entry = $this->createMock(CashBookEntry::class);
         $entry->method('getId')->willReturn($id);
         $entry->method('getCashBook')->willReturn($cashBook);
@@ -168,7 +168,7 @@ class CashBookControllerTest extends TestCase
     /**
      * @param array<int, array<string, mixed>> $rows
      */
-    private function makeQueryBuilderMock(array $rows): QueryBuilder&MockObject
+    private function makeQueryBuilderMock(array $rows): QueryBuilder & MockObject
     {
         $query = $this->getMockBuilder(Query::class)
             ->disableOriginalConstructor()
@@ -188,7 +188,7 @@ class CashBookControllerTest extends TestCase
         return $qb;
     }
 
-    private function emptyEntryRepository(): CashBookEntryRepository&MockObject
+    private function emptyEntryRepository(): CashBookEntryRepository & MockObject
     {
         $repo = $this->createMock(CashBookEntryRepository::class);
         $repo->method('findByCashBookOrdered')->willReturn([]);

@@ -23,9 +23,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class ProcessHistoricalXpCommandTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private XpRuleRepository&MockObject $xpRuleRepository;
-    private Connection&MockObject $connection;
+    private EntityManagerInterface & MockObject $entityManager;
+    private XpRuleRepository & MockObject $xpRuleRepository;
+    private Connection & MockObject $connection;
 
     /** @var list<array{sql: string, params: array<string, mixed>}> */
     private array $executedStatements = [];

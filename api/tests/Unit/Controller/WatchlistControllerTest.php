@@ -28,14 +28,14 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class WatchlistControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private WatchlistRepository&MockObject $watchlistRepository;
-    private PlayerRepository&MockObject $playerRepository;
-    private CoachRepository&MockObject $coachRepository;
-    private PlayerSerializerService&MockObject $playerSerializer;
-    private CoachSerializerService&MockObject $coachSerializer;
+    private EntityManagerInterface & MockObject $em;
+    private WatchlistRepository & MockObject $watchlistRepository;
+    private PlayerRepository & MockObject $playerRepository;
+    private CoachRepository & MockObject $coachRepository;
+    private PlayerSerializerService & MockObject $playerSerializer;
+    private CoachSerializerService & MockObject $coachSerializer;
     private WatchlistController $controller;
-    private User&MockObject $currentUser;
+    private User & MockObject $currentUser;
 
     protected function setUp(): void
     {
@@ -97,7 +97,7 @@ class WatchlistControllerTest extends TestCase
         ?Player $player = null,
         ?Coach $coach = null,
         bool $isAnonymous = true
-    ): Watchlist&MockObject {
+    ): Watchlist & MockObject {
         $entry = $this->createMock(Watchlist::class);
         $entry->method('getId')->willReturn($id);
         $entry->method('getWatcher')->willReturn($this->currentUser);

@@ -19,10 +19,10 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class AwardTitlesCommandTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private TitleCalculationService&MockObject $titleCalculationService;
-    private GoalCountingService&MockObject $goalCountingService;
-    private HeartbeatService&MockObject $heartbeatService;
+    private EntityManagerInterface & MockObject $entityManager;
+    private TitleCalculationService & MockObject $titleCalculationService;
+    private GoalCountingService & MockObject $goalCountingService;
+    private HeartbeatService & MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void

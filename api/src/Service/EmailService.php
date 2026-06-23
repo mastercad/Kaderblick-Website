@@ -19,7 +19,7 @@ class EmailService
      * @param array<string, mixed>      $context
      */
     public function sendTemplatedEmail(
-        string|array $to,
+        string | array $to,
         string $subject,
         string $template,
         array $context = []

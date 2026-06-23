@@ -104,7 +104,7 @@ class TaskControllerXpTest extends TestCase
 
     // ─── helpers ─────────────────────────────────────────────────────────────
 
-    private function makeAssignment(?User $user, Task $task): TaskAssignment&MockObject
+    private function makeAssignment(?User $user, Task $task): TaskAssignment & MockObject
     {
         $assignment = $this->createMock(TaskAssignment::class);
         $assignment->method('getUser')->willReturn($user);
@@ -113,7 +113,7 @@ class TaskControllerXpTest extends TestCase
         return $assignment;
     }
 
-    private function makeAssignmentRepo(TaskAssignment $assignment): TaskAssignmentRepository&MockObject
+    private function makeAssignmentRepo(TaskAssignment $assignment): TaskAssignmentRepository & MockObject
     {
         $repo = $this->createMock(TaskAssignmentRepository::class);
         $repo->method('find')->with(1)->willReturn($assignment);

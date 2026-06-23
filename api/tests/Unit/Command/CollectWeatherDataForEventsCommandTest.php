@@ -18,7 +18,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 class CollectWeatherDataForEventsCommandTest extends TestCase
 {
     private MockObject $weatherService;
-    private HeartbeatService&MockObject $heartbeatService;
+    private HeartbeatService & MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void

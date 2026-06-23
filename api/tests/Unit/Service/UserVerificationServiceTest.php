@@ -15,7 +15,7 @@ use Symfony\Component\Mailer\MailerInterface;
 class UserVerificationServiceTest extends TestCase
 {
     private string $frontendUrl = 'https://example.com';
-    private MailerInterface&MockObject $mailer;
+    private MailerInterface & MockObject $mailer;
     private UserVerificationService $service;
 
     protected function setUp(): void

@@ -28,15 +28,15 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 #[AllowMockObjectsWithoutExpectations]
 final class BillingManagerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
+    private EntityManagerInterface & MockObject $em;
     /** @var EntityRepository<FunctionaryTeamAssignment>&MockObject */
-    private EntityRepository&MockObject $teamAssignments;
+    private EntityRepository & MockObject $teamAssignments;
     /** @var EntityRepository<FunctionaryClubAssignment>&MockObject */
-    private EntityRepository&MockObject $clubAssignments;
+    private EntityRepository & MockObject $clubAssignments;
     /** @var EntityRepository<BillingExemption>&MockObject */
-    private EntityRepository&MockObject $exemptions;
+    private EntityRepository & MockObject $exemptions;
     /** @var EntityRepository<BillingSubscriptionTeam>&MockObject */
-    private EntityRepository&MockObject $links;
+    private EntityRepository & MockObject $links;
     private User $user;
     private Team $team;
     /** @var list<BillingExemption> */

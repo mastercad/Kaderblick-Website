@@ -21,9 +21,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class RecalcAllPlayerStatsCommandTest extends TestCase
 {
-    private GameRepository&MockObject $gameRepository;
-    private PlayerStatsRecalcService&MockObject $recalcService;
-    private Connection&MockObject $connection;
+    private GameRepository & MockObject $gameRepository;
+    private PlayerStatsRecalcService & MockObject $recalcService;
+    private Connection & MockObject $connection;
     private CommandTester $commandTester;
 
     protected function setUp(): void
@@ -179,7 +179,7 @@ class RecalcAllPlayerStatsCommandTest extends TestCase
 
     // ── Helper ───────────────────────────────────────────────────────────────
 
-    private function makeGame(int $id): Game&MockObject
+    private function makeGame(int $id): Game & MockObject
     {
         $game = $this->createMock(Game::class);
         $game->method('getId')->willReturn($id);

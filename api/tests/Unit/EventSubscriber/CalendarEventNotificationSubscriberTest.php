@@ -21,11 +21,11 @@ use Psr\Log\NullLogger;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarEventNotificationSubscriberTest extends TestCase
 {
-    private NotificationService&MockObject $notificationService;
-    private TeamMembershipService&MockObject $teamMembershipService;
-    private SystemSettingService&MockObject $settingService;
-    private UserRepository&MockObject $userRepository;
-    private CalendarNotificationMessageBuilder&MockObject $messageBuilder;
+    private NotificationService & MockObject $notificationService;
+    private TeamMembershipService & MockObject $teamMembershipService;
+    private SystemSettingService & MockObject $settingService;
+    private UserRepository & MockObject $userRepository;
+    private CalendarNotificationMessageBuilder & MockObject $messageBuilder;
     private CalendarEventNotificationSubscriber $subscriber;
 
     protected function setUp(): void
@@ -462,7 +462,7 @@ class CalendarEventNotificationSubscriberTest extends TestCase
     // ────────────────────────────── helpers ──────────────────────────────────
 
     /** @param string[] $roles */
-    private function makeUser(array $roles = ['ROLE_USER'], string $fullName = 'Test User'): User&MockObject
+    private function makeUser(array $roles = ['ROLE_USER'], string $fullName = 'Test User'): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getRoles')->willReturn($roles);
@@ -472,7 +472,7 @@ class CalendarEventNotificationSubscriberTest extends TestCase
         return $user;
     }
 
-    private function makeEvent(string $title = 'Test Event'): CalendarEvent&MockObject
+    private function makeEvent(string $title = 'Test Event'): CalendarEvent & MockObject
     {
         $event = $this->createMock(CalendarEvent::class);
         $event->method('getId')->willReturn(1);

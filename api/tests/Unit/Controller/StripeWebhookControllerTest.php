@@ -29,13 +29,13 @@ use Symfony\Component\Mailer\MailerInterface;
 final class StripeWebhookControllerTest extends TestCase
 {
     private const SECRET = 'whsec_webhook_test';
-    private EntityManagerInterface&MockObject $em;
+    private EntityManagerInterface & MockObject $em;
     /** @var EntityRepository<BillingWebhookEvent>&MockObject */
-    private EntityRepository&MockObject $events;
+    private EntityRepository & MockObject $events;
     /** @var EntityRepository<BillingSubscription>&MockObject */
-    private EntityRepository&MockObject $subscriptions;
+    private EntityRepository & MockObject $subscriptions;
     /** @var EntityRepository<BillingPayment>&MockObject */
-    private EntityRepository&MockObject $payments;
+    private EntityRepository & MockObject $payments;
     private BillingSubscription $subscription;
     /** @var list<object> */
     private array $persisted = [];

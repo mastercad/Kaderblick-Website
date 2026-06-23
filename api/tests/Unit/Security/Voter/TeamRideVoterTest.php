@@ -22,7 +22,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 #[AllowMockObjectsWithoutExpectations]
 class TeamRideVoterTest extends TestCase
 {
-    private TeamMembershipService&MockObject $membershipService;
+    private TeamMembershipService & MockObject $membershipService;
     private TeamRideVoter $voter;
 
     protected function setUp(): void
@@ -199,7 +199,7 @@ class TeamRideVoterTest extends TestCase
     /**
      * @param string[] $roles
      */
-    private function createUser(int $id, array $roles = ['ROLE_USER']): User&MockObject
+    private function createUser(int $id, array $roles = ['ROLE_USER']): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -208,12 +208,12 @@ class TeamRideVoterTest extends TestCase
         return $user;
     }
 
-    private function createCalendarEvent(): CalendarEvent&MockObject
+    private function createCalendarEvent(): CalendarEvent & MockObject
     {
         return $this->createMock(CalendarEvent::class);
     }
 
-    private function createRide(int $driverId, ?CalendarEvent $event): TeamRide&MockObject
+    private function createRide(int $driverId, ?CalendarEvent $event): TeamRide & MockObject
     {
         $driver = $this->createMock(User::class);
         $driver->method('getId')->willReturn($driverId);

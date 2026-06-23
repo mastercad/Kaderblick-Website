@@ -25,10 +25,10 @@ use Symfony\Bundle\SecurityBundle\Security;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarEventSerializerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private ParticipationRepository&MockObject $participationRepo;
-    private TeamMembershipService&MockObject $membershipService;
-    private Security&MockObject $security;
+    private EntityManagerInterface & MockObject $em;
+    private ParticipationRepository & MockObject $participationRepo;
+    private TeamMembershipService & MockObject $membershipService;
+    private Security & MockObject $security;
     private CalendarEventSerializer $serializer;
 
     protected function setUp(): void
