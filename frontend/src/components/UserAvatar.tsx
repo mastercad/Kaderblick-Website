@@ -23,9 +23,11 @@ interface UserProps {
   showLabel?: boolean; // Namen als Text neben dem Avatar anzeigen (default: true)
 }
 
-export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, fontSize = 16, svgFrame, svgFrameUrl, svgFrameOffsetY = 0, level, titleObj, showLabel = true }) => {
+export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, fontSize = 16, svgFrame, svgFrameUrl, svgFrameOffsetY, level, titleObj, showLabel = true }) => {
   // Icon size for react-icon inside Avatar (slightly smaller than avatarSize)
   const iconInnerSize = Math.round(avatarSize * 0.6);
+  const frameWidth = Math.round(avatarSize * 1.4 * 100) / 100;
+  const frameHeight = Math.round(avatarSize * 1.6 * 100) / 100;
   let avatarContent: React.ReactNode;
   // Determine title for tooltip (if available)
   const displayTitleRaw = titleObj?.hasTitle ? titleObj.displayTitle : undefined;
@@ -93,13 +95,21 @@ export const UserAvatar: React.FC<UserProps> = ({ icon, name, avatarSize = 48, f
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transform: svgFrameOffsetY !== 0 ? `translateY(${svgFrameOffsetY}px)` : `translateY(-11px)`,
+              // Preserve the historic default alignment, but scale it with the
+              // avatar. An explicitly supplied 0 must really mean no offset.
+              transform: `translateY(${svgFrameOffsetY ?? (-11 * avatarSize / 48)}px)`,
             }}>
               {frameUrl ? (
                 <img
                   src={frameUrl}
                   alt="Avatar Rahmen"
-                  style={{ width: '140%', height: '160%', objectFit: 'contain', pointerEvents: 'none' }}
+                  style={{
+                    width: frameWidth,
+                    height: frameHeight,
+                    maxWidth: 'none',
+                    objectFit: 'contain',
+                    pointerEvents: 'none',
+                  }}
                   draggable={false}
                 />
               ) : svgFrame}

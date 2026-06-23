@@ -258,7 +258,8 @@ class AdminSystemControllerTest extends TestCase
         $data = $this->decodeResponse($this->controller->cronStatus());
 
         $this->assertArrayHasKey('jobs', $data);
-        $this->assertCount(7, $data['jobs']);
+        $this->assertCount(8, $data['jobs']);
+        $this->assertContains('app:billing:process', array_column($data['jobs'], 'command'));
     }
 
     public function testCronStatusReturnsUnknownWhenNoHeartbeat(): void

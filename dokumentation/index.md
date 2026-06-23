@@ -75,6 +75,7 @@ Diese Dokumentation richtet sich an **alle Nutzer** von Kaderblick:
 | Kapitel | Thema | Beschreibung |
 |---------|-------|-------------|
 | [20 - Administration](20-admin.md) | Admin-Bereich | Nutzer-Verknüpfungen, Titel & XP, Feedback, Stammdaten, Größen-Guide |
+| [24 - Abrechnung](24-abrechnung.md) | Abos & Testphasen | Team-Abonnements, Rechnungen, Zahlungshinweise und kostenlose Zeiträume |
 
 ### Entwicklung & Qualitätssicherung
 

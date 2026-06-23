@@ -37,6 +37,7 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
   const { navigateWithProgress: navigate } = useNavigationProgress();
   const location = useLocation();
   const isScrolled = useScrollShrink(10);
+  const userAvatarSize = isScrolled ? 22 : 32;
 
   const isHome = location.pathname === '/' || location.pathname === '';
   const isPublicSeoRoute = isPublicSeoPath(location.pathname);
@@ -169,10 +170,10 @@ export default function NavAppBar({ onOpenAuth, onOpenDemo, onOpenNotifications,
                 <UserAvatar
                   icon={(user?.useGoogleAvatar && user?.googleAvatarUrl) ? user.googleAvatarUrl : (user?.avatarFile || undefined)}
                   name=""
-                  avatarSize={isScrolled ? 22 : 32}
+                  avatarSize={userAvatarSize}
                   fontSize={isScrolled ? 11 : 16}
                   titleObj={user?.title?.hasTitle ? user.title : undefined}
-                  svgFrameOffsetY={0}
+                  svgFrameOffsetY={-11 * userAvatarSize / 32}
                   level={user?.level?.level}
                 />
               </Badge>
