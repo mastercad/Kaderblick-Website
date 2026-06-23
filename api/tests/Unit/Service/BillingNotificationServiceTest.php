@@ -26,14 +26,14 @@ use Symfony\Component\Mime\RawMessage;
 #[AllowMockObjectsWithoutExpectations]
 final class BillingNotificationServiceTest extends TestCase
 {
-    private NotificationService&MockObject $notifications;
-    private UserRepository&MockObject $users;
-    private MailerInterface&MockObject $mailer;
-    private EntityManagerInterface&MockObject $em;
+    private NotificationService & MockObject $notifications;
+    private UserRepository & MockObject $users;
+    private MailerInterface & MockObject $mailer;
+    private EntityManagerInterface & MockObject $em;
     /** @var EntityRepository<FunctionaryTeamAssignment>&MockObject */
-    private EntityRepository&MockObject $teamAssignments;
+    private EntityRepository & MockObject $teamAssignments;
     /** @var EntityRepository<FunctionaryClubAssignment>&MockObject */
-    private EntityRepository&MockObject $clubAssignments;
+    private EntityRepository & MockObject $clubAssignments;
 
     protected function setUp(): void
     {

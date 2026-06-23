@@ -20,11 +20,11 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 final class BillingAccessServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
+    private EntityManagerInterface & MockObject $em;
     /** @var EntityRepository<BillingExemption>&MockObject */
-    private EntityRepository&MockObject $exemptions;
+    private EntityRepository & MockObject $exemptions;
     /** @var EntityRepository<BillingSubscriptionTeam>&MockObject */
-    private EntityRepository&MockObject $links;
+    private EntityRepository & MockObject $links;
     private BillingAccessService $service;
 
     protected function setUp(): void

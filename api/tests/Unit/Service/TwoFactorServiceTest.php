@@ -19,8 +19,8 @@ use Symfony\Component\Mime\Email;
 #[AllowMockObjectsWithoutExpectations]
 class TwoFactorServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private MailerInterface&MockObject $mailer;
+    private EntityManagerInterface & MockObject $em;
+    private MailerInterface & MockObject $mailer;
     private TwoFactorService $service;
 
     protected function setUp(): void

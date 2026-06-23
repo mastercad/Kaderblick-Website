@@ -18,8 +18,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class SyncSuspensionParticipationsCommandTest extends TestCase
 {
-    private PlayerSuspensionRepository&MockObject $suspensionRepository;
-    private SuspensionService&MockObject $suspensionService;
+    private PlayerSuspensionRepository & MockObject $suspensionRepository;
+    private SuspensionService & MockObject $suspensionService;
     private SyncSuspensionParticipationsCommand $command;
     private CommandTester $commandTester;
 

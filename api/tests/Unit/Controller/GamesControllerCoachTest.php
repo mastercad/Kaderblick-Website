@@ -39,7 +39,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class GamesControllerCoachTest extends TestCase
 {
     private GamesController $controller;
-    private EntityManagerInterface&MockObject $entityManager;
+    private EntityManagerInterface & MockObject $entityManager;
     private ContainerBuilder $container;
 
     protected function setUp(): void
@@ -241,7 +241,7 @@ class GamesControllerCoachTest extends TestCase
         return $method->invoke($this->controller, $teamIds, $today);
     }
 
-    private function makeTeam(): Team&MockObject
+    private function makeTeam(): Team & MockObject
     {
         $team = $this->createMock(Team::class);
         $team->method('getId')->willReturn(10);
@@ -250,7 +250,7 @@ class GamesControllerCoachTest extends TestCase
         return $team;
     }
 
-    private function makeGame(Team $team): Game&MockObject
+    private function makeGame(Team $team): Game & MockObject
     {
         $calendarEvent = $this->createMock(CalendarEvent::class);
         $calendarEvent->method('getId')->willReturn(1);

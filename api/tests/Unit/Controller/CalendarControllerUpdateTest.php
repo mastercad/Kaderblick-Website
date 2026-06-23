@@ -34,11 +34,11 @@ use Symfony\Component\Validator\ConstraintViolationList;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarControllerUpdateTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private CalendarEventService&MockObject $calendarEventService;
-    private TokenStorageInterface&MockObject $tokenStorage;
-    private User&MockObject $user;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private EntityManagerInterface & MockObject $entityManager;
+    private CalendarEventService & MockObject $calendarEventService;
+    private TokenStorageInterface & MockObject $tokenStorage;
+    private User & MockObject $user;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     // ─── setUp ────────────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ class CalendarControllerUpdateTest extends TestCase
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /** @return EntityRepository<object>&MockObject */
-    private function buildDefaultRepo(): EntityRepository&MockObject
+    private function buildDefaultRepo(): EntityRepository & MockObject
     {
         $defaultQuery = $this->createMock(Query::class);
         $defaultQuery->method('getResult')->willReturn([]);
@@ -106,7 +106,7 @@ class CalendarControllerUpdateTest extends TestCase
     }
 
     /** @param CalendarEvent[]|null $seriesEvents */
-    private function buildMethodEM(?array $seriesEvents = null, string $seriesId = 'uuid-test'): EntityManagerInterface&MockObject
+    private function buildMethodEM(?array $seriesEvents = null, string $seriesId = 'uuid-test'): EntityManagerInterface & MockObject
     {
         $em = $this->createMock(EntityManagerInterface::class);
 

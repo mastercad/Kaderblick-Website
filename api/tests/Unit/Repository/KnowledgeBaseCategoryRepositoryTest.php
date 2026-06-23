@@ -24,9 +24,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class KnowledgeBaseCategoryRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private QueryBuilder&MockObject $qb;
-    private Query&MockObject $query;
+    private EntityManagerInterface & MockObject $em;
+    private QueryBuilder & MockObject $qb;
+    private Query & MockObject $query;
     private KnowledgeBaseCategoryRepository $repository;
 
     /** @var string[] Alle WHERE/andWhere-Bedingungen die übergeben wurden */

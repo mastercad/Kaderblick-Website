@@ -21,10 +21,10 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class AppHealthMonitorCommandTest extends TestCase
 {
-    private AdminAlertService&MockObject $alertService;
-    private HeartbeatService&MockObject $heartbeatService;
-    private Connection&MockObject $connection;
-    private LoggerInterface&MockObject $cronLogger;
+    private AdminAlertService & MockObject $alertService;
+    private HeartbeatService & MockObject $heartbeatService;
+    private Connection & MockObject $connection;
+    private LoggerInterface & MockObject $cronLogger;
     private CommandTester $commandTester;
 
     protected function setUp(): void

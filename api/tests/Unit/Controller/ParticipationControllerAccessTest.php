@@ -33,10 +33,10 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class ParticipationControllerAccessTest extends TestCase
 {
     private ParticipationController $controller;
-    private TeamMembershipService&MockObject $membershipService;
-    private ParticipationRepository&MockObject $participationRepo;
-    private ParticipationStatusRepository&MockObject $participationStatusRepo;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private TeamMembershipService & MockObject $membershipService;
+    private ParticipationRepository & MockObject $participationRepo;
+    private ParticipationStatusRepository & MockObject $participationStatusRepo;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     protected function setUp(): void
     {
@@ -179,7 +179,7 @@ class ParticipationControllerAccessTest extends TestCase
     /**
      * @param string[] $roles
      */
-    private function makeUser(array $roles): User&MockObject
+    private function makeUser(array $roles): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(42);
@@ -188,7 +188,7 @@ class ParticipationControllerAccessTest extends TestCase
         return $user;
     }
 
-    private function makeCalendarEvent(): CalendarEvent&MockObject
+    private function makeCalendarEvent(): CalendarEvent & MockObject
     {
         $event = $this->createMock(CalendarEvent::class);
         $event->method('getId')->willReturn(1);

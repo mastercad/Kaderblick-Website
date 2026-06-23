@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class AwardTitlesHandlerTest extends TestCase
 {
-    private TitleCalculationService&MockObject $titleCalculationService;
+    private TitleCalculationService & MockObject $titleCalculationService;
     private AwardTitlesHandler $handler;
 
     protected function setUp(): void

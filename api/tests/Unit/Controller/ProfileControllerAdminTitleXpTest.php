@@ -62,7 +62,7 @@ class ProfileControllerAdminTitleXpTest extends TestCase
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private function makeCupMock(int $id): Cup&MockObject
+    private function makeCupMock(int $id): Cup & MockObject
     {
         $cup = $this->getMockBuilder(Cup::class)
             ->onlyMethods(['getId'])
@@ -72,7 +72,7 @@ class ProfileControllerAdminTitleXpTest extends TestCase
         return $cup;
     }
 
-    private function makePlayerMock(int $id, string $firstName, string $lastName, string $email): Player&MockObject
+    private function makePlayerMock(int $id, string $firstName, string $lastName, string $email): Player & MockObject
     {
         $player = $this->getMockBuilder(Player::class)
             ->onlyMethods(['getId', 'getFirstName', 'getLastName', 'getEmail'])
@@ -85,7 +85,7 @@ class ProfileControllerAdminTitleXpTest extends TestCase
         return $player;
     }
 
-    private function makeCupPlayerTitle(string $cat, string $rank, Cup $cup, Player $player): PlayerTitle&MockObject
+    private function makeCupPlayerTitle(string $cat, string $rank, Cup $cup, Player $player): PlayerTitle & MockObject
     {
         $pt = $this->getMockBuilder(PlayerTitle::class)
             ->onlyMethods(['getTitleCategory', 'getTitleScope', 'getTitleRank', 'getTeam', 'getLeague', 'getCup', 'getPlayer'])
@@ -107,7 +107,7 @@ class ProfileControllerAdminTitleXpTest extends TestCase
      *  - createQueryBuilder() (users query) → returns empty array from getArrayResult()
      */
     /** @param array<int, PlayerTitle> $activeTitles */
-    private function wireEntityManager(EntityManagerInterface&MockObject $em, array $activeTitles): void
+    private function wireEntityManager(EntityManagerInterface & MockObject $em, array $activeTitles): void
     {
         // Query mock for the activeTitles QB (->getQuery()->getResult())
         $ptQueryMock = $this->getMockBuilder(Query::class)

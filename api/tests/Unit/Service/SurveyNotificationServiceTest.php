@@ -23,10 +23,10 @@ use ReflectionClass;
 class SurveyNotificationServiceTest extends TestCase
 {
     private SurveyNotificationService $service;
-    private EntityManagerInterface&MockObject $entityManager;
-    private NotificationService&MockObject $notificationService;
-    private UserRepository&MockObject $userRepository;
-    private LoggerInterface&MockObject $logger;
+    private EntityManagerInterface & MockObject $entityManager;
+    private NotificationService & MockObject $notificationService;
+    private UserRepository & MockObject $userRepository;
+    private LoggerInterface & MockObject $logger;
 
     protected function setUp(): void
     {

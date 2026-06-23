@@ -26,7 +26,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class SurveyResponseControllerXpTest extends TestCase
 {
     private SurveyResponseController $controller;
-    private EventDispatcherInterface&MockObject $dispatcher;
+    private EventDispatcherInterface & MockObject $dispatcher;
 
     protected function setUp(): void
     {

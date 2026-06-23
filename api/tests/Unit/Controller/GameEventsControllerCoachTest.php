@@ -347,7 +347,7 @@ class GameEventsControllerCoachTest extends TestCase
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
-    private function makeGame(): Game&MockObject
+    private function makeGame(): Game & MockObject
     {
         $calendarEvent = $this->createMock(CalendarEvent::class);
         $calendarEvent->method('getStartDate')->willReturn(new DateTime('2025-01-01 15:00:00'));

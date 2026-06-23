@@ -32,10 +32,10 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarEventReadControllerUpcomingTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private CalendarEventSerializer&MockObject $serializer;
-    private SystemSettingService&MockObject $systemSettingService;
-    private CalendarEventRepository&MockObject $calendarEventRepo;
+    private EntityManagerInterface & MockObject $em;
+    private CalendarEventSerializer & MockObject $serializer;
+    private SystemSettingService & MockObject $systemSettingService;
+    private CalendarEventRepository & MockObject $calendarEventRepo;
     private CalendarEventReadController $controller;
 
     protected function setUp(): void

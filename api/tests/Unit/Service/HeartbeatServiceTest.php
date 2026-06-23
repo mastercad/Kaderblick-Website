@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class HeartbeatServiceTest extends TestCase
 {
-    private CronHeartbeatRepository&MockObject $repository;
-    private EntityManagerInterface&MockObject $em;
+    private CronHeartbeatRepository & MockObject $repository;
+    private EntityManagerInterface & MockObject $em;
     private HeartbeatService $service;
 
     protected function setUp(): void

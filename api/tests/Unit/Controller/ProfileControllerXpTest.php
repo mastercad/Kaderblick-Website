@@ -37,8 +37,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class ProfileControllerXpTest extends TestCase
 {
     private ProfileController $controller;
-    private EventDispatcherInterface&MockObject $dispatcher;
-    private ValidatorInterface&MockObject $validator;
+    private EventDispatcherInterface & MockObject $dispatcher;
+    private ValidatorInterface & MockObject $validator;
 
     protected function setUp(): void
     {
@@ -153,7 +153,7 @@ class ProfileControllerXpTest extends TestCase
      *
      * @param bool $complete when true, all "completeness" fields return non-null/non-empty values
      */
-    private function makeUser(bool $complete): User&MockObject
+    private function makeUser(bool $complete): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(1);

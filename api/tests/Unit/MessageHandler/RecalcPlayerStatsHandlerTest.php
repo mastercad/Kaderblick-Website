@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class RecalcPlayerStatsHandlerTest extends TestCase
 {
-    private GameRepository&MockObject $gameRepository;
-    private PlayerStatsRecalcService&MockObject $recalcService;
+    private GameRepository & MockObject $gameRepository;
+    private PlayerStatsRecalcService & MockObject $recalcService;
     private RecalcPlayerStatsHandler $handler;
 
     protected function setUp(): void

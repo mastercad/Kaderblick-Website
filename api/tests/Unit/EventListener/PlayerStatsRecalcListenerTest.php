@@ -42,9 +42,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PlayerStatsRecalcListenerTest extends TestCase
 {
-    private MessageBusInterface&MockObject $messageBus;
-    private EntityManagerInterface&MockObject $em;
-    private UnitOfWork&MockObject $uow;
+    private MessageBusInterface & MockObject $messageBus;
+    private EntityManagerInterface & MockObject $em;
+    private UnitOfWork & MockObject $uow;
     private PlayerStatsRecalcListener $listener;
 
     protected function setUp(): void

@@ -18,11 +18,11 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class XPEventProcessorTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private XPService&MockObject $xpService;
+    private EntityManagerInterface & MockObject $entityManager;
+    private XPService & MockObject $xpService;
     /** @phpstan-var EntityRepository<UserXpEvent>&MockObject */
-    private EntityRepository&MockObject $repository;
-    private Connection&MockObject $connection;
+    private EntityRepository & MockObject $repository;
+    private Connection & MockObject $connection;
 
     protected function setUp(): void
     {

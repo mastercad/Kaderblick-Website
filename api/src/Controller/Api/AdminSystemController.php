@@ -592,7 +592,7 @@ class AdminSystemController extends AbstractController
      * GET /api/admin/system/backup/download/{filename}
      */
     #[Route('/backup/download/{filename}', name: 'api_admin_system_backup_download', methods: ['GET'])]
-    public function downloadBackup(string $filename): StreamedResponse|JsonResponse
+    public function downloadBackup(string $filename): StreamedResponse | JsonResponse
     {
         // Verhindere Path-Traversal-Angriffe
         if (!preg_match('/^backup_[\w.-]+\.sql$/', $filename)) {

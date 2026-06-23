@@ -23,7 +23,7 @@ class SecurityControllerTest extends WebTestCase
         restore_exception_handler();
     }
 
-    private function mockSecurityService(bool $lockResult): LoginSecurityService&MockObject
+    private function mockSecurityService(bool $lockResult): LoginSecurityService & MockObject
     {
         /** @var LoginSecurityService&MockObject $mock */
         $mock = $this->createMock(LoginSecurityService::class);

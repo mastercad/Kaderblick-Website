@@ -21,11 +21,11 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class SendUnsentNotificationsCommandTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private NotificationRepository&MockObject $repo;
-    private PushNotificationService&MockObject $pushService;
-    private LoggerInterface&MockObject $logger;
-    private HeartbeatService&MockObject $heartbeatService;
+    private EntityManagerInterface & MockObject $em;
+    private NotificationRepository & MockObject $repo;
+    private PushNotificationService & MockObject $pushService;
+    private LoggerInterface & MockObject $logger;
+    private HeartbeatService & MockObject $heartbeatService;
     private CommandTester $commandTester;
 
     protected function setUp(): void
@@ -180,7 +180,7 @@ class SendUnsentNotificationsCommandTest extends TestCase
     private static int $nextId = 1;
 
     /** @param array<string, mixed>|null $data */
-    private function createNotification(User&MockObject $user, string $title, string $body, ?array $data): Notification
+    private function createNotification(User & MockObject $user, string $title, string $body, ?array $data): Notification
     {
         $notification = new Notification();
         $notification->setUser($user);

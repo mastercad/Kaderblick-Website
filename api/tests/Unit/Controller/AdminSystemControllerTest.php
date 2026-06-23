@@ -23,10 +23,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 #[AllowMockObjectsWithoutExpectations]
 class AdminSystemControllerTest extends TestCase
 {
-    private Connection&MockObject $connection;
-    private GameRepository&MockObject $gameRepository;
-    private PlayerStatsRecalcService&MockObject $recalcService;
-    private HeartbeatService&MockObject $heartbeatService;
+    private Connection & MockObject $connection;
+    private GameRepository & MockObject $gameRepository;
+    private PlayerStatsRecalcService & MockObject $recalcService;
+    private HeartbeatService & MockObject $heartbeatService;
     private string $projectDir;
     private AdminSystemController $controller;
 
@@ -623,12 +623,12 @@ class AdminSystemControllerTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function decodeResponse(\Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\Response $response): array
+    private function decodeResponse(\Symfony\Component\HttpFoundation\JsonResponse | \Symfony\Component\HttpFoundation\Response $response): array
     {
         return json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
     }
 
-    private function makeGame(int $id): Game&MockObject
+    private function makeGame(int $id): Game & MockObject
     {
         $game = $this->createMock(Game::class);
         $game->method('getId')->willReturn($id);

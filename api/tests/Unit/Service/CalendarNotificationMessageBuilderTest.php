@@ -899,7 +899,7 @@ class CalendarNotificationMessageBuilderTest extends TestCase
     // helpers
     // ══════════════════════════════════════════════════════════════════════════
 
-    private function makeUser(): \App\Entity\User&Stub
+    private function makeUser(): \App\Entity\User & Stub
     {
         $user = $this->createStub(\App\Entity\User::class);
         $user->method('getFullName')->willReturn('Test User');
@@ -908,7 +908,7 @@ class CalendarNotificationMessageBuilderTest extends TestCase
         return $user;
     }
 
-    private function makeEvent(string $title = 'Test Event'): CalendarEvent&Stub
+    private function makeEvent(string $title = 'Test Event'): CalendarEvent & Stub
     {
         $event = $this->createStub(CalendarEvent::class);
         $event->method('getId')->willReturn(1);
@@ -917,7 +917,7 @@ class CalendarNotificationMessageBuilderTest extends TestCase
         return $event;
     }
 
-    private function makeEventWithLocation(string $title, string $locationName): CalendarEvent&Stub
+    private function makeEventWithLocation(string $title, string $locationName): CalendarEvent & Stub
     {
         $location = $this->createStub(Location::class);
         $location->method('getName')->willReturn($locationName);
@@ -928,7 +928,7 @@ class CalendarNotificationMessageBuilderTest extends TestCase
         return $event;
     }
 
-    private function makeEventWithGame(string $title, string $homeTeamName, string $awayTeamName): CalendarEvent&Stub
+    private function makeEventWithGame(string $title, string $homeTeamName, string $awayTeamName): CalendarEvent & Stub
     {
         $homeTeam = $this->createStub(Team::class);
         $homeTeam->method('getName')->willReturn($homeTeamName);

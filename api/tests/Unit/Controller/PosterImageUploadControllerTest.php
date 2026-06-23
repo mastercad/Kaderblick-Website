@@ -24,7 +24,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PosterImageUploadControllerTest extends TestCase
 {
-    private PosterTemplateRepository&MockObject $repository;
+    private PosterTemplateRepository & MockObject $repository;
     private PosterImageUploadController $controller;
     private string $uploadDir;
     private string $projectDir;

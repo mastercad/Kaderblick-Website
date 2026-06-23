@@ -28,13 +28,13 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarControllerCancelTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private NotificationService&MockObject $notificationService;
+    private EntityManagerInterface & MockObject $entityManager;
+    private NotificationService & MockObject $notificationService;
     private CalendarEventStatusController $controller;
-    private User&MockObject $user;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private ParticipationRepository&MockObject $participationRepo;
-    private TeamMembershipService&MockObject $teamMembershipService;
+    private User & MockObject $user;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private ParticipationRepository & MockObject $participationRepo;
+    private TeamMembershipService & MockObject $teamMembershipService;
 
     protected function setUp(): void
     {

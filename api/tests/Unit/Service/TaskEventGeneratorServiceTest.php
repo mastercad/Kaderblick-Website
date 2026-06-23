@@ -29,10 +29,10 @@ use ReflectionClass;
 #[AllowMockObjectsWithoutExpectations]
 class TaskEventGeneratorServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private CalendarEventTypeRepository&MockObject $calendarEventTypeRepository;
-    private CalendarEventRepository&MockObject $calendarEventRepository;
-    private UserRelationRepository&MockObject $userRelationRepository;
+    private EntityManagerInterface & MockObject $entityManager;
+    private CalendarEventTypeRepository & MockObject $calendarEventTypeRepository;
+    private CalendarEventRepository & MockObject $calendarEventRepository;
+    private UserRelationRepository & MockObject $userRelationRepository;
     private TaskEventGeneratorService $service;
 
     protected function setUp(): void
