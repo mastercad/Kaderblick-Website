@@ -39,6 +39,7 @@ final class BillingController extends AbstractController
             );
             $subscriptions[] = $this->subscriptionArray($subscription, $payments);
         }
+
         return $this->json([
             'stripeConfigured' => $this->billing->isStripeConfigured(),
             'unitAmount' => 1000,
@@ -54,6 +55,7 @@ final class BillingController extends AbstractController
         try {
             $data = $request->toArray();
             $ids = array_values(array_map('intval', is_array($data['teamIds'] ?? null) ? $data['teamIds'] : []));
+
             return $this->json(['url' => $this->billing->createCheckout($this->requireUser(), $ids)]);
         } catch (RuntimeException $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -76,6 +78,7 @@ final class BillingController extends AbstractController
 
     /**
      * @param list<array<string, mixed>> $payments
+     *
      * @return array<string, mixed>
      */
     private function subscriptionArray(BillingSubscription $subscription, array $payments = []): array
@@ -102,6 +105,7 @@ final class BillingController extends AbstractController
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
         }
+
         return $user;
     }
 }

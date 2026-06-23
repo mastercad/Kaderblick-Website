@@ -13,11 +13,13 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\BillingNotificationService;
 use App\Service\NotificationService;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\RawMessage;
 
@@ -65,6 +67,7 @@ final class BillingNotificationServiceTest extends TestCase
                 self::callback(function (array $recipients): bool {
                     $ids = array_map(static fn (User $user) => $user->getId(), $recipients);
                     sort($ids);
+
                     return [1, 2, 3] === $ids;
                 }),
                 'billing',
@@ -92,7 +95,7 @@ final class BillingNotificationServiceTest extends TestCase
         $team = (new Team())->setName('U15');
         $subscription = (new BillingSubscription($payer))->addTeam($team);
         $assignment = $this->assignment($expired, $team);
-        $assignment->setEndDate(new \DateTimeImmutable('yesterday'));
+        $assignment->setEndDate(new DateTimeImmutable('yesterday'));
         $this->teamAssignments->method('findBy')->willReturn([$assignment]);
         $this->users->method('findSuperAdmins')->willReturn([]);
 
@@ -122,14 +125,16 @@ final class BillingNotificationServiceTest extends TestCase
         $assignment->setUser($user);
         $assignment->setTeam($team);
         $assignment->setFunctionaryTeamAssignmentType($type);
+
         return $assignment;
     }
 
     private function user(int $id, string $firstName, string $lastName, string $email): User
     {
         $user = (new User())->setFirstName($firstName)->setLastName($lastName)->setEmail($email);
-        $property = new \ReflectionProperty(User::class, 'id');
+        $property = new ReflectionProperty(User::class, 'id');
         $property->setValue($user, $id);
+
         return $user;
     }
 }

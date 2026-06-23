@@ -14,6 +14,7 @@ use App\Repository\UserRepository;
 use App\Service\BillingNotificationService;
 use App\Service\NotificationService;
 use App\Service\StripeBillingClient;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -66,7 +67,7 @@ final class StripeWebhookControllerTest extends TestCase
 
     public function testPaidInvoiceActivatesSubscriptionAndClearsMissedCycles(): void
     {
-        $this->subscription->setStatus(BillingSubscription::STATUS_PAST_DUE)->setMissedBillingCycles(2)->setUnpaidSince(new \DateTimeImmutable());
+        $this->subscription->setStatus(BillingSubscription::STATUS_PAST_DUE)->setMissedBillingCycles(2)->setUnpaidSince(new DateTimeImmutable());
         $this->events->method('findOneBy')->willReturn(null);
         $this->subscriptions->method('findOneBy')->willReturn($this->subscription);
         $this->payments->method('findOneBy')->willReturn(null);
@@ -142,6 +143,7 @@ final class StripeWebhookControllerTest extends TestCase
         );
         $controller = new StripeWebhookController($this->em, new StripeBillingClient(new MockHttpClient()), $billingNotifications);
         $controller->setContainer(new ContainerBuilder());
+
         return $controller;
     }
 
@@ -151,6 +153,7 @@ final class StripeWebhookControllerTest extends TestCase
         $payload = json_encode($event, JSON_THROW_ON_ERROR);
         $timestamp = time();
         $signature = hash_hmac('sha256', $timestamp . '.' . $payload, self::SECRET);
+
         return Request::create('/api/billing/webhook/stripe', 'POST', server: ['HTTP_STRIPE_SIGNATURE' => sprintf('t=%d,v1=%s', $timestamp, $signature)], content: $payload);
     }
 }

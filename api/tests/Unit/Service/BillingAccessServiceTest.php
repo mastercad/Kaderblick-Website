@@ -10,6 +10,7 @@ use App\Entity\BillingSubscriptionTeam;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Service\BillingAccessService;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -67,7 +68,7 @@ final class BillingAccessServiceTest extends TestCase
         $team = $this->team();
         $subscription = new BillingSubscription($this->user());
         $subscription->setStatus(BillingSubscription::STATUS_ACTIVE)
-            ->setCurrentPeriodEnd(new \DateTimeImmutable('2026-07-23 12:00:00+00:00'));
+            ->setCurrentPeriodEnd(new DateTimeImmutable('2026-07-23 12:00:00+00:00'));
         $this->exemptions->method('findBy')->willReturn([]);
         $this->links->method('findOneBy')->willReturn(new BillingSubscriptionTeam($subscription, $team));
 
@@ -98,6 +99,7 @@ final class BillingAccessServiceTest extends TestCase
     {
         return (new Team())->setName('U17');
     }
+
     private function user(): User
     {
         return (new User())->setEmail('kasse@example.test')->setFirstName('Kim')->setLastName('Kasse');

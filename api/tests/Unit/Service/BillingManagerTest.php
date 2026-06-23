@@ -20,6 +20,7 @@ use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use RuntimeException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -60,7 +61,7 @@ final class BillingManagerTest extends TestCase
         });
         $this->user = (new User())->setEmail('kasse@example.test')->setFirstName('Kim')->setLastName('Kasse');
         $this->team = (new Team())->setName('U17');
-        $id = new \ReflectionProperty(Team::class, 'id');
+        $id = new ReflectionProperty(Team::class, 'id');
         $id->setValue($this->team, 17);
 
         $type = new FunctionaryTeamAssignmentType();
@@ -108,6 +109,7 @@ final class BillingManagerTest extends TestCase
             self::assertStringContainsString('line_items%5B0%5D%5Bquantity%5D=1', (string) $options['body']);
             self::assertStringContainsString('unit_amount%5D=1000', (string) $options['body']);
             self::assertStringContainsString('interval%5D=month', (string) $options['body']);
+
             return new MockResponse('{"url":"https://pay.example.test/session"}');
         });
 
@@ -129,6 +131,7 @@ final class BillingManagerTest extends TestCase
     private function manager(MockHttpClient $http): BillingManager
     {
         $access = new BillingAccessService($this->em);
+
         return new BillingManager($this->em, $access, new StripeBillingClient($http), 'https://app.example.test');
     }
 }

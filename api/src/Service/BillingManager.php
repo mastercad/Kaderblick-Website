@@ -11,6 +11,7 @@ use App\Entity\FunctionaryTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use RuntimeException;
 use Throwable;
@@ -155,6 +156,7 @@ final class BillingManager
         } catch (Throwable $e) {
             throw new RuntimeException('Die Abonnementverwaltung konnte nicht geöffnet werden. Bitte versuche es später erneut.', 0, $e);
         }
+
         return (string) ($session['url'] ?? throw new RuntimeException('Die Abonnementverwaltung konnte nicht geöffnet werden.'));
     }
 
@@ -189,9 +191,10 @@ final class BillingManager
         $this->em->flush();
     }
 
-    private function assignmentIsCurrent(?\DateTimeInterface $start, ?\DateTimeInterface $end): bool
+    private function assignmentIsCurrent(?DateTimeInterface $start, ?DateTimeInterface $end): bool
     {
         $today = new DateTimeImmutable('today');
+
         return (null === $start || $start <= $today) && (null === $end || $end >= $today);
     }
 }

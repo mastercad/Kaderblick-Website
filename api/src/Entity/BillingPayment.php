@@ -56,31 +56,41 @@ class BillingPayment
     public function setStatus(string $value): self
     {
         $this->status = $value;
+
         return $this;
     }
+
     public function getSubscription(): BillingSubscription
     {
         return $this->subscription;
     }
+
     public function getProviderInvoiceId(): string
     {
         return $this->providerInvoiceId;
     }
+
     public function setInvoiceUrl(?string $value): self
     {
         $this->invoiceUrl = $value;
+
         return $this;
     }
+
     public function setInvoicePdfUrl(?string $value): self
     {
         $this->invoicePdfUrl = $value;
+
         return $this;
     }
+
     public function setPaidAt(?DateTimeImmutable $value): self
     {
         $this->paidAt = $value;
+
         return $this;
     }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {

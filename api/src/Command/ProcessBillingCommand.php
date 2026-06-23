@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Entity\BillingSubscription;
 use App\Entity\BillingExemption;
+use App\Entity\BillingSubscription;
 use App\Service\BillingManager;
 use App\Service\BillingNotificationService;
 use DateTimeImmutable;
@@ -66,6 +66,7 @@ final class ProcessBillingCommand extends AbstractCronCommand
         }
         $this->em->flush();
         $output->writeln(sprintf('%d Abrechnungsstatus aktualisiert.', $changed));
+
         return self::SUCCESS;
     }
 }

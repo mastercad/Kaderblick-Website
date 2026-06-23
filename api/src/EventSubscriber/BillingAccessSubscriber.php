@@ -9,12 +9,12 @@ use App\Entity\User;
 use App\Service\BillingAccessService;
 use App\Service\BillingManager;
 use App\Service\CoachTeamPlayerService;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Bundle\SecurityBundle\Security;
-use Doctrine\ORM\EntityManagerInterface;
 
 #[AsEventListener(event: KernelEvents::CONTROLLER, priority: 5)]
 final class BillingAccessSubscriber
