@@ -20,24 +20,29 @@ class BillingWebhookEvent
     private string $type;
     #[ORM\Column(type: 'datetime_immutable')]
     private DateTimeImmutable $processedAt;
+
     public function __construct(string $eventId, string $type)
     {
         $this->providerEventId = $eventId;
         $this->type = $type;
         $this->processedAt = new DateTimeImmutable();
     }
+
     public function getId(): ?int
     {
         return $this->id;
     }
+
     public function getProviderEventId(): string
     {
         return $this->providerEventId;
     }
+
     public function getType(): string
     {
         return $this->type;
     }
+
     public function getProcessedAt(): DateTimeImmutable
     {
         return $this->processedAt;

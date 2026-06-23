@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\BillingSubscription;
-use App\Repository\UserRepository;
-use App\Entity\FunctionaryTeamAssignment;
 use App\Entity\FunctionaryClubAssignment;
+use App\Entity\FunctionaryTeamAssignment;
+use App\Repository\UserRepository;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -70,9 +72,10 @@ final class BillingNotificationService
         }
     }
 
-    private function isCurrent(?\DateTimeInterface $start, ?\DateTimeInterface $end): bool
+    private function isCurrent(?DateTimeInterface $start, ?DateTimeInterface $end): bool
     {
-        $today = new \DateTimeImmutable('today');
+        $today = new DateTimeImmutable('today');
+
         return (null === $start || $start <= $today) && (null === $end || $end >= $today);
     }
 }

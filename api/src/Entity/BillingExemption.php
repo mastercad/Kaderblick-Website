@@ -64,79 +64,103 @@ class BillingExemption
     {
         return $this->id;
     }
+
     public function getScope(): string
     {
         return $this->scope;
     }
+
     public function getClub(): ?Club
     {
         return $this->club;
     }
+
     public function setClub(?Club $value): self
     {
         $this->club = $value;
+
         return $this;
     }
+
     public function getTeam(): ?Team
     {
         return $this->team;
     }
+
     public function setTeam(?Team $value): self
     {
         $this->team = $value;
+
         return $this;
     }
+
     public function getStartsAt(): ?DateTimeImmutable
     {
         return $this->startsAt;
     }
+
     public function setStartsAt(?DateTimeImmutable $value): self
     {
         $this->startsAt = $value;
+
         return $this;
     }
+
     public function getEndsAt(): ?DateTimeImmutable
     {
         return $this->endsAt;
     }
+
     public function setEndsAt(?DateTimeImmutable $value): self
     {
         $this->endsAt = $value;
+
         return $this;
     }
+
     public function getReason(): string
     {
         return $this->reason;
     }
+
     public function getCreatedBy(): ?User
     {
         return $this->createdBy;
     }
+
     public function isActive(): bool
     {
         return $this->active;
     }
+
     public function setActive(bool $value): self
     {
         $this->active = $value;
         if ($value) {
             $this->endedAt = null;
-        } return $this;
+        }
+
+return $this;
     }
+
     public function getEndedAt(): ?DateTimeImmutable
     {
         return $this->endedAt;
     }
+
     public function end(?DateTimeImmutable $at = null): self
     {
         $this->active = false;
         $this->endedAt = $at ?? new DateTimeImmutable();
+
         return $this;
     }
+
     public function appliesAt(DateTimeImmutable $at): bool
     {
         return $this->active && (null === $this->startsAt || $this->startsAt <= $at) && (null === $this->endsAt || $this->endsAt > $at);
     }
+
     /** @return array<string, mixed> */
     public function toArray(): array
     {

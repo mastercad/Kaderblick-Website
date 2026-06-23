@@ -11,6 +11,7 @@ use App\Service\BillingNotificationService;
 use App\Service\StripeBillingClient;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use JsonException;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,7 +29,7 @@ final class StripeWebhookController extends AbstractController
     {
         try {
             $event = $this->stripe->verifyWebhook($request->getContent(), (string) $request->headers->get('Stripe-Signature'));
-        } catch (RuntimeException | \JsonException $e) {
+        } catch (RuntimeException|JsonException $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
         $eventId = (string) ($event['id'] ?? '');
@@ -116,10 +117,12 @@ final class StripeWebhookController extends AbstractController
     {
         return ctype_digit($id) ? $this->em->getRepository(BillingSubscription::class)->find((int) $id) : null;
     }
+
     private function date(mixed $timestamp): ?DateTimeImmutable
     {
         return is_numeric($timestamp) ? (new DateTimeImmutable())->setTimestamp((int) $timestamp) : null;
     }
+
     private function mapStatus(string $status): string
     {
         return match ($status) {

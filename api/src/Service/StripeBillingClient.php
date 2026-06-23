@@ -22,6 +22,7 @@ final class StripeBillingClient
 
     /**
      * @param array<string, scalar|array<mixed>|null> $parameters
+     *
      * @return array<string, mixed>
      */
     public function post(string $path, array $parameters): array
@@ -72,6 +73,7 @@ final class StripeBillingClient
     {
         return (string) ($_ENV['STRIPE_SECRET_KEY'] ?? '');
     }
+
     private function webhookSecret(): string
     {
         return (string) ($_ENV['STRIPE_WEBHOOK_SECRET'] ?? '');

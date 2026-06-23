@@ -33,10 +33,12 @@ class BillingSubscriptionTeam
     {
         return $this->subscription;
     }
+
     public function getTeam(): Team
     {
         return $this->team;
     }
+
     public function getId(): ?int
     {
         return $this->id;

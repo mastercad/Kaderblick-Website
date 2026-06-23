@@ -89,107 +89,140 @@ class BillingSubscription
     {
         return $this->id;
     }
+
     public function getPayer(): User
     {
         return $this->payer;
     }
+
     public function getProvider(): string
     {
         return $this->provider;
     }
+
     public function getProviderCustomerId(): ?string
     {
         return $this->providerCustomerId;
     }
+
     public function setProviderCustomerId(?string $value): self
     {
         $this->providerCustomerId = $value;
+
         return $this->touch();
     }
+
     public function getProviderSubscriptionId(): ?string
     {
         return $this->providerSubscriptionId;
     }
+
     public function setProviderSubscriptionId(?string $value): self
     {
         $this->providerSubscriptionId = $value;
+
         return $this->touch();
     }
+
     public function getProviderSubscriptionItemId(): ?string
     {
         return $this->providerSubscriptionItemId;
     }
+
     public function setProviderSubscriptionItemId(?string $value): self
     {
         $this->providerSubscriptionItemId = $value;
+
         return $this->touch();
     }
+
     public function getStatus(): string
     {
         return $this->status;
     }
+
     public function setStatus(string $value): self
     {
         $this->status = $value;
+
         return $this->touch();
     }
+
     public function getUnitAmount(): int
     {
         return $this->unitAmount;
     }
+
     public function getCurrency(): string
     {
         return $this->currency;
     }
+
     public function getCurrentPeriodStart(): ?DateTimeImmutable
     {
         return $this->currentPeriodStart;
     }
+
     public function setCurrentPeriodStart(?DateTimeImmutable $value): self
     {
         $this->currentPeriodStart = $value;
+
         return $this->touch();
     }
+
     public function getCurrentPeriodEnd(): ?DateTimeImmutable
     {
         return $this->currentPeriodEnd;
     }
+
     public function setCurrentPeriodEnd(?DateTimeImmutable $value): self
     {
         $this->currentPeriodEnd = $value;
+
         return $this->touch();
     }
+
     public function getUnpaidSince(): ?DateTimeImmutable
     {
         return $this->unpaidSince;
     }
+
     public function setUnpaidSince(?DateTimeImmutable $value): self
     {
         $this->unpaidSince = $value;
+
         return $this->touch();
     }
+
     public function getMissedBillingCycles(): int
     {
         return $this->missedBillingCycles;
     }
+
     public function setMissedBillingCycles(int $value): self
     {
         $this->missedBillingCycles = max(0, $value);
+
         return $this->touch();
     }
+
     public function isCollectionPausedByTrial(): bool
     {
         return $this->collectionPausedByTrial;
     }
+
     public function setCollectionPausedByTrial(bool $value): self
     {
         $this->collectionPausedByTrial = $value;
+
         return $this->touch();
     }
+
     public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
     }
+
     public function getUpdatedAt(): DateTimeImmutable
     {
         return $this->updatedAt;
@@ -212,6 +245,7 @@ class BillingSubscription
         if (!in_array($team->getName(), $this->teamNames, true)) {
             $this->teamNames[] = $team->getName();
         }
+
         return $this->touch();
     }
 
@@ -230,6 +264,7 @@ class BillingSubscription
     private function touch(): self
     {
         $this->updatedAt = new DateTimeImmutable();
+
         return $this;
     }
 }

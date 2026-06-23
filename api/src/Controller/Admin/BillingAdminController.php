@@ -14,6 +14,7 @@ use App\Service\BillingAccessService;
 use App\Service\BillingManager;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -75,6 +76,7 @@ final class BillingAdminController extends AbstractController
                 'payments' => $payments,
             ];
         }
+
         return $this->json(['teams' => $teams, 'clubs' => $clubs, 'exemptions' => $exemptions, 'subscriptions' => $subscriptions]);
     }
 
@@ -119,8 +121,9 @@ final class BillingAdminController extends AbstractController
             } catch (RuntimeException) {
                 return $this->json(['error' => 'Die Testphase wurde gespeichert, konnte aber noch nicht vollständig angewendet werden. Bitte versuche es später erneut.'], 502);
             }
+
             return $this->json(['exemption' => $item->toArray()], 201);
-        } catch (RuntimeException | \Exception $e) {
+        } catch (RuntimeException|Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -139,6 +142,7 @@ final class BillingAdminController extends AbstractController
         } catch (RuntimeException) {
             return $this->json(['error' => 'Die Testphase wurde gespeichert, konnte aber noch nicht vollständig angewendet werden. Bitte versuche es später erneut.'], 502);
         }
+
         return $this->json(['success' => true]);
     }
 }
