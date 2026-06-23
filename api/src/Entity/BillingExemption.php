@@ -140,7 +140,7 @@ class BillingExemption
             $this->endedAt = null;
         }
 
-return $this;
+        return $this;
     }
 
     public function getEndedAt(): ?DateTimeImmutable
