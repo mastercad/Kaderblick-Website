@@ -683,11 +683,8 @@ const Inventar: React.FC = () => {
               <WarningAmberIcon sx={{ fontSize: 72, opacity: 0.4, color: 'warning.main' }} />
               <Typography variant="h6" color="text.secondary">Inventar konnte nicht geladen werden</Typography>
               <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', maxWidth: 440 }}>
-                Stelle sicher, dass die Datenbank-Migration ausgeführt wurde:
+                Bitte versuche es später erneut. Wenn das Problem bestehen bleibt, wende dich an den Support.
               </Typography>
-              <Paper variant="outlined" sx={{ px: 2, py: 1, borderRadius: 1, fontFamily: 'monospace', fontSize: '0.8rem', bgcolor: 'action.hover' }}>
-                php bin/console doctrine:migrations:migrate
-              </Paper>
               {effectiveCanWrite && (
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditItem(null); setItemDialogOpen(true); }}>
                   Trotzdem Artikel anlegen

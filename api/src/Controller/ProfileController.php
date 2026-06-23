@@ -10,6 +10,8 @@ use App\Entity\User;
 use App\Event\ProfileCompletenessReachedEvent;
 use App\Event\ProfileUpdatedEvent;
 use App\Service\CoachTeamPlayerService;
+use App\Service\BillingAccessService;
+use App\Service\BillingManager;
 use App\Service\EmailVerificationService;
 use App\Service\SystemSettingService;
 use App\Service\UserTitleService;
@@ -40,7 +42,7 @@ class ProfileController extends AbstractController
     }
 
     #[Route('/about-me', name: 'api_about_me', methods: ['GET'])]
-    public function getProfile(UserTitleService $userTitleService): JsonResponse
+    public function getProfile(UserTitleService $userTitleService, BillingManager $billingManager, BillingAccessService $billingAccessService): JsonResponse
     {
         /** @var ?User $user */
         $user = $this->getUser();
@@ -90,6 +92,12 @@ class ProfileController extends AbstractController
             'xpTotal' => $user->getUserLevel()->getXpTotal()
         ] : null;
 
+        $billingTeams = array_map(fn ($team) => [
+            'id' => $team->getId(),
+            'name' => $team->getName(),
+            ...$billingAccessService->statusFor($team),
+        ], $billingManager->manageableTeams($user));
+
         return $this->json([
             'id' => $user->getId(),
             'email' => $user->getEmail(),
@@ -116,6 +124,7 @@ class ProfileController extends AbstractController
             'twoFactorEnabled' => $user->hasAnyTwoFactorEnabled(),
             'twoFactorRequired' => $this->systemSettingService->is2faRequired(),
             'showInHallOfFame' => $user->isShowInHallOfFame(),
+            'billingTeams' => $billingTeams,
         ]);
     }
 
