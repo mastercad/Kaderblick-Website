@@ -636,7 +636,7 @@ class KnowledgeBaseVoterTest extends TestCase
             });
     }
 
-    private function createQueryMock(?object $returnValue): Query&MockObject
+    private function createQueryMock(?object $returnValue): Query & MockObject
     {
         $query = $this->createMock(Query::class);
         $query->method('getOneOrNullResult')->willReturn($returnValue);
@@ -644,7 +644,7 @@ class KnowledgeBaseVoterTest extends TestCase
         return $query;
     }
 
-    private function createQbMockReturningQuery(Query&MockObject $query): QueryBuilder&MockObject
+    private function createQbMockReturningQuery(Query & MockObject $query): QueryBuilder & MockObject
     {
         $qb = $this->createMock(QueryBuilder::class);
         // All fluent methods return $this so chaining works
@@ -662,7 +662,7 @@ class KnowledgeBaseVoterTest extends TestCase
     /**
      * @param array<string> $roles
      */
-    private function createUser(int $id, array $roles = ['ROLE_USER']): User&MockObject
+    private function createUser(int $id, array $roles = ['ROLE_USER']): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -671,7 +671,7 @@ class KnowledgeBaseVoterTest extends TestCase
         return $user;
     }
 
-    private function createTeam(int $id): Team&MockObject
+    private function createTeam(int $id): Team & MockObject
     {
         $team = $this->createMock(Team::class);
         $team->method('getId')->willReturn($id);
@@ -679,7 +679,7 @@ class KnowledgeBaseVoterTest extends TestCase
         return $team;
     }
 
-    private function createPost(Team&MockObject $team, User&MockObject $author): KnowledgeBasePost&MockObject
+    private function createPost(Team & MockObject $team, User & MockObject $author): KnowledgeBasePost & MockObject
     {
         $post = $this->createMock(KnowledgeBasePost::class);
         $post->method('getTeam')->willReturn($team);
@@ -688,7 +688,7 @@ class KnowledgeBaseVoterTest extends TestCase
         return $post;
     }
 
-    private function createGlobalPost(User&MockObject $author): KnowledgeBasePost&MockObject
+    private function createGlobalPost(User & MockObject $author): KnowledgeBasePost & MockObject
     {
         $post = $this->createMock(KnowledgeBasePost::class);
         $post->method('getTeam')->willReturn(null);
@@ -697,7 +697,7 @@ class KnowledgeBaseVoterTest extends TestCase
         return $post;
     }
 
-    private function createToken(User&MockObject $user): TokenInterface&MockObject
+    private function createToken(User & MockObject $user): TokenInterface & MockObject
     {
         $token = $this->createMock(TokenInterface::class);
         $token->method('getUser')->willReturn($user);

@@ -57,7 +57,7 @@ class TwoFactorService
      *
      * @return array<int, string>|false Plain-text backup codes on success, false otherwise
      */
-    public function verifyAndEnable(User $user, string $code): array|false
+    public function verifyAndEnable(User $user, string $code): array | false
     {
         $secret = $user->getTotpSecret();
         if (!$secret) {

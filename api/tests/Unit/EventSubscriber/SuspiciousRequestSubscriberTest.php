@@ -14,9 +14,9 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 #[AllowMockObjectsWithoutExpectations]
 class SuspiciousRequestSubscriberTest extends TestCase
 {
-    private AdminAlertService&MockObject $alertService;
+    private AdminAlertService & MockObject $alertService;
     private SuspiciousRequestSubscriber $subscriber;
-    private HttpKernelInterface&MockObject $kernel;
+    private HttpKernelInterface & MockObject $kernel;
 
     protected function setUp(): void
     {

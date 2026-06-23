@@ -22,11 +22,11 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class XPRegistrationServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private XpRuleRepository&MockObject $xpRuleRepository;
+    private EntityManagerInterface & MockObject $entityManager;
+    private XpRuleRepository & MockObject $xpRuleRepository;
     /** @phpstan-var EntityRepository<UserXpEvent>&MockObject */
-    private EntityRepository&MockObject $eventRepository;
-    private Connection&MockObject $connection;
+    private EntityRepository & MockObject $eventRepository;
+    private Connection & MockObject $connection;
     private XPRegistrationService $service;
 
     protected function setUp(): void
@@ -386,7 +386,7 @@ class XPRegistrationServiceTest extends TestCase
         $this->service->registerXpEvent($user, 'daily_login', 1);
     }
 
-    private function makeRule(int $cooldown, int $xpValue, ?int $dailyLimit = null, ?int $monthlyLimit = null): XpRule&MockObject
+    private function makeRule(int $cooldown, int $xpValue, ?int $dailyLimit = null, ?int $monthlyLimit = null): XpRule & MockObject
     {
         $rule = $this->createMock(XpRule::class);
         $rule->method('getCooldownMinutes')->willReturn($cooldown);
@@ -397,7 +397,7 @@ class XPRegistrationServiceTest extends TestCase
         return $rule;
     }
 
-    private function buildScalarQueryBuilder(string $scalar): QueryBuilder&MockObject
+    private function buildScalarQueryBuilder(string $scalar): QueryBuilder & MockObject
     {
         $query = $this->createMock(Query::class);
         $query->method('getSingleScalarResult')->willReturn($scalar);
@@ -412,7 +412,7 @@ class XPRegistrationServiceTest extends TestCase
         return $queryBuilder;
     }
 
-    private function buildEntityQueryBuilder(?object $entity): QueryBuilder&MockObject
+    private function buildEntityQueryBuilder(?object $entity): QueryBuilder & MockObject
     {
         $query = $this->createMock(Query::class);
         $query->method('setLockMode')->willReturnSelf();

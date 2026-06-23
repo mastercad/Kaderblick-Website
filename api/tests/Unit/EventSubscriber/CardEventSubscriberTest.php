@@ -20,7 +20,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CardEventSubscriberTest extends TestCase
 {
-    private MessageBusInterface&MockObject $bus;
+    private MessageBusInterface & MockObject $bus;
     private CardEventSubscriber $subscriber;
 
     protected function setUp(): void

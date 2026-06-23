@@ -19,8 +19,8 @@ use ReflectionMethod;
 #[AllowMockObjectsWithoutExpectations]
 class WeatherServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private CalendarEventRepository&MockObject $calendarEventRepository;
+    private EntityManagerInterface & MockObject $entityManager;
+    private CalendarEventRepository & MockObject $calendarEventRepository;
 
     protected function setUp(): void
     {

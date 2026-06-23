@@ -40,16 +40,16 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class SuspensionServiceSyncParticipationsTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private GameEventRepository&MockObject $gameEventRepository;
-    private PlayerSuspensionRepository&MockObject $suspensionRepository;
-    private CoachSuspensionRepository&MockObject $coachSuspensionRepository;
-    private CompetitionCardRuleRepository&MockObject $cardRuleRepository;
-    private NotificationService&MockObject $notificationService;
-    private GameRepository&MockObject $gameRepository;
-    private ParticipationRepository&MockObject $participationRepository;
-    private ParticipationStatusRepository&MockObject $participationStatusRepository;
-    private PlayerRepository&MockObject $playerRepository;
+    private EntityManagerInterface & MockObject $em;
+    private GameEventRepository & MockObject $gameEventRepository;
+    private PlayerSuspensionRepository & MockObject $suspensionRepository;
+    private CoachSuspensionRepository & MockObject $coachSuspensionRepository;
+    private CompetitionCardRuleRepository & MockObject $cardRuleRepository;
+    private NotificationService & MockObject $notificationService;
+    private GameRepository & MockObject $gameRepository;
+    private ParticipationRepository & MockObject $participationRepository;
+    private ParticipationStatusRepository & MockObject $participationStatusRepository;
+    private PlayerRepository & MockObject $playerRepository;
     private SuspensionService $service;
 
     protected function setUp(): void
@@ -102,7 +102,7 @@ class SuspensionServiceSyncParticipationsTest extends TestCase
     }
 
     /** @param UserRelation[] $userRelations */
-    private function makePlayer(array $userRelations = [], int $id = 1): Player&MockObject
+    private function makePlayer(array $userRelations = [], int $id = 1): Player & MockObject
     {
         $player = $this->createMock(Player::class);
         $player->method('getUserRelations')->willReturn(new ArrayCollection($userRelations));

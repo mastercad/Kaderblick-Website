@@ -28,9 +28,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class KnowledgeBasePostRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private QueryBuilder&MockObject $qb;
-    private Query&MockObject $query;
+    private EntityManagerInterface & MockObject $em;
+    private QueryBuilder & MockObject $qb;
+    private Query & MockObject $query;
     private KnowledgeBasePostRepository $repository;
 
     /** @var string[] WHERE-Bedingung (erstes where()) */

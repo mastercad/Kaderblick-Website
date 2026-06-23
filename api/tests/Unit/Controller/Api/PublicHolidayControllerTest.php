@@ -19,7 +19,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PublicHolidayControllerTest extends TestCase
 {
-    private PublicHolidayService&MockObject $service;
+    private PublicHolidayService & MockObject $service;
     private PublicHolidayController $controller;
 
     protected function setUp(): void

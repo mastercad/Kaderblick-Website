@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class PosterTemplateRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
+    private EntityManagerInterface & MockObject $em;
     private PosterTemplateRepository $repository;
 
     /** @var PosterTemplate[] */

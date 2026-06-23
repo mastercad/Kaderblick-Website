@@ -35,16 +35,16 @@ use Twig\Environment;
 #[AllowMockObjectsWithoutExpectations]
 class GoogleAuthenticatorTest extends TestCase
 {
-    private ClientRegistry&MockObject $clientRegistry;
-    private EntityManagerInterface&MockObject $em;
-    private JWTTokenManagerInterface&MockObject $jwtManager;
-    private RefreshTokenService&MockObject $refreshTokenService;
-    private Environment&MockObject $twig;
-    private MailerInterface&MockObject $mailer;
-    private ParameterBagInterface&MockObject $params;
-    private RegistrationNotificationService&MockObject $registrationNotificationService;
-    private LoggerInterface&MockObject $logger;
-    private EventDispatcherInterface&MockObject $dispatcher;
+    private ClientRegistry & MockObject $clientRegistry;
+    private EntityManagerInterface & MockObject $em;
+    private JWTTokenManagerInterface & MockObject $jwtManager;
+    private RefreshTokenService & MockObject $refreshTokenService;
+    private Environment & MockObject $twig;
+    private MailerInterface & MockObject $mailer;
+    private ParameterBagInterface & MockObject $params;
+    private RegistrationNotificationService & MockObject $registrationNotificationService;
+    private LoggerInterface & MockObject $logger;
+    private EventDispatcherInterface & MockObject $dispatcher;
     private GoogleAuthenticator $authenticator;
 
     protected function setUp(): void
@@ -312,7 +312,7 @@ class GoogleAuthenticatorTest extends TestCase
      * @param array<string, mixed> $googleUserData Data returned by $googleUser->toArray()
      * @param string               $googleId       The Google user ID
      */
-    private function makeSuccessfulGoogleClient(array $googleUserData, string $googleId): GoogleClient&MockObject
+    private function makeSuccessfulGoogleClient(array $googleUserData, string $googleId): GoogleClient & MockObject
     {
         $googleClient = $this->createMock(GoogleClient::class);
         $accessToken = $this->createMock(AccessToken::class);

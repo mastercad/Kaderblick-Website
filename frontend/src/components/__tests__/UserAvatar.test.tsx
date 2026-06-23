@@ -138,3 +138,35 @@ describe('UserAvatar – showLabel prop', () => {
     expect(typographies).toHaveLength(0);
   });
 });
+
+// ─── avatar frame ────────────────────────────────────────────────────────────────
+
+describe('UserAvatar – avatar frame', () => {
+  it('resizes the frame together with the avatar', () => {
+    const { rerender } = render(
+      <UserAvatar icon="photo.jpg" name="" avatarSize={32} svgFrameUrl="/frame.svg" />
+    );
+
+    expect(screen.getByAltText('Avatar Rahmen')).toHaveStyle({ width: '44.8px', height: '51.2px' });
+
+    rerender(<UserAvatar icon="photo.jpg" name="" avatarSize={22} svgFrameUrl="/frame.svg" />);
+
+    expect(screen.getByAltText('Avatar Rahmen')).toHaveStyle({ width: '30.8px', height: '35.2px' });
+  });
+
+  it('honours an explicit zero vertical offset', () => {
+    render(
+      <UserAvatar
+        icon="photo.jpg"
+        name=""
+        avatarSize={22}
+        svgFrameUrl="/frame.svg"
+        svgFrameOffsetY={0}
+      />
+    );
+
+    expect(screen.getByAltText('Avatar Rahmen').parentElement).toHaveStyle({
+      transform: 'translateY(0px)',
+    });
+  });
+});

@@ -44,12 +44,12 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class ParticipationControllerXpTest extends TestCase
 {
     private ParticipationController $controller;
-    private EventDispatcherInterface&MockObject $dispatcher;
-    private ParticipationRepository&MockObject $participationRepo;
-    private ParticipationStatusRepository&MockObject $statusRepo;
-    private TeamMembershipService&MockObject $membershipService;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private NotificationService&MockObject $notificationService;
+    private EventDispatcherInterface & MockObject $dispatcher;
+    private ParticipationRepository & MockObject $participationRepo;
+    private ParticipationStatusRepository & MockObject $statusRepo;
+    private TeamMembershipService & MockObject $membershipService;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private NotificationService & MockObject $notificationService;
 
     protected function setUp(): void
     {
@@ -915,7 +915,7 @@ class ParticipationControllerXpTest extends TestCase
         $this->controller->setContainer($container);
     }
 
-    private function makeParticipantUser(int $id): User&MockObject
+    private function makeParticipantUser(int $id): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -926,7 +926,7 @@ class ParticipationControllerXpTest extends TestCase
         return $user;
     }
 
-    private function makeParticipationFor(User $user, string $statusCode): Participation&MockObject
+    private function makeParticipationFor(User $user, string $statusCode): Participation & MockObject
     {
         $status = $this->makeStatus($statusCode);
 
@@ -938,7 +938,7 @@ class ParticipationControllerXpTest extends TestCase
         return $participation;
     }
 
-    private function makeUser(): User&MockObject
+    private function makeUser(): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(42);
@@ -948,7 +948,7 @@ class ParticipationControllerXpTest extends TestCase
         return $user;
     }
 
-    private function makeStatus(string $code): ParticipationStatus&MockObject
+    private function makeStatus(string $code): ParticipationStatus & MockObject
     {
         $status = $this->createMock(ParticipationStatus::class);
         $status->method('getId')->willReturn(1);
@@ -960,7 +960,7 @@ class ParticipationControllerXpTest extends TestCase
         return $status;
     }
 
-    private function makeCalendarEvent(string $typeName): CalendarEvent&MockObject
+    private function makeCalendarEvent(string $typeName): CalendarEvent & MockObject
     {
         $type = $this->createMock(CalendarEventType::class);
         $type->method('getName')->willReturn($typeName);
@@ -978,9 +978,9 @@ class ParticipationControllerXpTest extends TestCase
      * Wires up all shared mock expectations for a successful respond() call.
      */
     private function wireScenario(
-        User&MockObject $user,
-        ParticipationStatus&MockObject $status,
-        CalendarEvent&MockObject $event,
+        User & MockObject $user,
+        ParticipationStatus & MockObject $status,
+        CalendarEvent & MockObject $event,
     ): void {
         // Wire user into the security container
         $token = $this->createMock(TokenInterface::class);

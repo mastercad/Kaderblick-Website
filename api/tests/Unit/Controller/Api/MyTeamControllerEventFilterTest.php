@@ -291,7 +291,7 @@ class MyTeamControllerEventFilterTest extends TestCase
      *
      * @param array<string, mixed> $options
      */
-    private function makeCalendarEvent(int $id, string $title, array $options): CalendarEvent&MockObject
+    private function makeCalendarEvent(int $id, string $title, array $options): CalendarEvent & MockObject
     {
         $permissions = $options['permissions'] ?? [];
         $game = $options['game'] ?? null;
@@ -311,7 +311,7 @@ class MyTeamControllerEventFilterTest extends TestCase
         return $event;
     }
 
-    private function makeGame(Team $homeTeam, Team $awayTeam): Game&MockObject
+    private function makeGame(Team $homeTeam, Team $awayTeam): Game & MockObject
     {
         $game = $this->createMock(Game::class);
         $game->method('getHomeTeam')->willReturn($homeTeam);
@@ -320,7 +320,7 @@ class MyTeamControllerEventFilterTest extends TestCase
         return $game;
     }
 
-    private function makeTeam(int $id, string $name): Team&MockObject
+    private function makeTeam(int $id, string $name): Team & MockObject
     {
         $ageGroup = $this->createMock(AgeGroup::class);
         $ageGroup->method('getId')->willReturn($id * 10);
@@ -337,7 +337,7 @@ class MyTeamControllerEventFilterTest extends TestCase
         return $team;
     }
 
-    private function makePlayerRelation(Team $team): UserRelation&MockObject
+    private function makePlayerRelation(Team $team): UserRelation & MockObject
     {
         $relationType = $this->createMock(RelationType::class);
         $relationType->method('getIdentifier')->willReturn('self_player');

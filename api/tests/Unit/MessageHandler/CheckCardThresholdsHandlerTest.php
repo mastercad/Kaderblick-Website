@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class CheckCardThresholdsHandlerTest extends TestCase
 {
-    private GameEventRepository&MockObject $gameEventRepository;
-    private SuspensionService&MockObject $suspensionService;
+    private GameEventRepository & MockObject $gameEventRepository;
+    private SuspensionService & MockObject $suspensionService;
     private CheckCardThresholdsHandler $handler;
 
     protected function setUp(): void

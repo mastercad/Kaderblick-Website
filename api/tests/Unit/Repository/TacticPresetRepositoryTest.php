@@ -25,9 +25,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class TacticPresetRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private QueryBuilder&MockObject $qb;
-    private Query&MockObject $query;
+    private EntityManagerInterface & MockObject $em;
+    private QueryBuilder & MockObject $qb;
+    private Query & MockObject $query;
     /** @var TacticPreset[] */ private array $queryResult = [];
     private TacticPresetRepository $repository;
 

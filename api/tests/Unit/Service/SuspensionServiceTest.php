@@ -43,16 +43,16 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class SuspensionServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private GameEventRepository&MockObject $gameEventRepository;
-    private PlayerSuspensionRepository&MockObject $suspensionRepository;
-    private CoachSuspensionRepository&MockObject $coachSuspensionRepository;
-    private CompetitionCardRuleRepository&MockObject $cardRuleRepository;
-    private NotificationService&MockObject $notificationService;
-    private GameRepository&MockObject $gameRepository;
-    private ParticipationRepository&MockObject $participationRepository;
-    private ParticipationStatusRepository&MockObject $participationStatusRepository;
-    private PlayerRepository&MockObject $playerRepository;
+    private EntityManagerInterface & MockObject $em;
+    private GameEventRepository & MockObject $gameEventRepository;
+    private PlayerSuspensionRepository & MockObject $suspensionRepository;
+    private CoachSuspensionRepository & MockObject $coachSuspensionRepository;
+    private CompetitionCardRuleRepository & MockObject $cardRuleRepository;
+    private NotificationService & MockObject $notificationService;
+    private GameRepository & MockObject $gameRepository;
+    private ParticipationRepository & MockObject $participationRepository;
+    private ParticipationStatusRepository & MockObject $participationStatusRepository;
+    private PlayerRepository & MockObject $playerRepository;
     private SuspensionService $service;
 
     protected function setUp(): void

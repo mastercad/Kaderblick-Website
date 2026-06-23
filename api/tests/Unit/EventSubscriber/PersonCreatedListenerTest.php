@@ -20,7 +20,7 @@ use stdClass;
 #[AllowMockObjectsWithoutExpectations]
 class PersonCreatedListenerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
+    private EntityManagerInterface & MockObject $entityManager;
     /** @var EntityRepository<User>&MockObject */
     private EntityRepository $userRepository;
     /** @var EntityRepository<RelationType>&MockObject */

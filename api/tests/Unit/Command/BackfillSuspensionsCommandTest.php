@@ -28,10 +28,10 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class BackfillSuspensionsCommandTest extends TestCase
 {
-    private GameEventRepository&MockObject $gameEventRepository;
-    private PlayerSuspensionRepository&MockObject $suspensionRepository;
-    private CompetitionCardRuleRepository&MockObject $cardRuleRepository;
-    private EntityManagerInterface&MockObject $em;
+    private GameEventRepository & MockObject $gameEventRepository;
+    private PlayerSuspensionRepository & MockObject $suspensionRepository;
+    private CompetitionCardRuleRepository & MockObject $cardRuleRepository;
+    private EntityManagerInterface & MockObject $em;
     private BackfillSuspensionsCommand $command;
     private CommandTester $commandTester;
 

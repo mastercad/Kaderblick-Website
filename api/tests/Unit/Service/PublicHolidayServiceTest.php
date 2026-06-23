@@ -18,9 +18,9 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PublicHolidayServiceTest extends TestCase
 {
-    private PublicHolidayRepository&MockObject $repository;
-    private EntityManagerInterface&MockObject $entityManager;
-    private HttpClientInterface&MockObject $httpClient;
+    private PublicHolidayRepository & MockObject $repository;
+    private EntityManagerInterface & MockObject $entityManager;
+    private HttpClientInterface & MockObject $httpClient;
     private PublicHolidayService $service;
 
     protected function setUp(): void

@@ -20,8 +20,8 @@ use Symfony\Contracts\Cache\ItemInterface;
 #[AllowMockObjectsWithoutExpectations]
 class HealthControllerTest extends TestCase
 {
-    private Connection&MockObject $connection;
-    private CacheInterface&MockObject $cache;
+    private Connection & MockObject $connection;
+    private CacheInterface & MockObject $cache;
     private string $projectDir;
 
     protected function setUp(): void
@@ -97,12 +97,12 @@ class HealthControllerTest extends TestCase
                         return $this;
                     }
 
-                    public function expiresAfter(int|DateInterval|null $time): static
+                    public function expiresAfter(int | DateInterval | null $time): static
                     {
                         return $this;
                     }
 
-                    public function tag(string|iterable $tags): static
+                    public function tag(string | iterable $tags): static
                     {
                         return $this;
                     }

@@ -22,8 +22,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class TacticPresetControllerTest extends TestCase
 {
-    private TacticPresetRepository&MockObject $presetRepository;
-    private EntityManagerInterface&MockObject $entityManager;
+    private TacticPresetRepository & MockObject $presetRepository;
+    private EntityManagerInterface & MockObject $entityManager;
     private TacticPresetController $controller;
 
     // -----------------------------------------------------------------
@@ -68,7 +68,7 @@ class TacticPresetControllerTest extends TestCase
     /**
      * Create a minimal User mock with no club assignments.
      */
-    private function makeUser(int $id = 1, string $firstName = 'Max', string $lastName = 'Mustermann'): User&MockObject
+    private function makeUser(int $id = 1, string $firstName = 'Max', string $lastName = 'Mustermann'): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);

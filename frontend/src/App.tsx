@@ -74,6 +74,8 @@ const CardRules = lazy(() => import('./pages/admin/CardRules'));
 const PosterTemplates = lazy(() => import('./pages/admin/PosterTemplates'));
 const PosterTemplateEditor = lazy(() => import('./pages/admin/PosterTemplateEditor/index'));
 const SystemMaintenance = lazy(() => import('./pages/admin/SystemMaintenance'));
+const BillingAdmin = lazy(() => import('./pages/admin/BillingAdmin'));
+const Billing = lazy(() => import('./pages/Billing'));
 const QuickEventPresets = lazy(() => import('./pages/admin/QuickEventPresets/index'));
 const StaffAssignments = lazy(() => import('./pages/admin/StaffAssignments'));
 const FunctionaryAssignments = lazy(() => import('./pages/admin/FunctionaryAssignments'));
@@ -421,6 +423,7 @@ function App() {
                     <Route path="/admin/staff-assignments" element={<ProtectedRoute><StaffAssignments /></ProtectedRoute>} />
                     <Route path="/admin/functionary-assignments" element={<ProtectedRoute><FunctionaryAssignments /></ProtectedRoute>} />
                     <Route path="/kassenbuch" element={<ProtectedRoute><CashBook /></ProtectedRoute>} />
+                    <Route path="/abrechnung" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
                     <Route path="/mein-deckel" element={<ProtectedRoute><MeinDeckel /></ProtectedRoute>} />
                     <Route path="/strafenkatalog" element={<ProtectedRoute><Strafenkatalog /></ProtectedRoute>} />
                     <Route path="/admin/title-xp-overview" element={<ProtectedRoute><AdminTitleXpOverview /></ProtectedRoute>} />
@@ -436,6 +439,7 @@ function App() {
                     <Route path="/admin/system-alerts/stats" element={<ProtectedRoute><SystemAlertStats /></ProtectedRoute>} />
                     <Route path="/admin/system-alerts/:id" element={<ProtectedRoute><SystemAlertDetail /></ProtectedRoute>} />
                     <Route path="/admin/system-maintenance" element={<ProtectedRoute><SystemMaintenance /></ProtectedRoute>} />
+                    <Route path="/admin/abrechnung" element={<ProtectedRoute><BillingAdmin /></ProtectedRoute>} />
                     <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
                     <Route path="/news/:id" element={<ProtectedRoute><NewsDetail /></ProtectedRoute>} />
                     <Route path="locations" element={<ProtectedRoute><Locations /></ProtectedRoute>} />

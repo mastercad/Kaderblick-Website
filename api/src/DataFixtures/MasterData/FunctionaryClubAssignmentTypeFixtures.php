@@ -26,14 +26,13 @@ class FunctionaryClubAssignmentTypeFixtures extends Fixture implements FixtureGr
         ];
 
         foreach ($types as $type) {
-            $existing = $manager->getRepository(FunctionaryClubAssignmentType::class)->findOneBy(['name' => $type['name']]);
-            if (!$existing) {
-                $assignmentType = new FunctionaryClubAssignmentType();
-                $assignmentType->setName($type['name']);
-                $assignmentType->setDescription($type['description']);
-                $assignmentType->setActive($type['active']);
-                $manager->persist($assignmentType);
-            }
+            $assignmentType = $manager->getRepository(FunctionaryClubAssignmentType::class)
+                ->findOneBy(['name' => $type['name']]) ?? new FunctionaryClubAssignmentType();
+
+            $assignmentType->setName($type['name']);
+            $assignmentType->setDescription($type['description']);
+            $assignmentType->setActive($type['active']);
+            $manager->persist($assignmentType);
         }
 
         $manager->flush();

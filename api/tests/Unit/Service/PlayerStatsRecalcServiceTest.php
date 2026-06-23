@@ -39,9 +39,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class PlayerStatsRecalcServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private PlayerRepository&MockObject $playerRepository;
-    private GameEventRepository&MockObject $gameEventRepository;
+    private EntityManagerInterface & MockObject $em;
+    private PlayerRepository & MockObject $playerRepository;
+    private GameEventRepository & MockObject $gameEventRepository;
     private PlayerStatsRecalcService $service;
 
     protected function setUp(): void

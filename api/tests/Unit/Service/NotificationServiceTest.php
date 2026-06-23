@@ -14,8 +14,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class NotificationServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private NotificationRepository&MockObject $repo;
+    private EntityManagerInterface & MockObject $em;
+    private NotificationRepository & MockObject $repo;
     private NotificationService $service;
 
     protected function setUp(): void

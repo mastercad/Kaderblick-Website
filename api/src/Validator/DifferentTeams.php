@@ -10,7 +10,7 @@ class DifferentTeams extends Constraint
 {
     public string $message = 'Heim- und Auswärts-Team dürfen nicht identisch sein.';
 
-    public function getTargets(): string|array
+    public function getTargets(): string | array
     {
         return self::CLASS_CONSTRAINT;
     }

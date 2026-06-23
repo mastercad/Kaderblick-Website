@@ -30,8 +30,8 @@ use ReflectionMethod;
 #[AllowMockObjectsWithoutExpectations]
 class HallOfFameControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private UserTitleService&MockObject $userTitleService;
+    private EntityManagerInterface & MockObject $em;
+    private UserTitleService & MockObject $userTitleService;
     private HallOfFameController $controller;
 
     protected function setUp(): void
@@ -49,7 +49,7 @@ class HallOfFameControllerTest extends TestCase
      *
      * @param array<int, array<string, mixed>> $rows
      */
-    private function makeQbMock(array $rows): QueryBuilder&MockObject
+    private function makeQbMock(array $rows): QueryBuilder & MockObject
     {
         $query = $this->getMockBuilder(Query::class)
             ->disableOriginalConstructor()
@@ -74,7 +74,7 @@ class HallOfFameControllerTest extends TestCase
      * Creates a sub-query QB mock for the EXISTS clause.
      * Only the builder methods used in getTopLevel()'s subquery are mocked.
      */
-    private function makeSubQbMock(): QueryBuilder&MockObject
+    private function makeSubQbMock(): QueryBuilder & MockObject
     {
         $qb = $this->getMockBuilder(QueryBuilder::class)
             ->disableOriginalConstructor()

@@ -32,7 +32,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 #[AllowMockObjectsWithoutExpectations]
 class VideoTimelineServiceTest extends TestCase
 {
-    private Security&MockObject $security;
+    private Security & MockObject $security;
     private VideoTimelineService $service;
 
     protected function setUp(): void
