@@ -123,7 +123,7 @@ final class BillingAdminController extends AbstractController
             }
 
             return $this->json(['exemption' => $item->toArray()], 201);
-        } catch (RuntimeException|Exception $e) {
+        } catch (RuntimeException | Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

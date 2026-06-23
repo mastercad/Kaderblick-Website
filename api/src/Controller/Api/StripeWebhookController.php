@@ -29,7 +29,7 @@ final class StripeWebhookController extends AbstractController
     {
         try {
             $event = $this->stripe->verifyWebhook($request->getContent(), (string) $request->headers->get('Stripe-Signature'));
-        } catch (RuntimeException|JsonException $e) {
+        } catch (RuntimeException | JsonException $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
         $eventId = (string) ($event['id'] ?? '');
