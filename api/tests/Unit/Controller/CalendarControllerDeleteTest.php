@@ -34,11 +34,11 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CalendarControllerDeleteTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private CalendarEventService&MockObject $calendarEventService;
-    private User&MockObject $user;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private TokenStorageInterface&MockObject $tokenStorage;
+    private EntityManagerInterface & MockObject $entityManager;
+    private CalendarEventService & MockObject $calendarEventService;
+    private User & MockObject $user;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private TokenStorageInterface & MockObject $tokenStorage;
 
     protected function setUp(): void
     {
@@ -98,7 +98,7 @@ class CalendarControllerDeleteTest extends TestCase
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /** @return EntityRepository<object>&MockObject */
-    private function buildDefaultRepo(): EntityRepository&MockObject
+    private function buildDefaultRepo(): EntityRepository & MockObject
     {
         $defaultQuery = $this->createMock(Query::class);
         $defaultQuery->method('getResult')->willReturn([]);
@@ -125,7 +125,7 @@ class CalendarControllerDeleteTest extends TestCase
      *
      * Each test can further configure the returned mock.
      */
-    private function buildMethodEM(): EntityManagerInterface&MockObject
+    private function buildMethodEM(): EntityManagerInterface & MockObject
     {
         $em = $this->createMock(EntityManagerInterface::class);
         $defaultRepo = $this->buildDefaultRepo();

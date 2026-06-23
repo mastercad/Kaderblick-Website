@@ -14,7 +14,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 #[AllowMockObjectsWithoutExpectations]
 class CoachSerializerServiceTest extends TestCase
 {
-    private Security&MockObject $security;
+    private Security & MockObject $security;
     private CoachSerializerService $service;
 
     protected function setUp(): void
@@ -25,7 +25,7 @@ class CoachSerializerServiceTest extends TestCase
 
     // ─── Helper: minimal Coach mock ───────────────────────────────────────────
 
-    private function makeCoach(int $id = 1): Coach&MockObject
+    private function makeCoach(int $id = 1): Coach & MockObject
     {
         $coach = $this->createMock(Coach::class);
         $coach->method('getId')->willReturn($id);

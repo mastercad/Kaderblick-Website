@@ -19,8 +19,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class SystemSettingServiceTest extends TestCase
 {
-    private SystemSettingRepository&MockObject $repository;
-    private EntityManagerInterface&MockObject $em;
+    private SystemSettingRepository & MockObject $repository;
+    private EntityManagerInterface & MockObject $em;
     private SystemSettingService $service;
 
     protected function setUp(): void

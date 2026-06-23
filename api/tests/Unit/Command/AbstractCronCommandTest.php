@@ -18,7 +18,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 #[AllowMockObjectsWithoutExpectations]
 class AbstractCronCommandTest extends TestCase
 {
-    private HeartbeatService&MockObject $heartbeatService;
+    private HeartbeatService & MockObject $heartbeatService;
 
     /**
      * Erzeugt eine Command-Instanz mit dem gegebenen Handler und einem

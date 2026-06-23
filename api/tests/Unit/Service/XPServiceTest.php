@@ -301,7 +301,7 @@ class XPServiceTest extends TestCase
         $this->assertSame((int) floor(pow(600 / 50, 1 / 1.5)), $service->retrieveLevelForXP(600));
     }
 
-    private function buildPartialXpService(): XPService&MockObject
+    private function buildPartialXpService(): XPService & MockObject
     {
         return $this->getMockBuilder(XPService::class)
             ->setConstructorArgs([
@@ -313,9 +313,9 @@ class XPServiceTest extends TestCase
     }
 
     private function prepareEntityManagerForXpWrites(
-        EntityManagerInterface&MockObject $entityManager,
+        EntityManagerInterface & MockObject $entityManager,
         bool $transactionActive = false
-    ): Connection&MockObject {
+    ): Connection & MockObject {
         $connection = $this->createMock(Connection::class);
         $entityManager->method('getConnection')->willReturn($connection);
         $connection->method('isTransactionActive')->willReturn($transactionActive);

@@ -126,7 +126,7 @@ class KnowledgeBaseControllerTest extends TestCase
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /** @param array<string> $roles */
-    private function loginAs(int $id = 1, array $roles = ['ROLE_USER']): User&MockObject
+    private function loginAs(int $id = 1, array $roles = ['ROLE_USER']): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -142,7 +142,7 @@ class KnowledgeBaseControllerTest extends TestCase
         return $user;
     }
 
-    private function makeTeam(int $id = 10): Team&MockObject
+    private function makeTeam(int $id = 10): Team & MockObject
     {
         $team = $this->createMock(Team::class);
         $team->method('getId')->willReturn($id);
@@ -150,7 +150,7 @@ class KnowledgeBaseControllerTest extends TestCase
         return $team;
     }
 
-    private function makeCategory(int $id = 1, ?Team $team = null): KnowledgeBaseCategory&MockObject
+    private function makeCategory(int $id = 1, ?Team $team = null): KnowledgeBaseCategory & MockObject
     {
         $cat = $this->createMock(KnowledgeBaseCategory::class);
         $cat->method('getId')->willReturn($id);
@@ -164,7 +164,7 @@ class KnowledgeBaseControllerTest extends TestCase
     }
 
     /** @param ArrayCollection<int, KnowledgeBasePostLike>|null $likes */
-    private function makePost(int $id = 1, ?Team $team = null, ?User $author = null, ?ArrayCollection $likes = null): KnowledgeBasePost&MockObject
+    private function makePost(int $id = 1, ?Team $team = null, ?User $author = null, ?ArrayCollection $likes = null): KnowledgeBasePost & MockObject
     {
         $post = $this->createMock(KnowledgeBasePost::class);
         $post->method('getId')->willReturn($id);

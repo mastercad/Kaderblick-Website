@@ -25,10 +25,10 @@ use Symfony\Contracts\Cache\ItemInterface;
 #[AllowMockObjectsWithoutExpectations]
 class DailyLoginXpSubscriberTest extends TestCase
 {
-    private TokenStorageInterface&MockObject $tokenStorage;
-    private EventDispatcherInterface&MockObject $dispatcher;
-    private CacheInterface&MockObject $cache;
-    private HttpKernelInterface&MockObject $kernel;
+    private TokenStorageInterface & MockObject $tokenStorage;
+    private EventDispatcherInterface & MockObject $dispatcher;
+    private CacheInterface & MockObject $cache;
+    private HttpKernelInterface & MockObject $kernel;
     private DailyLoginXpSubscriber $subscriber;
 
     protected function setUp(): void

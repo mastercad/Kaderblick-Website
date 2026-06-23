@@ -33,33 +33,33 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PenaltyControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private UserTeamAccessService&MockObject $teamAccessService;
-    private TeamMembershipService&MockObject $teamMembershipService;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
-    private TokenStorageInterface&MockObject $tokenStorage;
+    private EntityManagerInterface & MockObject $em;
+    private UserTeamAccessService & MockObject $teamAccessService;
+    private TeamMembershipService & MockObject $teamMembershipService;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
+    private TokenStorageInterface & MockObject $tokenStorage;
     private PenaltyController $controller;
 
     /** @var EntityRepository<PenaltyType>&MockObject */
-    private EntityRepository&MockObject $penaltyTypeRepo;
+    private EntityRepository & MockObject $penaltyTypeRepo;
 
     /** @var EntityRepository<Team>&MockObject */
-    private EntityRepository&MockObject $teamRepo;
+    private EntityRepository & MockObject $teamRepo;
 
     /** @var EntityRepository<Club>&MockObject */
-    private EntityRepository&MockObject $clubRepo;
+    private EntityRepository & MockObject $clubRepo;
 
     /** @var EntityRepository<User>&MockObject */
-    private EntityRepository&MockObject $userRepo;
+    private EntityRepository & MockObject $userRepo;
 
     /** @var EntityRepository<TabEntry>&MockObject */
-    private EntityRepository&MockObject $tabEntryRepo;
+    private EntityRepository & MockObject $tabEntryRepo;
 
     /** @var EntityRepository<FunctionaryTeamAssignment>&MockObject */
-    private EntityRepository&MockObject $funcTeamAssignRepo;
+    private EntityRepository & MockObject $funcTeamAssignRepo;
 
     /** @var EntityRepository<FunctionaryClubAssignment>&MockObject */
-    private EntityRepository&MockObject $funcClubAssignRepo;
+    private EntityRepository & MockObject $funcClubAssignRepo;
 
     protected function setUp(): void
     {
@@ -102,7 +102,7 @@ class PenaltyControllerTest extends TestCase
         $this->controller->setContainer($container);
     }
 
-    private function loginAs(int $id = 1): User&MockObject
+    private function loginAs(int $id = 1): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -155,7 +155,7 @@ class PenaltyControllerTest extends TestCase
         $this->funcClubAssignRepo->method('findBy')->with(['user' => $user])->willReturn([$assignment]);
     }
 
-    private function makeTeam(int $id, string $name = 'Team A'): Team&MockObject
+    private function makeTeam(int $id, string $name = 'Team A'): Team & MockObject
     {
         $team = $this->createMock(Team::class);
         $team->method('getId')->willReturn($id);
@@ -174,7 +174,7 @@ class PenaltyControllerTest extends TestCase
         bool $global = true,
         ?Team $team = null,
         ?Club $club = null,
-    ): PenaltyType&MockObject {
+    ): PenaltyType & MockObject {
         $pt = $this->createMock(PenaltyType::class);
         $pt->method('getId')->willReturn($id);
         $pt->method('getName')->willReturn($name);

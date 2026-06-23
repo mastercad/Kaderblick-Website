@@ -19,9 +19,9 @@ use Symfony\Bundle\SecurityBundle\Security;
 #[AllowMockObjectsWithoutExpectations]
 class PlayerSerializerServiceTest extends TestCase
 {
-    private Security&MockObject $security;
-    private CoachTeamPlayerService&MockObject $coachTeamPlayerService;
-    private EntityManagerInterface&MockObject $em;
+    private Security & MockObject $security;
+    private CoachTeamPlayerService & MockObject $coachTeamPlayerService;
+    private EntityManagerInterface & MockObject $em;
     private PlayerSerializerService $service;
 
     protected function setUp(): void
@@ -72,7 +72,7 @@ class PlayerSerializerServiceTest extends TestCase
         $this->em->method('createQueryBuilder')->willReturn($qb);
     }
 
-    private function makePlayer(int $id = 1): Player&MockObject
+    private function makePlayer(int $id = 1): Player & MockObject
     {
         $pos = $this->createMock(Position::class);
         $pos->method('getId')->willReturn(1);

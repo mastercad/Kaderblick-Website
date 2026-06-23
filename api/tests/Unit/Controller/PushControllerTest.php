@@ -22,13 +22,13 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 #[AllowMockObjectsWithoutExpectations]
 class PushControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private PushSubscriptionRepository&MockObject $repo;
-    private ParameterBagInterface&MockObject $params;
-    private PushNotificationService&MockObject $pushService;
-    private NotificationRepository&MockObject $notificationRepo;
+    private EntityManagerInterface & MockObject $em;
+    private PushSubscriptionRepository & MockObject $repo;
+    private ParameterBagInterface & MockObject $params;
+    private PushNotificationService & MockObject $pushService;
+    private NotificationRepository & MockObject $notificationRepo;
     private PushController $controller;
-    private User&MockObject $user;
+    private User & MockObject $user;
 
     protected function setUp(): void
     {

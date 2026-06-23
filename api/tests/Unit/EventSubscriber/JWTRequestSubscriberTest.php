@@ -20,13 +20,13 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[AllowMockObjectsWithoutExpectations]
 class JWTRequestSubscriberTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
-    private JWTTokenManagerInterface&MockObject $jwtTokenManager;
-    private HttpKernelInterface&MockObject $kernel;
+    private EntityManagerInterface & MockObject $entityManager;
+    private JWTTokenManagerInterface & MockObject $jwtTokenManager;
+    private HttpKernelInterface & MockObject $kernel;
     private JWTRequestSubscriber $subscriber;
 
     /** @var EntityRepository<RefreshToken>&MockObject */
-    private EntityRepository&MockObject $repository;
+    private EntityRepository & MockObject $repository;
 
     protected function setUp(): void
     {
@@ -58,7 +58,7 @@ class JWTRequestSubscriberTest extends TestCase
         return new RequestEvent($this->kernel, $request, HttpKernelInterface::MAIN_REQUEST);
     }
 
-    private function makeToken(bool $expired): RefreshToken&MockObject
+    private function makeToken(bool $expired): RefreshToken & MockObject
     {
         $token = $this->createMock(RefreshToken::class);
         $token->method('isExpired')->willReturn($expired);

@@ -119,6 +119,9 @@ RUN echo "SHELL=/bin/bash" > /etc/cron.d/symfony-crons \
     && echo "" >> /etc/cron.d/symfony-crons \
     && echo "# Synchronize time-limited administration roles (daily at 00:05)" >> /etc/cron.d/symfony-crons \
     && echo "5 0 * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:admin-scopes:synchronize-roles' 2>&1" >> /etc/cron.d/symfony-crons \
+    && echo "" >> /etc/cron.d/symfony-crons \
+    && echo "# Process billing trials and overdue subscriptions (daily at 00:20)" >> /etc/cron.d/symfony-crons \
+    && echo "20 0 * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:billing:process' 2>&1" >> /etc/cron.d/symfony-crons \
     && chmod 0644 /etc/cron.d/symfony-crons
 
 # =============================================================================

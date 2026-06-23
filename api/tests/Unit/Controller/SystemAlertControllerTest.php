@@ -17,9 +17,9 @@ use Symfony\Component\HttpFoundation\Request;
 #[AllowMockObjectsWithoutExpectations]
 class SystemAlertControllerTest extends TestCase
 {
-    private SystemAlertRepository&MockObject $alertRepository;
-    private SystemAlertOccurrenceRepository&MockObject $occurrenceRepository;
-    private EntityManagerInterface&MockObject $em;
+    private SystemAlertRepository & MockObject $alertRepository;
+    private SystemAlertOccurrenceRepository & MockObject $occurrenceRepository;
+    private EntityManagerInterface & MockObject $em;
     private SystemAlertController $controller;
 
     protected function setUp(): void

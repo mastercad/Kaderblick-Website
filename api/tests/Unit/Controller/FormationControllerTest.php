@@ -39,10 +39,10 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 class FormationControllerTest extends TestCase
 {
     private FormationController $controller;
-    private CoachTeamPlayerService&MockObject $coachTeamPlayerService;
-    private EntityManagerInterface&MockObject $em;
-    private FormationRepository&MockObject $formationRepo;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private CoachTeamPlayerService & MockObject $coachTeamPlayerService;
+    private EntityManagerInterface & MockObject $em;
+    private FormationRepository & MockObject $formationRepo;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     protected function setUp(): void
     {
@@ -90,7 +90,7 @@ class FormationControllerTest extends TestCase
         $this->controller->setContainer($container);
     }
 
-    private function makeUser(): User&MockObject
+    private function makeUser(): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn(1);
@@ -99,7 +99,7 @@ class FormationControllerTest extends TestCase
         return $user;
     }
 
-    private function makeFormation(int $id = 1): Formation&MockObject
+    private function makeFormation(int $id = 1): Formation & MockObject
     {
         $formationType = $this->createMock(FormationType::class);
         $formationType->method('getId')->willReturn(1);
@@ -122,7 +122,7 @@ class FormationControllerTest extends TestCase
     }
 
     /** @param array<Team> $teams */
-    private function mockCollectCoachTeams(User&MockObject $user, array $teams = []): void
+    private function mockCollectCoachTeams(User & MockObject $user, array $teams = []): void
     {
         $this->coachTeamPlayerService
             ->method('collectCoachTeams')

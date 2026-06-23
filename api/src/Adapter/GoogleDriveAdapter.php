@@ -30,7 +30,7 @@ class GoogleDriveAdapter
         $this->driveService = new Drive($client);
     }
 
-    public function uploadFile(string|UploadedFile $file, ?string $name = null): string
+    public function uploadFile(string | UploadedFile $file, ?string $name = null): string
     {
         if ($file instanceof UploadedFile) {
             $path = $file->getRealPath();

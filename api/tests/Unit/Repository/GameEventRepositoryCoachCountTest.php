@@ -32,9 +32,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class GameEventRepositoryCoachCountTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private QueryBuilder&MockObject $qb;
-    private Query&MockObject $query;
+    private EntityManagerInterface & MockObject $em;
+    private QueryBuilder & MockObject $qb;
+    private Query & MockObject $query;
     private GameEventRepository $repository;
 
     /** @var array<string, mixed> */

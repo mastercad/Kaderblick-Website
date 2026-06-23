@@ -25,14 +25,13 @@ class FunctionaryTeamAssignmentTypeFixtures extends Fixture implements FixtureGr
         ];
 
         foreach ($types as $type) {
-            $existing = $manager->getRepository(FunctionaryTeamAssignmentType::class)->findOneBy(['name' => $type['name']]);
-            if (!$existing) {
-                $assignmentType = new FunctionaryTeamAssignmentType();
-                $assignmentType->setName($type['name']);
-                $assignmentType->setDescription($type['description']);
-                $assignmentType->setActive($type['active']);
-                $manager->persist($assignmentType);
-            }
+            $assignmentType = $manager->getRepository(FunctionaryTeamAssignmentType::class)
+                ->findOneBy(['name' => $type['name']]) ?? new FunctionaryTeamAssignmentType();
+
+            $assignmentType->setName($type['name']);
+            $assignmentType->setDescription($type['description']);
+            $assignmentType->setActive($type['active']);
+            $manager->persist($assignmentType);
         }
 
         $manager->flush();

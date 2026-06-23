@@ -23,6 +23,7 @@ return (new PhpCsFixer\Config())
         ],
         'concat_space' => ['spacing' => 'one'],
         'class_definition' => ['space_before_parenthesis' => true],
+        'types_spaces' => ['space' => 'single'],
     ])
     ->setFinder($finder)
 ;

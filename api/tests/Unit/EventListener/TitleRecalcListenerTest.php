@@ -54,10 +54,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[AllowMockObjectsWithoutExpectations]
 class TitleRecalcListenerTest extends TestCase
 {
-    private MessageBusInterface&MockObject $messageBus;
-    private EntityManagerInterface&MockObject $em;
-    private UnitOfWork&MockObject $uow;
-    private GoalCountingService&MockObject $goalCountingService;
+    private MessageBusInterface & MockObject $messageBus;
+    private EntityManagerInterface & MockObject $em;
+    private UnitOfWork & MockObject $uow;
+    private GoalCountingService & MockObject $goalCountingService;
     private TitleRecalcListener $listener;
 
     protected function setUp(): void
@@ -76,7 +76,7 @@ class TitleRecalcListenerTest extends TestCase
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private function makeGoalEvent(string $season = '2024/2025'): GameEvent&MockObject
+    private function makeGoalEvent(string $season = '2024/2025'): GameEvent & MockObject
     {
         $type = $this->createMock(GameEventType::class);
         $type->method('getCode')->willReturn('goal');
@@ -88,7 +88,7 @@ class TitleRecalcListenerTest extends TestCase
         return $this->makeGameEventWithSeason($type, $season);
     }
 
-    private function makeNonGoalEvent(string $code = 'yellow_card'): GameEvent&MockObject
+    private function makeNonGoalEvent(string $code = 'yellow_card'): GameEvent & MockObject
     {
         $type = $this->createMock(GameEventType::class);
         $type->method('getCode')->willReturn($code);
@@ -99,7 +99,7 @@ class TitleRecalcListenerTest extends TestCase
         return $this->makeGameEventWithSeason($type);
     }
 
-    private function makeGameEventWithSeason(GameEventType $type, string $season = '2024/2025'): GameEvent&MockObject
+    private function makeGameEventWithSeason(GameEventType $type, string $season = '2024/2025'): GameEvent & MockObject
     {
         [$startYear] = explode('/', $season);
         $startDate = new DateTimeImmutable(sprintf('%d-09-15', (int) $startYear));
@@ -117,7 +117,7 @@ class TitleRecalcListenerTest extends TestCase
         return $event;
     }
 
-    private function makeCalendarEvent(?DateTimeImmutable $startDate): CalendarEvent&MockObject
+    private function makeCalendarEvent(?DateTimeImmutable $startDate): CalendarEvent & MockObject
     {
         $ce = $this->createMock(CalendarEvent::class);
         $ce->method('getStartDate')->willReturn($startDate);

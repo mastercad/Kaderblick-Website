@@ -38,8 +38,8 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class XpEventSubscriberTest extends TestCase
 {
-    private XPRegistrationService&MockObject $registrationService;
-    private XpRuleRepository&MockObject $xpRuleRepository;
+    private XPRegistrationService & MockObject $registrationService;
+    private XpRuleRepository & MockObject $xpRuleRepository;
     private XpEventSubscriber $subscriber;
 
     protected function setUp(): void

@@ -49,6 +49,7 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { AdminPageLayout } from '../../components/AdminPageLayout';
 import { apiJson, getApiErrorMessage } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 
 // ── Typen ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,7 @@ const TAB_CATEGORIES = ['Getränke', 'Essen', 'Sonstiges'];
 const CashBook: React.FC = () => {
   const theme = useTheme();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [books, setBooks] = useState<CashBookSummary[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(true);
@@ -522,19 +524,20 @@ const CashBook: React.FC = () => {
       loading={loadingBooks}
       maxWidth={1200}
       filterControls={
-        books.length > 1 ? (
-          <Tabs value={activeBookIdx} onChange={(_, v) => setActiveBookIdx(v)} variant="scrollable" scrollButtons="auto">
-            {books.map((b, i) => (
-              <Tab key={b.id} label={
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                  <span>{b.entityName}</span>
-                  <Chip label={b.type === 'team' ? 'Team' : 'Verein'} size="small"
-                    sx={{ fontSize: '0.65rem', height: 18, bgcolor: b.type === 'team' ? 'primary.100' : 'secondary.100' }} />
-                </Stack>
-              } />
-            ))}
-          </Tabs>
-        ) : null
+        <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ gap: 1, alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+          {books.length > 1 ? <Tabs value={activeBookIdx} onChange={(_, v) => setActiveBookIdx(v)} variant="scrollable" scrollButtons="auto">
+              {books.map((b) => (
+                <Tab key={b.id} label={
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <span>{b.entityName}</span>
+                    <Chip label={b.type === 'team' ? 'Team' : 'Verein'} size="small"
+                      sx={{ fontSize: '0.65rem', height: 18, bgcolor: b.type === 'team' ? 'primary.100' : 'secondary.100' }} />
+                  </Stack>
+                } />
+              ))}
+            </Tabs> : <Box />}
+          <Button variant="outlined" startIcon={<PaymentIcon />} onClick={() => navigate('/abrechnung')}>Abrechnung & Abo</Button>
+        </Stack>
       }
     >
       {loadingBooks ? (

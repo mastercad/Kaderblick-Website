@@ -84,6 +84,7 @@ security:
     - { path: ^/news,         roles: ROLE_USER }
     - { path: ^/api/public/platform-news, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/live-ticker/, roles: PUBLIC_ACCESS }
+    - { path: ^/api/billing/webhook/stripe$, roles: PUBLIC_ACCESS }
     # 2FA verify is public — the pending token acts as the credential
     - { path: ^/api/2fa/verify, roles: PUBLIC_ACCESS }
     # Email OTP send-login-code is public — pending token acts as the credential

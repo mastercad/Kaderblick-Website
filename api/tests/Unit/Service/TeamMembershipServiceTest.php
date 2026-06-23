@@ -31,7 +31,7 @@ use stdClass;
 #[AllowMockObjectsWithoutExpectations]
 class TeamMembershipServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
+    private EntityManagerInterface & MockObject $entityManager;
     private TeamMembershipService $service;
 
     protected function setUp(): void
@@ -517,7 +517,7 @@ class TeamMembershipServiceTest extends TestCase
 
     // ─── helpers ─────────────────────────────────────────────────────────────
 
-    private function createUser(int $id): User&MockObject
+    private function createUser(int $id): User & MockObject
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
@@ -527,7 +527,7 @@ class TeamMembershipServiceTest extends TestCase
 
     private int $teamCounter = 0;
 
-    private function createTeam(): Team&MockObject
+    private function createTeam(): Team & MockObject
     {
         $team = $this->createMock(Team::class);
         // Give each mock a unique string so array_unique(SORT_REGULAR) keeps distinct teams
@@ -537,12 +537,12 @@ class TeamMembershipServiceTest extends TestCase
         return $team;
     }
 
-    private function createClub(): Club&MockObject
+    private function createClub(): Club & MockObject
     {
         return $this->createMock(Club::class);
     }
 
-    private function createGame(?Team $homeTeam, ?Team $awayTeam): Game&MockObject
+    private function createGame(?Team $homeTeam, ?Team $awayTeam): Game & MockObject
     {
         $game = $this->createMock(Game::class);
         $game->method('getHomeTeam')->willReturn($homeTeam);
@@ -554,7 +554,7 @@ class TeamMembershipServiceTest extends TestCase
     /**
      * @param CalendarEventPermission[] $permissions
      */
-    private function createEvent(?Game $game = null, array $permissions = [], ?Tournament $tournament = null): CalendarEvent&MockObject
+    private function createEvent(?Game $game = null, array $permissions = [], ?Tournament $tournament = null): CalendarEvent & MockObject
     {
         $event = $this->createMock(CalendarEvent::class);
         $event->method('getGame')->willReturn($game);
@@ -569,7 +569,7 @@ class TeamMembershipServiceTest extends TestCase
         ?Team $team = null,
         ?Club $club = null,
         ?User $user = null,
-    ): CalendarEventPermission&MockObject {
+    ): CalendarEventPermission & MockObject {
         $permission = $this->createMock(CalendarEventPermission::class);
         $permission->method('getPermissionType')->willReturn($type);
         $permission->method('getTeam')->willReturn($team);
@@ -579,7 +579,7 @@ class TeamMembershipServiceTest extends TestCase
         return $permission;
     }
 
-    private function buildQueryBuilderMock(bool $found): QueryBuilder&MockObject
+    private function buildQueryBuilderMock(bool $found): QueryBuilder & MockObject
     {
         $query = $this->createMock(Query::class);
         $query->method('getOneOrNullResult')->willReturn($found ? new stdClass() : null);
@@ -640,7 +640,7 @@ class TeamMembershipServiceTest extends TestCase
 
     // --- Tournament helpers ---
 
-    private function createTournamentTeam(?Team $team): TournamentTeam&MockObject
+    private function createTournamentTeam(?Team $team): TournamentTeam & MockObject
     {
         $tt = $this->createMock(TournamentTeam::class);
         $tt->method('getTeam')->willReturn($team);
@@ -649,7 +649,7 @@ class TeamMembershipServiceTest extends TestCase
     }
 
     /** @param TournamentTeam[] $tournamentTeams */
-    private function createTournament(array $tournamentTeams): Tournament&MockObject
+    private function createTournament(array $tournamentTeams): Tournament & MockObject
     {
         $tournament = $this->createMock(Tournament::class);
         $tournament->method('getTeams')->willReturn(new ArrayCollection($tournamentTeams));

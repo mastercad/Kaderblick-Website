@@ -23,7 +23,7 @@ class JwtTokenExtractor implements TokenExtractorInterface
         $this->inner = new AuthorizationHeaderTokenExtractor($prefix, $headerName);
     }
 
-    public function extract(Request $request): string|false
+    public function extract(Request $request): string | false
     {
         $token = $this->inner->extract($request);
 

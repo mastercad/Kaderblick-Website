@@ -24,10 +24,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
 #[AllowMockObjectsWithoutExpectations]
 class TrainingSeriesUpdateServiceTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private CalendarEventService&MockObject $calendarEventService;
+    private EntityManagerInterface & MockObject $em;
+    private CalendarEventService & MockObject $calendarEventService;
     private TrainingSeriesUpdateService $service;
-    private User&MockObject $user;
+    private User & MockObject $user;
 
     protected function setUp(): void
     {

@@ -23,7 +23,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class GamesControllerTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $entityManager;
+    private EntityManagerInterface & MockObject $entityManager;
     private GamesController $controller;
 
     protected function setUp(): void
@@ -55,7 +55,7 @@ class GamesControllerTest extends TestCase
         $this->controller->setContainer($container);
     }
 
-    private function makeGame(bool $isFinished = false): Game&MockObject
+    private function makeGame(bool $isFinished = false): Game & MockObject
     {
         $game = $this->createMock(Game::class);
         $game->method('isFinished')->willReturn($isFinished);

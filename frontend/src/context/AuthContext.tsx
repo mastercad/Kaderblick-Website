@@ -18,6 +18,7 @@ interface User {
   isPlayer?: boolean;
   isKassenwart?: boolean;
   isZeugwart?: boolean;
+  billingTeams?: Array<{ id: number; name: string; status: string; access: boolean }>;
   needsRegistrationContext?: boolean;
   twoFactorEnabled?: boolean;
   twoFactorRequired?: boolean;

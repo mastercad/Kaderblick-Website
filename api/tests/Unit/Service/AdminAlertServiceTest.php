@@ -25,14 +25,14 @@ use Twig\Environment;
 #[AllowMockObjectsWithoutExpectations]
 class AdminAlertServiceTest extends TestCase
 {
-    private MailerInterface&MockObject $mailer;
-    private Environment&MockObject $twig;
-    private CacheInterface&MockObject $cache;
-    private LoggerInterface&MockObject $logger;
-    private EntityManagerInterface&MockObject $em;
-    private SystemAlertRepository&MockObject $alertRepository;
-    private UserRepository&MockObject $userRepository;
-    private PushNotificationService&MockObject $pushService;
+    private MailerInterface & MockObject $mailer;
+    private Environment & MockObject $twig;
+    private CacheInterface & MockObject $cache;
+    private LoggerInterface & MockObject $logger;
+    private EntityManagerInterface & MockObject $em;
+    private SystemAlertRepository & MockObject $alertRepository;
+    private UserRepository & MockObject $userRepository;
+    private PushNotificationService & MockObject $pushService;
     private AdminAlertService $service;
 
     protected function setUp(): void
@@ -96,12 +96,12 @@ class AdminAlertServiceTest extends TestCase
                         return $this;
                     }
 
-                    public function expiresAfter(int|DateInterval|null $time): static
+                    public function expiresAfter(int | DateInterval | null $time): static
                     {
                         return $this;
                     }
 
-                    public function tag(string|iterable $tags): static
+                    public function tag(string | iterable $tags): static
                     {
                         return $this;
                     }
@@ -246,12 +246,12 @@ class AdminAlertServiceTest extends TestCase
                         return $this;
                     }
 
-                    public function expiresAfter(int|DateInterval|null $time): static
+                    public function expiresAfter(int | DateInterval | null $time): static
                     {
                         return $this;
                     }
 
-                    public function tag(string|iterable $tags): static
+                    public function tag(string | iterable $tags): static
                     {
                         return $this;
                     }
@@ -302,12 +302,12 @@ class AdminAlertServiceTest extends TestCase
                         return $this;
                     }
 
-                    public function expiresAfter(int|DateInterval|null $time): static
+                    public function expiresAfter(int | DateInterval | null $time): static
                     {
                         return $this;
                     }
 
-                    public function tag(string|iterable $tags): static
+                    public function tag(string | iterable $tags): static
                     {
                         return $this;
                     }
@@ -374,12 +374,12 @@ class AdminAlertServiceTest extends TestCase
                             return $this;
                         }
 
-                        public function expiresAfter(int|DateInterval|null $time): static
+                        public function expiresAfter(int | DateInterval | null $time): static
                         {
                             return $this;
                         }
 
-                        public function tag(string|iterable $tags): static
+                        public function tag(string | iterable $tags): static
                         {
                             return $this;
                         }

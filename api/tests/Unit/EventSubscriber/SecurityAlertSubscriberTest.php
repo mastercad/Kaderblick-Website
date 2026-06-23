@@ -19,8 +19,8 @@ use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 #[AllowMockObjectsWithoutExpectations]
 class SecurityAlertSubscriberTest extends TestCase
 {
-    private AdminAlertService&MockObject $adminAlertService;
-    private LoggerInterface&MockObject $securityLogger;
+    private AdminAlertService & MockObject $adminAlertService;
+    private LoggerInterface & MockObject $securityLogger;
     private SecurityAlertSubscriber $subscriber;
 
     protected function setUp(): void

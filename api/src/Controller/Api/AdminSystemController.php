@@ -37,6 +37,7 @@ class AdminSystemController extends AbstractController
         'app:surveys:send-reminders' => ['label' => 'Umfrage-Erinnerungen senden',   'maxAgeMin' => 1440],
         'app:collect-weather-data-for-events' => ['label' => 'Wetterdaten abrufen',           'maxAgeMin' => 1440],
         'app:xp:award-titles' => ['label' => 'Titel vergeben',                'maxAgeMin' => 1500],
+        'app:billing:process' => ['label' => 'Abrechnung verarbeiten',         'maxAgeMin' => 1500],
         'app:health:monitor' => ['label' => 'System-Gesundheitscheck',       'maxAgeMin' => 10],
         'app:recalc-player-stats' => ['label' => 'Spieler-Stats (Backfill)',      'maxAgeMin' => null],
     ];
@@ -591,7 +592,7 @@ class AdminSystemController extends AbstractController
      * GET /api/admin/system/backup/download/{filename}
      */
     #[Route('/backup/download/{filename}', name: 'api_admin_system_backup_download', methods: ['GET'])]
-    public function downloadBackup(string $filename): StreamedResponse|JsonResponse
+    public function downloadBackup(string $filename): StreamedResponse | JsonResponse
     {
         // Verhindere Path-Traversal-Angriffe
         if (!preg_match('/^backup_[\w.-]+\.sql$/', $filename)) {

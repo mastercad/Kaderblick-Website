@@ -22,9 +22,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class DemoRequestRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
-    private QueryBuilder&MockObject $qb;
-    private Query&MockObject $query;
+    private EntityManagerInterface & MockObject $em;
+    private QueryBuilder & MockObject $qb;
+    private Query & MockObject $query;
     private DemoRequestRepository $repository;
 
     /** @var array<string, mixed> */

@@ -41,12 +41,12 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class TeamSizeGuideControllerTest extends TestCase
 {
-    private CoachTeamPlayerService&MockObject $coachTeamPlayerService;
-    private SizeGuidePdfService&MockObject $sizeGuidePdfService;
-    private PushNotificationService&MockObject $pushNotificationService;
-    private EntityManagerInterface&MockObject $em;
-    private CalendarEventTypeRepository&MockObject $calendarEventTypeRepository;
-    private User&MockObject $loggedInUser;
+    private CoachTeamPlayerService & MockObject $coachTeamPlayerService;
+    private SizeGuidePdfService & MockObject $sizeGuidePdfService;
+    private PushNotificationService & MockObject $pushNotificationService;
+    private EntityManagerInterface & MockObject $em;
+    private CalendarEventTypeRepository & MockObject $calendarEventTypeRepository;
+    private User & MockObject $loggedInUser;
     private TeamSizeGuideController $controller;
 
     protected function setUp(): void
@@ -106,7 +106,7 @@ class TeamSizeGuideControllerTest extends TestCase
         ?string $socksSize = 'M',
         ?string $jacketSize = 'L',
         array $roles = ['ROLE_USER'],
-    ): User&MockObject {
+    ): User & MockObject {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn($id);
         $user->method('getFullName')->willReturn($fullName);
@@ -123,7 +123,7 @@ class TeamSizeGuideControllerTest extends TestCase
     /**
      * Erstellt einen UserRelation-Mock mit einem bestimmten Relationstyp-Identifier.
      */
-    private function makeRelation(string $identifier, User $relUser): UserRelation&MockObject
+    private function makeRelation(string $identifier, User $relUser): UserRelation & MockObject
     {
         $relType = $this->createMock(RelationType::class);
         $relType->method('getIdentifier')->willReturn($identifier);
@@ -140,7 +140,7 @@ class TeamSizeGuideControllerTest extends TestCase
      *
      * @param UserRelation[] $relations
      */
-    private function makePlayer(string $fullname, array $relations = []): Player&MockObject
+    private function makePlayer(string $fullname, array $relations = []): Player & MockObject
     {
         $player = $this->createMock(Player::class);
         $player->method('getFullname')->willReturn($fullname);
@@ -154,7 +154,7 @@ class TeamSizeGuideControllerTest extends TestCase
      *
      * @param UserRelation[] $relations
      */
-    private function makeCoach(string $fullName, array $relations = []): Coach&MockObject
+    private function makeCoach(string $fullName, array $relations = []): Coach & MockObject
     {
         $coach = $this->createMock(Coach::class);
         $coach->method('getFullName')->willReturn($fullName);
@@ -170,7 +170,7 @@ class TeamSizeGuideControllerTest extends TestCase
         Player $player,
         ?DateTime $start = null,
         ?DateTime $end = null,
-    ): PlayerTeamAssignment&MockObject {
+    ): PlayerTeamAssignment & MockObject {
         $assignment = $this->createMock(PlayerTeamAssignment::class);
         $assignment->method('getPlayer')->willReturn($player);
         $assignment->method('getStartDate')->willReturn($start);
@@ -186,7 +186,7 @@ class TeamSizeGuideControllerTest extends TestCase
         Coach $coach,
         ?DateTime $start = null,
         ?DateTime $end = null,
-    ): CoachTeamAssignment&MockObject {
+    ): CoachTeamAssignment & MockObject {
         $assignment = $this->createMock(CoachTeamAssignment::class);
         $assignment->method('getCoach')->willReturn($coach);
         $assignment->method('getStartDate')->willReturn($start);
@@ -206,7 +206,7 @@ class TeamSizeGuideControllerTest extends TestCase
         string $name,
         array $playerAssignments = [],
         array $coachAssignments = [],
-    ): Team&MockObject {
+    ): Team & MockObject {
         $team = $this->createMock(Team::class);
         $team->method('getId')->willReturn($id);
         $team->method('getName')->willReturn($name);

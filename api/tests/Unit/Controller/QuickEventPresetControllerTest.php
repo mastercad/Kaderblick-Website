@@ -26,11 +26,11 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[AllowMockObjectsWithoutExpectations]
 class QuickEventPresetControllerTest extends TestCase
 {
-    private QuickEventPresetRepository&MockObject $presetRepo;
-    private UserRepository&MockObject $userRepo;
-    private EntityManagerInterface&MockObject $em;
+    private QuickEventPresetRepository & MockObject $presetRepo;
+    private UserRepository & MockObject $userRepo;
+    private EntityManagerInterface & MockObject $em;
     private QuickEventPresetController $controller;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     protected function setUp(): void
     {
@@ -73,7 +73,7 @@ class QuickEventPresetControllerTest extends TestCase
     }
 
     /** Build a User stub with a coach relation so assertAccess() passes. */
-    private function makeCoachUser(int $id = 1): User&MockObject
+    private function makeCoachUser(int $id = 1): User & MockObject
     {
         $relationType = $this->createStub(RelationType::class);
         $relationType->method('getCategory')->willReturn('coach');
@@ -89,7 +89,7 @@ class QuickEventPresetControllerTest extends TestCase
     }
 
     /** Build a User stub with no coach relation. */
-    private function makeRegularUser(int $id = 99): User&MockObject
+    private function makeRegularUser(int $id = 99): User & MockObject
     {
         $relationType = $this->createStub(RelationType::class);
         $relationType->method('getCategory')->willReturn('player');
@@ -115,7 +115,7 @@ class QuickEventPresetControllerTest extends TestCase
         return $request;
     }
 
-    private function makePreset(User $owner, int $id = 1): QuickEventPreset&MockObject
+    private function makePreset(User $owner, int $id = 1): QuickEventPreset & MockObject
     {
         $preset = $this->createMock(QuickEventPreset::class);
         $preset->method('getOwner')->willReturn($owner);

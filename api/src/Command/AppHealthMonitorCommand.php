@@ -47,6 +47,7 @@ class AppHealthMonitorCommand extends AbstractCronCommand
         'app:surveys:send-reminders' => 1440,  // täglich erwartet
         'app:collect-weather-data-for-events' => 1440,  // täglich erwartet
         'app:xp:award-titles' => 1500,  // täglich erwartet (24h + 1h Puffer)
+        'app:billing:process' => 1500,  // täglich erwartet (24h + 1h Puffer)
     ];
 
     /** Festplatten-Schwellwert in % (Belegung ≥ dieses Werts → potenziell kritisch) */

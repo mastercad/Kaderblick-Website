@@ -25,14 +25,13 @@ class StaffTeamAssignmentTypeFixtures extends Fixture implements FixtureGroupInt
         ];
 
         foreach ($types as $type) {
-            $existing = $manager->getRepository(StaffTeamAssignmentType::class)->findOneBy(['name' => $type['name']]);
-            if (!$existing) {
-                $assignmentType = new StaffTeamAssignmentType();
-                $assignmentType->setName($type['name']);
-                $assignmentType->setDescription($type['description']);
-                $assignmentType->setActive($type['active']);
-                $manager->persist($assignmentType);
-            }
+            $assignmentType = $manager->getRepository(StaffTeamAssignmentType::class)
+                ->findOneBy(['name' => $type['name']]) ?? new StaffTeamAssignmentType();
+
+            $assignmentType->setName($type['name']);
+            $assignmentType->setDescription($type['description']);
+            $assignmentType->setActive($type['active']);
+            $manager->persist($assignmentType);
         }
 
         $manager->flush();

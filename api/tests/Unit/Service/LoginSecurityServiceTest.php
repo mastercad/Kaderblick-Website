@@ -21,9 +21,9 @@ use Symfony\Contracts\Cache\CacheInterface;
 #[AllowMockObjectsWithoutExpectations]
 class LoginSecurityServiceTest extends TestCase
 {
-    private CacheInterface&MockObject $cache;
-    private EntityManagerInterface&MockObject $em;
-    private MailerInterface&MockObject $mailer;
+    private CacheInterface & MockObject $cache;
+    private EntityManagerInterface & MockObject $em;
+    private MailerInterface & MockObject $mailer;
     private LoginSecurityService $service;
 
     protected function setUp(): void

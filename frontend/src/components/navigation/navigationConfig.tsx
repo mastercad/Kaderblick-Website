@@ -41,6 +41,7 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import LocalBarIcon from '@mui/icons-material/LocalBar';
 import GavelIcon from '@mui/icons-material/Gavel';
+import PaymentsIcon from '@mui/icons-material/Payments';
 import { useAuth } from '../../context/AuthContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -191,6 +192,7 @@ export function getAdminMenuSections(isSuperAdmin: boolean): AdminSection[] {
         ...(isSuperAdmin ? [{ label: 'Nutzeraktivität',      page: 'admin/activity',        icon: <BarChartIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'System-Einstellungen', page: 'admin/system-settings', icon: <SettingsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
         ...(isSuperAdmin ? [{ label: 'System-Wartung',       page: 'admin/system-maintenance', icon: <BuildIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
+        ...(isSuperAdmin ? [{ label: 'Abrechnung',            page: 'admin/abrechnung', icon: <PaymentsIcon fontSize="small" sx={{ color: 'text.primary', mr: 1 }} /> }] : []),
       ],
     },
     {
@@ -380,6 +382,7 @@ export function useNavConfig() {
       { key: 'mein-verein', label: 'Mein Verein',  route: '/mein-verein' },
       { key: 'mein-deckel', label: 'Mein Deckel',  route: '/mein-deckel' },
       ...(isAdmin || isKassenwart ? [{ key: 'kassenbuch', label: 'Kassenbuch', route: '/kassenbuch' }] : []),
+      ...(isKassenwart ? [{ key: 'abrechnung', label: 'Abrechnung & Abo', route: '/abrechnung' }] : []),
       ...(isAdmin || isKassenwart || isCoach ? [{ key: 'strafenkatalog', label: 'Strafenkatalog', route: '/strafenkatalog' }] : []),
       ...(isAdmin || isZeugwart || isCoach ? [{ key: 'inventar', label: 'Inventar', route: '/inventar' }] : []),
     ],

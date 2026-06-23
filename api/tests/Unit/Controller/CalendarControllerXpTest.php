@@ -28,9 +28,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
 class CalendarControllerXpTest extends TestCase
 {
     private CalendarEventWriteController $controller;
-    private EventDispatcherInterface&MockObject $dispatcher;
-    private CalendarEventService&MockObject $calendarEventService;
-    private AuthorizationCheckerInterface&MockObject $authChecker;
+    private EventDispatcherInterface & MockObject $dispatcher;
+    private CalendarEventService & MockObject $calendarEventService;
+    private AuthorizationCheckerInterface & MockObject $authChecker;
 
     protected function setUp(): void
     {

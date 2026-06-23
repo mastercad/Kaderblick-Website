@@ -228,7 +228,7 @@ class WatchlistController extends AbstractController
     /**
      * Loads a watchlist entry owned by the current user or returns a 404/403 response.
      */
-    private function getOwnEntryOr404(int $id): Watchlist|JsonResponse
+    private function getOwnEntryOr404(int $id): Watchlist | JsonResponse
     {
         $entry = $this->watchlistRepository->find($id);
         if (null === $entry) {

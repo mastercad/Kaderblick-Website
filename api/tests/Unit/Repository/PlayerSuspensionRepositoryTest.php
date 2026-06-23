@@ -23,9 +23,9 @@ use PHPUnit\Framework\TestCase;
 #[AllowMockObjectsWithoutExpectations]
 class PlayerSuspensionRepositoryTest extends TestCase
 {
-    private EntityManagerInterface&MockObject $em;
+    private EntityManagerInterface & MockObject $em;
     /** @var ClassMetadata<PlayerSuspension>&MockObject */
-    private ClassMetadata&MockObject $classMetadata;
+    private ClassMetadata & MockObject $classMetadata;
 
     protected function setUp(): void
     {
