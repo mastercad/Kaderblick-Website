@@ -62,6 +62,19 @@ final class BillingController extends AbstractController
         }
     }
 
+    #[Route('/checkout/restart', methods: ['POST'])]
+    public function restartCheckout(Request $request): JsonResponse
+    {
+        try {
+            $data = $request->toArray();
+            $ids = array_values(array_map('intval', is_array($data['teamIds'] ?? null) ? $data['teamIds'] : []));
+
+            return $this->json(['url' => $this->billing->restartPendingCheckout($this->requireUser(), $ids)]);
+        } catch (RuntimeException $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
     #[Route('/subscriptions/{id}/portal', methods: ['POST'])]
     public function portal(int $id): JsonResponse
     {

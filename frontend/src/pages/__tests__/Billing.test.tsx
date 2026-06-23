@@ -64,6 +64,22 @@ describe('Abrechnung für Kassenwarte', () => {
     expect(screen.getByText(/Sobald Abos verfügbar sind/i)).toBeInTheDocument();
   });
 
+  it('ermöglicht den Neustart eines hängen gebliebenen Checkouts', async () => {
+    await renderWith({
+      teams: [{ id: 3, name: 'SpG SG Wurgwitz/SG 90 Braunsdorf', status: 'pending', access: true }],
+    });
+
+    expect(screen.getByText(/Zahlungsabschluss.*wurde nicht abgeschlossen/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Kassenwart/i)).not.toBeInTheDocument();
+
+    mockApiJson.mockReturnValueOnce(new Promise(() => {}));
+    fireEvent.click(screen.getByRole('button', { name: /Zahlungsabschluss neu starten/i }));
+    await waitFor(() => expect(mockApiJson).toHaveBeenLastCalledWith('/api/billing/checkout/restart', {
+      method: 'POST',
+      body: { teamIds: [3] },
+    }));
+  });
+
   it('zeigt bestehende Abonnements und Rechnungen', async () => {
     await renderWith({
       teams: [{ id: 3, name: 'U15', status: 'active', access: true, paidThrough: '2026-07-23T12:00:00Z' }],

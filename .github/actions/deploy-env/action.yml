@@ -66,6 +66,12 @@ inputs:
   healthcheck_url:
     description: 'URL für Healthchecks (z.B. http://localhost:18081/api/health) (für extra_docker_env)'
     required: true
+  stripe_secret_key:
+    description: 'Stripe Secret Key'
+    required: true
+  stripe_webhook_secret:
+    description: 'Stripe Webhook Secret'
+    required: true
 
 runs:
   using: composite
@@ -110,12 +116,16 @@ runs:
           if [ -n "${{ inputs.frontend_url }}" ]; then
             sed -i "s|^FRONTEND_URL=.*$|FRONTEND_URL=${{ inputs.frontend_url }}|" "$RELEASE_DIR/api/.env"
           fi
-          echo "APP_DEBUG=0"                                     >> "$RELEASE_DIR/api/.env"
-          echo "APP_SECRET=${{ env.APP_SECRET }}"               >> "$RELEASE_DIR/api/.env"
-          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}" >> "$RELEASE_DIR/api/.env"
-          echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}" > "$RELEASE_DIR/frontend/.env"
+          echo "APP_DEBUG=0"                                                >> "$RELEASE_DIR/api/.env"
+          echo "APP_SECRET=${{ env.APP_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
+          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"             >> "$RELEASE_DIR/api/.env"
+          echo "STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}"          >> "$RELEASE_DIR/api/.env"
+          echo "STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}"  >> "$RELEASE_DIR/api/.env"
+          echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}"            > "$RELEASE_DIR/frontend/.env"
+
           touch "$RELEASE_DIR/api/.env.prod.local"
           touch "$RELEASE_DIR/api/.env.staging.local"
+  
           mkdir -p "${{ steps.prepare-key.outputs.key_dir }}"
 
     - name: Deploy decrypt key

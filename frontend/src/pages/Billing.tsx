@@ -23,12 +23,18 @@ export default function Billing() {
   const load = () => apiJson<Overview>('/api/billing/overview').then(setData).catch(e => setError(getApiErrorMessage(e)));
   useEffect(() => { void load(); }, []);
   const selectable = useMemo(() => data?.teams.filter(team => team.status === 'unpaid') ?? [], [data]);
+  const pendingTeams = useMemo(() => data?.teams.filter(team => team.status === 'pending') ?? [], [data]);
   const trialTeams = useMemo(() => data?.teams.filter(team => team.status === 'trial' || team.status === 'paused') ?? [], [data]);
   const total = (data?.unitAmount ?? 1000) * selected.length;
 
   const checkout = async () => {
     setBusy(true); setError('');
     try { const result = await apiJson<{ url: string }>('/api/billing/checkout', { method: 'POST', body: { teamIds: selected } }); window.location.assign(result.url); }
+    catch (e) { setError(getApiErrorMessage(e)); setBusy(false); }
+  };
+  const restartCheckout = async () => {
+    setBusy(true); setError('');
+    try { const result = await apiJson<{ url: string }>('/api/billing/checkout/restart', { method: 'POST', body: { teamIds: pendingTeams.map(team => team.id) } }); window.location.assign(result.url); }
     catch (e) { setError(getApiErrorMessage(e)); setBusy(false); }
   };
   const portal = async (id: number) => {
@@ -61,9 +67,14 @@ export default function Billing() {
         <Button variant="contained" startIcon={<CreditCardIcon />} disabled={!selected.length || busy || !data?.stripeConfigured} onClick={checkout}>{busy ? 'Bitte warten …' : `Zahlungsart wählen – ${money(total)} / Monat`}</Button>
         {!data?.stripeConfigured && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Sobald Abos verfügbar sind, kannst du hier deine gewünschte Zahlungsart auswählen.</Typography>}
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>Mögliche Zahlungsarten sind PayPal, SEPA-Lastschrift, Karte, Apple Pay und Google Pay.</Typography>
-      </> : trialTeams.length > 0 ? <Alert severity="info">
+      </> : pendingTeams.length > 0 ? <Alert severity="warning">
+        <Stack spacing={1} sx={{ alignItems: 'flex-start' }}>
+          <span>Der Zahlungsabschluss für {pendingTeams.map(team => team.name).join(', ')} wurde nicht abgeschlossen.</span>
+          <Button variant="contained" color="warning" disabled={busy || !data?.stripeConfigured} onClick={restartCheckout}>{busy ? 'Bitte warten …' : 'Zahlungsabschluss neu starten'}</Button>
+        </Stack>
+      </Alert> : trialTeams.length > 0 ? <Alert severity="info">
         Für {trialTeams.map(team => team.name).join(', ')} gilt aktuell eine kostenlose Testphase. Deshalb ist kein Abo erforderlich und es wird bewusst kein Zahlungsabschluss angeboten. Sobald die Testphase endet, erscheint hier die Team-Auswahl mit dem Button „Zahlungsart wählen“.
-      </Alert> : data?.subscriptions.length ? <Alert severity="success">Alle von dir verwalteten Teams sind bereits einem Abonnement zugeordnet. Zahlungsart, Rechnungen und Kündigung findest du weiter unten.</Alert> : <Alert severity="warning">Es wurde kein Team gefunden, für das du ein Abo abschließen darfst. Prüfe deine aktive Kassenwart-Zuweisung.</Alert>}
+      </Alert> : data?.subscriptions.length ? <Alert severity="success">Alle von dir verwalteten Teams sind bereits einem Abonnement zugeordnet. Zahlungsart, Rechnungen und Kündigung findest du weiter unten.</Alert> : data?.teams.length ? <Alert severity="info">Für die angezeigten Teams kann derzeit kein neues Abonnement abgeschlossen werden.</Alert> : <Alert severity="warning">Für dein Konto sind keine abrechenbaren Teams verfügbar.</Alert>}
     </CardContent></Card>
 
     {data?.subscriptions.map(subscription => <Card key={subscription.id} sx={{ mb: 2 }}><CardContent>

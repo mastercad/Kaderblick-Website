@@ -11,24 +11,64 @@
             color: #2d2d2d;
             line-height: 1.45;
             background: #fff;
-            padding: 0 2mm;
+            padding: 24mm 2mm 11mm;
         }
 
         @page {
-            margin: 16mm 16mm 22mm 16mm;
             size: A4 landscape;
+            margin: 28mm 16mm 18mm 16mm;
         }
 
         /* ══════════════════════════
-           ACCENT BAR
+           REPEATING BRAND HEADER
            ══════════════════════════ */
-        .accent-bar {
+        .brand-header {
             position: fixed;
-            top: -16mm;
-            left: -16mm;
-            right: -16mm;
-            background: linear-gradient(90deg, #016405, #02a808);
-            height: 6px;
+            top: 0;
+            left: 0;
+            height: 18mm;
+            padding: 3mm 16mm;
+            background: #016405;
+            color: #fff;
+            display: table;
+            width: 297mm;
+            border-bottom: 2px solid #02a808;
+        }
+        .brand-header-left,
+        .brand-header-right {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .brand-header-right {
+            text-align: right;
+            font-size: 8pt;
+            line-height: 1.45;
+            color: #dff3df;
+        }
+        .brand-logo,
+        .brand-name {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .brand-logo {
+            width: 13mm;
+            padding-right: 3mm;
+        }
+        .brand-logo img {
+            width: 11mm;
+            height: 11mm;
+        }
+        .brand-wordmark {
+            font-size: 15pt;
+            font-weight: bold;
+            letter-spacing: 1.1px;
+            line-height: 1;
+        }
+        .brand-domain {
+            margin-top: 2px;
+            font-size: 8pt;
+            color: #dff3df;
+            letter-spacing: 0.3px;
         }
 
         /* ══════════════════════════
@@ -37,7 +77,7 @@
         .header {
             display: table;
             width: 100%;
-            margin: 14px 0 12px 0;
+            margin: 0 0 12px 0;
         }
         .header-left {
             display: table-cell;
@@ -191,7 +231,7 @@
             font-size: 8.5pt;
         }
         table.player-table thead tr {
-            background: linear-gradient(135deg, #016405 0%, #02a808 100%);
+            background: #016405;
             color: #fff;
         }
         table.player-table thead th {
@@ -279,14 +319,13 @@
            ══════════════════════════ */
         .footer {
             position: fixed;
-            bottom: -22mm;
-            left: -16mm;
-            right: -16mm;
-            height: 22mm;
+            bottom: 0;
+            left: 0;
+            height: 10mm;
             background: #f5f9f5;
             border-top: 1.5px solid #d5e8d5;
             display: table;
-            width: 100%;
+            width: 297mm;
             padding: 0 16mm;
         }
         .footer-left {
@@ -341,22 +380,35 @@
 </head>
 <body>
 
-    {# ─── Accent bar ─── #}
-    <div class="accent-bar"></div>
+    {# ─── Repeated Kaderblick brand header ─── #}
+    <div class="brand-header">
+        <div class="brand-header-left">
+            <table style="border-collapse:collapse;">
+                <tr>
+                    {% if logoBase64 %}
+                    <td class="brand-logo"><img src="{{ logoBase64 }}" alt="Kaderblick Logo"></td>
+                    {% endif %}
+                    <td class="brand-name">
+                        <div class="brand-wordmark">KADERBLICK</div>
+                        <div class="brand-domain">kaderblick.de</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="brand-header-right">
+            Teamorganisation einfach gemacht<br>
+            Bestellübersicht Ausrüstung
+        </div>
+    </div>
 
     {# ─── Header ─── #}
     <div class="header">
         <div class="header-left">
             <table style="border-collapse:collapse;">
                 <tr>
-                    {% if logoBase64 %}
-                    <td class="header-logo">
-                        <img src="{{ logoBase64 }}" alt="Logo">
-                    </td>
-                    {% endif %}
                     <td class="header-text">
                         <div class="header-title">Bestellübersicht Ausrüstung</div>
-                        <div class="header-subtitle">Kleidergrößen &amp; Schuhgrößen der Spieler</div>
+                        <div class="header-subtitle">Ausgewählte Artikel für Spieler, Trainer &amp; Staff</div>
                     </td>
                 </tr>
             </table>
@@ -365,7 +417,7 @@
             <div class="team-badge">{{ teamName }}</div>
             <div class="header-meta">
                 Erstellt: {{ generatedAt }} Uhr<br>
-                Spieleranzahl: <strong>{{ totalPlayers }}</strong>
+                Personen: <strong>{{ totalPlayers }}</strong> &nbsp;·&nbsp; Artikel: <strong>{{ totalItems }}</strong>
             </div>
         </div>
     </div>
@@ -375,46 +427,41 @@
     {# ─── Stats bar ─── #}
     <div class="stats-bar">
         {% set shirtCount = summaries.shirt|length > 0 ? summaries.shirt|reduce((carry, v) => carry + v, 0) : 0 %}
-        {% set missingShirt = totalPlayers - shirtCount %}
         {% set shortsCount = summaries.shorts|length > 0 ? summaries.shorts|reduce((carry, v) => carry + v, 0) : 0 %}
-        {% set missingShorts = totalPlayers - shortsCount %}
         {% set shoeCount = summaries.shoes|length > 0 ? summaries.shoes|reduce((carry, v) => carry + v, 0) : 0 %}
-        {% set missingShoes = totalPlayers - shoeCount %}
 
         <div class="stats-item">
             <strong>{{ totalPlayers }}</strong>
-            Spieler gesamt
+            Personen
+        </div>
+        <div class="stats-item">
+            <strong>{{ totalItems }}</strong>
+            Artikel gesamt
         </div>
         <div class="stats-item">
             <strong>{{ shirtCount }}</strong>
-            mit Trikotgröße
+            Trikots
         </div>
         <div class="stats-item">
             <strong>{{ shortsCount }}</strong>
-            mit Shortsgröße
+            Hosen
         </div>
         <div class="stats-item">
             <strong>{{ shoeCount }}</strong>
-            mit Schuhgröße
+            Schuhe
         </div>
-        {% if missingShirt > 0 or missingShorts > 0 or missingShoes > 0 %}
-        <div class="stats-item" style="color:#e65100;">
-            <strong style="color:#e65100;">{{ missingShirt + missingShorts + missingShoes }}</strong>
-            fehlende Angaben
-        </div>
-        {% endif %}
     </div>
 
     {# ─── Warning if incomplete data ─── #}
     {% if missingAny|length > 0 %}
     <div class="warning-box">
-        <strong>(!)</strong> <strong>{{ missingAny|length }} Spieler</strong> haben unvollständige Größenangaben (markiert mit „–").
-        Bitte vervollständige die fehlenden Daten im Spielerprofil.
+        <strong>(!)</strong> Bei <strong>{{ missingAny|length }} Personen</strong> fehlt eine Größe für einen ausgewählten Artikel.
+        Bitte vervollständige die Angaben vor der Bestellung.
     </div>
     {% endif %}
 
     {# ─── Summary Cards ─── #}
-    <div class="section-title">Zusammenfassung nach Größen</div>
+    <div class="section-title">Bestellmengen nach Größen</div>
     <div class="summary-grid">
         <div class="summary-cell">
             <div class="summary-label">Trikot</div>
@@ -476,12 +523,12 @@
     <hr class="divider">
 
     {# ─── Player Table ─── #}
-    <div class="section-title">Einzelübersicht Spieler</div>
+    <div class="section-title">Bestellung pro Person</div>
     <table class="player-table">
         <thead>
             <tr>
                 <th style="width:22px;">#</th>
-                <th>Name</th>
+                <th>Name / Rolle</th>
                 <th class="center">Trikot</th>
                 <th class="center">Shorts</th>
                 <th class="center">Jacke</th>
@@ -493,40 +540,50 @@
             {% for i, player in players %}
             <tr>
                 <td class="number center">{{ i + 1 }}</td>
-                <td class="name">{{ player.name ?: '–' }}</td>
+                <td class="name">{{ player.name ?: '–' }}{% if player.role_label is defined %}<br><span style="font-size:7pt;color:#888;font-weight:normal">{{ player.role_label }}</span>{% endif %}</td>
                 <td class="center">
-                    {% if player.shirt_size %}
+                    {% if 'shirt_size' not in player.ordered_items %}
+                        <span class="size-missing">—</span>
+                    {% elseif player.shirt_size and player.shirt_size != '0' %}
                         <span class="size-value">{{ player.shirt_size }}</span>
                     {% else %}
-                        <span class="size-missing">–</span>
+                        <span class="size-warn">fehlt</span>
                     {% endif %}
                 </td>
                 <td class="center">
-                    {% if player.shorts_size %}
+                    {% if 'shorts_size' not in player.ordered_items %}
+                        <span class="size-missing">—</span>
+                    {% elseif player.shorts_size and player.shorts_size != '0' %}
                         <span class="size-value">{{ player.shorts_size }}</span>
                     {% else %}
-                        <span class="size-missing">–</span>
+                        <span class="size-warn">fehlt</span>
                     {% endif %}
                 </td>
                 <td class="center">
-                    {% if player.jacket_size %}
+                    {% if 'jacket_size' not in player.ordered_items %}
+                        <span class="size-missing">—</span>
+                    {% elseif player.jacket_size and player.jacket_size != '0' %}
                         <span class="size-value">{{ player.jacket_size }}</span>
                     {% else %}
-                        <span class="size-missing">–</span>
+                        <span class="size-warn">fehlt</span>
                     {% endif %}
                 </td>
                 <td class="center">
-                    {% if player.socks_size %}
+                    {% if 'socks_size' not in player.ordered_items %}
+                        <span class="size-missing">—</span>
+                    {% elseif player.socks_size and player.socks_size != '0' %}
                         <span class="size-value">{{ player.socks_size }}</span>
                     {% else %}
-                        <span class="size-missing">–</span>
+                        <span class="size-warn">fehlt</span>
                     {% endif %}
                 </td>
                 <td class="center">
-                    {% if player.shoe_size %}
+                    {% if 'shoe_size' not in player.ordered_items %}
+                        <span class="size-missing">—</span>
+                    {% elseif player.shoe_size and player.shoe_size != '0' %}
                         <span class="size-value">{{ player.shoe_size }}</span>
                     {% else %}
-                        <span class="size-missing">–</span>
+                        <span class="size-warn">fehlt</span>
                     {% endif %}
                 </td>
             </tr>
@@ -537,10 +594,10 @@
     {# ─── Footer ─── #}
     <div class="footer">
         <div class="footer-left">
-            <span class="footer-brand">KADERBLICK</span> &mdash; Bestellübersicht {{ teamName }}
+            <span class="footer-brand">Erstellt mit Kaderblick</span> &middot; kaderblick.de
         </div>
         <div class="footer-right">
-            Erstellt am {{ generatedAt }} Uhr &nbsp;|&nbsp; Vertraulich – nur für interne Vereinsnutzung
+            {{ teamName }} &nbsp;|&nbsp; Erstellt am {{ generatedAt }} Uhr &nbsp;|&nbsp; Interne Vereinsnutzung
         </div>
     </div>
 

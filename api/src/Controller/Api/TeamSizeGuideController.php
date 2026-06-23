@@ -204,8 +204,8 @@ class TeamSizeGuideController extends AbstractController
     }
 
     /** Generate and download a PDF order overview for a specific team's sizes. */
-    #[Route('/api/teams/{teamId}/size-guide-pdf', name: 'api_teams_size_guide_pdf', methods: ['GET'])]
-    public function sizeGuidePdf(int $teamId): Response
+    #[Route('/api/teams/{teamId}/size-guide-pdf', name: 'api_teams_size_guide_pdf', methods: ['GET', 'POST'])]
+    public function sizeGuidePdf(int $teamId, ?Request $request = null): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -224,7 +224,8 @@ class TeamSizeGuideController extends AbstractController
             throw new NotFoundHttpException('Team not found or access denied.');
         }
 
-        $players = [];
+        $members = [];
+        $addedUserIds = [];
         $now = new DateTime();
 
         foreach ($targetTeam->getPlayerTeamAssignments() as $teamAssignment) {
@@ -243,23 +244,128 @@ class TeamSizeGuideController extends AbstractController
             foreach ($player->getUserRelations() as $playerRelation) {
                 /** @var UserRelation $playerRelation */
                 if ('self_player' !== $playerRelation->getRelationType()->getIdentifier()) {
-                    continue 2;
+                    continue;
                 }
 
                 $playerUser = $playerRelation->getUser();
-                $players[] = [
-                    'id' => $player->getId(),
+                $addedUserIds[] = $playerUser->getId();
+                $members[] = [
+                    'id' => $playerUser->getId(),
                     'name' => $player->getFullname(),
+                    'role' => 'player',
+                    'role_label' => 'Spieler',
                     'shorts_size' => $playerUser->getPantsSize(),
                     'shirt_size' => $playerUser->getShirtSize(),
                     'shoe_size' => null !== $playerUser->getShoeSize() ? (string) $playerUser->getShoeSize() : null,
                     'socks_size' => $playerUser->getSocksSize(),
                     'jacket_size' => $playerUser->getJacketSize(),
                 ];
+                break;
             }
         }
 
-        $pdfContent = $this->sizeGuidePdfService->generatePdf($targetTeam->getName(), $players);
+        foreach ($targetTeam->getCoachTeamAssignments() as $coachAssignment) {
+            $start = $coachAssignment->getStartDate();
+            $end = $coachAssignment->getEndDate();
+            if (($start && $start > $now) || ($end && $end < $now)) {
+                continue;
+            }
+
+            $coach = $coachAssignment->getCoach();
+            foreach ($coach->getUserRelations() as $coachRelation) {
+                if ('self_coach' !== $coachRelation->getRelationType()->getIdentifier()) {
+                    continue;
+                }
+                $coachUser = $coachRelation->getUser();
+                $addedUserIds[] = $coachUser->getId();
+                $members[] = [
+                    'id' => $coachUser->getId(),
+                    'name' => $coach->getFullName(),
+                    'role' => 'coach',
+                    'role_label' => 'Trainer',
+                    'shorts_size' => $coachUser->getPantsSize(),
+                    'shirt_size' => $coachUser->getShirtSize(),
+                    'shoe_size' => null !== $coachUser->getShoeSize() ? (string) $coachUser->getShoeSize() : null,
+                    'socks_size' => $coachUser->getSocksSize(),
+                    'jacket_size' => $coachUser->getJacketSize(),
+                ];
+                break;
+            }
+        }
+
+        $assignments = [
+            ...$targetTeam->getPlayerTeamAssignments()->toArray(),
+            ...$targetTeam->getCoachTeamAssignments()->toArray(),
+        ];
+        foreach ($assignments as $assignment) {
+            $start = $assignment->getStartDate();
+            $end = $assignment->getEndDate();
+            if (($start && $start > $now) || ($end && $end < $now)) {
+                continue;
+            }
+            $person = method_exists($assignment, 'getPlayer') ? $assignment->getPlayer() : $assignment->getCoach();
+            foreach ($person->getUserRelations() as $relation) {
+                $supporterUser = $relation->getUser();
+                if (!in_array('ROLE_SUPPORTER', $supporterUser->getRoles(), true)
+                    || in_array($supporterUser->getId(), $addedUserIds, true)) {
+                    continue;
+                }
+                $addedUserIds[] = $supporterUser->getId();
+                $members[] = [
+                    'id' => $supporterUser->getId(),
+                    'name' => $supporterUser->getFullName(),
+                    'role' => 'supporter',
+                    'role_label' => 'Staff / Supporter',
+                    'shorts_size' => $supporterUser->getPantsSize(),
+                    'shirt_size' => $supporterUser->getShirtSize(),
+                    'shoe_size' => null !== $supporterUser->getShoeSize() ? (string) $supporterUser->getShoeSize() : null,
+                    'socks_size' => $supporterUser->getSocksSize(),
+                    'jacket_size' => $supporterUser->getJacketSize(),
+                ];
+            }
+        }
+
+        $productKeys = ['shirt_size', 'shorts_size', 'jacket_size', 'socks_size', 'shoe_size'];
+        if ('POST' === $request?->getMethod()) {
+            $payload = json_decode($request->getContent(), true);
+            $orders = is_array($payload) && isset($payload['orders']) && is_array($payload['orders'])
+                ? $payload['orders']
+                : [];
+            $selection = [];
+            foreach ($orders as $order) {
+                if (!is_array($order) || !isset($order['memberId'], $order['role'], $order['items']) || !is_array($order['items'])) {
+                    continue;
+                }
+                $key = (string) $order['role'] . ':' . (int) $order['memberId'];
+                $selection[$key] = array_values(array_intersect($productKeys, $order['items']));
+            }
+
+            $members = array_values(array_filter(array_map(static function (array $member) use ($selection, $productKeys): ?array {
+                $selectedItems = $selection[$member['role'] . ':' . $member['id']] ?? [];
+                if ([] === $selectedItems) {
+                    return null;
+                }
+                $member['ordered_items'] = $selectedItems;
+                foreach ($productKeys as $productKey) {
+                    if (!in_array($productKey, $selectedItems, true)) {
+                        $member[$productKey] = null;
+                    }
+                }
+
+                return $member;
+            }, $members)));
+
+            if ([] === $members) {
+                return $this->json(['message' => 'Bitte mindestens einen Artikel auswählen.'], Response::HTTP_BAD_REQUEST);
+            }
+        } else {
+            foreach ($members as &$member) {
+                $member['ordered_items'] = $productKeys;
+            }
+            unset($member);
+        }
+
+        $pdfContent = $this->sizeGuidePdfService->generatePdf($targetTeam->getName(), $members);
 
         $safeTeamName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $targetTeam->getName()) ?? 'Team';
         $filename = sprintf('Bestelluebersicht_%s_%s.pdf', $safeTeamName, (new DateTime())->format('Y-m-d'));

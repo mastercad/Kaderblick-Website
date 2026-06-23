@@ -32,6 +32,9 @@ class BillingSubscription
     private string $provider = 'stripe';
 
     #[ORM\Column(length: 100, nullable: true, unique: true)]
+    private ?string $providerCheckoutSessionId = null;
+
+    #[ORM\Column(length: 100, nullable: true, unique: true)]
     private ?string $providerCustomerId = null;
 
     #[ORM\Column(length: 100, nullable: true, unique: true)]
@@ -103,6 +106,18 @@ class BillingSubscription
     public function getProviderCustomerId(): ?string
     {
         return $this->providerCustomerId;
+    }
+
+    public function getProviderCheckoutSessionId(): ?string
+    {
+        return $this->providerCheckoutSessionId;
+    }
+
+    public function setProviderCheckoutSessionId(?string $value): self
+    {
+        $this->providerCheckoutSessionId = $value;
+
+        return $this->touch();
     }
 
     public function setProviderCustomerId(?string $value): self

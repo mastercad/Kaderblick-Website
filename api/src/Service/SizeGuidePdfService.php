@@ -64,7 +64,9 @@ class SizeGuidePdfService
             'shoes' => $this->aggregate($players, 'shoe_size'),
         ];
 
-        $logoPath = $this->projectDir . '/public/images/logo.png';
+        // Canonical source: kaderblick_website_appicon.svg. Dompdf mis-scales the
+        // Inkscape SVG, so use its existing pixel-identical PNG export for PDFs.
+        $logoPath = $this->projectDir . '/public/images/icon_512x512.png';
         $logoBase64 = null;
         if (file_exists($logoPath)) {
             $logoData = file_get_contents($logoPath);
@@ -80,9 +82,16 @@ class SizeGuidePdfService
             'generatedAt' => (new DateTime())->format('d.m.Y H:i'),
             'logoBase64' => $logoBase64,
             'totalPlayers' => count($players),
-            'missingAny' => array_filter($players, static fn ($p) => null === $p['shirt_size'] || '' === $p['shirt_size']
-                || null === $p['shorts_size'] || '' === $p['shorts_size']
-                || null === $p['shoe_size'] || '' === $p['shoe_size']),
+            'totalItems' => array_sum(array_map(static fn (array $member): int => count($member['ordered_items'] ?? ['shirt_size', 'shorts_size', 'shoe_size']), $players)),
+            'missingAny' => array_filter($players, static function (array $member): bool {
+                foreach ($member['ordered_items'] ?? ['shirt_size', 'shorts_size', 'shoe_size'] as $key) {
+                    if (!isset($member[$key]) || '' === (string) $member[$key] || '0' === (string) $member[$key]) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }),
         ];
     }
 
