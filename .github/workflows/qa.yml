@@ -222,6 +222,14 @@ jobs:
 
           ls -lisa api
 
+          docker compose ps
+          docker compose logs --tail=200 api
+
+          until [ "$(docker inspect -f '{{.State.Running}}' kaderblick-api-1)" = "true" ]; do
+            docker compose logs --tail=100 api
+            exit 1
+          done
+
           echo "Decrypt secrets"
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force
           echo "Decrypt secrets done"
