@@ -224,6 +224,9 @@ jobs:
 
           docker compose ps
           docker compose logs --tail=200 api
+          docker compose api cat .env
+          docker compose api cat .env.test.local
+          docker compose api cat .env.local
 
           until [ "$(docker inspect -f '{{.State.Running}}' kaderblick-api-1)" = "true" ]; do
             docker compose logs --tail=100 api
