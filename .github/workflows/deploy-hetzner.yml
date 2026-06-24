@@ -107,7 +107,7 @@ jobs:
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
           frontend_url:                ${{ env.FRONTEND_URL }}
           frontend_image_suffix:       prod
-          compose_files:               '-f docker-compose.yml'
+          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml'
           compose_project:             production
           maintenance_flag:            maintenance_production.flag
           rollback_file:               ${{ env.HETZNER_PROJECT_PATH }}/.rollback_to
@@ -126,7 +126,7 @@ jobs:
           rollback_file:     ${{ env.HETZNER_PROJECT_PATH }}/.rollback_to
           current_link_name: production_current
           compose_project:   production
-          compose_files:     '-f docker-compose.yml'
+          compose_files:     '-f docker-compose.yml -f docker-compose.infrastructure.yml'
 
       - name: Healthcheck nach Rollback
         if: failure()
@@ -218,7 +218,7 @@ jobs:
           react_port:            ${{ env.REACT_PORT }}
           healthcheck_url:       ${{ env.HEALTHCHECK_URL }}
           frontend_image_suffix: staging
-          compose_files:         '-f docker-compose.yml -f docker-compose.staging.yml'
+          compose_files:         '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
           compose_project:       staging
           maintenance_flag:      maintenance_staging.flag
 
@@ -284,7 +284,7 @@ jobs:
           healthcheck_url:       ${{ env.HEALTHCHECK_URL }}
           image_tag:             ${{ inputs.image_tag }}
           frontend_image_suffix: demo
-          compose_files:         '-f docker-compose.yml -f docker-compose.demo.yml'
+          compose_files:         '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.demo.yml'
           compose_project:       demo
           maintenance_flag:      maintenance_demo.flag
 

@@ -194,7 +194,7 @@ runs:
           docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-${{ inputs.frontend_image_suffix }}:${{ inputs.image_tag }}
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
-            down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+            down --remove-orphans --stop-timeout 10 api frontend worker minio-init minio rabbitmq 2>/dev/null || true
           sleep 2
           ${{ inputs.extra_docker_env }} \
           API_PORT=${{ env.API_PORT }} \
@@ -204,7 +204,7 @@ runs:
           XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
-            up -d --no-build --force-recreate api frontend worker
+            up -d --no-build --force-recreate api frontend worker minio-init minio rabbitmq
 
     - name: App setup – secrets / cache / migrations / JWT
       uses: ./.github/actions/symfony-app-setup
