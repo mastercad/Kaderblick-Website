@@ -61,6 +61,13 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Kernel.php'
             - '../src/Security/JwtTokenExtractor.php'
+
+    # Nach dem Resource-Import überschreiben: erst bei Upload/Download mit Google verbinden.
+    App\Service\GoogleDriveService:
+        lazy: true
+
+    App\Service\PlayerDocumentStagingStorage:
+        lazy: true
     
     # Configure DataFixtures as services with autowiring
     App\DataFixtures\:

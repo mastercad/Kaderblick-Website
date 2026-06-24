@@ -241,6 +241,13 @@ describe('UserRelationEditModal', () => {
     });
   });
 
+  it('spiegelt die Dokumentberechtigung einer User-Relation wider', async () => {
+    mockApiJson.mockResolvedValueOnce({ ...apiResponse, permissions: [{ identifier: 'view_documents', name: 'Dokumente ansehen' }] });
+    await renderModal();
+    fireEvent.click(screen.getByText('Spieler-Zuordnung hinzufügen'));
+    expect(screen.getByText('Dokumente ansehen')).toBeInTheDocument();
+  });
+
   it('zeigt Team-Namen im Coach-Select', async () => {
     await renderModal();
     fireEvent.click(screen.getByText('Trainer-Zuordnung hinzufügen'));

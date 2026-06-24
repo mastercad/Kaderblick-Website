@@ -45,6 +45,7 @@ RUN apk add --no-cache \
     bash \
     ca-certificates \
     cronie \
+    curl \
     freetype \
     icu-libs \
     libjpeg-turbo \
@@ -53,8 +54,12 @@ RUN apk add --no-cache \
     nginx \
     oniguruma \
     openssl \
+    poppler-utils \
+    rabbitmq-c \
     shadow \
     supervisor \
+    tesseract-ocr \
+    tesseract-ocr-data-deu \
     tzdata \
     && cp /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
@@ -62,6 +67,7 @@ RUN apk add --no-cache \
 # Build-Zeit-Abhängigkeiten: nur für Extension-Kompilierung, danach entfernt
 RUN apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
+    curl-dev \
     freetype-dev \
     icu-dev \
     libjpeg-turbo-dev \
@@ -69,10 +75,11 @@ RUN apk add --no-cache --virtual .build-deps \
     libzip-dev \
     oniguruma-dev \
     openssl-dev \
+    rabbitmq-c-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) intl pdo pdo_mysql zip opcache bcmath gd \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && docker-php-ext-install -j$(nproc) intl pdo pdo_mysql zip opcache bcmath gd curl \
+    && pecl install apcu amqp \
+    && docker-php-ext-enable apcu amqp \
     && apk del .build-deps \
     && echo "apc.enable_cli=1" >> /usr/local/etc/php/conf.d/apcu.ini
 
@@ -122,6 +129,12 @@ RUN echo "SHELL=/bin/bash" > /etc/cron.d/symfony-crons \
     && echo "" >> /etc/cron.d/symfony-crons \
     && echo "# Process billing trials and overdue subscriptions (daily at 00:20)" >> /etc/cron.d/symfony-crons \
     && echo "20 0 * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:billing:process' 2>&1" >> /etc/cron.d/symfony-crons \
+    && echo "" >> /etc/cron.d/symfony-crons \
+    && echo "# Notify about expiring player documents (daily at 07:10)" >> /etc/cron.d/symfony-crons \
+    && echo "10 7 * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:documents:send-expiry-reminders' 2>&1" >> /etc/cron.d/symfony-crons \
+    && echo "" >> /etc/cron.d/symfony-crons \
+    && echo "# Relay the player-document outbox to RabbitMQ (every minute)" >> /etc/cron.d/symfony-crons \
+    && echo "* * * * * www-data /bin/bash -lc 'cd /var/www/symfony && . /var/www/symfony/.env 2>/dev/null || true && . /var/www/symfony/.env.local 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV 2>/dev/null || true && . /var/www/symfony/.env.\$APP_ENV.local 2>/dev/null || true && /usr/local/bin/cron_wrapper.sh app:documents:dispatch-pending' 2>&1" >> /etc/cron.d/symfony-crons \
     && chmod 0644 /etc/cron.d/symfony-crons
 
 # =============================================================================

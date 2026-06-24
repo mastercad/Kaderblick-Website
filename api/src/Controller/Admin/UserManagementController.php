@@ -353,7 +353,11 @@ class UserManagementController extends AbstractController
                 'endDate' => $a->getEndDate()?->format('Y-m-d'),
             ], $adminClubAssignments),
             'relationTypes' => $groupedRelationTypes,
-            'permissions' => $permissions
+            'permissions' => array_map(static fn (Permission $permission) => [
+                'identifier' => $permission->getIdentifier(),
+                'name' => $permission->getName(),
+                'description' => $permission->getDescription(),
+            ], $permissions)
         ]);
     }
 
