@@ -14,7 +14,8 @@ RUN composer install \
     --no-scripts \
     --prefer-dist \
     --no-interaction \
-    --optimize-autoloader
+    --optimize-autoloader \
+    --ignore-platform-req=ext-amqp
 
 # =============================================================================
 # Stage: vendor-dev
@@ -27,9 +28,12 @@ WORKDIR /app
 COPY api/composer.json api/composer.lock ./
 
 RUN composer install \
+    --no-dev \
     --no-scripts \
     --prefer-dist \
-    --no-interaction
+    --no-interaction \
+    --optimize-autoloader \
+    --ignore-platform-req=ext-amqp
 
 # =============================================================================
 # Stage: base
