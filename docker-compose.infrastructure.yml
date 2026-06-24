@@ -1,7 +1,6 @@
-name: kaderblick-infrastructure
+# name: kaderblick-infrastructure
 
 # Optional shared infrastructure for local/self-hosted deployments.
-# Production may instead point MESSENGER_TRANSPORT_DSN and DOCUMENT_STAGING_* at managed services.
 services:
   rabbitmq:
     image: rabbitmq:4.1-management-alpine
