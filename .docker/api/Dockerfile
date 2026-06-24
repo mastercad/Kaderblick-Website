@@ -28,7 +28,6 @@ WORKDIR /app
 COPY api/composer.json api/composer.lock ./
 
 RUN composer install \
-    --no-dev \
     --no-scripts \
     --prefer-dist \
     --no-interaction \
