@@ -52,7 +52,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        mc alias set local http://kaderblick-minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc alias set local "http://kaderblick-minio:$${MINIO_PORT}" "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
         mc mb --ignore-existing "local/$${DOCUMENT_STAGING_BUCKET}" &&
         mc anonymous set none "local/$${DOCUMENT_STAGING_BUCKET}" &&
         (mc ilm rule add --expire-days 7 "local/$${DOCUMENT_STAGING_BUCKET}" || true)

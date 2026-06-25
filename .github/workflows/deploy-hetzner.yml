@@ -103,6 +103,15 @@ jobs:
           image_tag:                   ${{ inputs.image_tag }}
           api_port:                    ${{ env.API_PORT }}
           react_port:                  ${{ env.REACT_PORT }}
+          rabbitmq_port:               ${{ env.RABBITMQ_PORT }}
+          rabbitmq_management_port:    ${{ env.RABBITMQ_MANAGEMENT_PORT }}
+          rabbitmq_user:               ${{ env.RABBITMQ_USER }}
+          rabbitmq_password:           ${{ env.RABBITMQ_PASSWORD }}
+          minio_port:                  ${{ env.MINIO_PORT }}
+          minio_console_port:          ${{ env.MINIO_CONSOLE_PORT }}
+          minio_root_user:             ${{ env.MINIO_ROOT_USER }}
+          minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
+          document_staging_bucket:     ${{ env.DOCUMENT_STAGING_BUCKET }}
           google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
           frontend_url:                ${{ env.FRONTEND_URL }}
@@ -111,6 +120,9 @@ jobs:
           compose_project:             production
           maintenance_flag:            maintenance_production.flag
           rollback_file:               ${{ env.HETZNER_PROJECT_PATH }}/.rollback_to
+          stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
+          stripe_secret_webhook_key:   ${{ env.STRIPE_WEBHOOK_SECRET }}
+          messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
           disable_maintenance_on_exit: 'false'
 
       - name: Production healthcheck
