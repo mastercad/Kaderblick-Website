@@ -121,7 +121,7 @@ jobs:
           maintenance_flag:            maintenance_production.flag
           rollback_file:               ${{ env.HETZNER_PROJECT_PATH }}/.rollback_to
           stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
-          stripe_secret_webhook_key:   ${{ env.STRIPE_WEBHOOK_SECRET }}
+          stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
           messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
           disable_maintenance_on_exit: 'false'
 
