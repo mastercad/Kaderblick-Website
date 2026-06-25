@@ -20,31 +20,31 @@ $projectDir = dirname(__DIR__);
 
 echo "Drop Database if exists...\n";
 passthru(sprintf(
-    'php "%s/bin/console" doctrine:database:drop --force --if-exists --env=test --ansi 2>&1',
+    'php "%s/bin/console" doctrine:database:drop --force --if-exists --env=test --no-ansi 2>&1',
     $projectDir
 ));
 
 echo "Create Database...\n";
 passthru(sprintf(
-    'php "%s/bin/console" doctrine:database:create --env=test --ansi 2>&1',
+    'php "%s/bin/console" doctrine:database:create --env=test --no-ansi 2>&1',
     $projectDir
 ));
 
 echo "Run Migrations...\n";
 passthru(sprintf(
-    'php "%s/bin/console" doctrine:migrations:migrate --no-interaction --env=test --ansi 2>&1',
+    'php "%s/bin/console" doctrine:migrations:migrate --no-interaction --env=test --no-ansi 2>&1',
     $projectDir
 ));
 
 echo "Clear Cache...\n";
 passthru(sprintf(
-    'php "%s/bin/console" cache:clear --env=test --no-warmup --ansi 2>&1',
+    'php "%s/bin/console" cache:clear --env=test --no-warmup --no-ansi 2>&1',
     $projectDir
 ));
 
 echo "Load Fixtures...\n";
 passthru(sprintf(
-    'php "%s/bin/console" doctrine:fixtures:load --no-interaction --group=master --group=test --env=test --ansi 2>&1',
+    'php "%s/bin/console" doctrine:fixtures:load --no-interaction --group=master --group=test --env=test --no-ansi 2>&1',
     $projectDir
 ));
 
