@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\ApiResource;
 
+use App\Service\MessengerQueueHealthService;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
@@ -21,6 +22,7 @@ class HealthController extends AbstractController
         private readonly Connection $connection,
         private readonly CacheInterface $cache,
         private readonly string $projectDir,
+        private readonly ?MessengerQueueHealthService $queueHealth = null,
     ) {
     }
 
@@ -124,9 +126,8 @@ class HealthController extends AbstractController
     private function checkMessengerQueue(): array
     {
         try {
-            $failedCount = (int) $this->connection
-                ->executeQuery("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'failed'")
-                ->fetchOne();
+            $failedCount = $this->queueHealth?->failedCount() ?? (int) $this->connection
+                ->executeQuery("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'failed'")->fetchOne();
 
             return ['status' => 'ok', 'failedCount' => $failedCount];
         } catch (Throwable) {

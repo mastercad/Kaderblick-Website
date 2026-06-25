@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Service\AdminAlertService;
+use App\Service\MessengerQueueHealthService;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -48,6 +49,8 @@ class AppHealthMonitorCommand extends AbstractCronCommand
         'app:collect-weather-data-for-events' => 1440,  // täglich erwartet
         'app:xp:award-titles' => 1500,  // täglich erwartet (24h + 1h Puffer)
         'app:billing:process' => 1500,  // täglich erwartet (24h + 1h Puffer)
+        'app:documents:send-expiry-reminders' => 1500,
+        'app:documents:dispatch-pending' => 10,
     ];
 
     /** Festplatten-Schwellwert in % (Belegung ≥ dieses Werts → potenziell kritisch) */
@@ -61,6 +64,7 @@ class AppHealthMonitorCommand extends AbstractCronCommand
         private readonly Connection $connection,
         private readonly LoggerInterface $cronLogger,
         private readonly string $projectDir,
+        private readonly ?MessengerQueueHealthService $queueHealth = null,
     ) {
         parent::__construct();
     }
@@ -166,9 +170,8 @@ class AppHealthMonitorCommand extends AbstractCronCommand
     private function checkFailedQueue(SymfonyStyle $io): bool
     {
         try {
-            $failedCount = (int) $this->connection
-                ->executeQuery("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'failed'")
-                ->fetchOne();
+            $failedCount = $this->queueHealth?->failedCount() ?? (int) $this->connection
+                ->executeQuery("SELECT COUNT(*) FROM messenger_messages WHERE queue_name = 'failed'")->fetchOne();
         } catch (Throwable $e) {
             $io->text('Konnte Failed-Queue nicht prüfen: ' . $e->getMessage());
             $this->cronLogger->warning('Failed-Queue-Check fehlgeschlagen: ' . $e->getMessage());

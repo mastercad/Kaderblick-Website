@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use DateTime;
 use Exception;
 use Google\Client;
 use Google\Http\MediaFileUpload;
@@ -16,16 +17,24 @@ class GoogleDriveService
     public function __construct()
     {
         $client = new Client();
+
         $client->setClientId($_ENV['GOOGLE_CLIENT_ID']);
         $client->setClientSecret($_ENV['GOOGLE_CLIENT_SECRET']);
         $client->refreshToken($_ENV['GOOGLE_REFRESH_TOKEN']);
+
+        /*
+        $client->setAuthConfig($_ENV['GOOGLE_CREDENTIALS_JSON'] ?? $_SERVER['GOOGLE_CREDENTIALS_JSON'] ?? null);
+        $client->addScope(Drive::DRIVE);
+        $client->addScope(Drive::DRIVE_FILE);
+        */
 
         $this->driveService = new Drive($client);
     }
 
     private function findFolderByName(string $name, ?string $parentId = null): ?string
     {
-        $query = "mimeType='application/vnd.google-apps.folder' and name='" . $name . "' and trashed=false";
+        $safeName = str_replace(['\\', "'"], ['\\\\', "\\'"], $name);
+        $query = "mimeType='application/vnd.google-apps.folder' and name='" . $safeName . "' and trashed=false";
         if ($parentId) {
             $query .= " and '" . $parentId . "' in parents";
         } else {
@@ -43,6 +52,85 @@ class GoogleDriveService
         }
 
         return null;
+    }
+
+    public function ensureFolder(string $name, string $parentId): string
+    {
+        $existing = $this->findFolderByName($name, $parentId);
+        if ($existing) {
+            return $existing;
+        }
+        $folder = $this->driveService->files->create(
+            new DriveFile(
+                [
+                    'name' => $name,
+                    'mimeType' => 'application/vnd.google-apps.folder',
+                    'parents' => [$parentId],
+                ]
+            ),
+            ['fields' => 'id']
+        );
+
+        return (string) $folder->getId();
+    }
+
+    public function uploadFilePath(string $path, string $filename, string $mimeType, string $folderId): string
+    {
+        if (!is_file($path)) {
+            throw new Exception('Upload failed: local file not found');
+        }
+        $uploaded = $this->driveService->files->create(new DriveFile([
+            'name' => $filename,
+            'parents' => [$folderId],
+        ]), [
+            'data' => file_get_contents($path),
+            'mimeType' => $mimeType,
+            'uploadType' => 'multipart',
+            'fields' => 'id',
+            //            'supportsAllDrives' => true,
+        ]);
+
+        return (string) $uploaded->getId();
+    }
+
+    public function downloadFile(string $fileId): string
+    {
+        $response = $this->driveService->files->get($fileId, ['alt' => 'media']);
+
+        return (string) $response->getBody();
+    }
+
+    public function deleteFile(string $fileId): void
+    {
+        $this->driveService->files->delete($fileId);
+    }
+
+    /**
+     * @return array<array<string, string>>
+     */
+    public function listDocuments(string $env, int $clubId, int $playerId): array
+    {
+        $rootId = $_ENV['GOOGLE_DOCUMENTS_FOLDER_ID'] ?? $_SERVER['GOOGLE_DOCUMENTS_FOLDER_ID'] ?? null;
+        if (!$rootId) {
+            throw new Exception('GOOGLE_DOCUMENTS_FOLDER_ID ist nicht konfiguriert.');
+        }
+
+        $envFolder = $this->ensureFolder($env, $rootId);
+        $clubFolder = $this->ensureFolder('club-' . $clubId, $envFolder);
+        $playerFolder = $this->ensureFolder('player-' . $playerId, $clubFolder);
+
+        $response = $this->driveService->files->listFiles([
+            'q' => "'{$playerFolder}' in parents and trashed=false",
+            'spaces' => 'drive',
+            'fields' => 'files(id, name, mimeType, createdTime)',
+        ]);
+
+        return array_map(fn (DriveFile $file) => [
+            'id' => $file->getId(),
+            'name' => $file->getName(),
+            'mimeType' => $file->getMimeType(),
+            'createdTime' => (new DateTime($file->getCreatedTime()))->format('Y-m-d H:i:s'),
+        ], iterator_to_array($response->getFiles()));
     }
 
     public function createGameFolder(string $gameName, bool $force = false): string

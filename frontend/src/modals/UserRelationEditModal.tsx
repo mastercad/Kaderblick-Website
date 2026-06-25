@@ -62,6 +62,7 @@ function formatPermission(perm: string): string {
 		manage: 'Verwalten',
 		view_stats: 'Statistiken ansehen',
 		view_health: 'Gesundheitsdaten ansehen',
+		view_medical: 'Medizinische Daten ansehen',
 		edit_profile: 'Profil bearbeiten',
 		view_profile: 'Profil ansehen',
 		view_training: 'Training ansehen',
@@ -76,6 +77,18 @@ function formatPermission(perm: string): string {
 		view_finances: 'Finanzen ansehen',
 	};
 	return map[perm] ?? perm.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Ältere Zuordnungen speicherten teilweise den Anzeigenamen statt des Identifiers. */
+function normalizePermission(perm: string): string {
+	const legacy: Record<string, string> = {
+		'Profil ansehen': 'view_profile',
+		'Medizinische Daten ansehen': 'view_medical',
+		'Statistiken ansehen': 'view_stats',
+		'Anwesenheit verwalten': 'manage_attendance',
+		'Dokumente ansehen': 'view_documents',
+	};
+	return legacy[perm] ?? perm;
 }
 
 const emptyAssignment = (): AssignmentRow => ({ teamId: null, clubId: null, typeId: null, startDate: '', endDate: '' });
@@ -121,16 +134,16 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 			setRelationTypes(flatRelationTypes);
 			setPlayers(data.players || []);
 			setCoaches(data.coaches || []);
-			setAllPermissions((data.permissions || []).map((p: any) => p.name || p));
+			setAllPermissions((data.permissions || []).map((p: any) => normalizePermission(p.identifier || p.name || p)));
 			setPlayerRelations((data.currentAssignments?.players || []).map((a: any) => ({
 				relationType: a.relationType,
 				entity: a.entity,
-				permissions: a.permissions || [],
+				permissions: (a.permissions || []).map(normalizePermission),
 			})));
 			setCoachRelations((data.currentAssignments?.coaches || []).map((a: any) => ({
 				relationType: a.relationType,
 				entity: a.entity,
-				permissions: a.permissions || [],
+				permissions: (a.permissions || []).map(normalizePermission),
 			})));
 
 			setTeams(data.teams || []);

@@ -54,3 +54,4 @@ composer.phar
 
 *.decrypt.private.php
 *.decrypt.*.php
+config/google/kaderblick-worker.json

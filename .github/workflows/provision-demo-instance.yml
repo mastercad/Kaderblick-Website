@@ -192,6 +192,7 @@ jobs:
             REACT_PORT=${REACT_PORT}
             HOST_UID=${{ env.HOST_UID }}
             HOST_GID=${{ env.HOST_GID }}
+            DEMO_TOKEN=${{ env.TOKEN }}
             XDEBUG_MODE=off
             EOF
 

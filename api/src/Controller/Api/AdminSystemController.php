@@ -38,6 +38,8 @@ class AdminSystemController extends AbstractController
         'app:collect-weather-data-for-events' => ['label' => 'Wetterdaten abrufen',           'maxAgeMin' => 1440],
         'app:xp:award-titles' => ['label' => 'Titel vergeben',                'maxAgeMin' => 1500],
         'app:billing:process' => ['label' => 'Abrechnung verarbeiten',         'maxAgeMin' => 1500],
+        'app:documents:send-expiry-reminders' => ['label' => 'Dokument-Abläufe prüfen', 'maxAgeMin' => 1500],
+        'app:documents:dispatch-pending' => ['label' => 'Dokument-Outbox versenden', 'maxAgeMin' => 10],
         'app:health:monitor' => ['label' => 'System-Gesundheitscheck',       'maxAgeMin' => 10],
         'app:recalc-player-stats' => ['label' => 'Spieler-Stats (Backfill)',      'maxAgeMin' => null],
     ];

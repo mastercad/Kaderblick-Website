@@ -72,6 +72,36 @@ inputs:
   stripe_webhook_secret:
     description: 'Stripe Webhook Secret'
     required: true
+  messenger_transport_dsn:
+    description: 'Messenger Transport DSN'
+    required: true
+  rabbitmq_port:
+    description: 'RabbitMQ Port'
+    required: true
+  rabbitmq_management_port:
+    description: 'RabbitMQ Management Port'
+    required: true
+  rabbitmq_user:
+    description: 'RabbitMQ User'
+    required: true
+  rabbitmq_password:
+    description: 'RabbitMQ Password'
+    required: true
+  minio_port:
+    description: 'MinIO Port'
+    required: true
+  minio_console_port:
+    description: 'MinIO Console Port'
+    required: true
+  minio_root_user:
+    description: 'MinIO Root User'
+    required: true
+  minio_root_password:
+    description: 'MinIO Root Password'
+    required: true
+  document_staging_bucket:
+    description: 'MinIO Bucket für Dokumente (staging)'
+    required: true
 
 runs:
   using: composite
@@ -116,11 +146,19 @@ runs:
           if [ -n "${{ inputs.frontend_url }}" ]; then
             sed -i "s|^FRONTEND_URL=.*$|FRONTEND_URL=${{ inputs.frontend_url }}|" "$RELEASE_DIR/api/.env"
           fi
+          if [ -n "${{ inputs.stripe_secret_key }}" ]; then
+            sed -i "s|^STRIPE_SECRET_KEY=.*$|STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.stripe_webhook_secret_key }}" ]; then
+            sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.messenger_transport_dsn }}" ]; then
+            sed -i "s|^MESSENGER_TRANSPORT_DSN=.*$|MESSENGER_TRANSPORT_DSN=${{ inputs.messenger_transport_dsn }}|" "$RELEASE_DIR/api/.env"
+          fi
+
           echo "APP_DEBUG=0"                                                >> "$RELEASE_DIR/api/.env"
           echo "APP_SECRET=${{ env.APP_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
           echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"             >> "$RELEASE_DIR/api/.env"
-          echo "STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}"          >> "$RELEASE_DIR/api/.env"
-          echo "STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}"  >> "$RELEASE_DIR/api/.env"
           echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}"            > "$RELEASE_DIR/frontend/.env"
 
           touch "$RELEASE_DIR/api/.env.prod.local"
@@ -194,17 +232,26 @@ runs:
           docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-${{ inputs.frontend_image_suffix }}:${{ inputs.image_tag }}
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
-            down --remove-orphans --stop-timeout 10 api frontend worker 2>/dev/null || true
+            down --remove-orphans --stop-timeout 10 api frontend worker minio-init minio rabbitmq 2>/dev/null || true
           sleep 2
           ${{ inputs.extra_docker_env }} \
           API_PORT=${{ env.API_PORT }} \
           REACT_PORT=${{ env.REACT_PORT }} \
+          RABBITMQ_PORT=${{ env.RABBITMQ_PORT }} \
+          RABBITMQ_MAANGEMENT_PORT=${{ env.RABBITMQ_MANAGEMENT_PORT }} \
+          RABBITMQ_USER=${{ env.RABBITMQ_USER }} \
+          RABBITMQ_PASSWORD=${{ env.RABBITMQ_PASSWORD }} \
+          MINIO_PORT=${{ env.MINIO_PORT }} \
+          MINIO_CONSOLE_PORT=${{ env.MINIO_CONSOLE_PORT }} \
+          MINIO_ROOT_USER=${{ env.MINIO_ROOT_USER }} \
+          MINIO_ROOT_PASSWORD=${{ env.MINIO_ROOT_PASSWORD }} \
+          DOCUMENT_STAGING_BUCKET=${{ env.DOCUMENT_STAGING_BUCKET }} \
           HEALTHCHECK_URL=${{ env.HEALTHCHECK_URL }} \
           IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
           XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
-            up -d --no-build --force-recreate api frontend worker
+            up -d --no-build --force-recreate api frontend worker minio-init minio rabbitmq
 
     - name: App setup – secrets / cache / migrations / JWT
       uses: ./.github/actions/symfony-app-setup

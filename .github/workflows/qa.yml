@@ -214,11 +214,16 @@ jobs:
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:test-${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-prod:${{ inputs.image_tag }}
-          DATABASE_URL=kaderblick API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose up -d --no-build --force-recreate api frontend
+          DATABASE_URL=kaderblick API_IMAGE_TAG=test-${{ inputs.image_tag }} IMAGE_TAG=${{ inputs.image_tag }} docker compose -f docker-compose.yml -f docker-compose.infrastructure.yml up -d --no-build --force-recreate api frontend minio-init minio rabbitmq
 
           mkdir -p api/config/secrets/test
           echo '${{ env.DECRYPT_KEY }}' | base64 -d > api/config/secrets/test/test.decrypt.private.php
           chmod 600 api/config/secrets/test/test.decrypt.private.php
+
+          until [ "$(docker inspect -f '{{.State.Running}}' kaderblick-api-1)" = "true" ]; do
+            docker compose logs --tail=100 api
+            exit 1
+          done
 
           echo "Decrypt secrets"
           docker compose exec -T api bin/console secrets:decrypt-to-local --env=test --force

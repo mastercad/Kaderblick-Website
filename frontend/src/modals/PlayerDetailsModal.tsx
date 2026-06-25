@@ -11,6 +11,7 @@ import PlayerDeleteConfirmationModal from './PlayerDeleteConfirmationModal';
 import PlayerEditModal from './PlayerEditModal';
 import BaseModal from './BaseModal';
 import { SharePosterButton } from '../pages/PosterGenerator/components/SharePosterButton';
+import PlayerDocumentsSection from '../components/player/PlayerDocumentsSection';
 
 interface PlayerDetailsResponse {
     player: Player;
@@ -154,6 +155,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({ open, playerId,
                                 }}>Keine Nationalitäten</Typography>}
                             </Stack>
                         </Box>
+                        <PlayerDocumentsSection playerId={player.id} />
                     </Stack>
                 ) : (
                     <Box
