@@ -61,18 +61,13 @@ class GoogleDriveService
             return $existing;
         }
         $folder = $this->driveService->files->create(
-            /* ( */            new DriveFile(
+            new DriveFile(
                 [
                     'name' => $name,
                     'mimeType' => 'application/vnd.google-apps.folder',
                     'parents' => [$parentId],
                 ]
             ),
-            /*)
-            ->setName($name)
-            ->setMimeType('application/vnd.google-apps.folder')
-            ->setParents($parentId)*/
-
             ['fields' => 'id']
         );
 
