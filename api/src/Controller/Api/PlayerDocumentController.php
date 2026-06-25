@@ -237,7 +237,7 @@ class PlayerDocumentController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-return $user;
+        return $user;
     }
 
     private function date(mixed $value): ?DateTimeImmutable
