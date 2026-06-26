@@ -231,14 +231,17 @@ runs:
           echo "${{ env.GHCR_TOKEN }}" | docker login ghcr.io -u mastercad --password-stdin
           docker pull ghcr.io/mastercad/kaderblick/api:${{ inputs.image_tag }}
           docker pull ghcr.io/mastercad/kaderblick/frontend-${{ inputs.frontend_image_suffix }}:${{ inputs.image_tag }}
+
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \
             down --remove-orphans --stop-timeout 10 api frontend worker minio-init minio rabbitmq 2>/dev/null || true
+          
           sleep 2
+
           ${{ inputs.extra_docker_env }} \
           API_PORT=${{ env.API_PORT }} \
           REACT_PORT=${{ env.REACT_PORT }} \
           RABBITMQ_PORT=${{ env.RABBITMQ_PORT }} \
-          RABBITMQ_MAANGEMENT_PORT=${{ env.RABBITMQ_MANAGEMENT_PORT }} \
+          RABBITMQ_MANAGEMENT_PORT=${{ env.RABBITMQ_MANAGEMENT_PORT }} \
           RABBITMQ_USER=${{ env.RABBITMQ_USER }} \
           RABBITMQ_PASSWORD=${{ env.RABBITMQ_PASSWORD }} \
           MINIO_PORT=${{ env.MINIO_PORT }} \
@@ -248,6 +251,7 @@ runs:
           DOCUMENT_STAGING_BUCKET=${{ env.DOCUMENT_STAGING_BUCKET }} \
           HEALTHCHECK_URL=${{ env.HEALTHCHECK_URL }} \
           IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
+          MESSENGER_TRANSPORT_DSN=amqp://${{ env.RABBITMQ_USER }}:${{ env.RABBITMQ_PASSWORD }}@kaderblick-rabbitmq:${{ env.RABBITMQ_PORT }}/%2f \
           XDEBUG_MODE=off \
           HOST_UID=${{ env.HOST_UID }} HOST_GID=${{ env.HOST_GID }} \
           docker compose ${{ inputs.compose_files }} -p ${{ inputs.compose_project }} \

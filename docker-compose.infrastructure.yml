@@ -8,9 +8,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-kaderblick}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-secret}
-    ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -29,9 +26,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaderblick}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
-    ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
@@ -52,7 +46,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        mc alias set local "http://kaderblick-minio:$${MINIO_PORT}" "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc alias set local http://kaderblick-minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
         mc mb --ignore-existing "local/$${DOCUMENT_STAGING_BUCKET}" &&
         mc anonymous set none "local/$${DOCUMENT_STAGING_BUCKET}" &&
         (mc ilm rule add --expire-days 7 "local/$${DOCUMENT_STAGING_BUCKET}" || true)
