@@ -139,62 +139,61 @@ runs:
           
           echo "RELEASE_DIR=$RELEASE_DIR"
           echo "Checking file: $RELEASE_DIR/api/.env.dist"
+
+          echo "APP_ENV=${{ inputs.app_env }}"
+          echo "FRONTEND_URL=${{ inputs.frontend_url }}"
+          echo "GOOGLE_CLIENT_ID=${{ inputs.google_client_id }}"
+
           if [ -z "$RELEASE_DIR" ]; then
             echo "ERROR: RELEASE_DIR is empty. HETZNER_PROJECT_PATH='${{ env.HETZNER_PROJECT_PATH }}' inputs.release_dir='${{ inputs.release_dir }}'"
             exit 1
           fi
+
           ls -la "${{ env.HETZNER_PROJECT_PATH }}"
           ls -la "$RELEASE_DIR"
           ls -la "$RELEASE_DIR/api/.env.dist"
           
-          cp "$RELEASE_DIR/api/.env.dist" "$RELEASE_DIR/api/.env"
-          sed -i "s/^APP_ENV=.*$/APP_ENV=${{ inputs.app_env }}/" "$RELEASE_DIR/api/.env"
-          if [ -n "${{ inputs.google_redirect_uri }}" ]; then
-            sed -i "s|^GOOGLE_REDIRECT_URI=.*$|GOOGLE_REDIRECT_URI=${{ inputs.google_redirect_uri }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.frontend_url }}" ]; then
-            sed -i "s|^FRONTEND_URL=.*$|FRONTEND_URL=${{ inputs.frontend_url }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.stripe_secret_key }}" ]; then
-            sed -i "s|^STRIPE_SECRET_KEY=.*$|STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.stripe_webhook_secret_key }}" ]; then
-            sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.google_client_id }}" ]; then
-            sed -i "s|^GOOGLE_CLIENT_ID=.*$|GOOGLE_CLIENT_ID=${{ inputs.google_client_id }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.google_client_secret }}" ]; then
-            sed -i "s|^GOOGLE_CLIENT_SECRET=.*$|GOOGLE_CLIENT_SECRET=${{ inputs.google_client_secret }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.google_refresh_token }}" ]; then
-            sed -i "s|^GOOGLE_REFRESH_TOKEN=.*$|GOOGLE_REFRESH_TOKEN=${{ inputs.google_refresh_token }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.stripe_secret_key }}"]; then
-            sed -i "s|^STRIPE_SECRET_KEY=.*$|STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.stripe_webhook_secret }}"]; then
-            sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
-          fi
-          if [ -n "${{ inputs.messenger_transport_dsn }}" ]; then
-            file="$RELEASE_DIR/api/.env"
-            value='${{ inputs.messenger_transport_dsn }}'
+          set_env_var() {
+            local file="$1"
+            local key="$2"
+            local value="$3"
 
+            if [ -z "$value" ]; then
+              return 0
+            fi
+
+            local escaped_value
             escaped_value=$(printf '%s' "$value" | sed 's/[&|]/\\&/g')
 
-            if grep -q '^MESSENGER_TRANSPORT_DSN=' "$file"; then
-              sed -i "s|^MESSENGER_TRANSPORT_DSN=.*|MESSENGER_TRANSPORT_DSN=$escaped_value|" "$file"
+            if grep -q "^${key}=" "$file"; then
+              sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$file"
             else
-              printf '\nMESSENGER_TRANSPORT_DSN=%s\n' "$value" >> "$file"
+              printf '\n%s=%s\n' "$key" "$value" >> "$file"
             fi
-          fi
+          }
+
+          file="$RELEASE_DIR/api/.env"
+          cp "$RELEASE_DIR/api/.env.dist" "$file"
+
+          set_env_var "$file" "APP_ENV" "${{ inputs.app_env }}"
+          set_env_var "$file" "GOOGLE_REDIRECT_URI" "${{ inputs.google_redirect_uri }}"
+          set_env_var "$file" "FRONTEND_URL" "${{ inputs.frontend_url }}"
+          set_env_var "$file" "STRIPE_SECRET_KEY" "${{ inputs.stripe_secret_key }}"
+          set_env_var "$file" "STRIPE_WEBHOOK_SECRET" "${{ inputs.stripe_webhook_secret }}"
+          set_env_var "$file" "GOOGLE_CLIENT_ID" "${{ inputs.google_client_id }}"
+          set_env_var "$file" "GOOGLE_CLIENT_SECRET" "${{ inputs.google_client_secret }}"
+          set_env_var "$file" "GOOGLE_REFRESH_TOKEN" "${{ inputs.google_refresh_token }}"
+          set_env_var "$file" "MESSENGER_TRANSPORT_DSN" "${{ inputs.messenger_transport_dsn }}"
+          set_env_var "$file" "APP_DEBUG" "${{ 0 }}"
+          set_env_var "$file" "APP_SECRET" "${{ env.APP_SECRET }}"
+          set_env_var "$file" "ADMIN_ALERT_EMAIL" "${{ env.ADMIN_ALERT_EMAIL }}"
+          set_env_var "$file" "VITE_BACKEND_URL" "${{ 0 }}"
+          set_env_var "$file" "APP_SECRET" "${{ inputs.vite_backend_url }}"
 
           cat "$RELEASE_DIR/api/.env"
 
-          echo "APP_DEBUG=0"                                                >> "$RELEASE_DIR/api/.env"
-          echo "APP_SECRET=${{ env.APP_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
-          echo "ADMIN_ALERT_EMAIL=${{ env.ADMIN_ALERT_EMAIL }}"             >> "$RELEASE_DIR/api/.env"
-          echo "VITE_BACKEND_URL=${{ inputs.vite_backend_url }}"            > "$RELEASE_DIR/frontend/.env"
+          file="$RELEASE_DIR/frontend/.env"
+          set_env_var "$file" "APP_SECRET" "${{ inputs.vite_backend_url }}"
 
           touch "$RELEASE_DIR/api/.env.prod.local"
           touch "$RELEASE_DIR/api/.env.staging.local"
