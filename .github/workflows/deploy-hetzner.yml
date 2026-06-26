@@ -123,6 +123,9 @@ jobs:
           stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
           stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
           messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
+          google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
+          google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
+          google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
           disable_maintenance_on_exit: 'false'
 
       - name: Production healthcheck
@@ -229,6 +232,8 @@ jobs:
           api_port:                    ${{ env.API_PORT }}
           react_port:                  ${{ env.REACT_PORT }}
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
+          stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
+          stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
           rabbitmq_port:               ${{ env.RABBITMQ_PORT }}
           rabbitmq_management_port:    ${{ env.RABBITMQ_MANAGEMENT_PORT }}
           rabbitmq_user:               ${{ env.RABBITMQ_USER }}
@@ -239,6 +244,9 @@ jobs:
           minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
           document_staging_bucket:     ${{ env.DOCUMENT_STAGING_BUCKET }}
           messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
+          google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
+          google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
+          google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
           frontend_image_suffix:       staging
           compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
           compose_project:             staging
@@ -304,6 +312,8 @@ jobs:
           api_port:                    ${{ env.API_PORT }}
           react_port:                  ${{ env.REACT_PORT }}
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
+          stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
+          stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
           image_tag:                   ${{ inputs.image_tag }}
           rabbitmq_port:               ${{ env.RABBITMQ_PORT }}
           rabbitmq_management_port:    ${{ env.RABBITMQ_MANAGEMENT_PORT }}
@@ -315,6 +325,9 @@ jobs:
           minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
           document_staging_bucket:     ${{ env.DOCUMENT_STAGING_BUCKET }}
           messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
+          google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
+          google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
+          google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
           frontend_image_suffix:       demo
           compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.demo.yml'
           compose_project:             demo

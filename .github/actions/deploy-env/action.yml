@@ -102,6 +102,15 @@ inputs:
   document_staging_bucket:
     description: 'MinIO Bucket für Dokumente (staging)'
     required: true
+  google_client_id:
+    description: 'Client ID for Google Drive OAuth'
+    required: true
+  google_client_secret:
+    description: 'Client Secret for Google Drive OAuth'
+    required: true
+  google_refresh_token:
+    description: 'Refresh Token for Google Drive OAuth'
+    required: true
 
 runs:
   using: composite
@@ -152,6 +161,21 @@ runs:
           if [ -n "${{ inputs.stripe_webhook_secret_key }}" ]; then
             sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
           fi
+          if [ -n "${{ inputs.google_client_id }}" ]; then
+            sed -i "s|^GOOGLE_CLIENT_ID=.*$|GOOGLE_CLIENT_ID=${{ inputs.google_client_id }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.google_client_secret }}" ]; then
+            sed -i "s|^GOOGLE_CLIENT_SECRET=.*$|GOOGLE_CLIENT_SECRET=${{ inputs.google_client_secret }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.google_refresh_token }}" ]; then
+            sed -i "s|^GOOGLE_REFRESH_TOKEN=.*$|GOOGLE_REFRESH_TOKEN=${{ inputs.google_refresh_token }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.stripe_secret_key }}"]; then
+            sed -i "s|^STRIPE_SECRET_KEY=.*$|STRIPE_SECRET_KEY=${{ inputs.stripe_secret_key }}|" "$RELEASE_DIR/api/.env"
+          fi
+          if [ -n "${{ inputs.stripe_webhook_secret }}"]; then
+            sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
+          fi
           if [ -n "${{ inputs.messenger_transport_dsn }}" ]; then
             file="$RELEASE_DIR/api/.env"
             value='${{ inputs.messenger_transport_dsn }}'
@@ -164,6 +188,8 @@ runs:
               printf '\nMESSENGER_TRANSPORT_DSN=%s\n' "$value" >> "$file"
             fi
           fi
+
+          cat "$RELEASE_DIR/api/.env"
 
           echo "APP_DEBUG=0"                                                >> "$RELEASE_DIR/api/.env"
           echo "APP_SECRET=${{ env.APP_SECRET }}"                           >> "$RELEASE_DIR/api/.env"
