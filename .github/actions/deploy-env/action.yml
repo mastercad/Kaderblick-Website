@@ -183,6 +183,7 @@ runs:
 
           file="$RELEASE_DIR/api/.env"
           cp "$RELEASE_DIR/api/.env.dist" "$file"
+          touch "$RELEASE_DIR/frontend/.env"
 
           set_env_var "$file" "APP_ENV" "${{ inputs.app_env }}"
           set_env_var "$file" "GOOGLE_REDIRECT_URI" "${{ inputs.google_redirect_uri }}"
@@ -208,6 +209,7 @@ runs:
           set_env_var "$file" "APP_SECRET" "${{ inputs.vite_backend_url }}"
 
           touch "$RELEASE_DIR/api/.env.prod.local"
+          touch "$RELEASE_DIR/api/.env.demo.local"
           touch "$RELEASE_DIR/api/.env.staging.local"
   
           mkdir -p "${{ steps.prepare-key.outputs.key_dir }}"
