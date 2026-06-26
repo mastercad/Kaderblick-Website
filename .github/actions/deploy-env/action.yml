@@ -201,12 +201,11 @@ runs:
           set_env_var "$file" "APP_DEBUG" "${{ 0 }}"
           set_env_var "$file" "APP_SECRET" "${{ env.APP_SECRET }}"
           set_env_var "$file" "ADMIN_ALERT_EMAIL" "${{ env.ADMIN_ALERT_EMAIL }}"
-          set_env_var "$file" "APP_SECRET" "${{ inputs.vite_backend_url }}"
 
           cat "$RELEASE_DIR/api/.env"
 
           file="$RELEASE_DIR/frontend/.env"
-          set_env_var "$file" "APP_SECRET" "${{ inputs.vite_backend_url }}"
+          set_env_var "$file" "VITE_BACKEND_URL" "${{ inputs.vite_backend_url }}"
 
           touch "$RELEASE_DIR/api/.env.prod.local"
           touch "$RELEASE_DIR/api/.env.demo.local"
