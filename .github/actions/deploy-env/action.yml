@@ -111,6 +111,15 @@ inputs:
   google_refresh_token:
     description: 'Refresh Token for Google Drive OAuth'
     required: true
+  document_staging_access_key:
+    description: 'Access Key for Document Staging (MinIO)'
+    required: true
+  document_staging_secret_key:
+    description: 'Secret Key for Document Staging (MinIO)'
+    required: true
+  google_documents_folder_id:
+    description: 'Google Drive Folder ID for storing documents'
+    required: true 
 
 runs:
   using: composite
@@ -183,6 +192,10 @@ runs:
           set_env_var "$file" "GOOGLE_CLIENT_ID" "${{ inputs.google_client_id }}"
           set_env_var "$file" "GOOGLE_CLIENT_SECRET" "${{ inputs.google_client_secret }}"
           set_env_var "$file" "GOOGLE_REFRESH_TOKEN" "${{ inputs.google_refresh_token }}"
+          set_env_var "$file" "GOOGLE_DOCUMENTS_FOLDER_ID" "${{ inputs.google_documents_folder_id }}"
+          set_env_var "$file" "DOCUMENT_STAGING_ACCESS_KEY" "${{ inputs.document_staging_access_key }}"
+          set_env_var "$file" "DOCUMENT_STAGING_SECRET_KEY" "${{ inputs.document_staging_secret_key }}"
+          set_env_var "$file" "DOCUMENT_STAGING_BUCKET" "${{ inputs.document_staging_bucket }}"
           set_env_var "$file" "MESSENGER_TRANSPORT_DSN" "${{ inputs.messenger_transport_dsn }}"
           set_env_var "$file" "APP_DEBUG" "${{ 0 }}"
           set_env_var "$file" "APP_SECRET" "${{ env.APP_SECRET }}"

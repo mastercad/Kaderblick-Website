@@ -126,6 +126,9 @@ jobs:
           google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
           google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
           google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
+          google_documents_folder_id:  ${{ env.GOOGLE_DOCUMENTS_FOLDER_ID }}
+          document_staging_access_key: ${{ env.DOCUMENT_STAGING_ACCESS_KEY }}
+          document_staging_secret_key: ${{ env.DOCUMENT_STAGING_SECRET_KEY }}
           disable_maintenance_on_exit: 'false'
 
       - name: Production healthcheck
