@@ -238,6 +238,7 @@ jobs:
           minio_root_user:             ${{ env.MINIO_ROOT_USER }}
           minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
           document_staging_bucket:     ${{ env.DOCUMENT_STAGING_BUCKET }}
+          messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
           frontend_image_suffix:       staging
           compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
           compose_project:             staging
@@ -313,6 +314,7 @@ jobs:
           minio_root_user:             ${{ env.MINIO_ROOT_USER }}
           minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
           document_staging_bucket:     ${{ env.DOCUMENT_STAGING_BUCKET }}
+          messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
           frontend_image_suffix:       demo
           compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.demo.yml'
           compose_project:             demo

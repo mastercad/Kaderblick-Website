@@ -153,7 +153,16 @@ runs:
             sed -i "s|^STRIPE_WEBHOOK_SECRET=.*$|STRIPE_WEBHOOK_SECRET=${{ inputs.stripe_webhook_secret }}|" "$RELEASE_DIR/api/.env"
           fi
           if [ -n "${{ inputs.messenger_transport_dsn }}" ]; then
-            sed -i "s|^MESSENGER_TRANSPORT_DSN=.*$|MESSENGER_TRANSPORT_DSN=${{ inputs.messenger_transport_dsn }}|" "$RELEASE_DIR/api/.env"
+            file="$RELEASE_DIR/api/.env"
+            value='${{ inputs.messenger_transport_dsn }}'
+
+            escaped_value=$(printf '%s' "$value" | sed 's/[&|]/\\&/g')
+
+            if grep -q '^MESSENGER_TRANSPORT_DSN=' "$file"; then
+              sed -i "s|^MESSENGER_TRANSPORT_DSN=.*|MESSENGER_TRANSPORT_DSN=$escaped_value|" "$file"
+            else
+              printf '\nMESSENGER_TRANSPORT_DSN=%s\n' "$value" >> "$file"
+            fi
           fi
 
           echo "APP_DEBUG=0"                                                >> "$RELEASE_DIR/api/.env"
