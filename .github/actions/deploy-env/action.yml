@@ -99,8 +99,8 @@ inputs:
   minio_root_password:
     description: 'MinIO Root Password'
     required: true
-  document_staging_bucket:
-    description: 'MinIO Bucket für Dokumente (staging)'
+  document_bucket:
+    description: 'MinIO Bucket für Dokumente'
     required: true
   google_client_id:
     description: 'Client ID for Google Drive OAuth'
@@ -111,11 +111,11 @@ inputs:
   google_refresh_token:
     description: 'Refresh Token for Google Drive OAuth'
     required: true
-  document_staging_access_key:
-    description: 'Access Key for Document Staging (MinIO)'
+  document_access_key:
+    description: 'Access Key for Document (MinIO)'
     required: true
-  document_staging_secret_key:
-    description: 'Secret Key for Document Staging (MinIO)'
+  document_secret_key:
+    description: 'Secret Key for Document (MinIO)'
     required: true
   google_documents_folder_id:
     description: 'Google Drive Folder ID for storing documents'
@@ -181,9 +181,22 @@ runs:
             fi
           }
 
+          file="$RELEASE_DIR/.env"
+          touch "$file"
+
+          set_env_var "$file" "HOST_UID" "${{ env.HOST_UID }}"
+          set_env_var "$file" "HOST_GID" "${{ env.HOST_GID }}"
+          set_env_var "$file" "API_PORT" "${{ inputs.api_port }}"
+          set_env_var "$file" "REACT_PORT" "${{ inputs.react_port }}" 
+          set_env_var "$file" "RABBITMQ_PORT" "${{ inputs.rabbitmq_port }}"
+          set_env_var "$file" "RABBITMQ_USER" "${{ inputs.rabbitmq_user }}"
+          set_env_var "$file" "RABBITMQ_PASSWORD" "${{ inputs.rabbitmq_password }}"
+          set_env_var "$file" "DOCUMENT_BUCKET" "${{ inputs.document_bucket }}"
+          set_env_var "$file" "MINIO_ROOT_USER" "${{ inputs.minio_root_user }}"
+          set_env_var "$file" "MINIO_ROOT_PASSWORD" "${{ inputs.minio_root_password }}"
+
           file="$RELEASE_DIR/api/.env"
           cp "$RELEASE_DIR/api/.env.dist" "$file"
-          touch "$RELEASE_DIR/frontend/.env"
 
           set_env_var "$file" "APP_ENV" "${{ inputs.app_env }}"
           set_env_var "$file" "GOOGLE_REDIRECT_URI" "${{ inputs.google_redirect_uri }}"
@@ -194,9 +207,9 @@ runs:
           set_env_var "$file" "GOOGLE_CLIENT_SECRET" "${{ inputs.google_client_secret }}"
           set_env_var "$file" "GOOGLE_REFRESH_TOKEN" "${{ inputs.google_refresh_token }}"
           set_env_var "$file" "GOOGLE_DOCUMENTS_FOLDER_ID" "${{ inputs.google_documents_folder_id }}"
-          set_env_var "$file" "DOCUMENT_STAGING_ACCESS_KEY" "${{ inputs.document_staging_access_key }}"
-          set_env_var "$file" "DOCUMENT_STAGING_SECRET_KEY" "${{ inputs.document_staging_secret_key }}"
-          set_env_var "$file" "DOCUMENT_STAGING_BUCKET" "${{ inputs.document_staging_bucket }}"
+          set_env_var "$file" "DOCUMENT_ACCESS_KEY" "${{ inputs.document_access_key }}"
+          set_env_var "$file" "DOCUMENT_SECRET_KEY" "${{ inputs.document_secret_key }}"
+          set_env_var "$file" "DOCUMENT_BUCKET" "${{ inputs.document_bucket }}"
           set_env_var "$file" "MESSENGER_TRANSPORT_DSN" "${{ inputs.messenger_transport_dsn }}"
           set_env_var "$file" "APP_DEBUG" "${{ 0 }}"
           set_env_var "$file" "APP_SECRET" "${{ env.APP_SECRET }}"
@@ -205,6 +218,7 @@ runs:
           cat "$RELEASE_DIR/api/.env"
 
           file="$RELEASE_DIR/frontend/.env"
+          touch "$file"
           set_env_var "$file" "VITE_BACKEND_URL" "${{ inputs.vite_backend_url }}"
 
           touch "$RELEASE_DIR/api/.env.prod.local"
@@ -295,7 +309,7 @@ runs:
           MINIO_CONSOLE_PORT=${{ env.MINIO_CONSOLE_PORT }} \
           MINIO_ROOT_USER=${{ env.MINIO_ROOT_USER }} \
           MINIO_ROOT_PASSWORD=${{ env.MINIO_ROOT_PASSWORD }} \
-          DOCUMENT_STAGING_BUCKET=${{ env.DOCUMENT_STAGING_BUCKET }} \
+          DOCUMENT_BUCKET=${{ env.DOCUMENT_BUCKET }} \
           HEALTHCHECK_URL=${{ env.HEALTHCHECK_URL }} \
           IMAGE_TAG=${{ inputs.image_tag }} API_IMAGE_TAG=${{ inputs.image_tag }} \
           MESSENGER_TRANSPORT_DSN=amqp://${{ env.RABBITMQ_USER }}:${{ env.RABBITMQ_PASSWORD }}@kaderblick-rabbitmq:${{ env.RABBITMQ_PORT }}/%2f \

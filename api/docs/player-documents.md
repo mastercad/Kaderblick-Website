@@ -15,14 +15,14 @@ Der Minutentakt-Job `app:documents:dispatch-pending` stellt nicht versendete Out
 ```dotenv
 MESSENGER_TRANSPORT_DSN=amqp://kaderblick:secret@rabbitmq/%2f
 
-DOCUMENT_STAGING_ENDPOINT=https://s3.example
-DOCUMENT_STAGING_REGION=eu-central-1
-DOCUMENT_STAGING_BUCKET=kaderblick-documents-staging
-DOCUMENT_STAGING_ACCESS_KEY=...
-DOCUMENT_STAGING_SECRET_KEY=...
-DOCUMENT_STAGING_PATH_STYLE=true
+DOCUMENT_ENDPOINT=https://s3.example
+DOCUMENT_REGION=eu-central-1
+DOCUMENT_BUCKET=kaderblick-documents-staging
+DOCUMENT_ACCESS_KEY=...
+DOCUMENT_SECRET_KEY=...
+DOCUMENT_PATH_STYLE=true
 # AWS S3: AES256; MinIO ohne KMS: leer
-DOCUMENT_STAGING_SSE=AES256
+DOCUMENT_SSE=AES256
 
 GOOGLE_DOCUMENTS_FOLDER_ID=...
 ```

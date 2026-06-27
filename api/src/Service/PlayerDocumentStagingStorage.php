@@ -16,20 +16,20 @@ class PlayerDocumentStagingStorage
 
     public function __construct()
     {
-        $endpoint = $_ENV['DOCUMENT_STAGING_ENDPOINT'] ?? $_SERVER['DOCUMENT_STAGING_ENDPOINT'] ?? null;
-        $accessKey = $_ENV['DOCUMENT_STAGING_ACCESS_KEY'] ?? $_SERVER['DOCUMENT_STAGING_ACCESS_KEY'] ?? null;
-        $secretKey = $_ENV['DOCUMENT_STAGING_SECRET_KEY'] ?? $_SERVER['DOCUMENT_STAGING_SECRET_KEY'] ?? null;
-        $this->bucket = $_ENV['DOCUMENT_STAGING_BUCKET'] ?? $_SERVER['DOCUMENT_STAGING_BUCKET'] ?? 'kaderblick-documents-staging';
-        $serverSideEncryption = trim((string) ($_ENV['DOCUMENT_STAGING_SSE'] ?? $_SERVER['DOCUMENT_STAGING_SSE'] ?? ''));
+        $endpoint = $_ENV['DOCUMENT_ENDPOINT'] ?? $_SERVER['DOCUMENT_ENDPOINT'] ?? null;
+        $accessKey = $_ENV['DOCUMENT_ACCESS_KEY'] ?? $_SERVER['DOCUMENT_ACCESS_KEY'] ?? null;
+        $secretKey = $_ENV['DOCUMENT_SECRET_KEY'] ?? $_SERVER['DOCUMENT_SECRET_KEY'] ?? null;
+        $this->bucket = $_ENV['DOCUMENT_BUCKET'] ?? $_SERVER['DOCUMENT_BUCKET'] ?? 'kaderblick-documents-development';
+        $serverSideEncryption = trim((string) ($_ENV['DOCUMENT_SSE'] ?? $_SERVER['DOCUMENT_SSE'] ?? ''));
         $this->serverSideEncryption = '' !== $serverSideEncryption ? $serverSideEncryption : null;
         if (!$endpoint || !$accessKey || !$secretKey) {
             throw new RuntimeException('Der S3-Dokument-Staging-Speicher ist nicht vollständig konfiguriert.');
         }
         $this->client = new S3Client([
             'version' => 'latest',
-            'region' => $_ENV['DOCUMENT_STAGING_REGION'] ?? $_SERVER['DOCUMENT_STAGING_REGION'] ?? 'eu-central-1',
+            'region' => $_ENV['DOCUMENT_REGION'] ?? $_SERVER['DOCUMENT_REGION'] ?? 'eu-central-1',
             'endpoint' => $endpoint,
-            'use_path_style_endpoint' => filter_var($_ENV['DOCUMENT_STAGING_PATH_STYLE'] ?? $_SERVER['DOCUMENT_STAGING_PATH_STYLE'] ?? true, FILTER_VALIDATE_BOOL),
+            'use_path_style_endpoint' => filter_var($_ENV['DOCUMENT_PATH_STYLE'] ?? $_SERVER['DOCUMENT_PATH_STYLE'] ?? true, FILTER_VALIDATE_BOOL),
             'credentials' => ['key' => $accessKey, 'secret' => $secretKey],
         ]);
     }
