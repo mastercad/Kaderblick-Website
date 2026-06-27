@@ -15,8 +15,10 @@ services:
     ports:
       - "${MAINTENANCE_PORT:-8083}:80"
     networks:
-      - kaderblick-net
+      - db-net
 
 networks:
-  app-net:
-    name: ${COMPOSE_PROJECT_NAME:-}-kaderblick-net
+  db-net:
+    external: true
+    name: kaderblick-net
+
