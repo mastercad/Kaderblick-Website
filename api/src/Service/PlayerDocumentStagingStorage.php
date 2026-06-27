@@ -22,9 +22,11 @@ class PlayerDocumentStagingStorage
         $this->bucket = $_ENV['DOCUMENT_BUCKET'] ?? $_SERVER['DOCUMENT_BUCKET'] ?? 'kaderblick-documents-development';
         $serverSideEncryption = trim((string) ($_ENV['DOCUMENT_SSE'] ?? $_SERVER['DOCUMENT_SSE'] ?? ''));
         $this->serverSideEncryption = '' !== $serverSideEncryption ? $serverSideEncryption : null;
+
         if (!$endpoint || !$accessKey || !$secretKey) {
             throw new RuntimeException('Der S3-Dokument-Staging-Speicher ist nicht vollständig konfiguriert.');
         }
+
         $this->client = new S3Client([
             'version' => 'latest',
             'region' => $_ENV['DOCUMENT_REGION'] ?? $_SERVER['DOCUMENT_REGION'] ?? 'eu-central-1',
@@ -40,11 +42,13 @@ class PlayerDocumentStagingStorage
         if (false === $handle) {
             throw new RuntimeException('Upload-Datei konnte nicht gelesen werden.');
         }
+
         try {
             $options = [
                 'Bucket' => $this->bucket, 'Key' => $objectKey, 'Body' => $handle,
                 'ContentType' => $file->getMimeType(),
             ];
+
             if (null !== $this->serverSideEncryption) {
                 $options['ServerSideEncryption'] = $this->serverSideEncryption;
             }

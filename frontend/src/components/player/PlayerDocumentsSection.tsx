@@ -109,7 +109,7 @@ export default function PlayerDocumentsSection({ playerId }: { playerId: number 
         <TextField label="Bezeichnung (optional)" value={displayName} onChange={e => setDisplayName(e.target.value)} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}><TextField fullWidth type="date" label="Ausgestellt am" value={issuedAt} onChange={e => setIssuedAt(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /><TextField fullWidth type="date" label="Gültig bis" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} /></Stack>
         <TextField label="Notizen" multiline minRows={2} value={notes} onChange={e => setNotes(e.target.value)} />
-        <Alert severity="info">Nach dem Upload übernimmt der Worker OCR, Google-Drive-Upload sowie die automatische Erkennung von Dokumenttyp und Datumsangaben.</Alert>
+        {/* <Alert severity="info">Nach dem Upload übernimmt der Worker OCR, Google-Drive-Upload sowie die automatische Erkennung von Dokumenttyp und Datumsangaben.</Alert> */}
       </Stack></DialogContent>
       <DialogActions><Button onClick={() => setOpen(false)} disabled={saving}>Abbrechen</Button><Button variant="contained" onClick={() => void upload()} disabled={saving || !file || !clubId}>{saving ? 'Wird gespeichert…' : 'Hochladen & verarbeiten'}</Button></DialogActions>
     </Dialog>

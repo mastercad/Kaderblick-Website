@@ -75,7 +75,6 @@ class PlayerDocumentController extends AbstractController
         if (!in_array($mime, self::MIMES, true)) {
             return $this->json(['error' => 'Erlaubt sind PDF, JPEG, PNG und WebP'], 400);
         }
-
         $club = $this->em->getRepository(Club::class)->find((int) $request->request->get('clubId'));
         $belongsToClub = $club && $player->getPlayerClubAssignments()->exists(fn ($key, $a) => $a->getClub()->getId() === $club->getId());
         if (!$belongsToClub) {
