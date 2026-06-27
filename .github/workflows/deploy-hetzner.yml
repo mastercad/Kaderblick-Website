@@ -99,6 +99,10 @@ jobs:
           current_link_name:           production_current
           app_env:                     prod
           decrypt_key_env:             prod
+          frontend_image_suffix:       prod
+          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml'
+          compose_project:             production
+          maintenance_flag:            maintenance_production.flag
           vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
           image_tag:                   ${{ inputs.image_tag }}
           api_port:                    ${{ env.API_PORT }}
@@ -115,10 +119,6 @@ jobs:
           google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
           frontend_url:                ${{ env.FRONTEND_URL }}
-          frontend_image_suffix:       prod
-          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml'
-          compose_project:             production
-          maintenance_flag:            maintenance_production.flag
           rollback_file:               ${{ env.HETZNER_PROJECT_PATH }}/.rollback_to
           stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
           stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
@@ -228,6 +228,10 @@ jobs:
           current_link_name:           staging_current
           app_env:                     staging
           decrypt_key_env:             staging
+          frontend_image_suffix:       staging
+          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
+          compose_project:             staging
+          maintenance_flag:            maintenance_staging.flag
           vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
           google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:                ${{ env.FRONTEND_URL }}
@@ -253,10 +257,6 @@ jobs:
           google_documents_folder_id:  ${{ env.GOOGLE_DOCUMENTS_FOLDER_ID }}
           document_access_key:         ${{ env.DOCUMENT_ACCESS_KEY }}
           document_secret_key:         ${{ env.DOCUMENT_SECRET_KEY }}
-          frontend_image_suffix:       staging
-          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
-          compose_project:             staging
-          maintenance_flag:            maintenance_staging.flag
 
   # ============================================================
   # DEPLOY DEMO
@@ -312,6 +312,10 @@ jobs:
           current_link_name:           demo_current
           app_env:                     demo
           decrypt_key_env:             demo
+          frontend_image_suffix:       demo
+          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.demo.yml'
+          compose_project:             demo
+          maintenance_flag:            maintenance_demo.flag
           vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
           google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:                ${{ env.FRONTEND_URL }}
@@ -337,10 +341,6 @@ jobs:
           google_documents_folder_id:  ${{ env.GOOGLE_DOCUMENTS_FOLDER_ID }}
           document_access_key:         ${{ env.DOCUMENT_ACCESS_KEY }}
           document_secret_key:         ${{ env.DOCUMENT_SECRET_KEY }}
-          frontend_image_suffix:       demo
-          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.demo.yml'
-          compose_project:             demo
-          maintenance_flag:            maintenance_demo.flag
 
   # ============================================================
   # CLEANUP – Alte Releases löschen, Docker aufräumen
