@@ -16,8 +16,9 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      kaderblick-net:
-        aliases: [kaderblick-rabbitmq]
+      app-net:
+        aliases: 
+          - kaderblick-rabbitmq
 
   minio:
     image: minio/minio:RELEASE.2025-07-23T15-54-02Z
@@ -34,8 +35,9 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      kaderblick-net:
-        aliases: [kaderblick-minio]
+      app-net:
+        aliases: 
+          - kaderblick-minio
 
   minio-init:
     image: minio/mc:RELEASE.2025-07-21T05-28-08Z
@@ -54,13 +56,13 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kaderblick}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-me}
       DOCUMENT_BUCKET: ${DOCUMENT_BUCKET:-kaderblick-documents-development}
-    networks: [kaderblick-net]
+    networks:
+      - app-net
 
 volumes:
   rabbitmq-data:
   minio-data:
 
 networks:
-  kaderblick-net:
-    name: ${COMPOSE_PROJECT_NAME:-}_kaderblick_net
-    external: true
+  app-net:
+    name: ${COMPOSE_PROJECT_NAME:-}-kaderblick-net

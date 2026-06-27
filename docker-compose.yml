@@ -38,7 +38,8 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - kaderblick-net
+      - app-net
+      - db-net
 
   frontend:
     # Produktions-Image aus GHCR. VITE_BACKEND_URL ist zur Build-Zeit eingebettet.
@@ -58,7 +59,8 @@ services:
       retries: 3
       start_period: 30s
     networks:
-      - kaderblick-net
+      - app-net
+      - db-net
 
   worker:
     image: ghcr.io/mastercad/kaderblick/api:${API_IMAGE_TAG:-latest}
@@ -78,9 +80,12 @@ services:
       HOST_UID: ${HOST_UID:-1001}
       HOST_GID: ${HOST_GID:-1001}
     networks:
-      - kaderblick-net
+      - app-net
+      - db-net
 
 networks:
-  kaderblick-net:
-    name: ${COMPOSE_PROJECT_NAME:-}_kaderblick_net
+  db-net:
     external: true
+    name: kaderblick-net
+  app-net:
+    name: ${COMPOSE_PROJECT_NAME:-}-kaderblick-net

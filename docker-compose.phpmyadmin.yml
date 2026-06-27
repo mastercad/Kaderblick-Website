@@ -10,8 +10,8 @@ services:
     ports:
       - "${PMA_PORT:-8082}:80"
     networks:
-      - kaderblick-net
+      - app-net
 
 networks:
-  kaderblick-net:
-    external: true
+  app-net:
+    name: ${COMPOSE_PROJECT_NAME:-}-kaderblick-net

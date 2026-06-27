@@ -18,5 +18,5 @@ services:
       - kaderblick-net
 
 networks:
-  kaderblick-net:
-    external: true
+  app-net:
+    name: ${COMPOSE_PROJECT_NAME:-}-kaderblick-net
