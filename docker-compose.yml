@@ -82,4 +82,5 @@ services:
 
 networks:
   kaderblick-net:
+    name: ${COMPOSE_PROJECT_NAME:-}_kaderblick_net
     external: true
