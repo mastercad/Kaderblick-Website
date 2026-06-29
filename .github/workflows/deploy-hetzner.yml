@@ -164,99 +164,99 @@ jobs:
   # Läuft nach prod. Bei prod+staging: DB-Klon. Bei staging-only:
   # Datenbank wird nur sichergestellt.
   # ============================================================
-  deploy-staging:
-    name: Deploy Staging
-    needs: [prepare, deploy-prod]
-    if: |
-      always() &&
-      needs.prepare.result == 'success' &&
-      (needs.deploy-prod.result == 'success' || needs.deploy-prod.result == 'skipped') &&
-      contains(inputs.target, 'staging')
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    permissions:
-      contents: read
+#  deploy-staging:
+#    name: Deploy Staging
+#    needs: [prepare, deploy-prod]
+#    if: |
+#      always() &&
+#      needs.prepare.result == 'success' &&
+#      (needs.deploy-prod.result == 'success' || needs.deploy-prod.result == 'skipped') &&
+#      contains(inputs.target, 'staging')
+#    runs-on: ubuntu-latest
+#    timeout-minutes: 40
+#    permissions:
+#      contents: read
 
-    steps:
-      - uses: actions/checkout@v4
+#    steps:
+#      - uses: actions/checkout@v4
 
-      - name: Set release directory names
-        id: dirs
-        shell: bash
-        run: |
-          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
-          echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
-          echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
+#      - name: Set release directory names
+#        id: dirs
+#        shell: bash
+#        run: |
+#          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
+#          echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
+#          echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
 
-      - name: Fetch infrastructure secrets
-        uses: ./.github/actions/infisical-fetch
-        with:
-          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
-          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-          domain:        ${{ secrets.INFISICAL_URL }}
-          env-slug:      global
-          project-slug:  infrastructure-r-zu-j
+#      - name: Fetch infrastructure secrets
+#        uses: ./.github/actions/infisical-fetch
+#        with:
+#          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+#          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+#          domain:        ${{ secrets.INFISICAL_URL }}
+#          env-slug:      global
+#          project-slug:  infrastructure-r-zu-j
 
-      - name: Fetch staging secrets
-        uses: ./.github/actions/infisical-fetch
-        with:
-          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
-          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-          domain:        ${{ secrets.INFISICAL_URL }}
-          env-slug:      staging
-          project-slug:  kaderblick-ny-in
+#      - name: Fetch staging secrets
+#        uses: ./.github/actions/infisical-fetch
+#        with:
+#          client-id:     ${{ secrets.INFISICAL_CLIENT_ID }}
+#          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+#          domain:        ${{ secrets.INFISICAL_URL }}
+#          env-slug:      staging
+#          project-slug:  kaderblick-ny-in
 
-      - name: Clone production DB to staging
-        if: contains(inputs.target, 'prod')
-        uses: ./.github/actions/clone-db
-        with:
-          source_db: kaderblick
-          target_db: kaderblick_staging
-          db_root_password: ${{ env.MYSQL_ROOT_PASSWORD || 'root' }}
+#      - name: Clone production DB to staging
+#        if: contains(inputs.target, 'prod')
+#        uses: ./.github/actions/clone-db
+#        with:
+#          source_db: kaderblick
+#          target_db: kaderblick_staging
+#          db_root_password: ${{ env.MYSQL_ROOT_PASSWORD || 'root' }}
 
-      - name: Ensure staging DB exists
-        if: "!contains(inputs.target, 'prod')"
-        uses: ./.github/actions/ensure-db
-        with:
-          db_name: kaderblick_staging
-          db_root_password: ${{ env.MYSQL_ROOT_PASSWORD || 'root' }}
+#      - name: Ensure staging DB exists
+#        if: "!contains(inputs.target, 'prod')"
+#        uses: ./.github/actions/ensure-db
+#        with:
+#          db_name: kaderblick_staging
+#          db_root_password: ${{ env.MYSQL_ROOT_PASSWORD || 'root' }}
 
-      - name: Deploy staging environment
-        uses: ./.github/actions/deploy-env
-        with:
-          release_dir:                 ${{ steps.dirs.outputs.staging_dir }}
-          current_link_name:           staging_current
-          app_env:                     staging
-          decrypt_key_env:             staging
-          frontend_image_suffix:       staging
-          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
-          compose_project:             staging
-          maintenance_flag:            maintenance_staging.flag
-          vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
-          google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
-          frontend_url:                ${{ env.FRONTEND_URL }}
-          image_tag:                   ${{ inputs.image_tag }}
-          api_port:                    ${{ env.API_PORT }}
-          react_port:                  ${{ env.REACT_PORT }}
-          healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
-          stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
-          stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
-          rabbitmq_port:               ${{ env.RABBITMQ_PORT }}
-          rabbitmq_management_port:    ${{ env.RABBITMQ_MANAGEMENT_PORT }}
-          rabbitmq_user:               ${{ env.RABBITMQ_USER }}
-          rabbitmq_password:           ${{ env.RABBITMQ_PASSWORD }}
-          minio_port:                  ${{ env.MINIO_PORT }}
-          minio_console_port:          ${{ env.MINIO_CONSOLE_PORT }}
-          minio_root_user:             ${{ env.MINIO_ROOT_USER }}
-          minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
-          document_bucket:             ${{ env.DOCUMENT_BUCKET }}
-          messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
-          google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
-          google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
-          google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
-          google_documents_folder_id:  ${{ env.GOOGLE_DOCUMENTS_FOLDER_ID }}
-          document_access_key:         ${{ env.DOCUMENT_ACCESS_KEY }}
-          document_secret_key:         ${{ env.DOCUMENT_SECRET_KEY }}
+#      - name: Deploy staging environment
+#        uses: ./.github/actions/deploy-env
+#        with:
+#          release_dir:                 ${{ steps.dirs.outputs.staging_dir }}
+#          current_link_name:           staging_current
+#          app_env:                     staging
+#          decrypt_key_env:             staging
+#          frontend_image_suffix:       staging
+#          compose_files:               '-f docker-compose.yml -f docker-compose.infrastructure.yml -f docker-compose.staging.yml'
+#          compose_project:             staging
+#          maintenance_flag:            maintenance_staging.flag
+#          vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
+#          google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
+#          frontend_url:                ${{ env.FRONTEND_URL }}
+#          image_tag:                   ${{ inputs.image_tag }}
+#          api_port:                    ${{ env.API_PORT }}
+#          react_port:                  ${{ env.REACT_PORT }}
+#          healthcheck_url:             ${{ env.HEALTHCHECK_URL }}
+#          stripe_secret_key:           ${{ env.STRIPE_SECRET_KEY }}
+#          stripe_webhook_secret:       ${{ env.STRIPE_WEBHOOK_SECRET }}
+#          rabbitmq_port:               ${{ env.RABBITMQ_PORT }}
+#          rabbitmq_management_port:    ${{ env.RABBITMQ_MANAGEMENT_PORT }}
+#          rabbitmq_user:               ${{ env.RABBITMQ_USER }}
+#          rabbitmq_password:           ${{ env.RABBITMQ_PASSWORD }}
+#          minio_port:                  ${{ env.MINIO_PORT }}
+#          minio_console_port:          ${{ env.MINIO_CONSOLE_PORT }}
+#          minio_root_user:             ${{ env.MINIO_ROOT_USER }}
+#          minio_root_password:         ${{ env.MINIO_ROOT_PASSWORD }}
+#          document_bucket:             ${{ env.DOCUMENT_BUCKET }}
+#          messenger_transport_dsn:     ${{ env.MESSENGER_TRANSPORT_DSN }}
+#          google_client_id:            ${{ env.GOOGLE_CLIENT_ID }}
+#          google_client_secret:        ${{ env.GOOGLE_CLIENT_SECRET }}
+#          google_refresh_token:        ${{ env.GOOGLE_REFRESH_TOKEN }}
+#          google_documents_folder_id:  ${{ env.GOOGLE_DOCUMENTS_FOLDER_ID }}
+#          document_access_key:         ${{ env.DOCUMENT_ACCESS_KEY }}
+#          document_secret_key:         ${{ env.DOCUMENT_SECRET_KEY }}
 
   # ============================================================
   # DEPLOY DEMO
@@ -319,6 +319,7 @@ jobs:
           vite_backend_url:            ${{ env.VITE_BACKEND_URL }}
           google_redirect_uri:         ${{ env.GOOGLE_REDIRECT_URI }}
           frontend_url:                ${{ env.FRONTEND_URL }}
+          fixture_groups:              master,demo
           api_port:                    ${{ env.API_PORT }}
           react_port:                  ${{ env.REACT_PORT }}
           healthcheck_url:             ${{ env.HEALTHCHECK_URL }}

@@ -53,6 +53,10 @@ inputs:
       Auf false setzen wenn der aufrufende Job die Maintenance selbst steuert (z.B. bei Rollback).
     required: false
     default: 'true'
+  fixture_groups:
+    description: 'Komma-getrennte Fixture-Gruppen (z.B. "master,demo"). Default: master'
+    required: false
+    default: 'master'
   rollback_file:
     description: 'Pfad zur Rollback-Datei (speichert vorheriges Symlink-Ziel). Leer = kein Rollback-File.'
     required: false
@@ -340,6 +344,7 @@ runs:
         compose_project: ${{ inputs.compose_project }}
         compose_files:   ${{ inputs.compose_files }}
         work_dir:        ${{ env.HETZNER_PROJECT_PATH }}/${{ inputs.current_link_name }}
+        fixture_groups:  ${{ inputs.fixture_groups }}
 
     - name: Disable maintenance
       if: always() && inputs.disable_maintenance_on_exit == 'true'
