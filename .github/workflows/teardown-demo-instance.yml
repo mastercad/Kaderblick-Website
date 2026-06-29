@@ -37,7 +37,7 @@ jobs:
       TOKEN: ${{ inputs.demo_token }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
