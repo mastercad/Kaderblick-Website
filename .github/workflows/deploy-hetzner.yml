@@ -70,7 +70,7 @@ jobs:
         id: dirs
         shell: bash
         run: |
-          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}"  >> $GITHUB_OUTPUT
+          echo "prod_dir=production_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
           echo "staging_dir=staging_releases/${{ inputs.release_timestamp }}" >> $GITHUB_OUTPUT
           echo "demo_dir=demo_releases/${{ inputs.release_timestamp }}"       >> $GITHUB_OUTPUT
 

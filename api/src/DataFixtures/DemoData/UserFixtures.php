@@ -10,18 +10,20 @@ use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Demo-Fixtures: ~10 repräsentative Benutzer pro Verein + 1 Admin-User pro Verein.
+ * Demo-Fixtures: repräsentative Benutzer pro Verein + Admin-/Staff-/Funktionärs-Accounts.
  *
  * Pro Verein:
- *   localIdx 0 → Vereinsadmin (ROLE_CLUB), E-Mail: admin.{slug}@demo-kaderblick.de
+ *   localIdx 0 → Admin-Account (ROLE_ADMIN), E-Mail: admin.{slug}@demo-kaderblick.de
  *   localIdx 1 → Cheftrainer-Account (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 2 → Co-Trainer-Account  (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 3-8 → Spieler-Accounts  (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 9 → Elternteil-Account  (ROLE_USER, linked über UserRelationFixtures)
- *   admin      → Plattform-Admin     (ROLE_ADMIN),     E-Mail: superadmin.{slug}@demo-kaderblick.de
+ *   admin      → Superadmin          (ROLE_SUPERADMIN), E-Mail: superadmin.{slug}@demo-kaderblick.de
  *   supporter  → Supporter           (ROLE_SUPPORTER), E-Mail: supporter.{slug}@demo-kaderblick.de
+ *   staff/functionary → ROLE_USER, E-Mail z.B. kassenwart-team.{slug}@demo-kaderblick.de
  *
- * Referenzschlüssel: demo_user_{clubIdx}_{localIdx}, demo_admin_{clubIdx}, demo_supporter_{clubIdx}
+ * Referenzschlüssel: demo_user_{clubIdx}_{localIdx}, demo_admin_{clubIdx}, demo_supporter_{clubIdx},
+ *                    demo_staff_functionary_user_{clubIdx}_{key}
  * Login-Passwort (alle): DemoPass1!
  * Gruppe: demo
  *
@@ -170,6 +172,118 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
         ],
     ];
 
+    /**
+     * Zusätzliche Login-Accounts pro Verein für alle Staff-/Funktionärs-Demo-Szenarien.
+     *
+     * Die eigentlichen Team-/Vereins-Zuordnungen werden in StaffFunctionaryAssignmentFixtures gesetzt.
+     */
+    private const STAFF_FUNCTIONARY_USERS = [
+        // Funktionäre auf Team-Ebene
+        'functionary_team_mannschaftskapitaen' => [
+            'emailPrefix' => 'mannschaftskapitaen-team',
+            'firstName' => 'Mannschaftskapitaen-Team',
+            'lastNameSuffix' => 'Teamfunktion',
+        ],
+        'functionary_team_spielfuehrer' => [
+            'emailPrefix' => 'spielfuehrer-team',
+            'firstName' => 'Spielfuehrer-Team',
+            'lastNameSuffix' => 'Teamfunktion',
+        ],
+        'functionary_team_jugendwart' => [
+            'emailPrefix' => 'jugendwart-team',
+            'firstName' => 'Jugendwart-Team',
+            'lastNameSuffix' => 'Teamfunktion',
+        ],
+        'functionary_team_elternbeirat' => [
+            'emailPrefix' => 'elternbeirat-team',
+            'firstName' => 'Elternbeirat-Team',
+            'lastNameSuffix' => 'Teamfunktion',
+        ],
+        'functionary_team_kassenwart' => [
+            'emailPrefix' => 'kassenwart-team',
+            'firstName' => 'Kassenwart-Team',
+            'lastNameSuffix' => 'Teamkasse',
+        ],
+        // Funktionäre auf Vereins-Ebene
+        'functionary_club_vereinspraesident' => [
+            'emailPrefix' => 'vereinspraesident-verein',
+            'firstName' => 'Vereinspraesident-Verein',
+            'lastNameSuffix' => 'Vereinsfunktion',
+        ],
+        'functionary_club_vizepraesident' => [
+            'emailPrefix' => 'vizepraesident-verein',
+            'firstName' => 'Vizepraesident-Verein',
+            'lastNameSuffix' => 'Vereinsfunktion',
+        ],
+        'functionary_club_sportwart' => [
+            'emailPrefix' => 'sportwart-verein',
+            'firstName' => 'Sportwart-Verein',
+            'lastNameSuffix' => 'Vereinsfunktion',
+        ],
+        'functionary_club_schriftfuehrer' => [
+            'emailPrefix' => 'schriftfuehrer-verein',
+            'firstName' => 'Schriftfuehrer-Verein',
+            'lastNameSuffix' => 'Vereinsfunktion',
+        ],
+        'functionary_club_beisitzer' => [
+            'emailPrefix' => 'beisitzer-verein',
+            'firstName' => 'Beisitzer-Verein',
+            'lastNameSuffix' => 'Vereinsfunktion',
+        ],
+        'functionary_club_kassenwart' => [
+            'emailPrefix' => 'kassenwart-verein',
+            'firstName' => 'Kassenwart-Verein',
+            'lastNameSuffix' => 'Vereinskasse',
+        ],
+        // Staff auf Team-Ebene
+        'staff_team_physiotherapeut' => [
+            'emailPrefix' => 'physiotherapeut-team',
+            'firstName' => 'Physiotherapeut-Team',
+            'lastNameSuffix' => 'Teamstaff',
+        ],
+        'staff_team_teammanager' => [
+            'emailPrefix' => 'teammanager-team',
+            'firstName' => 'Teammanager-Team',
+            'lastNameSuffix' => 'Teamstaff',
+        ],
+        'staff_team_zeugwart' => [
+            'emailPrefix' => 'zeugwart-team',
+            'firstName' => 'Zeugwart-Team',
+            'lastNameSuffix' => 'Material',
+        ],
+        'staff_team_busfahrer' => [
+            'emailPrefix' => 'busfahrer-team',
+            'firstName' => 'Busfahrer-Team',
+            'lastNameSuffix' => 'Teamstaff',
+        ],
+        'staff_team_medienbeauftragter' => [
+            'emailPrefix' => 'medienbeauftragter-team',
+            'firstName' => 'Medienbeauftragter-Team',
+            'lastNameSuffix' => 'Teamstaff',
+        ],
+        // Staff auf Vereins-Ebene
+        'staff_club_vereinsarzt' => [
+            'emailPrefix' => 'vereinsarzt-verein',
+            'firstName' => 'Vereinsarzt-Verein',
+            'lastNameSuffix' => 'Vereinsstaff',
+        ],
+        'staff_club_geschaeftsfuehrer' => [
+            'emailPrefix' => 'geschaeftsfuehrer-verein',
+            'firstName' => 'Geschaeftsfuehrer-Verein',
+            'lastNameSuffix' => 'Vereinsstaff',
+        ],
+        'staff_club_platzwart' => [
+            'emailPrefix' => 'platzwart-verein',
+            'firstName' => 'Platzwart-Verein',
+            'lastNameSuffix' => 'Anlage',
+        ],
+        'staff_club_pressesprecher' => [
+            'emailPrefix' => 'pressesprecher-verein',
+            'firstName' => 'Pressesprecher-Verein',
+            'lastNameSuffix' => 'Vereinsstaff',
+        ],
+    ];
+
     public function __construct(
         private readonly UserPasswordHasherInterface $passwordHasher,
     ) {
@@ -207,7 +321,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                 $user->setIsEnabled(true);
                 $user->setIsVerified(true);
 
-                $role = (0 === $localIdx) ? 'ROLE_CLUB' : 'ROLE_USER';
+                $role = (0 === $localIdx) ? 'ROLE_ADMIN' : 'ROLE_USER';
                 $user->setRoles([$role]);
 
                 if (null === $user->getId()) {
@@ -223,7 +337,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             }
         }
 
-        // --- Admin users (one per club, ROLE_ADMIN) ---
+        // --- Superadmin users (one per club, ROLE_SUPERADMIN) ---
         foreach (self::CLUB_SLUGS as $clubIdx => $slug) {
             $email = 'superadmin.' . $slug . '@demo-kaderblick.de';
 
@@ -235,7 +349,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             $user->setLastName($lastName);
             $user->setIsEnabled(true);
             $user->setIsVerified(true);
-            $user->setRoles(['ROLE_ADMIN']);
+            $user->setRoles(['ROLE_SUPERADMIN']);
 
             if (null === $user->getId()) {
                 $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
@@ -272,6 +386,32 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
 
             if (0 === ++$count % $batchSize) {
                 $manager->flush();
+            }
+        }
+
+        // --- Staff/functionary login users (ROLE_USER) ---
+        foreach (self::CLUB_SLUGS as $clubIdx => $slug) {
+            foreach (self::STAFF_FUNCTIONARY_USERS as $key => $data) {
+                $email = $data['emailPrefix'] . '.' . $slug . '@demo-kaderblick.de';
+
+                $user = $repo->findOneBy(['email' => $email]) ?? new User();
+                $user->setEmail($email);
+                $user->setFirstName($data['firstName']);
+                $user->setLastName(self::USER_NAMES[$clubIdx][0][1] . ' ' . $data['lastNameSuffix']);
+                $user->setIsEnabled(true);
+                $user->setIsVerified(true);
+                $user->setRoles(['ROLE_USER']);
+
+                if (null === $user->getId()) {
+                    $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
+                }
+
+                $manager->persist($user);
+                $this->addReference('demo_staff_functionary_user_' . $clubIdx . '_' . $key, $user);
+
+                if (0 === ++$count % $batchSize) {
+                    $manager->flush();
+                }
             }
         }
 

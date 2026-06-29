@@ -20,7 +20,6 @@ class StaffClubAssignmentTypeFixtures extends Fixture implements FixtureGroupInt
             ['name' => 'Vereinsarzt', 'description' => 'Medizinische Betreuung des gesamten Vereins.', 'active' => true],
             ['name' => 'Geschäftsführer', 'description' => 'Operative Leitung des Vereins.', 'active' => true],
             ['name' => 'Platzwart', 'description' => 'Pflege und Wartung der Vereinsanlagen.', 'active' => true],
-            ['name' => 'Kassenwart', 'description' => 'Finanzverwaltung des Vereins.', 'active' => true],
             ['name' => 'Pressesprecher', 'description' => 'Öffentlichkeitsarbeit und Kommunikation.', 'active' => true],
         ];
 

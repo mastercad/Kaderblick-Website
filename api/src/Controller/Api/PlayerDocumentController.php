@@ -167,7 +167,7 @@ class PlayerDocumentController extends AbstractController
             try {
                 $contents = $this->driveStorage->download($document);
             } catch (Throwable) {
-                return $this->json(['error' => 'Dokument konnte nicht von Google Drive geladen werden'], 502);
+                return $this->json(['error' => 'Dokument konnte nicht geladen werden'], 502);
             }
             $response = new Response($contents);
             $response->headers->set('Content-Disposition', $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $document->getOriginalFilename()));

@@ -34,6 +34,12 @@ final class CoachTeamVoter extends Voter
             return false;
         }
 
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+            return true;
+        }
+
+        // @TODO hier noch implementieren wenn der User im Verein eine Funktionalität hat oder ein Staffmitglied mit rechten für Teams hat
+
         /** @var Team $team */
         $team = $subject;
 
