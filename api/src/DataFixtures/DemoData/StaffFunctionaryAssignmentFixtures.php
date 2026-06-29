@@ -154,7 +154,7 @@ class StaffFunctionaryAssignmentFixtures extends Fixture implements FixtureGroup
     /**
      * @template T of object
      *
-     * @param class-string<T> $className
+     * @param class-string<T>       $className
      * @param array<string, string> $assignments
      *
      * @return array<string, T>
