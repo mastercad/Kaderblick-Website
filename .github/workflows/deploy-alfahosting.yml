@@ -28,7 +28,7 @@ jobs:
       HOST_GID: 1003
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # ============================================================
       # VORBEREITUNG: Release-Verzeichnisse und Dateien

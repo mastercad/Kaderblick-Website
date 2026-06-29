@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
@@ -64,7 +64,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set release directory names
         id: dirs
@@ -178,7 +178,7 @@ jobs:
 #      contents: read
 
 #    steps:
-#      - uses: actions/checkout@v4
+#      - uses: actions/checkout@v7
 
 #      - name: Set release directory names
 #        id: dirs
@@ -271,7 +271,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set release directory names
         id: dirs
@@ -356,7 +356,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Fetch infrastructure secrets
         uses: ./.github/actions/infisical-fetch
