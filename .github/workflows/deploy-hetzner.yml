@@ -348,7 +348,8 @@ jobs:
   # ============================================================
   cleanup:
     name: Cleanup
-    needs: [prepare, deploy-prod, deploy-staging, deploy-demo]
+#    needs: [prepare, deploy-prod, deploy-staging, deploy-demo]
+    needs: [prepare, deploy-prod, deploy-demo]
     if: always() && needs.prepare.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 15
