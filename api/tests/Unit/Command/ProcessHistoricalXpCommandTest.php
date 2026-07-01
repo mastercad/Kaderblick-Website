@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Command;
 use App\Command\ProcessHistoricalXpCommand;
 use App\Entity\XpRule;
 use App\Repository\XpRuleRepository;
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -108,6 +109,16 @@ class ProcessHistoricalXpCommandTest extends TestCase
             });
     }
 
+    private function currentSeason(): string
+    {
+        $now = new DateTimeImmutable();
+        $year = (int) $now->format('Y');
+        $month = (int) $now->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
+    }
+
     // ── Basic execution ──────────────────────────────────────────────────────
 
     public function testReturnsSuccessWithNoRules(): void
@@ -142,8 +153,32 @@ class ProcessHistoricalXpCommandTest extends TestCase
     {
         $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
         $this->fetchResults = [
-            'dedup' => [['k' => '1:goal_scored:100']],
+            'dedup' => [['k' => '1:goal_scored:100:' . $this->currentSeason()]],
             'goals' => [['game_event_id' => 100, 'user_id' => 1]],
+            'assists' => [],
+        ];
+        $this->setupFetch();
+        $this->trackStatements();
+
+        $tester = $this->buildCommandTester();
+        $exitCode = $tester->execute(['--type' => 'goals']);
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        $this->assertStringContainsString('Processed 0 goals', $tester->getDisplay());
+        $inserts = array_filter($this->executedStatements, fn ($s) => str_contains($s['sql'], 'INSERT INTO user_xp_events'));
+        $this->assertEmpty($inserts);
+    }
+
+    public function testLegacyProcessedEventsWithoutSeasonAreNotAwardedAgain(): void
+    {
+        $this->setupRules([$this->makeXpRule('goal_scored', 50), $this->makeXpRule('goal_assisted', 30)]);
+        $this->fetchResults = [
+            'dedup' => [[
+                'k' => '1:goal_scored:100:',
+                'legacy_k' => '1:goal_scored:100:legacy',
+                'season' => null,
+            ]],
+            'goals' => [['game_event_id' => 100, 'user_id' => 1, 'event_date' => '2025-09-01 12:00:00']],
             'assists' => [],
         ];
         $this->setupFetch();
@@ -504,10 +539,10 @@ class ProcessHistoricalXpCommandTest extends TestCase
         ]);
         $this->fetchResults = [
             'dedup' => [
-                ['k' => '1:profile_completion_25:1'],
-                ['k' => '1:profile_completion_50:1'],
-                ['k' => '1:profile_completion_75:1'],
-                ['k' => '1:profile_completion_100:1'],
+                ['k' => '1:profile_completion_25:1:' . $this->currentSeason()],
+                ['k' => '1:profile_completion_50:1:' . $this->currentSeason()],
+                ['k' => '1:profile_completion_75:1:' . $this->currentSeason()],
+                ['k' => '1:profile_completion_100:1:' . $this->currentSeason()],
             ],
             'profiles' => [
                 [

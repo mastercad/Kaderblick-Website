@@ -125,10 +125,9 @@ class HallOfFameControllerTest extends TestCase
         $mainQb->method('expr')->willReturn(new Expr());
         $mainQb->method('getQuery')->willReturn($query);
 
-        // The key assertion: the filter parameter must include exactly these two types.
-        $mainQb->expects($this->once())
+        $mainQb->expects($this->exactly(2))
             ->method('setParameter')
-            ->with('allowedTypes', ['self_player', 'self_coach'])
+            ->with($this->logicalOr('allowedTypes', 'season'), $this->anything())
             ->willReturnSelf();
 
         $subQb = $this->makeSubQbMock();

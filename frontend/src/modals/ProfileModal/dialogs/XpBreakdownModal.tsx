@@ -76,8 +76,15 @@ export function XpBreakdownModal({ open, onClose }: { open: boolean; onClose: ()
               {level && (
                 <Chip
                   icon={<StarIcon />}
-                  label={`Level ${level.level} · ${(xpTotal ?? level.xpTotal).toLocaleString()} XP`}
+                  label={`Karriere-Level ${level.level} · ${(xpTotal ?? level.xpTotal).toLocaleString()} XP`}
                   color="primary" variant="outlined" sx={{ fontWeight: 700 }}
+                />
+              )}
+              {level && typeof level.seasonLevel === 'number' && (
+                <Chip
+                  icon={<StarIcon />}
+                  label={`Saison-Level ${level.seasonLevel} · ${(level.seasonXpTotal ?? 0).toLocaleString()} XP`}
+                  color="success" variant="outlined" sx={{ fontWeight: 700 }}
                 />
               )}
               {allTitles.filter(t => !title || t.id !== title.id).map(t => (

@@ -12,6 +12,7 @@ use App\Entity\League;
 use App\Entity\Team;
 use App\Entity\User;
 use DateTime;
+use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -180,7 +181,7 @@ class GamesControllerCompetitionTest extends WebTestCase
         $this->em->flush();
 
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -195,7 +196,7 @@ class GamesControllerCompetitionTest extends WebTestCase
     public function testOverviewUpcomingGameLeagueIsNullWhenNotSet(): void
     {
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -214,7 +215,7 @@ class GamesControllerCompetitionTest extends WebTestCase
         $this->em->flush();
 
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -229,7 +230,7 @@ class GamesControllerCompetitionTest extends WebTestCase
     public function testOverviewUpcomingGameCupIsNullWhenNotSet(): void
     {
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -252,7 +253,7 @@ class GamesControllerCompetitionTest extends WebTestCase
         $this->em->flush();
 
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -272,7 +273,7 @@ class GamesControllerCompetitionTest extends WebTestCase
         $this->em->flush();
 
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -318,7 +319,7 @@ class GamesControllerCompetitionTest extends WebTestCase
     public function testOverviewUpcomingGameIncludesGameType(): void
     {
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -340,7 +341,7 @@ class GamesControllerCompetitionTest extends WebTestCase
         $this->em->flush();
 
         $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/games/overview?teamId=all');
+        $this->requestOverviewForGameSeason();
 
         self::assertResponseIsSuccessful();
         $data = json_decode($this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -383,6 +384,22 @@ class GamesControllerCompetitionTest extends WebTestCase
         }
 
         return null;
+    }
+
+    private function requestOverviewForGameSeason(): void
+    {
+        $this->client->request('GET', sprintf(
+            '/api/games/overview?teamId=all&season=%d',
+            $this->seasonYearForDate($this->calendarEvent->getStartDate())
+        ));
+    }
+
+    private function seasonYearForDate(DateTimeInterface $date): int
+    {
+        $year = (int) $date->format('Y');
+        $month = (int) $date->format('n');
+
+        return $month >= 7 ? $year : $year - 1;
     }
 
     private function authenticate(User $user): void

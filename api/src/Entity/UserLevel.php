@@ -21,6 +21,15 @@ class UserLevel
     #[ORM\Column(type: 'integer')]
     private int $level;
 
+    #[ORM\Column(type: 'integer', options: ['default' => 0])]
+    private int $seasonXpTotal = 0;
+
+    #[ORM\Column(type: 'integer', options: ['default' => 1])]
+    private int $seasonLevel = 1;
+
+    #[ORM\Column(type: 'string', length: 9, nullable: true)]
+    private ?string $season = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private DateTimeImmutable $updatedAt;
 
@@ -56,6 +65,42 @@ class UserLevel
     public function setLevel(int $level): self
     {
         $this->level = $level;
+
+        return $this;
+    }
+
+    public function getSeasonXpTotal(): int
+    {
+        return $this->seasonXpTotal;
+    }
+
+    public function setSeasonXpTotal(int $seasonXpTotal): self
+    {
+        $this->seasonXpTotal = $seasonXpTotal;
+
+        return $this;
+    }
+
+    public function getSeasonLevel(): int
+    {
+        return $this->seasonLevel;
+    }
+
+    public function setSeasonLevel(int $seasonLevel): self
+    {
+        $this->seasonLevel = $seasonLevel;
+
+        return $this;
+    }
+
+    public function getSeason(): ?string
+    {
+        return $this->season;
+    }
+
+    public function setSeason(?string $season): self
+    {
+        $this->season = $season;
 
         return $this;
     }

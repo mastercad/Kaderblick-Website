@@ -939,6 +939,9 @@ export default function XpConfig() {
         />
       </Box>
       {/* ── Alerts ─────────────────────────────────────────────────────── */}
+      <Alert severity="info" sx={{ mb: 2 }}>
+        XP-Regeln gelten für Karriere-XP und die laufende Saison. Saison-Level starten je Saison neu; Karriere-Level bleiben erhalten.
+      </Alert>
       {error   && <Alert severity="error"   sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
       {/* ── Toolbar ────────────────────────────────────────────────────── */}

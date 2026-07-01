@@ -29,6 +29,9 @@ class UserXpEvent
     #[ORM\Column(type: 'integer')]
     private int $xpValue;
 
+    #[ORM\Column(type: 'string', length: 9, nullable: true)]
+    private ?string $season = null;
+
     #[ORM\Column(type: 'boolean', nullable: false, options: ['default' => false])]
     private bool $isProcessed = false;
 
@@ -90,6 +93,18 @@ class UserXpEvent
     public function setXpValue(int $xpValue): self
     {
         $this->xpValue = $xpValue;
+
+        return $this;
+    }
+
+    public function getSeason(): ?string
+    {
+        return $this->season;
+    }
+
+    public function setSeason(?string $season): self
+    {
+        $this->season = $season;
 
         return $this;
     }

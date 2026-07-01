@@ -14,7 +14,7 @@ const sampleData = {
   ],
   title:     { id: 1, displayName: 'Champion' },
   allTitles: [{ id: 1, displayName: 'Champion' }],
-  level:     { level: 5, xpTotal: 700 },
+  level:     { level: 5, xpTotal: 700, seasonLevel: 3, seasonXpTotal: 260, season: '2025/2026' },
   xpTotal:   700,
 };
 
@@ -47,10 +47,11 @@ describe('XpBreakdownModal', () => {
     await waitFor(() => expect(screen.getByText('Champion')).toBeInTheDocument());
   });
 
-  it('renders level chip with XP total', async () => {
+  it('renders career and season level chips with XP totals', async () => {
     mockApiJson.mockResolvedValue(sampleData);
     render(<XpBreakdownModal open onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText(/Level 5/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Karriere-Level 5 · 700 XP')).toBeInTheDocument());
+    expect(screen.getByText('Saison-Level 3 · 260 XP')).toBeInTheDocument();
   });
 
   it('shows "Keine XP-Daten gefunden" when breakdown is empty', async () => {

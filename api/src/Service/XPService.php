@@ -28,11 +28,12 @@ class XPService
         return null !== $rule ? $rule->getXpValue() : 0;
     }
 
-    public function addXPToUser(User $user, int $xp, bool $flush = true): void
+    public function addXPToUser(User $user, int $xp, bool $flush = true, ?string $season = null): void
     {
         $connection = $this->entityManager->getConnection();
+        $season ??= $this->retrieveCurrentSeason();
 
-        $operation = function () use ($user, $xp, $flush): void {
+        $operation = function () use ($user, $xp, $flush, $season): void {
             $userLevel = $user->getUserLevel();
 
             if (null !== $userLevel) {
@@ -52,21 +53,39 @@ class XPService
                 $userLevel->setUser($user);
                 $userLevel->setXpTotal(0);
                 $userLevel->setLevel(1);
+                $userLevel->setSeasonXpTotal(0);
+                $userLevel->setSeasonLevel(1);
+                $userLevel->setSeason($season);
                 $userLevel->setUpdatedAt(new DateTimeImmutable());
                 $user->setUserLevel($userLevel);
                 $this->entityManager->persist($userLevel);
             }
 
+            if ($userLevel->getSeason() !== $season) {
+                $userLevel->setSeason($season);
+                $userLevel->setSeasonXpTotal(0);
+                $userLevel->setSeasonLevel(1);
+            }
+
             $currentXP = $userLevel->getXpTotal();
             $currentLevel = $userLevel->getLevel();
-            // Add XP
+            $currentSeasonXP = $userLevel->getSeasonXpTotal();
+            $currentSeasonLevel = $userLevel->getSeasonLevel();
+
             $newXP = $currentXP + $xp;
             $userLevel->setXpTotal($newXP);
-            // Check for level up
             $newLevel = $this->retrieveLevelForXP($newXP);
             if ($newLevel > $currentLevel) {
                 $userLevel->setLevel($newLevel);
             }
+
+            $newSeasonXP = $currentSeasonXP + $xp;
+            $userLevel->setSeasonXpTotal($newSeasonXP);
+            $newSeasonLevel = $this->retrieveLevelForXP($newSeasonXP);
+            if ($newSeasonLevel > $currentSeasonLevel) {
+                $userLevel->setSeasonLevel($newSeasonLevel);
+            }
+
             $userLevel->setUpdatedAt(new DateTimeImmutable());
             $this->entityManager->persist($userLevel);
             if ($flush) {
@@ -113,6 +132,26 @@ class XPService
         return $userLevel->getLevel();
     }
 
+    public function calculateUserSeasonXP(User $user): int
+    {
+        $userLevel = $user->getUserLevel();
+        if (null === $userLevel || $userLevel->getSeason() !== $this->retrieveCurrentSeason()) {
+            return 0;
+        }
+
+        return $userLevel->getSeasonXpTotal();
+    }
+
+    public function calculateUserSeasonLevel(User $user): int
+    {
+        $userLevel = $user->getUserLevel();
+        if (null === $userLevel || $userLevel->getSeason() !== $this->retrieveCurrentSeason()) {
+            return 1;
+        }
+
+        return $userLevel->getSeasonLevel();
+    }
+
     public function levelUpUser(User $user): bool
     {
         $currentXP = $this->calculateUserXP($user);
@@ -138,6 +177,21 @@ class XPService
 
     public function retrieveLevelForXP(int $xp, int $base = 50, float $exponent = 1.5): int
     {
-        return (int) floor(pow($xp / $base, 1 / $exponent));
+        return max(1, (int) floor(pow($xp / $base, 1 / $exponent)));
+    }
+
+    public function retrieveCurrentSeason(?DateTimeImmutable $date = null): string
+    {
+        $date ??= new DateTimeImmutable();
+        $year = (int) $date->format('Y');
+        $month = (int) $date->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
+    }
+
+    public function retrieveSeasonForDate(DateTimeImmutable $date): string
+    {
+        return $this->retrieveCurrentSeason($date);
     }
 }

@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Entity\UserLevel;
 use App\Entity\UserRelation;
 use App\Service\UserTitleService;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,10 +27,12 @@ final class HallOfFameController extends AbstractController
     #[Route('/hall-of-fame', name: 'api_public_hall_of_fame', methods: ['GET'])]
     public function index(): JsonResponse
     {
+        $season = $this->retrieveCurrentSeason();
         $topLevel = $this->getTopLevel();
         $titles = $this->getTitleHolders();
 
         return $this->json([
+            'season' => $season,
             'topLevel' => $topLevel,
             'titles' => $titles,
         ]);
@@ -58,17 +61,22 @@ final class HallOfFameController extends AbstractController
                 'u.firstName',
                 'u.lastName',
                 'u.avatarFilename',
-                'ul.level',
-                'ul.xpTotal',
+                'ul.seasonLevel AS level',
+                'ul.seasonXpTotal AS xpTotal',
+                'ul.level AS careerLevel',
+                'ul.xpTotal AS careerXpTotal',
+                'ul.season',
             )
             ->from(User::class, 'u')
             ->join(UserLevel::class, 'ul', 'WITH', 'ul.user = u')
             ->where('u.showInHallOfFame = true')
-            ->andWhere('ul.level > 0')
+            ->andWhere('ul.season = :season')
+            ->andWhere('ul.seasonXpTotal > 0')
             ->andWhere($qb->expr()->exists($subQb->getDQL()))
             ->setParameter('allowedTypes', ['self_player', 'self_coach'])
-            ->orderBy('ul.level', 'DESC')
-            ->addOrderBy('ul.xpTotal', 'DESC')
+            ->setParameter('season', $this->retrieveCurrentSeason())
+            ->orderBy('ul.seasonLevel', 'DESC')
+            ->addOrderBy('ul.seasonXpTotal', 'DESC')
             ->setMaxResults(20)
             ->getQuery()
             ->getArrayResult();
@@ -136,5 +144,15 @@ final class HallOfFameController extends AbstractController
         unset($row);
 
         return $rows;
+    }
+
+    private function retrieveCurrentSeason(): string
+    {
+        $now = new DateTimeImmutable();
+        $year = (int) $now->format('Y');
+        $month = (int) $now->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
     }
 }

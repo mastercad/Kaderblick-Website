@@ -89,7 +89,10 @@ class ProfileController extends AbstractController
         $titleData = $userTitleService->retrieveTitleDataForUser($user);
         $levelData = $user->getUserLevel() ? [
             'level' => $user->getUserLevel()->getLevel(),
-            'xpTotal' => $user->getUserLevel()->getXpTotal()
+            'xpTotal' => $user->getUserLevel()->getXpTotal(),
+            'season' => $user->getUserLevel()->getSeason(),
+            'seasonLevel' => $user->getUserLevel()->getSeasonLevel(),
+            'seasonXpTotal' => $user->getUserLevel()->getSeasonXpTotal(),
         ] : null;
 
         $billingTeams = array_map(fn ($team) => [
@@ -317,7 +320,10 @@ class ProfileController extends AbstractController
         $titleData = $userTitleService->retrieveTitleDataForUser($user);
         $levelData = $user->getUserLevel() ? [
             'level' => $user->getUserLevel()->getLevel(),
-            'xpTotal' => $user->getUserLevel()->getXpTotal()
+            'xpTotal' => $user->getUserLevel()->getXpTotal(),
+            'season' => $user->getUserLevel()->getSeason(),
+            'seasonLevel' => $user->getUserLevel()->getSeasonLevel(),
+            'seasonXpTotal' => $user->getUserLevel()->getSeasonXpTotal(),
         ] : null;
 
         return $this->json([

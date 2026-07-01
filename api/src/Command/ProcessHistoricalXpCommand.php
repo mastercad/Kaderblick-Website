@@ -148,7 +148,10 @@ class ProcessHistoricalXpCommand extends Command
     private function loadProcessedKeys(?int $userId = null): array
     {
         $conn = $this->entityManager->getConnection();
-        $sql = 'SELECT CONCAT(user_id, \':\', action_type, \':\', COALESCE(action_id, 0)) AS k FROM user_xp_events';
+        $sql = 'SELECT CONCAT(user_id, \':\', action_type, \':\', COALESCE(action_id, 0), \':\', COALESCE(season, \'\')) AS k,
+                       CONCAT(user_id, \':\', action_type, \':\', COALESCE(action_id, 0), \':legacy\') AS legacy_k,
+                       season
+                FROM user_xp_events';
         $params = [];
 
         if (null !== $userId) {
@@ -161,14 +164,22 @@ class ProcessHistoricalXpCommand extends Command
         $keys = [];
         foreach ($rows as $row) {
             $keys[$row['k']] = true;
+            if (array_key_exists('legacy_k', $row) && null === ($row['season'] ?? null)) {
+                $keys[$row['legacy_k']] = true;
+            }
         }
 
         return $keys;
     }
 
-    private function makeKey(int $userId, string $actionType, int $actionId): string
+    private function makeKey(int $userId, string $actionType, int $actionId, string $season): string
     {
-        return $userId . ':' . $actionType . ':' . $actionId;
+        return $userId . ':' . $actionType . ':' . $actionId . ':' . $season;
+    }
+
+    private function makeLegacyKey(int $userId, string $actionType, int $actionId): string
+    {
+        return $userId . ':' . $actionType . ':' . $actionId . ':legacy';
     }
 
     /** @param array<string, int> $xpRules */
@@ -181,7 +192,7 @@ class ProcessHistoricalXpCommand extends Command
     {
         $conn = $this->entityManager->getConnection();
         $conn->executeStatement('DELETE FROM user_xp_events');
-        $conn->executeStatement('UPDATE user_levels SET xp_total = 0, level = 1');
+        $conn->executeStatement('UPDATE user_levels SET xp_total = 0, level = 1, season_xp_total = 0, season_level = 1, season = NULL');
     }
 
     /**
@@ -197,16 +208,17 @@ class ProcessHistoricalXpCommand extends Command
         $conn->executeStatement('
             UPDATE user_levels
             SET level = GREATEST(1, FLOOR(POW(xp_total / 50.0, 0.6667))),
+                season_level = GREATEST(1, FLOOR(POW(season_xp_total / 50.0, 0.6667))),
                 updated_at = NOW()
-            WHERE xp_total > 0
+            WHERE xp_total > 0 OR season_xp_total > 0
         ');
     }
 
     /**
      * Batch-inserts XP events and accumulates XP per user.
      *
-     * @param list<array{userId: int, actionType: string, actionId: int, xpValue: int}> $pendingInserts
-     * @param array<int, int>                                                           $userXpAccumulator userId => accumulated XP
+     * @param list<array{userId: int, actionType: string, actionId: int, xpValue: int, season: string}> $pendingInserts
+     * @param array<int, array{career: int, season: int}>                                               $userXpAccumulator userId => accumulated XP
      */
     private function batchInsertXpEvents(array $pendingInserts, array &$userXpAccumulator): void
     {
@@ -221,25 +233,30 @@ class ProcessHistoricalXpCommand extends Command
         $params = [];
         $i = 0;
         foreach ($pendingInserts as $insert) {
-            $values[] = "(:u{$i}, :at{$i}, :ai{$i}, :xp{$i}, 1, :ca{$i})";
+            $values[] = "(:u{$i}, :at{$i}, :ai{$i}, :xp{$i}, :s{$i}, 1, :ca{$i})";
             $params["u{$i}"] = $insert['userId'];
             $params["at{$i}"] = $insert['actionType'];
             $params["ai{$i}"] = $insert['actionId'];
             $params["xp{$i}"] = $insert['xpValue'];
+            $params["s{$i}"] = $insert['season'];
             $params["ca{$i}"] = $now;
 
-            $userXpAccumulator[$insert['userId']] = ($userXpAccumulator[$insert['userId']] ?? 0) + $insert['xpValue'];
+            $userXpAccumulator[$insert['userId']] ??= ['career' => 0, 'season' => 0];
+            $userXpAccumulator[$insert['userId']]['career'] += $insert['xpValue'];
+            if ($insert['season'] === $this->retrieveCurrentSeason()) {
+                $userXpAccumulator[$insert['userId']]['season'] += $insert['xpValue'];
+            }
             ++$i;
         }
 
-        $sql = 'INSERT INTO user_xp_events (user_id, action_type, action_id, xp_value, is_processed, created_at) VALUES ' . implode(', ', $values);
+        $sql = 'INSERT INTO user_xp_events (user_id, action_type, action_id, xp_value, season, is_processed, created_at) VALUES ' . implode(', ', $values);
         $conn->executeStatement($sql, $params);
     }
 
     /**
      * Bulk-updates user_levels with accumulated XP totals.
      *
-     * @param array<int, int> $userXpAccumulator userId => total XP to add
+     * @param array<int, array{career: int, season: int}> $userXpAccumulator userId => total XP to add
      */
     private function flushXpAccumulator(array &$userXpAccumulator): void
     {
@@ -249,11 +266,29 @@ class ProcessHistoricalXpCommand extends Command
 
         $conn = $this->entityManager->getConnection();
 
+        $currentSeason = $this->retrieveCurrentSeason();
+
         foreach ($userXpAccumulator as $userId => $xp) {
             $conn->executeStatement(
-                'INSERT INTO user_levels (user_id, xp_total, level, updated_at) VALUES (:uid, :xp, 1, NOW())
-                 ON DUPLICATE KEY UPDATE xp_total = xp_total + :xp2, updated_at = NOW()',
-                ['uid' => $userId, 'xp' => $xp, 'xp2' => $xp]
+                'INSERT INTO user_levels (user_id, xp_total, level, season_xp_total, season_level, season, updated_at)
+                 VALUES (:uid, :xp, 1, :seasonXp, 1, :season, NOW())
+                 ON DUPLICATE KEY UPDATE
+                    xp_total = xp_total + :xp2,
+                    season_xp_total = CASE WHEN season = :season2 THEN season_xp_total + :seasonXp2 ELSE :seasonXp3 END,
+                    season = CASE WHEN season = :season3 THEN season ELSE :season4 END,
+                    updated_at = NOW()',
+                [
+                    'uid' => $userId,
+                    'xp' => $xp['career'],
+                    'xp2' => $xp['career'],
+                    'seasonXp' => $xp['season'],
+                    'seasonXp2' => $xp['season'],
+                    'seasonXp3' => $xp['season'],
+                    'season' => $currentSeason,
+                    'season2' => $currentSeason,
+                    'season3' => $currentSeason,
+                    'season4' => $currentSeason,
+                ]
             );
         }
 
@@ -278,8 +313,10 @@ class ProcessHistoricalXpCommand extends Command
 
         $conn = $this->entityManager->getConnection();
         $sql = '
-            SELECT ge.id AS game_event_id, u.id AS user_id
+            SELECT ge.id AS game_event_id, u.id AS user_id, COALESCE(ce.start_date, ge.timestamp) AS event_date
             FROM game_events ge
+            INNER JOIN games g ON ge.game_id = g.id
+            LEFT JOIN calendar_events ce ON g.calendar_event_id = ce.id
             INNER JOIN players p ON ge.player_id = p.id
             INNER JOIN game_event_types get ON ge.game_event_type_id = get.id
             INNER JOIN user_relations ur ON ur.player_id = p.id
@@ -316,8 +353,10 @@ class ProcessHistoricalXpCommand extends Command
 
         $conn = $this->entityManager->getConnection();
         $sql = '
-            SELECT ge.id AS game_event_id, u.id AS user_id
+            SELECT ge.id AS game_event_id, u.id AS user_id, COALESCE(ce.start_date, ge.timestamp) AS event_date
             FROM game_events ge
+            INNER JOIN games g ON ge.game_id = g.id
+            LEFT JOIN calendar_events ce ON g.calendar_event_id = ce.id
             INNER JOIN players p ON ge.player_id = p.id
             INNER JOIN game_event_types get ON ge.game_event_type_id = get.id
             INNER JOIN user_relations ur ON ur.player_id = p.id
@@ -353,8 +392,10 @@ class ProcessHistoricalXpCommand extends Command
 
         $conn = $this->entityManager->getConnection();
         $sql = '
-            SELECT ge.id AS game_event_id, u.id AS user_id
+            SELECT ge.id AS game_event_id, u.id AS user_id, COALESCE(ce.start_date, ge.timestamp) AS event_date
             FROM game_events ge
+            INNER JOIN games g ON ge.game_id = g.id
+            LEFT JOIN calendar_events ce ON g.calendar_event_id = ce.id
             INNER JOIN players p ON ge.player_id = p.id
             INNER JOIN user_relations ur ON ur.player_id = p.id
             INNER JOIN relation_types rt ON ur.relation_type_id = rt.id AND rt.identifier = \'self_player\'
@@ -399,9 +440,10 @@ class ProcessHistoricalXpCommand extends Command
         foreach ($rows as $row) {
             $eventUserId = (int) $row['user_id'];
             $eventId = (int) $row['game_event_id'];
-            $key = $this->makeKey($eventUserId, $actionType, $eventId);
+            $season = $this->seasonFromDbValue($row['event_date'] ?? null);
+            $key = $this->makeKey($eventUserId, $actionType, $eventId, $season);
 
-            if (isset($processedKeys[$key])) {
+            if (isset($processedKeys[$key]) || isset($processedKeys[$this->makeLegacyKey($eventUserId, $actionType, $eventId)])) {
                 continue;
             }
 
@@ -413,6 +455,7 @@ class ProcessHistoricalXpCommand extends Command
                     'actionType' => $actionType,
                     'actionId' => $eventId,
                     'xpValue' => $xp,
+                    'season' => $season,
                 ];
                 $processedKeys[$key] = true;
             }
@@ -446,7 +489,7 @@ class ProcessHistoricalXpCommand extends Command
 
         $conn = $this->entityManager->getConnection();
         $sql = '
-            SELECT p.id AS participation_id, u.id AS user_id, ce.id AS event_id,
+            SELECT p.id AS participation_id, u.id AS user_id, ce.id AS event_id, ce.start_date AS event_date,
                    ps.code AS status_code, cet.name AS event_type_name
             FROM participations p
             INNER JOIN users u ON p.user_id = u.id
@@ -471,6 +514,7 @@ class ProcessHistoricalXpCommand extends Command
         foreach ($rows as $row) {
             $eventUserId = (int) $row['user_id'];
             $eventId = (int) $row['event_id'];
+            $season = $this->seasonFromDbValue($row['event_date'] ?? null);
             $statusCode = $row['status_code'];
             $eventTypeName = $row['event_type_name'] ?? '';
 
@@ -484,8 +528,8 @@ class ProcessHistoricalXpCommand extends Command
                 continue;
             }
 
-            $key = $this->makeKey($eventUserId, $actionType, $eventId);
-            if (isset($processedKeys[$key])) {
+            $key = $this->makeKey($eventUserId, $actionType, $eventId, $season);
+            if (isset($processedKeys[$key]) || isset($processedKeys[$this->makeLegacyKey($eventUserId, $actionType, $eventId)])) {
                 continue;
             }
 
@@ -497,6 +541,7 @@ class ProcessHistoricalXpCommand extends Command
                     'actionType' => $actionType,
                     'actionId' => $eventId,
                     'xpValue' => $xp,
+                    'season' => $season,
                 ];
                 $processedKeys[$key] = true;
             }
@@ -585,8 +630,9 @@ class ProcessHistoricalXpCommand extends Command
                     continue;
                 }
 
-                $key = $this->makeKey($profileUserId, $actionType, $profileUserId);
-                if (isset($processedKeys[$key])) {
+                $season = $this->retrieveCurrentSeason();
+                $key = $this->makeKey($profileUserId, $actionType, $profileUserId, $season);
+                if (isset($processedKeys[$key]) || isset($processedKeys[$this->makeLegacyKey($profileUserId, $actionType, $profileUserId)])) {
                     continue;
                 }
 
@@ -598,6 +644,7 @@ class ProcessHistoricalXpCommand extends Command
                         'actionType' => $actionType,
                         'actionId' => $profileUserId,
                         'xpValue' => $xp,
+                        'season' => $season,
                     ];
                     $processedKeys[$key] = true;
                 }
@@ -639,5 +686,24 @@ class ProcessHistoricalXpCommand extends Command
         $completed = count(array_filter($fields));
 
         return (int) round(($completed / count($fields)) * 100);
+    }
+
+    private function seasonFromDbValue(mixed $value): string
+    {
+        if (is_string($value) && '' !== $value) {
+            return $this->retrieveCurrentSeason(new DateTimeImmutable($value));
+        }
+
+        return $this->retrieveCurrentSeason();
+    }
+
+    private function retrieveCurrentSeason(?DateTimeImmutable $date = null): string
+    {
+        $date ??= new DateTimeImmutable();
+        $year = (int) $date->format('Y');
+        $month = (int) $date->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
     }
 }

@@ -7,6 +7,7 @@ use App\Entity\UserLevel;
 use App\Entity\XpRule;
 use App\Repository\XpRuleRepository;
 use App\Service\XPService;
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -71,7 +72,11 @@ class XPServiceTest extends TestCase
         $user->method('getUserLevel')->willReturn($userLevel);
         $userLevel->method('getXpTotal')->willReturn(100);
         $userLevel->method('getLevel')->willReturn(3);
+        $userLevel->method('getSeason')->willReturn($this->currentSeason());
+        $userLevel->method('getSeasonXpTotal')->willReturn(100);
+        $userLevel->method('getSeasonLevel')->willReturn(3);
         $userLevel->expects($this->once())->method('setXpTotal')->with(110);
+        $userLevel->expects($this->once())->method('setSeasonXpTotal')->with(110);
         $userLevel->expects($this->never())->method('setLevel');
         $userLevel->expects($this->atLeastOnce())->method('setUpdatedAt');
 
@@ -92,8 +97,13 @@ class XPServiceTest extends TestCase
         $user->method('getUserLevel')->willReturn($userLevel);
         $userLevel->method('getXpTotal')->willReturn(100);
         $userLevel->method('getLevel')->willReturn(1);
+        $userLevel->method('getSeason')->willReturn($this->currentSeason());
+        $userLevel->method('getSeasonXpTotal')->willReturn(100);
+        $userLevel->method('getSeasonLevel')->willReturn(1);
         $userLevel->expects($this->once())->method('setXpTotal')->with(600);
+        $userLevel->expects($this->once())->method('setSeasonXpTotal')->with(600);
         $userLevel->expects($this->once())->method('setLevel')->with(5);
+        $userLevel->expects($this->once())->method('setSeasonLevel')->with(5);
         $userLevel->expects($this->atLeastOnce())->method('setUpdatedAt');
 
         $entityManager->expects($this->once())->method('persist')->with($userLevel);
@@ -113,6 +123,9 @@ class XPServiceTest extends TestCase
         $user->method('getUserLevel')->willReturn($userLevel);
         $userLevel->method('getXpTotal')->willReturn(50);
         $userLevel->method('getLevel')->willReturn(1);
+        $userLevel->method('getSeason')->willReturn($this->currentSeason());
+        $userLevel->method('getSeasonXpTotal')->willReturn(50);
+        $userLevel->method('getSeasonLevel')->willReturn(1);
 
         $entityManager->expects($this->once())->method('persist')->with($userLevel);
         $entityManager->expects($this->never())->method('flush');
@@ -131,6 +144,9 @@ class XPServiceTest extends TestCase
         $user->method('getUserLevel')->willReturn($userLevel);
         $userLevel->method('getXpTotal')->willReturn(40);
         $userLevel->method('getLevel')->willReturn(1);
+        $userLevel->method('getSeason')->willReturn($this->currentSeason());
+        $userLevel->method('getSeasonXpTotal')->willReturn(40);
+        $userLevel->method('getSeasonLevel')->willReturn(1);
 
         $connection->expects($this->never())->method('transactional');
         $entityManager->expects($this->once())->method('persist')->with($userLevel);
@@ -154,6 +170,9 @@ class XPServiceTest extends TestCase
 
         $userLevel->method('getXpTotal')->willReturn(100);
         $userLevel->method('getLevel')->willReturn(1);
+        $userLevel->method('getSeason')->willReturn($this->currentSeason());
+        $userLevel->method('getSeasonXpTotal')->willReturn(100);
+        $userLevel->method('getSeasonLevel')->willReturn(1);
 
         $entityManager->expects($this->exactly(2))
             ->method('lock')
@@ -301,6 +320,29 @@ class XPServiceTest extends TestCase
         $this->assertSame((int) floor(pow(600 / 50, 1 / 1.5)), $service->retrieveLevelForXP(600));
     }
 
+    public function testAddXpToUserResetsSeasonCountersWhenSeasonChanges(): void
+    {
+        $user = $this->createMock(User::class);
+        $userLevel = $this->createMock(UserLevel::class);
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->prepareEntityManagerForXpWrites($entityManager);
+
+        $user->method('getUserLevel')->willReturn($userLevel);
+        $userLevel->method('getXpTotal')->willReturn(1000);
+        $userLevel->method('getLevel')->willReturn(7);
+        $userLevel->method('getSeason')->willReturn('2024/2025');
+        $userLevel->method('getSeasonXpTotal')->willReturn(0);
+        $userLevel->method('getSeasonLevel')->willReturn(1);
+
+        $userLevel->expects($this->once())->method('setSeason')->with('2025/2026');
+        $userLevel->expects($this->exactly(2))->method('setSeasonXpTotal')->with($this->logicalOr(0, 50));
+        $userLevel->expects($this->atLeastOnce())->method('setSeasonLevel')->with($this->logicalOr(1, 1));
+        $userLevel->expects($this->once())->method('setXpTotal')->with(1050);
+
+        $service = new XPService($entityManager, $this->createMock(XpRuleRepository::class));
+        $service->addXPToUser($user, 50, true, '2025/2026');
+    }
+
     private function buildPartialXpService(): XPService & MockObject
     {
         return $this->getMockBuilder(XPService::class)
@@ -328,5 +370,15 @@ class XPServiceTest extends TestCase
         $entityManager->method('refresh');
 
         return $connection;
+    }
+
+    private function currentSeason(): string
+    {
+        $now = new DateTimeImmutable();
+        $year = (int) $now->format('Y');
+        $month = (int) $now->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
     }
 }

@@ -28,6 +28,9 @@ interface LevelEntry {
   avatarFilename: string | null;
   level: number;
   xpTotal: number;
+  season: string | null;
+  careerLevel?: number;
+  careerXpTotal?: number;
   titleObj: TitleObj;
 }
 
@@ -49,6 +52,7 @@ export interface TitleEntry {
 }
 
 interface HallOfFameData {
+  season: string;
   topLevel: LevelEntry[];
   titles: TitleEntry[];
 }
@@ -222,7 +226,8 @@ export default function HallOfFame() {
               <StarIcon color="primary" />
               <Typography variant="h6" sx={{
                 fontWeight: 600
-              }}>Level-Rangliste</Typography>
+              }}>Saison-Level-Rangliste</Typography>
+              <Chip label={data.season} size="small" variant="outlined" />
             </Stack>
 
             {data.topLevel.length === 0 ? (
@@ -272,11 +277,14 @@ export default function HallOfFame() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>
-                        {entry.xpTotal.toLocaleString('de-DE')} XP
+                        {entry.xpTotal.toLocaleString('de-DE')} Saison-XP
+                        {typeof entry.careerXpTotal === 'number' && (
+                          <> · {entry.careerXpTotal.toLocaleString('de-DE')} Karriere-XP</>
+                        )}
                       </Typography>
                     </Box>
                     <Chip
-                      label={`Level ${entry.level}`}
+                      label={`Saison-Level ${entry.level}`}
                       color="primary"
                       size="small"
                       variant="outlined"

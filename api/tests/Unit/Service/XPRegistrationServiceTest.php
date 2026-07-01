@@ -122,6 +122,8 @@ class XPRegistrationServiceTest extends TestCase
                     && 'calendar_event' === $entity->getActionType()
                     && 100 === $entity->getActionId()
                     && 10 === $entity->getXpValue()
+                    && is_string($entity->getSeason())
+                    && 1 === preg_match('/^\d{4}\/\d{4}$/', $entity->getSeason())
                     && false === $entity->isProcessed();
             }));
 

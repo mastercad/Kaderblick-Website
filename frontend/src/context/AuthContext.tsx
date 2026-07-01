@@ -35,6 +35,9 @@ interface User {
   level?: {
     level: number;
     xpTotal: number;
+    season?: string | null;
+    seasonLevel?: number;
+    seasonXpTotal?: number;
   };
 }
 

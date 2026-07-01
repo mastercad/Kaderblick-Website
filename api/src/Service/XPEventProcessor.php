@@ -31,6 +31,7 @@ class XPEventProcessor
 
                 $user = $xpEvent->getUser();
                 $xpValue = $xpEvent->getXpValue();
+                $season = $xpEvent->getSeason();
 
                 // Keep processing resilient when historical/legacy rows are malformed.
                 if (null === $user || $xpValue <= 0) {
@@ -41,7 +42,7 @@ class XPEventProcessor
 
                 // Apply the value captured at registration time to keep pending events
                 // independent from later rule changes (disabled/edited/deleted rules).
-                $this->xpService->addXPToUser($user, $xpValue, false);
+                $this->xpService->addXPToUser($user, $xpValue, false, $season);
                 $xpEvent->setIsProcessed(true);
 
                 $this->entityManager->persist($xpEvent);

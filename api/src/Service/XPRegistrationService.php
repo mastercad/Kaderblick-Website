@@ -46,6 +46,7 @@ class XPRegistrationService
 
             $repo = $this->entityManager->getRepository(UserXpEvent::class);
             $now = new DateTimeImmutable();
+            $season = $this->retrieveCurrentSeason($now);
 
             $cooldown = $rule->getCooldownMinutes();
 
@@ -58,9 +59,11 @@ class XPRegistrationService
                     ->where('e.user = :user')
                     ->andWhere('e.actionType = :actionType')
                     ->andWhere('e.actionId = :actionId')
+                    ->andWhere('e.season = :season')
                     ->setParameter('user', $user)
                     ->setParameter('actionType', $actionType)
                     ->setParameter('actionId', $actionId)
+                    ->setParameter('season', $season)
                     ->getQuery()
                     ->setLockMode(LockMode::PESSIMISTIC_WRITE)
                     ->getOneOrNullResult();
@@ -130,12 +133,22 @@ class XPRegistrationService
             $xpEvent->setActionType($actionType);
             $xpEvent->setActionId($actionId);
             $xpEvent->setXpValue($rule->getXpValue());
+            $xpEvent->setSeason($season);
             $xpEvent->setIsProcessed(false);
             $xpEvent->setCreatedAt($now);
 
             $this->entityManager->persist($xpEvent);
             $this->entityManager->flush();
         });
+    }
+
+    private function retrieveCurrentSeason(DateTimeImmutable $date): string
+    {
+        $year = (int) $date->format('Y');
+        $month = (int) $date->format('n');
+        $startYear = $month >= 7 ? $year : $year - 1;
+
+        return sprintf('%d/%d', $startYear, $startYear + 1);
     }
 
     private function lockUserForXpRegistration(User $user): void

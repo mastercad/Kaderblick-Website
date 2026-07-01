@@ -62,6 +62,9 @@ class XPEventProcessorTest extends TestCase
         $event->expects($this->once())
             ->method('getXpValue')
             ->willReturn(25);
+        $event->expects($this->once())
+            ->method('getSeason')
+            ->willReturn('2025/2026');
 
         $event->expects($this->once())
             ->method('setIsProcessed')
@@ -77,7 +80,7 @@ class XPEventProcessorTest extends TestCase
 
         $this->xpService->expects($this->once())
             ->method('addXPToUser')
-            ->with($user, 25, false);
+            ->with($user, 25, false, '2025/2026');
 
         $this->entityManager->expects($this->once())
             ->method('persist')
@@ -98,12 +101,14 @@ class XPEventProcessorTest extends TestCase
         $eventA = $this->createMock(UserXpEvent::class);
         $eventA->method('getUser')->willReturn($userA);
         $eventA->method('getXpValue')->willReturn(10);
+        $eventA->method('getSeason')->willReturn('2025/2026');
         $eventA->expects($this->once())->method('setIsProcessed')->with(true)->willReturnSelf();
         $eventA->method('isProcessed')->willReturn(false);
 
         $eventB = $this->createMock(UserXpEvent::class);
         $eventB->method('getUser')->willReturn($userB);
         $eventB->method('getXpValue')->willReturn(20);
+        $eventB->method('getSeason')->willReturn('2024/2025');
         $eventB->expects($this->once())->method('setIsProcessed')->with(true)->willReturnSelf();
         $eventB->method('isProcessed')->willReturn(false);
 
@@ -117,7 +122,8 @@ class XPEventProcessorTest extends TestCase
             ->with(
                 $this->logicalOr($userA, $userB),
                 $this->logicalOr(10, 20),
-                false
+                false,
+                $this->logicalOr('2025/2026', '2024/2025')
             );
 
         $this->entityManager->expects($this->exactly(2))
