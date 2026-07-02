@@ -39,7 +39,7 @@ final class SurveyResponseVoter extends Voter
             case self::VIEW:
                 // Eigene Antworten oder Admins
                 return $surveyResponse->getUserId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::EDIT:
             case self::DELETE:

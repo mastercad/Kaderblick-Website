@@ -29,6 +29,34 @@ export const secondsToMinute = (seconds: number): number =>
 export const minuteToSeconds = (minute: number, stoppage: number): number =>
   (minute + stoppage) * 60;
 
+export const parseFootballTimeInputToSeconds = (
+  value: string,
+  stoppage = 0,
+): number | null => {
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+
+  if (/^\d+$/.test(trimmed)) {
+    return (Number(trimmed) + stoppage) * 60;
+  }
+
+  const match = trimmed.match(/^(\d{1,3}):([0-5]?\d)$/);
+  if (!match) return null;
+
+  const minutes = Number(match[1]);
+  const seconds = Number(match[2]);
+
+  return minutes * 60 + seconds;
+};
+
+export const formatSecondsAsClockTime = (seconds: number): string => {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds % 60;
+
+  return `${minutes}:${String(rest).padStart(2, '0')}`;
+};
+
 // ── Nachspielzeit-Erkennung ──────────────────────────────────────────────────
 
 /**
@@ -90,7 +118,8 @@ export const elapsedSecondsToFormTime = (
  * Beispiele: "45+2'", "67'", "–"
  */
 export const formatFootballTime = (minute: number, stoppage: number): string => {
-  if (minute <= 0) return '–';
+  if (minute < 0) return '–';
+  if (minute === 0 && stoppage === 0) return "0'";
   if (stoppage > 0) return `${minute}+${stoppage}'`;
   return `${minute}'`;
 };

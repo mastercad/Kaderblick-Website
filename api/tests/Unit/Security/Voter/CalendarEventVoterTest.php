@@ -16,6 +16,7 @@ use App\Entity\UserRelation;
 use App\Enum\CalendarEventPermissionType;
 use App\Security\Voter\CalendarEventVoter;
 use App\Service\AdminScopeService;
+use App\Service\SupporterScopeService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -39,18 +40,22 @@ class CalendarEventVoterTest extends TestCase
     /** @var AdminScopeService&\PHPUnit\Framework\MockObject\MockObject */
     private AdminScopeService $adminScopeService;
 
+    /** @var SupporterScopeService&\PHPUnit\Framework\MockObject\MockObject */
+    private SupporterScopeService $supporterScopeService;
+
     protected function setUp(): void
     {
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->adminScopeService = $this->createMock(AdminScopeService::class);
-        $this->voter = new CalendarEventVoter($this->entityManager, $this->adminScopeService);
+        $this->supporterScopeService = $this->createMock(SupporterScopeService::class);
+        $this->voter = new CalendarEventVoter($this->entityManager, $this->adminScopeService, $this->supporterScopeService);
     }
 
     // ─── CANCEL permission tests ───
 
     public function testCancelAsAdminOfParticipatingTeamGranted(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $team = $this->createMock(Team::class);
         $game = $this->createMock(Game::class);
         $game->method('getHomeTeam')->willReturn($team);
@@ -66,7 +71,7 @@ class CalendarEventVoterTest extends TestCase
 
     public function testCancelAsPlatformAdminWithoutParticipatingTeamScopeDenied(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $team = $this->createMock(Team::class);
         $game = $this->createMock(Game::class);
         $game->method('getHomeTeam')->willReturn($team);
@@ -215,7 +220,7 @@ class CalendarEventVoterTest extends TestCase
 
     public function testCreateAsAdminGranted(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $event = $this->createEvent(2);
         $token = $this->createToken($admin);
 
@@ -448,7 +453,7 @@ class CalendarEventVoterTest extends TestCase
 
     public function testViewTournamentEventAsAdminGranted(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $tournament = $this->createMock(Tournament::class);
         $tournament->method('getTeams')->willReturn(new ArrayCollection());
 
@@ -522,7 +527,7 @@ class CalendarEventVoterTest extends TestCase
 
     public function testViewTrainingEventAsAdminGranted(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $event = $this->createEvent(99, null, new ArrayCollection(), null, 'series-abc');
         $token = $this->createToken($admin);
 

@@ -46,7 +46,7 @@ class FormationVoterTest extends TestCase
 
     public function testAdminCanViewAnyFormation(): void
     {
-        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $admin = $this->createUser(99, ['ROLE_SUPERADMIN']);
         $formation = $this->createFormationWithTeam($this->createTeam(1));
 
         $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::VIEW]);
@@ -56,7 +56,7 @@ class FormationVoterTest extends TestCase
 
     public function testAdminCanEditAnyFormation(): void
     {
-        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $admin = $this->createUser(99, ['ROLE_SUPERADMIN']);
         $formation = $this->createFormationWithTeam($this->createTeam(1));
 
         $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::EDIT]);
@@ -66,7 +66,7 @@ class FormationVoterTest extends TestCase
 
     public function testAdminCanDeleteAnyFormation(): void
     {
-        $admin = $this->createUser(99, ['ROLE_ADMIN']);
+        $admin = $this->createUser(99, ['ROLE_SUPERADMIN']);
         $formation = $this->createFormationWithTeam($this->createTeam(1));
 
         $result = $this->voter->vote($this->createToken($admin), $formation, [FormationVoter::DELETE]);

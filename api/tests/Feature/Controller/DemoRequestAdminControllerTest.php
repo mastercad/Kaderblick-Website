@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Fixture users (from test fixtures):
  *   user6@example.com  – ROLE_USER
- *   user16@example.com – ROLE_ADMIN
+ *   user21@example.com – ROLE_SUPERADMIN
  *   user21@example.com – ROLE_SUPERADMIN
  *
  * Covers:
@@ -113,7 +113,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
 
     public function testIndexAllowsRoleAdmin(): void
     {
-        $this->authenticateUser($this->client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($this->client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $this->client->request('GET', '/admin/demo-requests');
         $this->assertResponseIsSuccessful();
@@ -133,7 +133,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
 
     public function testIndexResponseHasRequiredTopLevelKeys(): void
     {
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -147,7 +147,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
 
     public function testIndexCountsHaveExpectedKeys(): void
     {
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -166,7 +166,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $this->createDemoRequest();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?status=pending');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -188,7 +188,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $this->createDemoRequest(DemoRequest::STATUS_DEMO_SENT);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -203,7 +203,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $this->createDemoRequest(DemoRequest::STATUS_DEMO_SENT);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?status=demo_sent');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -219,7 +219,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $this->createDemoRequest(DemoRequest::STATUS_DEMO_SENT);
         $this->createDemoRequest(DemoRequest::STATUS_REJECTED);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?status=all');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -241,7 +241,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $this->em->persist($req);
         $this->em->flush();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?status=pending&search=UniqueSearchableName');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -258,7 +258,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $this->em->persist($req);
         $this->em->flush();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?status=pending&search=searchbyemail');
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -276,7 +276,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $req = $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $id = $req->getId();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('GET', '/admin/demo-requests?requestId=' . $id);
         $data = json_decode($this->client->getResponse()->getContent(), true);
@@ -312,7 +312,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $req = $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $id = $req->getId();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $id . '/contact', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseIsSuccessful();
@@ -329,7 +329,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $req = $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $id = $req->getId();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request(
             'POST',
@@ -349,7 +349,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest(DemoRequest::STATUS_DEMO_SENT);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/contact', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
@@ -359,7 +359,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest(DemoRequest::STATUS_REJECTED);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/contact', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
@@ -369,7 +369,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/contact', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
 
@@ -405,7 +405,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $req = $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $id = $req->getId();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $id . '/reject', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseIsSuccessful();
@@ -422,7 +422,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
         $req = $this->createDemoRequest(DemoRequest::STATUS_PENDING);
         $id = $req->getId();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request(
             'POST',
@@ -442,7 +442,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest(DemoRequest::STATUS_CONTACTED);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/reject', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
@@ -452,7 +452,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest(DemoRequest::STATUS_REJECTED);
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/reject', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
         $this->assertResponseStatusCodeSame(Response::HTTP_CONFLICT);
@@ -462,7 +462,7 @@ class DemoRequestAdminControllerTest extends WebTestCase
     {
         $req = $this->createDemoRequest();
 
-        $this->authenticateUser($this->client, 'user16@example.com');
+        $this->authenticateUser($this->client, 'user21@example.com');
 
         $this->client->request('POST', '/admin/demo-requests/' . $req->getId() . '/reject', [], [], ['CONTENT_TYPE' => 'application/json'], '{}');
 

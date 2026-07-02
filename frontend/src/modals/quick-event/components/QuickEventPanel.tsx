@@ -10,14 +10,14 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Game, GameEventType } from '../../../types/games';
+import { Game, GameEventType, MatchState } from '../../../types/games';
 import { MatchPlanPlayer } from '../../../types/games';
 import { QuickEventConfig } from '../types';
 import { QuickEventEventStep } from './QuickEventEventStep';
 import { QuickEventPlayerStep } from './QuickEventPlayerStep';
 import { QuickEventSubFlow } from './QuickEventSubFlow';
 import { useActiveSquad } from '../useActiveSquad';
-import { createGameEvent, deleteGameEvent, fetchGameEventTypes, fetchGameSquad, SquadPlayer } from '../../../services/games';
+import { createGameEvent, deleteGameEvent, fetchGameEventTypes, fetchGameMatchState, fetchGameSquad, SquadPlayer } from '../../../services/games';
 import { useToast } from '../../../context/ToastContext';
 import {
   elapsedSecondsToFormTime,
@@ -37,6 +37,7 @@ const SUBSTITUTION_CODES = new Set([
   'substitution_out',
   'substitution_injury',
 ]);
+
 
 type Step = 'event' | 'player' | 'sub';
 
@@ -73,8 +74,16 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
   // Fallback-Spielerliste wenn kein MatchPlan vorhanden
   const [fallbackPlayers, setFallbackPlayers] = useState<MatchPlanPlayer[]>([]);
 
-  const onField = hasMatchPlan ? mpOnField : fallbackPlayers;
-  const bench = hasMatchPlan ? mpBench : fallbackPlayers;
+  const matchPlanTeamId = game.matchPlan?.selectedTeamId ?? null;
+  const matchPlanMatchesContext = matchPlanTeamId == null
+    || (typeof filterTeamId === 'number'
+      ? matchPlanTeamId === filterTeamId
+      : (game.userTeamIds?.length ? game.userTeamIds.includes(matchPlanTeamId) : true));
+  const hasUsableMatchPlan = hasMatchPlan
+    && matchPlanMatchesContext
+    && (mpOnField.length > 0 || mpBench.length > 0);
+  const onField = hasUsableMatchPlan ? mpOnField : fallbackPlayers;
+  const bench = hasUsableMatchPlan ? mpBench : fallbackPlayers;
 
   const [step, setStep] = useState<Step>('event');
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
@@ -89,6 +98,8 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
   const [eventTypes, setEventTypes] = useState<GameEventType[]>(_cachedEventTypes);
   /** Lifted state: wer beim Wechsel rausgeht (damit der Banner sticky im Header bleibt). */
   const [playerOut, setPlayerOut] = useState<MatchPlanPlayer | null>(null);
+  const [matchState, setMatchState] = useState<MatchState>('idle');
+  const [interruptionContext, setInterruptionContext] = useState<'first-half' | 'second-half' | null>(null);
   /** Undo-Info: nach erfolgreichem Speichern für kurze Zeit sichtbar. */
   const [undoInfo, setUndoInfo] = useState<{ eventId: number; gameId: number } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,6 +124,19 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    fetchGameMatchState(gameId)
+      .then((state) => {
+        setMatchState(state.matchState);
+        setInterruptionContext(state.interruptionContext);
+      })
+      .catch(() => {
+        showToast('Spielstatus konnte nicht geladen werden', 'error');
+      });
+  }, [open, gameId, showToast]);
 
   // Hardware-Back-Button (Android / Browser-Zurück) schließt das Panel statt die Seite zu verlassen
   useEffect(() => {
@@ -161,9 +185,9 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
     }
   }, [open, game.calendarEvent?.startDate]);
 
-  // Fallback-Spieler laden wenn kein MatchPlan vorhanden
+  // Fallback-Spieler laden, wenn kein nutzbarer MatchPlan vorhanden ist.
   useEffect(() => {
-    if (!open || hasMatchPlan || isFetchingSquadRef.current) return;
+    if (!open || hasUsableMatchPlan || isFetchingSquadRef.current) return;
     isFetchingSquadRef.current = true;
     fetchGameSquad(gameId)
       .then((data) => {
@@ -172,12 +196,12 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
         const userTeamIds = resolvedTeamId
           ? new Set<number>([resolvedTeamId])
           : new Set<number>(game.userTeamIds ?? []);
-        const allCandidates: SquadPlayer[] =
-          data.squad.length > 0 ? data.squad : data.allPlayers;
-        // Nur Spieler des eigenen Teams anzeigen
-        const source = userTeamIds.size > 0
-          ? allCandidates.filter((p) => userTeamIds.has(p.teamId))
-          : allCandidates;
+        const filterPlayers = (players: SquadPlayer[]) => userTeamIds.size > 0
+          ? players.filter((p) => userTeamIds.has(p.teamId))
+          : players;
+        const squadForTeams = filterPlayers(data.squad);
+        const allForTeams = filterPlayers(data.allPlayers);
+        const source = squadForTeams.length > 0 ? squadForTeams : allForTeams;
         setFallbackPlayers(
           source.map((p) => ({
             id: p.id,
@@ -194,7 +218,7 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
       })
       .finally(() => { isFetchingSquadRef.current = false; });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, gameId, hasMatchPlan]);
+  }, [open, gameId, hasUsableMatchPlan]);
 
   // Event-Typen beim ersten Öffnen laden
   useEffect(() => {
@@ -275,9 +299,78 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
   };
 
   const handleEventSelect = (code: string) => {
+    if (code === 'match_state_toggle') {
+      selectedCodeRef.current = null;
+      setSelectedCode(null);
+      setPlayerOut(null);
+
+      if (matchState === 'idle') {
+        setMatchState('first-half');
+        saveEvent({ eventTypeCode: 'halftime_start' });
+        return;
+      }
+
+      if (matchState === 'first-half') {
+        setMatchState('first-half-pause');
+        saveEvent({ eventTypeCode: 'halftime_end' });
+        return;
+      }
+
+      if (matchState === 'first-half-pause') {
+        setMatchState('second-half');
+        saveEvent({ eventTypeCode: 'halftime_start' });
+        return;
+      }
+
+      if (matchState === 'second-half') {
+        setMatchState('idle');
+        saveEvent({ eventTypeCode: 'halftime_end' });
+        return;
+      }
+
+      const restoredState = interruptionContext ?? 'idle';
+      setMatchState(restoredState);
+      setInterruptionContext(null);
+      saveEvent({ eventTypeCode: 'match_resumed' });
+      return;
+    }
+
+    if (code === 'match_interruption_toggle') {
+      selectedCodeRef.current = null;
+      setSelectedCode(null);
+      setPlayerOut(null);
+
+      if (matchState === 'interruption') {
+        const restoredState = interruptionContext ?? 'idle';
+        setMatchState(restoredState);
+        setInterruptionContext(null);
+        saveEvent({ eventTypeCode: 'match_resumed' });
+        return;
+      }
+
+      const nextContext = matchState === 'first-half' || matchState === 'second-half'
+        ? matchState
+        : 'first-half';
+      setInterruptionContext(nextContext);
+      setMatchState('interruption');
+      saveEvent({ eventTypeCode: 'injury_break' });
+      return;
+    }
+
+    if (code === 'match_abandoned') {
+      selectedCodeRef.current = null;
+      setSelectedCode(null);
+      setPlayerOut(null);
+      setMatchState('idle');
+      setInterruptionContext(null);
+      saveEvent({ eventTypeCode: 'match_abandoned' });
+      return;
+    }
+
     selectedCodeRef.current = code;
     setSelectedCode(code);
     setPlayerOut(null); // Reset damit nie ein alter Spieler vorbelegt ist
+
     if (SUBSTITUTION_CODES.has(code)) {
       setStep('sub');
     } else {
@@ -329,6 +422,16 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
   const minuteDisplay = elapsedSeconds > 0
     ? `${Math.floor(elapsedSeconds / 60)}'`
     : null;
+
+  const matchStateLabel = matchState === 'first-half'
+    ? '1. Halbzeit läuft'
+    : matchState === 'first-half-pause'
+      ? 'Halbzeitpause'
+      : matchState === 'second-half'
+        ? '2. Halbzeit läuft'
+        : matchState === 'interruption'
+          ? 'Spielunterbrechung läuft'
+          : '';
 
   return (
     <Dialog
@@ -405,6 +508,28 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {matchState !== 'idle' && (
+            <Box
+              sx={{
+                px: 1.25,
+                py: 0.4,
+                bgcolor: 'rgba(255, 193, 7, 0.16)',
+                border: '1px solid rgba(255, 193, 7, 0.35)',
+                borderRadius: '6px',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  color: '#fbbf24',
+                  letterSpacing: '0.1em',
+                }}
+              >
+                {matchStateLabel}
+              </Typography>
+            </Box>
+          )}
           {minuteDisplay && (
             <Box
               sx={{
@@ -542,7 +667,25 @@ export const QuickEventPanel: React.FC<QuickEventPanelProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       >
         {step === 'event' ? (
-          <QuickEventEventStep buttons={config.buttons} gameEventTypes={eventTypes} onSelect={handleEventSelect} />
+          <QuickEventEventStep
+            buttons={config.buttons}
+            gameEventTypes={eventTypes}
+            onSelect={handleEventSelect}
+            buttonLabelOverrides={{
+              match_state_toggle: matchState === 'idle'
+                ? '1. Halbzeit starten'
+                : matchState === 'first-half'
+                  ? '1. Halbzeit beenden'
+                  : matchState === 'first-half-pause'
+                    ? '2. Halbzeit starten'
+                    : matchState === 'second-half'
+                      ? '2. Halbzeit beenden'
+                      : 'Spiel fortsetzen',
+              match_interruption_toggle: matchState === 'interruption'
+                ? 'Spielunterbrechung beenden'
+                : 'Spielunterbrechung',
+            }}
+          />
         ) : step === 'sub' ? (
           <QuickEventSubFlow
             onField={onField}

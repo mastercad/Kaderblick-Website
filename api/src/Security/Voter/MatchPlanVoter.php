@@ -50,7 +50,7 @@ final class MatchPlanVoter extends Voter
 
     private function canManage(User $user, Game $game): bool
     {
-        if (in_array('ROLE_SUPERADMIN', $user->getRoles(), true) || in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
             return true;
         }
 

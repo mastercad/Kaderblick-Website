@@ -28,7 +28,7 @@ class MatchPlanVoterTest extends TestCase
 
     public function testManageGrantedForAdmin(): void
     {
-        $user = $this->createUser(['ROLE_ADMIN']);
+        $user = $this->createUser(['ROLE_SUPERADMIN']);
         $game = $this->createGame();
 
         $result = $this->voter->vote($this->createToken($user), $game, [MatchPlanVoter::MANAGE]);

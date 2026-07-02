@@ -9,11 +9,13 @@ jest.mock('../BaseModal', () => ({
 }));
 
 describe('EditUserRolesModal', () => {
-  it('bietet scoped Admin-Rollen nicht zur manuellen Auswahl an', () => {
+  it('bietet scoped Rollen nicht zur manuellen Auswahl an', () => {
     render(<EditUserRolesModal open onClose={jest.fn()} user={{ roles: ['ROLE_USER'] }} onSave={jest.fn()} />);
 
     expect(screen.queryByText('Team-Administrator')).not.toBeInTheDocument();
     expect(screen.queryByText('Vereinsadministrator')).not.toBeInTheDocument();
+    expect(screen.queryByText('Supporter')).not.toBeInTheDocument();
+    expect(screen.queryByText('Verein')).not.toBeInTheDocument();
     expect(screen.getByText(/Zuordnungen-Modal/)).toBeInTheDocument();
   });
 
@@ -22,22 +24,22 @@ describe('EditUserRolesModal', () => {
     render(<EditUserRolesModal open onClose={jest.fn()} user={{ roles: ['ROLE_USER'] }} onSave={onSave} />);
 
     fireEvent.mouseDown(screen.getByLabelText('Rolle'));
-    fireEvent.click(screen.getByRole('option', { name: 'Supporter' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Super-Administrator' }));
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
 
-    expect(onSave).toHaveBeenCalledWith('ROLE_SUPPORTER');
+    expect(onSave).toHaveBeenCalledWith('ROLE_SUPERADMIN');
   });
 
-  it('zeigt bei scoped Admins die gespeicherte Basisrolle', () => {
+  it('zeigt bei scoped Rollen die gespeicherte Basisrolle', () => {
     render(
       <EditUserRolesModal
         open
         onClose={jest.fn()}
-        user={{ roles: ['ROLE_TEAM_ADMIN'], baseRole: 'ROLE_SUPPORTER' }}
+        user={{ roles: ['ROLE_USER', 'ROLE_TEAM_ADMIN'], baseRole: 'ROLE_USER' }}
         onSave={jest.fn()}
       />,
     );
 
-    expect(screen.getByLabelText('Rolle')).toHaveTextContent('Supporter');
+    expect(screen.getByLabelText('Rolle')).toHaveTextContent('Benutzer');
   });
 });

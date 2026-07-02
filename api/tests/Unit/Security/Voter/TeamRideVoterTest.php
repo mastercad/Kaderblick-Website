@@ -109,18 +109,18 @@ class TeamRideVoterTest extends TestCase
         $this->assertVote(VoterInterface::ACCESS_GRANTED, $user, $ride, TeamRideVoter::EDIT);
     }
 
-    public function testEditGrantedForAdminWhoIsTeamMember(): void
+    public function testEditDeniedForTeamMemberWhoIsNotDriver(): void
     {
-        $user = $this->createUser(7, ['ROLE_ADMIN']);
+        $user = $this->createUser(7);
         $ride = $this->createRide(driverId: 99, event: $this->createCalendarEvent());
         $this->membershipService->method('isUserTeamMemberForEvent')->willReturn(true);
 
-        $this->assertVote(VoterInterface::ACCESS_GRANTED, $user, $ride, TeamRideVoter::EDIT);
+        $this->assertVote(VoterInterface::ACCESS_DENIED, $user, $ride, TeamRideVoter::EDIT);
     }
 
-    public function testEditDeniedForAdminWhoIsNotTeamMember(): void
+    public function testEditDeniedForNonTeamMemberWhoIsNotDriver(): void
     {
-        $user = $this->createUser(7, ['ROLE_ADMIN']);
+        $user = $this->createUser(7);
         $ride = $this->createRide(driverId: 99, event: $this->createCalendarEvent());
         $this->membershipService->method('isUserTeamMemberForEvent')->willReturn(false);
 
@@ -153,13 +153,13 @@ class TeamRideVoterTest extends TestCase
         $this->assertVote(VoterInterface::ACCESS_GRANTED, $user, $ride, TeamRideVoter::DELETE);
     }
 
-    public function testDeleteGrantedForAdminTeamMember(): void
+    public function testDeleteDeniedForTeamMemberWhoIsNotDriver(): void
     {
-        $user = $this->createUser(7, ['ROLE_ADMIN']);
+        $user = $this->createUser(7);
         $ride = $this->createRide(driverId: 99, event: $this->createCalendarEvent());
         $this->membershipService->method('isUserTeamMemberForEvent')->willReturn(true);
 
-        $this->assertVote(VoterInterface::ACCESS_GRANTED, $user, $ride, TeamRideVoter::DELETE);
+        $this->assertVote(VoterInterface::ACCESS_DENIED, $user, $ride, TeamRideVoter::DELETE);
     }
 
     public function testDeleteDeniedForRegularNonDriverUser(): void

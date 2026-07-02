@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Game;
 use App\Entity\User;
+use App\Service\SupporterScopeService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
@@ -16,6 +17,10 @@ final class GameVoter extends Voter
     public const EDIT = 'GAME_EDIT';
     public const VIEW = 'GAME_VIEW';
     public const DELETE = 'GAME_DELETE';
+
+    public function __construct(private readonly SupporterScopeService $supporterScopeService)
+    {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -38,34 +43,9 @@ final class GameVoter extends Voter
                     return true;
                 }
 
-                if (
-                    !in_array('ROLE_ADMIN', $user->getRoles())
-                    && !in_array('ROLE_SUPPORTER', $user->getRoles())
-                ) {
-                    return false;
-                }
-
-                foreach ($user->getUserRelations() as $userRelation) {
-                    if ($userRelation->getPlayer()) {
-                        foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if ($userRelation->getCoach()) {
-                        foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
+                foreach (array_filter([$subject->getHomeTeam(), $subject->getAwayTeam()]) as $team) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $team)) {
+                        return true;
                     }
                 }
 
@@ -76,34 +56,9 @@ final class GameVoter extends Voter
                     return true;
                 }
 
-                if (
-                    !in_array('ROLE_ADMIN', $user->getRoles())
-                    && !in_array('ROLE_SUPPORTER', $user->getRoles())
-                ) {
-                    return false;
-                }
-
-                foreach ($user->getUserRelations() as $userRelation) {
-                    if ($userRelation->getPlayer()) {
-                        foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if ($userRelation->getCoach()) {
-                        foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
+                foreach (array_filter([$subject->getHomeTeam(), $subject->getAwayTeam()]) as $team) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $team)) {
+                        return true;
                     }
                 }
                 break;

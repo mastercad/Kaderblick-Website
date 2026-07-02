@@ -47,18 +47,12 @@ final class TeamVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
-                // Neue Teams anlegen: nur ADMIN
-                return in_array('ROLE_ADMIN', $user->getRoles());
+                return false;
 
             case self::EDIT:
             case self::DELETE:
                 /** @var Team $subject */
                 if ($this->adminScopeService->canAdministerTeam($user, $subject)) {
-                    return true;
-                }
-
-                // ADMIN darf immer bearbeiten/löschen
-                if (in_array('ROLE_ADMIN', $user->getRoles())) {
                     return true;
                 }
 

@@ -16,7 +16,7 @@ class PosterImageUploadController extends AbstractController
     #[Route(path: '/upload', name: 'upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $imageFile = $request->files->get('image');
         if (!$imageFile instanceof UploadedFile) {
@@ -50,7 +50,7 @@ class PosterImageUploadController extends AbstractController
     #[Route(path: '', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/poster';
         if (!is_dir($uploadDir)) {
@@ -81,7 +81,7 @@ class PosterImageUploadController extends AbstractController
     #[Route(path: '/{filename}', name: 'delete', methods: ['DELETE'])]
     public function delete(string $filename, PosterTemplateRepository $repository): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         // Path-Traversal verhindern
         if ('' === $filename || str_contains($filename, '/') || str_contains($filename, '\\') || str_starts_with($filename, '.')) {

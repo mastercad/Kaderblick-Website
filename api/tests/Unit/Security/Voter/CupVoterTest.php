@@ -38,7 +38,7 @@ class CupVoterTest extends TestCase
 
     public function testViewGrantedForAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $cup = $this->createCup(10);
         $token = $this->createToken($user);
 
@@ -64,7 +64,7 @@ class CupVoterTest extends TestCase
 
     public function testCreateGrantedForAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $cup = $this->createCup(10);
         $token = $this->createToken($user);
 
@@ -101,7 +101,7 @@ class CupVoterTest extends TestCase
 
     public function testEditGrantedForAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $cup = $this->createCup(10);
         $token = $this->createToken($user);
 
@@ -138,7 +138,7 @@ class CupVoterTest extends TestCase
 
     public function testDeleteGrantedForAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $cup = $this->createCup(10);
         $token = $this->createToken($user);
 
@@ -195,7 +195,7 @@ class CupVoterTest extends TestCase
 
     public function testAbstainsForUnsupportedSubject(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $token = $this->createToken($user);
 
         $result = $this->voter->vote($token, new stdClass(), [CupVoter::VIEW]);
@@ -205,7 +205,7 @@ class CupVoterTest extends TestCase
 
     public function testAbstainsForUnknownAttribute(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $cup = $this->createCup(10);
         $token = $this->createToken($user);
 

@@ -77,7 +77,7 @@ class NotificationVoterTest extends TestCase
 
     public function testDeleteAsAdminReturnsTrue(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $notification = $this->createNotification(2);
         $token = $this->createToken($admin);
 
@@ -88,7 +88,7 @@ class NotificationVoterTest extends TestCase
 
     public function testCreateReturnsTrueForAdmin(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $notification = new Notification();
         $token = $this->createToken($admin);
 

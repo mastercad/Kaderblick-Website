@@ -399,7 +399,7 @@ class TeamMembershipService
      * - For events with USER permissions: those specific users
      * - For PUBLIC events: users who registered participation (attending/maybe/late)
      * - Additionally: all TeamRide drivers + passengers for this event
-     * - Additionally: all admins (ROLE_ADMIN / ROLE_SUPER_ADMIN)
+     * - Additionally: all admins (ROLE_SUPERADMIN / ROLE_SUPER_ADMIN)
      *
      * @return User[]
      */
@@ -491,7 +491,7 @@ class TeamMembershipService
             ->getResult();
         foreach ($admins as $admin) {
             $roles = $admin->getRoles();
-            if (in_array('ROLE_ADMIN', $roles) || in_array('ROLE_SUPER_ADMIN', $roles) || in_array('ROLE_SUPERADMIN', $roles)) {
+            if (in_array('ROLE_SUPERADMIN', $roles) || in_array('ROLE_SUPER_ADMIN', $roles)) {
                 $usersById[$admin->getId()] = $admin;
             }
         }

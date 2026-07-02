@@ -18,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
 #[Route('/admin/demo-requests', name: 'admin_demo_requests_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_SUPERADMIN')]
 class DemoRequestAdminController extends AbstractController
 {
     public function __construct(

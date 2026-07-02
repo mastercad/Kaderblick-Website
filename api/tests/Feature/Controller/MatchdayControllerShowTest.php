@@ -97,8 +97,8 @@ class MatchdayControllerShowTest extends WebTestCase
         $this->em->persist($this->game);
 
         // Admin user — load from fixture
-        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
 
         // Player user linked to homeTeam
         $position = $this->em->getRepository(\App\Entity\Position::class)->findOneBy([]);

@@ -8,6 +8,24 @@ import { QuickEventConfig } from './types';
 export const DEFAULT_QUICK_EVENT_CONFIG: QuickEventConfig = {
   buttons: [
     {
+      eventTypeCode: 'match_state_toggle',
+      label: '1. Halbzeit starten',
+      icon: 'fas fa-play',
+      group: 'match-state',
+    },
+    {
+      eventTypeCode: 'match_interruption_toggle',
+      label: 'Spielunterbrechung',
+      icon: 'fas fa-pause',
+      group: 'match-state',
+    },
+    {
+      eventTypeCode: 'match_abandoned',
+      label: 'Spielabbruch',
+      icon: 'fas fa-ban',
+      group: 'match-state',
+    },
+    {
       eventTypeCode: 'goal',
       label: 'Tor',
       icon: 'fas fa-futbol',

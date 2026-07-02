@@ -10,7 +10,7 @@ class TeamsControllerTest extends ApiWebTestCase
 {
     private function fetchAllTeamCountForAdmin(KernelBrowser $client): int
     {
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/teams/list');
         $data = json_decode($client->getResponse()->getContent(), true);
 
@@ -22,7 +22,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexReturnsPaginatedStructure(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/api/teams');
 
@@ -42,7 +42,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexRespectsCustomPageAndLimit(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?page=1&limit=5');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -55,7 +55,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexLimitIsCappedAt100(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=500');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -66,7 +66,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexPageMinimumIs1(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?page=0');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -77,7 +77,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexPaginationReturnsConsistentTotal(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?page=1&limit=3');
         $data1 = json_decode($client->getResponse()->getContent(), true);
@@ -96,7 +96,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexBeyondLastPageReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?page=99999&limit=25');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -110,7 +110,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexFiltersBySearchTerm(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Get a team name to search for
         $client->request('GET', '/api/teams?limit=1');
@@ -134,7 +134,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexSearchWithNoMatchReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?search=zzzzxxxxxnonexistent99999');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -149,7 +149,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListReturnsAllTeamsForDropdown(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams/list');
 
@@ -167,7 +167,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListTeamHasExpectedFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams/list');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -189,7 +189,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexTeamHasExpectedFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -217,7 +217,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexAdminHasFullPermissions(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -372,7 +372,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListAdminAlwaysSeesAllTeamsRegardlessOfContext(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         // Without context
         $client->request('GET', '/api/teams/list');
@@ -410,7 +410,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testIndexCombinesSearchAndPagination(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?search=a&page=1&limit=3');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -426,7 +426,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testShowIncludesTimingDefaultsFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         // Get a valid team id from the list
         $client->request('GET', '/api/teams?page=1&limit=1');
@@ -446,7 +446,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testListIncludesTimingDefaultsFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/api/teams/list?context=match');
         $this->assertResponseIsSuccessful();
@@ -461,7 +461,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testPatchTimingDefaultsSucceedsForAdmin(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         // Get a team id
         $client->request('GET', '/api/teams?page=1&limit=1');
@@ -495,7 +495,7 @@ class TeamsControllerTest extends ApiWebTestCase
     {
         $client = static::createClient();
         // user16 is admin, get team first with admin
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/teams?page=1&limit=1');
         $listData = json_decode($client->getResponse()->getContent(), true);
         $this->assertNotEmpty($listData['teams'], 'Need at least one team fixture');
@@ -533,7 +533,7 @@ class TeamsControllerTest extends ApiWebTestCase
         $client = static::createClient();
 
         // Fetch a team id using an admin token
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
         if (empty($data['teams'])) {
@@ -551,7 +551,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testUploadBannerWithNoFileReturnsBadRequest(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -570,7 +570,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testUploadBannerWithInvalidMimeTypeReturnsUnprocessableEntity(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -603,7 +603,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testUploadBannerWithValidPngAsAdminReturns200(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -642,7 +642,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testUploadBannerResponseContainsExpectedShape(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -697,7 +697,7 @@ class TeamsControllerTest extends ApiWebTestCase
     {
         $client = static::createClient();
 
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
         if (empty($data['teams'])) {
@@ -714,7 +714,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testDeleteBannerWithNoBannerReturnsSuccess(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -735,7 +735,7 @@ class TeamsControllerTest extends ApiWebTestCase
     public function testDeleteBannerClearsBannerImageOnTeam(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);

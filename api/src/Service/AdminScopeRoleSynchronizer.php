@@ -40,15 +40,9 @@ class AdminScopeRoleSynchronizer
                     WHERE (start_date IS NULL OR start_date <= CURRENT_DATE())
                       AND (end_date IS NULL OR end_date >= CURRENT_DATE())
                 ) active_club ON active_club.user_id = u.id
-                SET u.role_before_scoped_admin = CASE
-                        WHEN JSON_CONTAINS(u.roles, '"ROLE_TEAM_ADMIN"')
-                          OR JSON_CONTAINS(u.roles, '"ROLE_CLUB_ADMIN"')
-                        THEN u.role_before_scoped_admin
-                        ELSE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(u.roles, '$[0]')), 'ROLE_USER')
-                    END,
-                    u.roles = JSON_ARRAY('ROLE_CLUB_ADMIN')
-                WHERE NOT JSON_CONTAINS(u.roles, '"ROLE_ADMIN"')
-                  AND NOT JSON_CONTAINS(u.roles, '"ROLE_SUPERADMIN"')
+                SET u.roles = JSON_ARRAY_APPEND(u.roles, '$', 'ROLE_CLUB_ADMIN'),
+                    u.role_before_scoped_admin = NULL
+                WHERE NOT JSON_CONTAINS(u.roles, '"ROLE_SUPERADMIN"')
                   AND NOT JSON_CONTAINS(u.roles, '"ROLE_CLUB_ADMIN"')
                 SQL);
 
@@ -66,20 +60,13 @@ class AdminScopeRoleSynchronizer
                     WHERE (start_date IS NULL OR start_date <= CURRENT_DATE())
                       AND (end_date IS NULL OR end_date >= CURRENT_DATE())
                 ) active_club ON active_club.user_id = u.id
-                SET u.role_before_scoped_admin = CASE
-                        WHEN JSON_CONTAINS(u.roles, '"ROLE_TEAM_ADMIN"')
-                          OR JSON_CONTAINS(u.roles, '"ROLE_CLUB_ADMIN"')
-                        THEN u.role_before_scoped_admin
-                        ELSE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(u.roles, '$[0]')), 'ROLE_USER')
-                    END,
-                    u.roles = JSON_ARRAY('ROLE_TEAM_ADMIN')
-                WHERE active_club.user_id IS NULL
-                  AND NOT JSON_CONTAINS(u.roles, '"ROLE_ADMIN"')
-                  AND NOT JSON_CONTAINS(u.roles, '"ROLE_SUPERADMIN"')
+                SET u.roles = JSON_ARRAY_APPEND(u.roles, '$', 'ROLE_TEAM_ADMIN'),
+                    u.role_before_scoped_admin = NULL
+                WHERE NOT JSON_CONTAINS(u.roles, '"ROLE_SUPERADMIN"')
                   AND NOT JSON_CONTAINS(u.roles, '"ROLE_TEAM_ADMIN"')
                 SQL);
 
-            $demotions = $this->connection->executeStatement(<<<'SQL'
+            $teamDemotions = $this->connection->executeStatement(<<<'SQL'
                 UPDATE users u
                 LEFT JOIN (
                     SELECT DISTINCT user_id
@@ -87,17 +74,33 @@ class AdminScopeRoleSynchronizer
                     WHERE (start_date IS NULL OR start_date <= CURRENT_DATE())
                       AND (end_date IS NULL OR end_date >= CURRENT_DATE())
                 ) active_team ON active_team.user_id = u.id
+                SET u.roles = JSON_REMOVE(u.roles, JSON_UNQUOTE(JSON_SEARCH(u.roles, 'one', 'ROLE_TEAM_ADMIN'))),
+                    u.role_before_scoped_admin = NULL
+                WHERE active_team.user_id IS NULL
+                  AND JSON_CONTAINS(u.roles, '"ROLE_TEAM_ADMIN"')
+                SQL);
+
+            $clubDemotions = $this->connection->executeStatement(<<<'SQL'
+                UPDATE users u
                 LEFT JOIN (
                     SELECT DISTINCT user_id
                     FROM user_club_admin_assignments
                     WHERE (start_date IS NULL OR start_date <= CURRENT_DATE())
                       AND (end_date IS NULL OR end_date >= CURRENT_DATE())
                 ) active_club ON active_club.user_id = u.id
-                SET u.roles = JSON_ARRAY(COALESCE(u.role_before_scoped_admin, 'ROLE_USER')),
+                SET u.roles = JSON_REMOVE(u.roles, JSON_UNQUOTE(JSON_SEARCH(u.roles, 'one', 'ROLE_CLUB_ADMIN'))),
                     u.role_before_scoped_admin = NULL
-                WHERE active_team.user_id IS NULL
-                  AND active_club.user_id IS NULL
-                  AND u.role_before_scoped_admin IS NOT NULL
+                WHERE active_club.user_id IS NULL
+                  AND JSON_CONTAINS(u.roles, '"ROLE_CLUB_ADMIN"')
+                SQL);
+
+            $demotions = $teamDemotions + $clubDemotions;
+
+            $this->connection->executeStatement(<<<'SQL'
+                UPDATE users u
+                SET u.roles = JSON_ARRAY('ROLE_USER')
+                WHERE JSON_LENGTH(u.roles) = 0
+                  AND NOT JSON_CONTAINS(u.roles, '"ROLE_SUPERADMIN"')
                 SQL);
 
             $this->connection->commit();

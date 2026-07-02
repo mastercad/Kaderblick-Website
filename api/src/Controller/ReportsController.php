@@ -162,7 +162,7 @@ class ReportsController extends AbstractController
             }
             $config['metrics'] = $validatedMetrics;
             $report->setConfig($config);
-            if ($this->isGranted('ROLE_ADMIN') && isset($data['isTemplate'])) {
+            if ($this->isGranted('ROLE_SUPERADMIN') && isset($data['isTemplate'])) {
                 $report->setIsTemplate(true);
                 $report->setUser(null);
             } else {

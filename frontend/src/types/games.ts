@@ -133,6 +133,7 @@ export interface GameEventType {
   code: string;
   color?: string;
   icon?: string;
+  isSystem?: boolean;
 }
 
 export interface Player {
@@ -171,6 +172,15 @@ export interface GameEvent {
   type?: string;
   coach?: string;
   coachId?: number;
+  code?: string;  // Event code (z.B. 'halftime_start')
+  isSystemEvent?: boolean;  // true wenn System-Event (Halftime/Interruption)
+}
+
+export type MatchState = 'idle' | 'first-half' | 'first-half-pause' | 'second-half' | 'interruption';
+
+export interface GameMatchState {
+  matchState: MatchState;
+  interruptionContext: Exclude<MatchState, 'idle' | 'first-half-pause' | 'interruption'> | null;
 }
 
 export interface GameWithScore {

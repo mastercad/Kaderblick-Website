@@ -46,8 +46,8 @@ class TeamsControllerPlayersTest extends WebTestCase
 
     private function authenticateAdmin(): void
     {
-        $user = $this->em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($user, 'Admin-Fixture-User user16@example.com nicht gefunden.');
+        $user = $this->em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($user, 'Admin-Fixture-User user21@example.com nicht gefunden.');
 
         $jwtManager = static::getContainer()->get(JWTTokenManagerInterface::class);
         $token = $jwtManager->create($user);

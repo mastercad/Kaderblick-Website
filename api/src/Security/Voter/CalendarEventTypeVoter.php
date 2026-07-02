@@ -36,7 +36,7 @@ final class CalendarEventTypeVoter extends Voter
             case self::CREATE:
             case self::EDIT:
             case self::DELETE:
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::VIEW:
                 return true;

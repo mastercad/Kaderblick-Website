@@ -6,6 +6,8 @@ use App\Entity\CoachTeamAssignment;
 use App\Entity\PlayerTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
+use App\Entity\UserTeamAdminAssignment;
+use App\Repository\UserTeamAdminAssignmentRepository;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
@@ -152,6 +154,30 @@ class UserTeamAccessService
                     $team = $cta->getTeam();
                     $teams[$team->getId()] = $team;
                 }
+            }
+        }
+
+        return $teams;
+    }
+
+    /**
+     * Returns all teams where the user has an active team-admin assignment.
+     *
+     * @return array<int, Team> keyed by team ID
+     */
+    public function getTeamAdminTeams(User $user, ?DateTimeInterface $referenceDate = null): array
+    {
+        $date = $referenceDate ?? new DateTimeImmutable();
+        $teams = [];
+
+        /** @var UserTeamAdminAssignmentRepository $repository */
+        $repository = $this->em->getRepository(UserTeamAdminAssignment::class);
+        $assignments = $repository->findActiveForUser($user, $date);
+
+        foreach ($assignments as $assignment) {
+            $team = $assignment->getTeam();
+            if ($team) {
+                $teams[$team->getId()] = $team;
             }
         }
 

@@ -198,6 +198,8 @@ const UsersTab: React.FC = () => {
           ...(u.staffClubAssignments ?? []).map(a => `Staff${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
           ...(u.functionaryTeamAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.team?.name ?? '—'}`),
           ...(u.functionaryClubAssignments ?? []).map(a => `Funktionär${a.type ? ` (${a.type.name})` : ''}: ${a.club?.name ?? '—'}`),
+          ...(u.supporterTeamAssignments ?? []).map(a => `Team-Supporter: ${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
+          ...(u.supporterClubAssignments ?? []).map(a => `Verein-Supporter: ${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
           ...(u.adminTeamAssignments ?? []).map(a => `Team-Admin: ${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
           ...(u.adminClubAssignments ?? []).map(a => `Vereinsadmin: ${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}`),
         ];
@@ -298,6 +300,8 @@ const UsersTab: React.FC = () => {
             ...(u.staffClubAssignments ?? []).map(a => ({ label: `Staff${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
             ...(u.functionaryTeamAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.team?.name ?? '—' })),
             ...(u.functionaryClubAssignments ?? []).map(a => ({ label: `Funktionär${a.type ? ` (${a.type.name})` : ''}`, value: a.club?.name ?? '—' })),
+            ...(u.supporterTeamAssignments ?? []).map(a => ({ label: 'Team-Supporter', value: `${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
+            ...(u.supporterClubAssignments ?? []).map(a => ({ label: 'Verein-Supporter', value: `${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
             ...(u.adminTeamAssignments ?? []).map(a => ({ label: 'Team-Admin', value: `${a.team?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
             ...(u.adminClubAssignments ?? []).map(a => ({ label: 'Vereinsadmin', value: `${a.club?.name ?? '—'}${assignmentPeriod(a.startDate, a.endDate)}` })),
           ];

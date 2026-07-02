@@ -6,6 +6,7 @@ use App\Entity\TaskAssignment;
 use App\Entity\User;
 use App\Entity\UserRelation;
 use App\Repository\CalendarEventRepository;
+use App\Service\SupporterScopeService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +27,7 @@ class MyTeamController extends AbstractController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
+        private readonly SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -310,35 +312,10 @@ class MyTeamController extends AbstractController
     {
         $roles = $user->getRoles();
 
-        if (in_array('ROLE_SUPERADMIN', $roles, true) || in_array('ROLE_ADMIN', $roles, true)) {
+        if (in_array('ROLE_SUPERADMIN', $roles, true)) {
             return true;
         }
 
-        if (!in_array('ROLE_SUPPORTER', $roles, true)) {
-            return false;
-        }
-
-        $teamId = $team->getId();
-        foreach ($user->getUserRelations() as $relation) {
-            $player = $relation->getPlayer();
-            if (null !== $player) {
-                foreach ($player->getPlayerTeamAssignments() as $pta) {
-                    if ($pta->getTeam()->getId() === $teamId) {
-                        return true;
-                    }
-                }
-            }
-
-            $coach = $relation->getCoach();
-            if (null !== $coach) {
-                foreach ($coach->getCoachTeamAssignments() as $cta) {
-                    if ($cta->getTeam()->getId() === $teamId) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        return $this->supporterScopeService->canSupportTeam($user, $team);
     }
 }

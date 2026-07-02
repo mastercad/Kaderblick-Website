@@ -17,6 +17,7 @@ use App\Repository\CoachLicenseAssignmentRepository;
 use App\Repository\CoachNationalityAssignmentRepository;
 use App\Repository\CoachTeamAssignmentRepository;
 use App\Security\Voter\CoachVoter;
+use App\Service\AdminScopeService;
 use App\Service\CoachSerializerService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,7 +34,8 @@ class CoachesController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private CoachSerializerService $coachSerializer
+        private CoachSerializerService $coachSerializer,
+        private AdminScopeService $adminScopeService,
     ) {
     }
 
@@ -47,12 +49,28 @@ class CoachesController extends AbstractController
 
         $repo = $this->entityManager->getRepository(Coach::class);
         $qb = $repo->createQueryBuilder('c');
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $isSuperAdmin = $this->isGranted('ROLE_SUPERADMIN');
+        $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
 
         // Filter by team
         if ($teamId) {
-            $qb->innerJoin('c.coachTeamAssignments', 'cta')
-               ->andWhere('cta.team = :teamId')
-               ->setParameter('teamId', (int) $teamId);
+            $qb->innerJoin('c.coachTeamAssignments', 'cta');
+            if (!$isSuperAdmin && !in_array((int) $teamId, $adminTeamIds, true)) {
+                $qb->andWhere('1 = 0');
+            } else {
+                $qb->andWhere('cta.team = :teamId')
+                   ->setParameter('teamId', (int) $teamId);
+            }
+        } elseif (!$isSuperAdmin) {
+            if ($adminTeamIds) {
+                $qb->innerJoin('c.coachTeamAssignments', 'cta_scope')
+                   ->andWhere('cta_scope.team IN (:adminTeamIds)')
+                   ->setParameter('adminTeamIds', $adminTeamIds);
+            } else {
+                $qb->andWhere('1 = 0');
+            }
         }
 
         // Filter by search (firstName / lastName)
@@ -76,9 +94,6 @@ class CoachesController extends AbstractController
            ->setMaxResults($limit);
 
         $coaches = $qb->getQuery()->getResult();
-
-        // Permissions: VIEW always true for logged-in users, CREATE/EDIT/DELETE require ROLE_ADMIN
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
 
         return $this->json([
             'coaches' => array_map(fn ($coach) => [
@@ -137,10 +152,10 @@ class CoachesController extends AbstractController
                     ]
                 ])->toArray(),
                 'permissions' => [
-                    'canEdit' => $isAdmin,
-                    'canDelete' => $isAdmin,
+                    'canEdit' => $this->isGranted(CoachVoter::EDIT, $coach),
+                    'canDelete' => $this->isGranted(CoachVoter::DELETE, $coach),
                     'canView' => true,
-                    'canCreate' => $isAdmin,
+                    'canCreate' => $this->isGranted(CoachVoter::CREATE, $coach),
                 ]
             ], $coaches),
             'total' => $total,

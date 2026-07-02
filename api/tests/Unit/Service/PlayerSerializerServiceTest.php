@@ -5,6 +5,7 @@ namespace App\Tests\Unit\Service;
 use App\Entity\Player;
 use App\Entity\Position;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use App\Service\PlayerSerializerService;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -21,6 +22,7 @@ class PlayerSerializerServiceTest extends TestCase
 {
     private Security & MockObject $security;
     private CoachTeamPlayerService & MockObject $coachTeamPlayerService;
+    private AdminScopeService & MockObject $adminScopeService;
     private EntityManagerInterface & MockObject $em;
     private PlayerSerializerService $service;
 
@@ -28,18 +30,21 @@ class PlayerSerializerServiceTest extends TestCase
     {
         $this->security = $this->createMock(Security::class);
         $this->coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
+        $this->adminScopeService = $this->createMock(AdminScopeService::class);
         $this->em = $this->createMock(EntityManagerInterface::class);
 
         $this->service = new PlayerSerializerService(
             $this->security,
             $this->coachTeamPlayerService,
             $this->em,
+            $this->adminScopeService,
         );
 
         // Default: not admin, no coach teams
         $this->security->method('isGranted')->willReturn(false);
         $this->security->method('getUser')->willReturn($this->createMock(User::class));
         $this->coachTeamPlayerService->method('collectCoachTeams')->willReturn([]);
+        $this->adminScopeService->method('getAdministeredTeams')->willReturn([]);
 
         // Stub the two query builders used in buildStats()
         $this->stubQueryBuilder();
@@ -164,7 +169,7 @@ class PlayerSerializerServiceTest extends TestCase
         // Rebuild service with admin security mock
         $adminSecurity = $this->createMock(Security::class);
         $adminSecurity->method('isGranted')
-            ->willReturnCallback(fn (string $a) => in_array($a, ['ROLE_ADMIN']));
+            ->willReturnCallback(fn (string $a) => in_array($a, ['ROLE_SUPERADMIN']));
         $adminSecurity->method('getUser')->willReturn($this->createMock(User::class));
         $this->coachTeamPlayerService->method('collectCoachTeams')->willReturn([]);
 
@@ -172,6 +177,7 @@ class PlayerSerializerServiceTest extends TestCase
             $adminSecurity,
             $this->coachTeamPlayerService,
             $this->em,
+            $this->adminScopeService,
         );
 
         $result = $service->serializeForCurrentUser($player);
@@ -217,6 +223,7 @@ class PlayerSerializerServiceTest extends TestCase
             $this->security,
             $coachSvc,
             $this->em,
+            $this->adminScopeService,
         );
 
         $result = $service->serializeForCurrentUser($player);

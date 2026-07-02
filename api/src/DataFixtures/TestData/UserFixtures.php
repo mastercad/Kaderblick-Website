@@ -45,12 +45,12 @@ class UserFixtures extends Fixture implements DependentFixtureInterface, Fixture
                 'maxId' => 10,
             ],
             [
-                'name' => 'ROLE_CLUB',
+                'name' => 'ROLE_USER',
                 'minId' => 11,
                 'maxId' => 15,
             ],
             [
-                'name' => 'ROLE_ADMIN',
+                'name' => 'ROLE_USER',
                 'minId' => 16,
                 'maxId' => 20,
             ],

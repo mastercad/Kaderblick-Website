@@ -74,7 +74,7 @@ class SurveyOptionVoterTest extends TestCase
     public function testViewOtherUsersOptionAsAdminReturnsGranted(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $option = $this->createOption($owner, false);
         $token = $this->createToken($admin);
 
@@ -157,7 +157,7 @@ class SurveyOptionVoterTest extends TestCase
     public function testEditOtherUsersOptionAsAdminReturnsGranted(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $option = $this->createOption($owner, false);
         $token = $this->createToken($admin);
 
@@ -217,7 +217,7 @@ class SurveyOptionVoterTest extends TestCase
     public function testDeleteOtherUsersOptionAsAdminReturnsGranted(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $option = $this->createOption($owner, false);
         $token = $this->createToken($admin);
 

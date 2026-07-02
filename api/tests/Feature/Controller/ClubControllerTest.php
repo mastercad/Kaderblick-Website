@@ -12,7 +12,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListReturnsPaginatedStructure(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/clubs');
 
@@ -32,7 +32,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListDefaultsToPage1Limit25(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -45,7 +45,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListRespectsCustomPageAndLimit(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?page=1&limit=5');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -58,7 +58,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListLimitIsCappedAt100(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?limit=500');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -69,7 +69,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListPageMinimumIs1(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?page=0');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -80,7 +80,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListPaginationReturnsConsistentTotal(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?page=1&limit=3');
         $data1 = json_decode($client->getResponse()->getContent(), true);
@@ -99,7 +99,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListBeyondLastPageReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?page=99999&limit=25');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -113,7 +113,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListFiltersBySearchTerm(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Get a club name to search for
         $client->request('GET', '/clubs?limit=1');
@@ -136,7 +136,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListSearchAcrossMultipleFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Get a club with a stadium name
         $client->request('GET', '/clubs?limit=100');
@@ -166,7 +166,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListSearchWithNoMatchReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?search=zzzzxxxxxnonexistent99999');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -181,7 +181,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListClubHasExpectedFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -213,7 +213,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListAdminHasFullPermissions(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/clubs?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -262,7 +262,7 @@ class ClubControllerTest extends ApiWebTestCase
     public function testListCombinesSearchAndPagination(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/clubs?search=a&page=1&limit=3');
         $data = json_decode($client->getResponse()->getContent(), true);

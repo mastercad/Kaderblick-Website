@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Coach;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class CoachRepository extends ServiceEntityRepository implements OptimizedRepositoryInterface
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private readonly AdminScopeService $adminScopeService)
     {
         parent::__construct($registry, Coach::class);
     }
@@ -25,15 +26,25 @@ class CoachRepository extends ServiceEntityRepository implements OptimizedReposi
      */
     public function fetchFullList(?UserInterface $user = null): array
     {
-        return $this->createQueryBuilder('c')
+        $qb = $this->createQueryBuilder('c')
             ->select('c', 'cta', 'cna', 'cca')
             ->leftJoin('c.coachTeamAssignments', 'cta', 'WITH', 'cta.coach = c')
             ->leftJoin('c.coachNationalityAssignments', 'cna', 'WITH', 'cna.coach = c')
             ->leftJoin('c.coachClubAssignments', 'cca', 'WITH', 'cca.coach = c')
             ->orderBy('c.lastName', 'ASC')
-            ->addOrderBy('c.firstName', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->addOrderBy('c.firstName', 'ASC');
+
+        if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+            $teamIds = $user instanceof User ? array_keys($this->adminScopeService->getAdministeredTeams($user)) : [];
+            if ($teamIds) {
+                $qb->andWhere('cta.team IN (:teamIds)')
+                   ->setParameter('teamIds', $teamIds);
+            } else {
+                $qb->andWhere('1 = 0');
+            }
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     /**
@@ -49,10 +60,11 @@ class CoachRepository extends ServiceEntityRepository implements OptimizedReposi
             ->orderBy('c.lastName', 'ASC')
             ->addOrderBy('c.firstName', 'ASC');
 
-        if ($user && !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+        if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
             $teamIds = [];
             $relatedCoachIds = [];
             if ($user instanceof User) {
+                $teamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
                 foreach ($user->getUserRelations() as $relation) {
                     if ($relation->getPlayer()) {
                         foreach ($relation->getPlayer()->getPlayerTeamAssignments() as $pta) {

@@ -21,8 +21,8 @@ use Tests\Feature\ApiWebTestCase;
  * Critical invariant: the needsRegistrationContext flag must correctly reflect
  * whether the logged-in user still needs to submit a relation request,
  * AND whether the feature flag is enabled.
- *   true  -> feature ON  AND user has NO UserRelations AND NO RegistrationRequests AND NOT admin
- *   false -> feature OFF OR  user has at least one UserRelation OR a RegistrationRequest OR is ROLE_ADMIN/SUPERADMIN
+ *   true  -> feature ON  AND user has NO UserRelations AND NO RegistrationRequests AND is not superadmin
+ *   false -> feature OFF OR user has at least one UserRelation OR a RegistrationRequest OR is ROLE_SUPERADMIN
  */
 class ProfileControllerTest extends ApiWebTestCase
 {
@@ -305,28 +305,6 @@ class ProfileControllerTest extends ApiWebTestCase
         $this->assertTrue(
             $data['needsRegistrationContext'],
             'needsRegistrationContext must be true again after the feature flag is re-enabled.'
-        );
-    }
-
-    public function testNeedsRegistrationContextFalseForAdminWithNoRelations(): void
-    {
-        $client = $this->client;
-
-        $this->setRegistrationContextFeature(true);
-
-        // user16 = ROLE_ADMIN -- has no fixture UserRelations
-        /** @var User $user */
-        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        $this->assertNotNull($user);
-
-        $this->authenticateUser($client, 'user16@example.com');
-        $client->request('GET', '/api/about-me');
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        $this->assertFalse(
-            $data['needsRegistrationContext'],
-            'ROLE_ADMIN users must never see the registration context dialog, even without any relations.'
         );
     }
 

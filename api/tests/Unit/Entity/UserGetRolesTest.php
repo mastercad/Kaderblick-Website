@@ -8,24 +8,18 @@ use PHPUnit\Framework\TestCase;
 
 class UserGetRolesTest extends TestCase
 {
-    public function testNewUserHasExactlyOneGuestRole(): void
+    public function testNewUserHasGuestRole(): void
     {
         self::assertSame(['ROLE_GUEST'], (new User())->getRoles());
     }
 
-    public function testSetRolesStoresExactlyOneRole(): void
+    public function testSetRolesStoresMultipleRolesInStableOrder(): void
     {
-        $user = (new User())->setRoles(['ROLE_SUPPORTER']);
+        $user = (new User())->setRoles(['ROLE_TEAM_ADMIN', 'ROLE_USER', 'ROLE_SUPPORTER']);
 
-        self::assertSame(['ROLE_SUPPORTER'], $user->getRoles());
-        self::assertSame('ROLE_SUPPORTER', $user->getRole());
-    }
-
-    public function testSetRolesRejectsMultipleRoles(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        (new User())->setRoles(['ROLE_USER', 'ROLE_SUPPORTER']);
+        self::assertSame(['ROLE_USER', 'ROLE_SUPPORTER', 'ROLE_TEAM_ADMIN'], $user->getRoles());
+        self::assertSame('ROLE_TEAM_ADMIN', $user->getRole());
+        self::assertSame('ROLE_USER', $user->getBaseRole());
     }
 
     public function testSetRolesRejectsEmptyRoleList(): void
@@ -35,11 +29,18 @@ class UserGetRolesTest extends TestCase
         (new User())->setRoles([]);
     }
 
-    public function testAddRoleReplacesExistingRole(): void
+    public function testAddRoleAppendsMarkerRole(): void
     {
         $user = (new User())->setRoles(['ROLE_USER'])->addRole('ROLE_SUPPORTER');
 
-        self::assertSame(['ROLE_SUPPORTER'], $user->getRoles());
+        self::assertSame(['ROLE_USER', 'ROLE_SUPPORTER'], $user->getRoles());
+    }
+
+    public function testRemoveRoleFallsBackToUserWhenLastRoleWouldBeRemoved(): void
+    {
+        $user = (new User())->setRoles(['ROLE_SUPPORTER'])->removeRole('ROLE_SUPPORTER');
+
+        self::assertSame(['ROLE_USER'], $user->getRoles());
     }
 
     public function testVerificationStateDoesNotAddAnotherRole(): void

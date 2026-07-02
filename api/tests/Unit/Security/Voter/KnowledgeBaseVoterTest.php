@@ -7,6 +7,7 @@ use App\Entity\PlayerTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\KnowledgeBaseVoter;
+use App\Service\SupporterScopeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Query;
@@ -39,10 +40,14 @@ class KnowledgeBaseVoterTest extends TestCase
     /** @var EntityManagerInterface&MockObject */
     private EntityManagerInterface $em;
 
+    /** @var SupporterScopeService&MockObject */
+    private SupporterScopeService $supporterScopeService;
+
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
-        $this->voter = new KnowledgeBaseVoter($this->em);
+        $this->supporterScopeService = $this->createMock(SupporterScopeService::class);
+        $this->voter = new KnowledgeBaseVoter($this->em, $this->supporterScopeService);
     }
 
     // ─── Anonymous ────────────────────────────────────────────────────────────
@@ -181,9 +186,9 @@ class KnowledgeBaseVoterTest extends TestCase
 
     // ─── POST_CREATE ──────────────────────────────────────────────────────────
 
-    public function testCreateGrantedForAdminInTeam(): void
+    public function testCreateGrantedForSupporterTeamMember(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPPORTER']);
         $team = $this->createTeam(10);
 
         // isUserInTeam → true (first call: player assignment found)
@@ -262,9 +267,9 @@ class KnowledgeBaseVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
-    public function testEditGrantedForAdminThatBelongsToTeam(): void
+    public function testEditDeniedForSupporterThatBelongsToTeamWhenNotAuthor(): void
     {
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $author = $this->createUser(5, ['ROLE_USER']);
         $team = $this->createTeam(10);
         $post = $this->createPost($team, $author);
@@ -273,12 +278,12 @@ class KnowledgeBaseVoterTest extends TestCase
 
         $result = $this->voter->vote($this->createToken($admin), $post, [KnowledgeBaseVoter::POST_EDIT]);
 
-        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
-    public function testEditDeniedForAdminNotInTeam(): void
+    public function testEditDeniedForSupporterNotInTeam(): void
     {
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $author = $this->createUser(5, ['ROLE_USER']);
         $team = $this->createTeam(10);
         $post = $this->createPost($team, $author);
@@ -332,9 +337,9 @@ class KnowledgeBaseVoterTest extends TestCase
 
     // ─── POST_PIN ─────────────────────────────────────────────────────────────
 
-    public function testPinGrantedForAdminInTeam(): void
+    public function testPinGrantedForSupporterInTeam(): void
     {
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $author = $this->createUser(5);
         $team = $this->createTeam(10);
         $post = $this->createPost($team, $author);
@@ -433,7 +438,7 @@ class KnowledgeBaseVoterTest extends TestCase
 
     public function testEditDeniedWhenSubjectIsTeam(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $team = $this->createTeam(10);
 
         $result = $this->voter->vote($this->createToken($user), $team, [KnowledgeBaseVoter::POST_EDIT]);
@@ -443,7 +448,7 @@ class KnowledgeBaseVoterTest extends TestCase
 
     public function testDeleteDeniedWhenSubjectIsTeam(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $team = $this->createTeam(10);
 
         $result = $this->voter->vote($this->createToken($user), $team, [KnowledgeBaseVoter::POST_DELETE]);
@@ -453,7 +458,7 @@ class KnowledgeBaseVoterTest extends TestCase
 
     public function testPinDeniedWhenSubjectIsTeam(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $team = $this->createTeam(10);
 
         $result = $this->voter->vote($this->createToken($user), $team, [KnowledgeBaseVoter::POST_PIN]);
@@ -465,7 +470,7 @@ class KnowledgeBaseVoterTest extends TestCase
 
     public function testCreateDeniedWhenSubjectHasNoTeam(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
 
         // stdClass → resolveTeam() returns null → POST_CREATE returns false
         $result = $this->voter->vote($this->createToken($user), new stdClass(), [KnowledgeBaseVoter::POST_CREATE]);
@@ -475,7 +480,7 @@ class KnowledgeBaseVoterTest extends TestCase
 
     public function testCommentAddDeniedWhenSubjectHasNoTeam(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
 
         $result = $this->voter->vote($this->createToken($user), new stdClass(), [KnowledgeBaseVoter::COMMENT_ADD]);
 
@@ -528,9 +533,9 @@ class KnowledgeBaseVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testPinDeniedForNonSuperAdminOnGlobalPost(): void
+    public function testPinDeniedForSupporterOnGlobalPost(): void
     {
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $post = $this->createGlobalPost($this->createUser(99));
 
         $result = $this->voter->vote($this->createToken($admin), $post, [KnowledgeBaseVoter::POST_PIN]);
@@ -559,10 +564,9 @@ class KnowledgeBaseVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
-    public function testEditDeniedForAdminOnGlobalPostWhenNotAuthor(): void
+    public function testEditDeniedForSupporterOnGlobalPostWhenNotAuthor(): void
     {
-        // Admin team-check is skipped for global posts (team=null); author check fails
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $author = $this->createUser(5, ['ROLE_USER']);
         $post = $this->createGlobalPost($author);
 
@@ -581,9 +585,9 @@ class KnowledgeBaseVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
-    public function testDeleteDeniedForAdminOnGlobalPostWhenNotAuthor(): void
+    public function testDeleteDeniedForSupporterOnGlobalPostWhenNotAuthor(): void
     {
-        $admin = $this->createUser(3, ['ROLE_ADMIN']);
+        $admin = $this->createUser(3, ['ROLE_SUPPORTER']);
         $author = $this->createUser(5, ['ROLE_USER']);
         $post = $this->createGlobalPost($author);
 
@@ -595,7 +599,7 @@ class KnowledgeBaseVoterTest extends TestCase
     public function testCommentAddDeniedForAnyUserOnGlobalPost(): void
     {
         // COMMENT_ADD on a post with team=null → resolveTeam() returns null → false
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $post = $this->createGlobalPost($this->createUser(99));
 
         $result = $this->voter->vote($this->createToken($user), $post, [KnowledgeBaseVoter::COMMENT_ADD]);
@@ -613,6 +617,10 @@ class KnowledgeBaseVoterTest extends TestCase
      */
     private function mockIsUserInTeam(bool $playerFound, bool $coachFound = false): void
     {
+        $this->supporterScopeService
+            ->method('canSupportTeam')
+            ->willReturn($playerFound || $coachFound);
+
         $playerQuery = $this->createQueryMock($playerFound ? new stdClass() : null);
         $coachQuery = $this->createQueryMock($coachFound ? new stdClass() : null);
 

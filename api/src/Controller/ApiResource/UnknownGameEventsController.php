@@ -137,7 +137,7 @@ class UnknownGameEventsController extends AbstractController
     {
         $roles = $user->getRoles();
 
-        if (in_array('ROLE_SUPERADMIN', $roles, true) || in_array('ROLE_ADMIN', $roles, true)) {
+        if (in_array('ROLE_SUPERADMIN', $roles, true)) {
             return true;
         }
 
@@ -159,6 +159,7 @@ class UnknownGameEventsController extends AbstractController
         $game = $event->getGame();
         $calEvent = $game->getCalendarEvent();
         $startDate = $calEvent?->getStartDate();
+        $team = $event->getTeam();
 
         $minute = null;
         if (null !== $startDate) {
@@ -173,10 +174,10 @@ class UnknownGameEventsController extends AbstractController
             'minute' => $minute,
             'timestamp' => $event->getTimestamp()->format('Y-m-d H:i:s'),
             'description' => $event->getDescription(),
-            'team' => [
-                'id' => $event->getTeam()->getId(),
-                'name' => $event->getTeam()->getName(),
-            ],
+            'team' => $team ? [
+                'id' => $team->getId(),
+                'name' => $team->getName(),
+            ] : null,
             'game' => [
                 'id' => $game->getId(),
                 'homeTeam' => $game->getHomeTeam()?->getName(),

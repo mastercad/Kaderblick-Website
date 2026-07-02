@@ -33,7 +33,7 @@ class CalendarEventTypeVoterTest extends TestCase
 
     public function testCreateReturnsTrueForAdmin(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $eventType = new CalendarEventType();
         $token = $this->createToken($admin);
 
@@ -55,7 +55,7 @@ class CalendarEventTypeVoterTest extends TestCase
 
     public function testEditReturnsTrueForAdmin(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $eventType = new CalendarEventType();
         $token = $this->createToken($admin);
 
@@ -88,7 +88,7 @@ class CalendarEventTypeVoterTest extends TestCase
 
     public function testDeleteReturnsTrueForAdmin(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $eventType = new CalendarEventType();
         $token = $this->createToken($admin);
 

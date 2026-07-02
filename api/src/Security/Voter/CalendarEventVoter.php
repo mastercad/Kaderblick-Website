@@ -13,6 +13,7 @@ use App\Entity\Team;
 use App\Entity\User;
 use App\Enum\CalendarEventPermissionType;
 use App\Service\AdminScopeService;
+use App\Service\SupporterScopeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -31,6 +32,7 @@ final class CalendarEventVoter extends Voter
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly AdminScopeService $adminScopeService,
+        private readonly SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -56,10 +58,7 @@ final class CalendarEventVoter extends Voter
 
                 // When subject is a Team (called from createTrainingSeries), verify team membership
                 if ($subject instanceof Team) {
-                    if (
-                        (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPPORTER', $user->getRoles()))
-                        && $this->isUserInTeam($user, $subject)
-                    ) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $subject)) {
                         return true;
                     }
 
@@ -70,7 +69,7 @@ final class CalendarEventVoter extends Voter
                 // allow any admin/supporter/coach – team ownership is validated
                 // separately in CalendarEventService::validateMatchTeamOwnership().
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPPORTER', $user->getRoles())
                     || $this->isCoachOfAnyTeam($user)
                 ) {
@@ -96,12 +95,9 @@ final class CalendarEventVoter extends Voter
                     return $subject->getCreatedBy()?->getId() === $user->getId();
                 }
 
-                // ROLE_ADMIN or ROLE_SUPPORTER must also be a member of one of the event's teams
-                if (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPPORTER', $user->getRoles())) {
-                    foreach ($teams as $team) {
-                        if ($this->isUserInTeam($user, $team)) {
-                            return true;
-                        }
+                foreach ($teams as $team) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $team)) {
+                        return true;
                     }
                 }
 
@@ -161,7 +157,7 @@ final class CalendarEventVoter extends Voter
     private function canViewCalendarEvent(CalendarEvent $calendarEvent, User $user): bool
     {
         if (
-            in_array('ROLE_ADMIN', $user->getRoles())
+            in_array('ROLE_SUPERADMIN', $user->getRoles())
             || in_array('ROLE_SUPERADMIN', $user->getRoles())
         ) {
             return true;

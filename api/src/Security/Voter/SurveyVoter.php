@@ -41,7 +41,7 @@ final class SurveyVoter extends Voter
             return false;
         }
 
-        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles())
+        $isAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles())
             || in_array('ROLE_SUPERADMIN', $user->getRoles());
 
         switch ($attribute) {

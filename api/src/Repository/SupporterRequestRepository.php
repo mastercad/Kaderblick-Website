@@ -26,4 +26,17 @@ class SupporterRequestRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    public function findOneByUserAndTeamPending(int $userId, int $teamId): ?SupporterRequest
+    {
+        return $this->createQueryBuilder('r')
+            ->where('r.user = :userId')
+            ->andWhere('r.team = :teamId')
+            ->andWhere('r.status = :status')
+            ->setParameter('userId', $userId)
+            ->setParameter('teamId', $teamId)
+            ->setParameter('status', SupporterRequest::STATUS_PENDING)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

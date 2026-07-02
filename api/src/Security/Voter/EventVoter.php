@@ -24,6 +24,6 @@ class EventVoter extends Voter
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
-        return $this->security->isGranted('ROLE_ADMIN');
+        return $this->security->isGranted('ROLE_SUPERADMIN');
     }
 }

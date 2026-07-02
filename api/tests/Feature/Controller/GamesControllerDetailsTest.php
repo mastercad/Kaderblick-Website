@@ -81,8 +81,8 @@ class GamesControllerDetailsTest extends WebTestCase
 
         $this->em->flush();
 
-        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
 
         $this->regularUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user6@example.com']);
         self::assertNotNull($this->regularUser, 'Fixture-User user6@example.com nicht gefunden. Bitte Fixtures laden.');

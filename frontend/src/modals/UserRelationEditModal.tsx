@@ -13,6 +13,7 @@ import WorkIcon from '@mui/icons-material/Work';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { apiJson } from '../utils/api';
 import { useToast } from '../context/ToastContext';
@@ -118,6 +119,8 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 	const [staffClubAssignments, setStaffClubAssignments] = useState<AssignmentRow[]>([]);
 	const [functionaryTeamAssignments, setFunctionaryTeamAssignments] = useState<AssignmentRow[]>([]);
 	const [functionaryClubAssignments, setFunctionaryClubAssignments] = useState<AssignmentRow[]>([]);
+	const [supporterTeamAssignments, setSupporterTeamAssignments] = useState<AssignmentRow[]>([]);
+	const [supporterClubAssignments, setSupporterClubAssignments] = useState<AssignmentRow[]>([]);
 	const [adminTeamAssignments, setAdminTeamAssignments] = useState<AssignmentRow[]>([]);
 	const [adminClubAssignments, setAdminClubAssignments] = useState<AssignmentRow[]>([]);
 
@@ -168,6 +171,12 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 			setFunctionaryClubAssignments((data.currentFunctionaryClubAssignments || []).map((a: any) => ({
 				teamId: null, clubId: a.clubId ?? null, typeId: a.typeId ?? null,
 				startDate: a.startDate ?? '', endDate: a.endDate ?? '',
+			})));
+			setSupporterTeamAssignments((data.currentSupporterTeamAssignments || []).map((a: any) => ({
+				teamId: a.teamId ?? null, clubId: null, typeId: null, startDate: a.startDate ?? '', endDate: a.endDate ?? '',
+			})));
+			setSupporterClubAssignments((data.currentSupporterClubAssignments || []).map((a: any) => ({
+				teamId: null, clubId: a.clubId ?? null, typeId: null, startDate: a.startDate ?? '', endDate: a.endDate ?? '',
 			})));
 			setAdminTeamAssignments((data.currentAdminTeamAssignments || []).map((a: any) => ({
 				teamId: a.teamId ?? null, clubId: null, typeId: null, startDate: a.startDate ?? '', endDate: a.endDate ?? '',
@@ -225,7 +234,7 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 	// ── Save ─────────────────────────────────────────────────────────────────
 
 	const handleSave = async () => {
-		const invalidAdminPeriod = [...adminTeamAssignments, ...adminClubAssignments]
+		const invalidAdminPeriod = [...supporterTeamAssignments, ...supporterClubAssignments, ...adminTeamAssignments, ...adminClubAssignments]
 			.some(a => a.startDate && a.endDate && a.startDate > a.endDate);
 		if (invalidAdminPeriod) {
 			showToast('Das Bis-Datum darf nicht vor dem Von-Datum liegen.', 'error');
@@ -245,6 +254,8 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 					staffClubAssignments: staffClubAssignments.filter(a => a.clubId),
 					functionaryTeamAssignments: functionaryTeamAssignments.filter(a => a.teamId),
 					functionaryClubAssignments: functionaryClubAssignments.filter(a => a.clubId),
+					supporterTeamAssignments: supporterTeamAssignments.filter(a => a.teamId).map(a => ({ teamId: a.teamId, startDate: a.startDate || null, endDate: a.endDate || null })),
+					supporterClubAssignments: supporterClubAssignments.filter(a => a.clubId).map(a => ({ clubId: a.clubId, startDate: a.startDate || null, endDate: a.endDate || null })),
 					adminTeamAssignments: adminTeamAssignments.filter(a => a.teamId).map(a => ({ teamId: a.teamId, startDate: a.startDate || null, endDate: a.endDate || null })),
 					adminClubAssignments: adminClubAssignments.filter(a => a.clubId).map(a => ({ clubId: a.clubId, startDate: a.startDate || null, endDate: a.endDate || null })),
 				},
@@ -478,6 +489,45 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 		);
 	};
 
+	const SupporterScopeSection = ({ kind, assignments, setter }: {
+		kind: 'team' | 'club'; assignments: AssignmentRow[]; setter: AssignmentSetter;
+	}) => {
+		const isTeam = kind === 'team';
+		const items = isTeam ? teams : clubs;
+		const field: keyof AssignmentRow = isTeam ? 'teamId' : 'clubId';
+		return (
+			<Box sx={{ mb: 3 }}>
+				<Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+					{isTeam ? 'Team-Supporter' : 'Verein-Supporter'}
+				</Typography>
+				<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+					{isTeam ? 'Unterstützungsrechte für ausgewählte Teams' : 'Unterstützungsrechte für den Verein und seine Teams'}
+				</Typography>
+				<Divider sx={{ my: 1.5 }} />
+				{assignments.map((row, idx) => (
+					<Paper key={idx} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 3, position: 'relative' }}>
+						<IconButton size="small" color="error" onClick={() => removeAssignment(setter, idx)} aria-label="Supporter-Zuständigkeit entfernen" sx={{ position: 'absolute', top: 8, right: 8 }}>
+							<DeleteOutlineIcon fontSize="small" />
+						</IconButton>
+						<TextField select fullWidth label={isTeam ? 'Team auswählen' : 'Verein auswählen'} value={row[field] ?? ''} sx={{ pr: 4 }}
+							onChange={e => changeAssignment(setter, idx, field, +e.target.value || null)}>
+							{items.map(item => <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>)}
+						</TextField>
+						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5, pr: 4 }}>
+							<TextField type="date" label="Von (optional)" value={row.startDate} fullWidth slotProps={{ inputLabel: { shrink: true } }}
+								onChange={e => changeAssignment(setter, idx, 'startDate', e.target.value)} />
+							<TextField type="date" label="Bis (optional)" value={row.endDate} fullWidth slotProps={{ inputLabel: { shrink: true } }}
+								onChange={e => changeAssignment(setter, idx, 'endDate', e.target.value)} />
+						</Stack>
+					</Paper>
+				))}
+				<Button variant="outlined" startIcon={<AddIcon />} onClick={() => addAssignment(setter)} fullWidth sx={{ borderRadius: 3, borderStyle: 'dashed' }}>
+					{isTeam ? 'Team-Supporter hinzufügen' : 'Verein-Supporter hinzufügen'}
+				</Button>
+			</Box>
+		);
+	};
+
 	// ── Render ────────────────────────────────────────────────────────────────
 
 	return (
@@ -544,6 +594,24 @@ const UserRelationEditModal: React.FC<UserRelationEditModalProps> = ({ open, onC
 							<AssignmentSection setter={setStaffClubAssignments} kind="staffClub" icon={<WorkIcon sx={{ color: '#e65100' }} />} title="Staff – Verein" subtitle="z.B. Busfahrer, Medienbeauftragter" assignments={staffClubAssignments} types={staffClubTypes} emptyText="Noch kein Vereins-Staff zugeordnet." addLabel="Vereins-Staff hinzufügen" />
 							<AssignmentSection setter={setFunctionaryTeamAssignments} kind="functionaryTeam" icon={<AccountBalanceIcon sx={{ color: '#1565c0' }} />} title="Funktionär – Teams" subtitle="z.B. Teamleiter, Jugendbeauftragter" assignments={functionaryTeamAssignments} types={functionaryTeamTypes} emptyText="Noch kein Team-Funktionär zugeordnet." addLabel="Team-Funktionär hinzufügen" />
 							<AssignmentSection setter={setFunctionaryClubAssignments} kind="functionaryClub" icon={<AccountBalanceIcon sx={{ color: '#1565c0' }} />} title="Funktionär – Verein" subtitle="z.B. Vorsitzender, Kassenwart" assignments={functionaryClubAssignments} types={functionaryClubTypes} emptyText="Noch kein Vereins-Funktionär zugeordnet." addLabel="Vereins-Funktionär hinzufügen" />
+						</AccordionDetails>
+					</Accordion>
+
+					<Accordion disableGutters elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px !important', overflow: 'hidden', '&:before': { display: 'none' } }}>
+						<AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="supporter-scopes-content" id="supporter-scopes-header" sx={{ px: { xs: 1.5, sm: 2 }, minHeight: 64 }}>
+							<Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', width: '100%', minWidth: 0 }}>
+								<VolunteerActivismIcon color="secondary" />
+								<Box sx={{ minWidth: 0, flex: 1 }}>
+									<Typography sx={{ fontWeight: 700 }}>Supporter</Typography>
+									<Typography variant="caption" sx={{ color: 'text.secondary' }}>Team- und Vereinsrechte für Unterstützung</Typography>
+								</Box>
+								{supporterTeamAssignments.length + supporterClubAssignments.length > 0 && <Chip size="small" label={supporterTeamAssignments.length + supporterClubAssignments.length} />}
+							</Stack>
+						</AccordionSummary>
+						<AccordionDetails sx={{ px: { xs: 1.25, sm: 2 }, pb: 1 }}>
+							<Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>Die Supporter-Rolle wird aus diesen Zuständigkeiten automatisch ermittelt.</Alert>
+							<SupporterScopeSection kind="team" assignments={supporterTeamAssignments} setter={setSupporterTeamAssignments} />
+							<SupporterScopeSection kind="club" assignments={supporterClubAssignments} setter={setSupporterClubAssignments} />
 						</AccordionDetails>
 					</Accordion>
 

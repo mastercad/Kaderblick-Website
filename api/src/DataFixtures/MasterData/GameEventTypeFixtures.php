@@ -150,7 +150,7 @@ class GameEventTypeFixtures extends Fixture implements FixtureGroupInterface
             ['name' => 'Auswechslung', 'code' => 'substitution_out', 'color' => '#dc3545', 'icon' => 'fas fa-arrow-left', 'isSystem' => true],
             ['name' => 'Auswechslung verletzungsbedingt', 'code' => 'substitution_injury', 'color' => '#fd7e14', 'icon' => 'fas fa-ambulance', 'isSystem' => true],
             ['name' => 'Einwechselspieler trifft', 'code' => 'sub_goal', 'color' => '#28a745', 'icon' => 'fas fa-futbol', 'isSystem' => true],
-            ['name' => 'Unterbrechung wegen Verletzung', 'code' => 'injury_break', 'color' => '#fd7e14', 'icon' => 'fas fa-ambulance', 'isSystem' => true],
+            ['name' => 'Spielunterbrechung', 'code' => 'injury_break', 'color' => '#fd7e14', 'icon' => 'fas fa-pause', 'isSystem' => true],
             ['name' => 'Unterbrechung wegen VAR', 'code' => 'var_break', 'color' => '#20c997', 'icon' => 'fas fa-video', 'isSystem' => true],
             ['name' => 'Trinkpause', 'code' => 'drink_break', 'color' => '#20c997', 'icon' => 'fas fa-glass-whiskey', 'isSystem' => true],
             ['name' => 'Halbzeitbeginn', 'code' => 'halftime_start', 'color' => '#6c757d', 'icon' => 'fas fa-play', 'isSystem' => true],
@@ -158,7 +158,7 @@ class GameEventTypeFixtures extends Fixture implements FixtureGroupInterface
             ['name' => 'Verlängerung Beginn/Ende', 'code' => 'extra_time', 'color' => '#6c757d', 'icon' => 'fas fa-clock', 'isSystem' => true],
             ['name' => 'Elfmeterschießen', 'code' => 'penalty_shootout', 'color' => '#6c757d', 'icon' => 'fas fa-dot-circle', 'isSystem' => true],
             ['name' => 'Spielabbruch', 'code' => 'match_abandoned', 'color' => '#dc3545', 'icon' => 'fas fa-ban', 'isSystem' => true],
-            ['name' => 'Wiederaufnahme nach Abbruch', 'code' => 'match_resumed', 'color' => '#28a745', 'icon' => 'fas fa-play', 'isSystem' => true],
+            ['name' => 'Wiederaufnahme nach Unterbrechung', 'code' => 'match_resumed', 'color' => '#28a745', 'icon' => 'fas fa-play', 'isSystem' => true],
 
             // 11. Sonstige Ereignisse
             ['name' => 'Vorteil angezeigt', 'code' => 'advantage_shown', 'color' => '#20c997', 'icon' => 'fas fa-forward', 'isSystem' => true],

@@ -7,6 +7,7 @@ use App\Entity\PlayerTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Security\Voter\PlayerVoter;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -20,12 +21,22 @@ class PlayerVoterTest extends TestCase
 {
     /** @var MockObject&CoachTeamPlayerService */
     private CoachTeamPlayerService $coachTeamPlayerService;
+    /** @var MockObject&AdminScopeService */
+    private AdminScopeService $adminScopeService;
+    /** @var array<int, Team> */
+    private array $administeredTeams = [];
+    private bool $canAdministerPlayer = false;
     private PlayerVoter $voter;
 
     protected function setUp(): void
     {
         $this->coachTeamPlayerService = $this->createMock(CoachTeamPlayerService::class);
-        $this->voter = new PlayerVoter($this->coachTeamPlayerService);
+        $this->adminScopeService = $this->createMock(AdminScopeService::class);
+        $this->adminScopeService->method('getAdministeredTeams')->willReturnCallback(fn () => $this->administeredTeams);
+        $this->adminScopeService->method('canAdministerPlayer')->willReturnCallback(
+            fn (User $user) => in_array('ROLE_SUPERADMIN', $user->getRoles(), true) || $this->canAdministerPlayer
+        );
+        $this->voter = new PlayerVoter($this->coachTeamPlayerService, $this->adminScopeService);
     }
 
     // -------------------------------------------------------------------------
@@ -47,13 +58,25 @@ class PlayerVoterTest extends TestCase
     // CREATE
     // -------------------------------------------------------------------------
 
-    public function testCreateGrantedForAdmin(): void
+    public function testCreateDeniedForUnscopedAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $player = $this->createPlayer(99, []);
         $token = $this->createToken($user);
 
-        $this->coachTeamPlayerService->expects($this->never())->method('collectCoachTeams');
+        $result = $this->voter->vote($token, $player, [PlayerVoter::CREATE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testCreateGrantedForScopedAdmin(): void
+    {
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
+        $team = $this->createTeam(10);
+        $player = $this->createPlayer(99, []);
+        $token = $this->createToken($user);
+
+        $this->administeredTeams = [10 => $team];
 
         $result = $this->voter->vote($token, $player, [PlayerVoter::CREATE]);
 
@@ -108,11 +131,24 @@ class PlayerVoterTest extends TestCase
     // EDIT
     // -------------------------------------------------------------------------
 
-    public function testEditGrantedForAdmin(): void
+    public function testEditDeniedForUnscopedAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $player = $this->createPlayer(99, []);
         $token = $this->createToken($user);
+
+        $result = $this->voter->vote($token, $player, [PlayerVoter::EDIT]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testEditGrantedForScopedAdmin(): void
+    {
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
+        $player = $this->createPlayer(99, []);
+        $token = $this->createToken($user);
+
+        $this->canAdministerPlayer = true;
 
         $result = $this->voter->vote($token, $player, [PlayerVoter::EDIT]);
 
@@ -185,11 +221,24 @@ class PlayerVoterTest extends TestCase
     // DELETE
     // -------------------------------------------------------------------------
 
-    public function testDeleteGrantedForAdmin(): void
+    public function testDeleteDeniedForUnscopedAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $player = $this->createPlayer(99, []);
         $token = $this->createToken($user);
+
+        $result = $this->voter->vote($token, $player, [PlayerVoter::DELETE]);
+
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testDeleteGrantedForScopedAdmin(): void
+    {
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
+        $player = $this->createPlayer(99, []);
+        $token = $this->createToken($user);
+
+        $this->canAdministerPlayer = true;
 
         $result = $this->voter->vote($token, $player, [PlayerVoter::DELETE]);
 
@@ -209,7 +258,7 @@ class PlayerVoterTest extends TestCase
 
     public function testDeleteDeniedForCoachEvenWhenTeamContainsPlayer(): void
     {
-        // Since voter change: DELETE is only granted to ROLE_ADMIN / ROLE_SUPERADMIN.
+        // Since voter change: DELETE is only granted to ROLE_TEAM_ADMIN / ROLE_SUPERADMIN.
         $user = $this->createUser(1);
         $team = $this->createTeam(10);
         $player = $this->createPlayer(99, [10 => $team]);

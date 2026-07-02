@@ -7,7 +7,6 @@ import {
   Alert,
   CircularProgress,
   Collapse,
-  Fab,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -372,15 +371,6 @@ function GameDetailsInner({ gameId: propGameId, onBack }: GameDetailsProps) {
           onSave={hook.handleSaveTiming}
         />
       )}
-      {/* ── Floating Action Button ───────────────────────────────────────── */}
-      <Fab
-        color="primary"
-        aria-label="Ereignis erfassen"
-        sx={{ position: 'fixed', bottom: { xs: 136, sm: 88 }, right: { xs: 16, sm: 24 }, zIndex: 10 }}
-        onClick={hook.handleProtectedEventAction}
-      >
-        <AddIcon />
-      </Fab>
       {/* ── Fernbedienung FAB (nur während laufendem Spiel) ─────────────── */}
       {hook.isGameRunning() && (
         <QuickEventFab

@@ -51,7 +51,7 @@ final class SurveyOptionVoter extends Voter
                     return true;
                 }
 
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 // Jeder angemeldete Benutzer darf eigene Optionen erstellen
@@ -59,12 +59,12 @@ final class SurveyOptionVoter extends Voter
             case self::EDIT:
                 // Nur eigenen Optionen bearbeiten, oder Admin
                 return $surveyOption->getCreatedBy()?->getId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::DELETE:
                 // Nur eigene Optionen löschen, oder Admin
                 return $surveyOption->getCreatedBy()?->getId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
         }
 

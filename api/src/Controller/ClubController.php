@@ -46,8 +46,8 @@ class ClubController extends AbstractController
 
         $clubs = $qb->getQuery()->getResult();
 
-        // Permissions: VIEW always true, CREATE/EDIT/DELETE require ROLE_ADMIN
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
+        // Permissions: VIEW always true, CREATE/EDIT/DELETE require ROLE_SUPERADMIN
+        $isAdmin = $this->isGranted('ROLE_SUPERADMIN');
 
         return $this->json([
             'clubs' => array_map(
@@ -152,7 +152,7 @@ class ClubController extends AbstractController
         $clubData = json_decode($request->getContent(), true);
 
         if (
-            !$this->isGranted('ROLE_ADMIN')
+            !$this->isGranted('ROLE_SUPERADMIN')
             || !$this->isGranted(ClubVoter::EDIT, $club)
         ) {
             return new JsonResponse(['error' => 'Unauthorized'], 403);
@@ -245,7 +245,7 @@ class ClubController extends AbstractController
         $club = new Club();
 
         if (
-            !$this->isGranted('ROLE_ADMIN')
+            !$this->isGranted('ROLE_SUPERADMIN')
             || !$this->isGranted(ClubVoter::CREATE, $club)
         ) {
             return new JsonResponse(['error' => 'Unauthorized'], 403);
@@ -338,7 +338,7 @@ class ClubController extends AbstractController
     public function delete(Club $club, EntityManagerInterface $em): JsonResponse
     {
         if (
-            !$this->isGranted('ROLE_ADMIN')
+            !$this->isGranted('ROLE_SUPERADMIN')
             || !$this->isGranted(ClubVoter::DELETE, $club)
         ) {
             return new JsonResponse(['error' => 'Unauthorized'], 403);

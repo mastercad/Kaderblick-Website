@@ -36,7 +36,7 @@ class PlayerDocumentAccessServiceTest extends TestCase
 
     public function testPlatformAdminCanManageDocuments(): void
     {
-        $user = (new User())->setRoles(['ROLE_ADMIN']);
+        $user = (new User())->setRoles(['ROLE_SUPERADMIN']);
         $service = new PlayerDocumentAccessService(
             $this->createMock(CoachTeamPlayerService::class),
             $this->createMock(UserRelationRepository::class),

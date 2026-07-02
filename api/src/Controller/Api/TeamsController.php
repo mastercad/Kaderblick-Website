@@ -8,7 +8,9 @@ use App\Entity\Team;
 use App\Entity\User;
 use App\Repository\TeamRepository;
 use App\Security\Voter\TeamVoter;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
+use App\Service\SupporterScopeService;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +27,9 @@ class TeamsController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private CoachTeamPlayerService $coachTeamPlayerService
+        private CoachTeamPlayerService $coachTeamPlayerService,
+        private AdminScopeService $adminScopeService,
+        private SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -45,8 +49,9 @@ class TeamsController extends AbstractController
         /** @var TeamRepository $teamsRepository */
         $teamsRepository = $this->entityManager->getRepository(Team::class);
 
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
+        $isSuperAdmin = $this->isGranted('ROLE_SUPERADMIN');
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
+        $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
         $isCoach = false;
         foreach ($user->getUserRelations() as $rel) {
             if ('coach' === $rel->getRelationType()->getCategory()) {
@@ -58,7 +63,7 @@ class TeamsController extends AbstractController
         // Only coaches, admins and superadmins may bypass the user-assignment filter.
         // Regular users (e.g. parents) must never see all teams just by passing a context.
         $context = $request->query->get('context', '');
-        $allTeams = in_array($context, ['match', 'tournament'], true) && ($isAdmin || $isCoach);
+        $allTeams = in_array($context, ['match', 'tournament'], true) && ($isSuperAdmin || $isCoach);
 
         /** @var Team[] $teams */
         $teams = $teamsRepository->fetchOptimizedList($user, $allTeams);
@@ -91,10 +96,10 @@ class TeamsController extends AbstractController
                 'bannerImage' => $team['banner_image'] ?? null,
                 'permissions' => [
                     'canView' => true,
-                    'canEdit' => $isAdmin || in_array($team['id'], $coachTeamIds),
-                    'canDelete' => $isAdmin || in_array($team['id'], $coachTeamIds),
-                    'canCreate' => $isAdmin,
-                    'canEditBanner' => $isAdmin,
+                    'canEdit' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true) || in_array($team['id'], $coachTeamIds, true),
+                    'canDelete' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true) || in_array($team['id'], $coachTeamIds, true),
+                    'canCreate' => $isSuperAdmin,
+                    'canEditBanner' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true),
                 ]
             ], $teams)
         ]);
@@ -127,8 +132,9 @@ class TeamsController extends AbstractController
         $teamsRepository = $this->entityManager->getRepository(Team::class);
         $result = $teamsRepository->fetchPaginatedList($user, $search, $page, $limit);
 
-        $isAdmin = $this->isGranted('ROLE_ADMIN', $user) || $this->isGranted('ROLE_SUPERADMIN', $user);
+        $isSuperAdmin = $this->isGranted('ROLE_SUPERADMIN', $user);
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
+        $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
 
         return $this->json([
             'teams' => array_map(fn ($team) => [
@@ -145,10 +151,10 @@ class TeamsController extends AbstractController
                 'bannerImage' => $team['banner_image'] ?? null,
                 'permissions' => [
                     'canView' => true,
-                    'canEdit' => $isAdmin || in_array($team['id'], $coachTeamIds),
-                    'canDelete' => $isAdmin || in_array($team['id'], $coachTeamIds),
-                    'canCreate' => $isAdmin,
-                    'canEditBanner' => $isAdmin,
+                    'canEdit' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true) || in_array($team['id'], $coachTeamIds, true),
+                    'canDelete' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true) || in_array($team['id'], $coachTeamIds, true),
+                    'canCreate' => $isSuperAdmin,
+                    'canEditBanner' => $isSuperAdmin || in_array($team['id'], $adminTeamIds, true),
                 ]
             ], $result['data']),
             'total' => $result['total'],
@@ -203,11 +209,10 @@ class TeamsController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
         $isCoachOfTeam = in_array($team->getId(), $coachTeamIds, true);
 
-        if (!$isAdmin && !$isCoachOfTeam) {
+        if (!$this->isGranted(TeamVoter::EDIT, $team) && !$isCoachOfTeam) {
             return $this->json(['error' => 'Zugriff verweigert'], Response::HTTP_FORBIDDEN);
         }
 
@@ -504,36 +509,10 @@ class TeamsController extends AbstractController
 
         $roles = $user->getRoles();
 
-        if (in_array('ROLE_SUPERADMIN', $roles, true) || in_array('ROLE_ADMIN', $roles, true)) {
+        if (in_array('ROLE_SUPERADMIN', $roles, true) || $this->adminScopeService->canAdministerTeam($user, $team)) {
             return true;
         }
 
-        if (!in_array('ROLE_SUPPORTER', $roles, true)) {
-            return false;
-        }
-
-        // ROLE_SUPPORTER: must have an active UserRelation to a player/coach in this team
-        $teamId = $team->getId();
-        foreach ($user->getUserRelations() as $relation) {
-            $player = $relation->getPlayer();
-            if (null !== $player) {
-                foreach ($player->getPlayerTeamAssignments() as $pta) {
-                    if ($pta->getTeam()->getId() === $teamId) {
-                        return true;
-                    }
-                }
-            }
-
-            $coach = $relation->getCoach();
-            if (null !== $coach) {
-                foreach ($coach->getCoachTeamAssignments() as $cta) {
-                    if ($cta->getTeam()->getId() === $teamId) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        return $this->supporterScopeService->canSupportTeam($user, $team);
     }
 }

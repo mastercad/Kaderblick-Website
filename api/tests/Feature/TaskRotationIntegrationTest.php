@@ -44,8 +44,8 @@ class TaskRotationIntegrationTest extends WebTestCase
 
     private function loadAdminUser(): User
     {
-        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($user, 'Fixture admin user user16@example.com not found. Please load fixtures.');
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($user, 'Fixture admin user user21@example.com not found. Please load fixtures.');
 
         return $user;
     }

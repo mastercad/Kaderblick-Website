@@ -58,8 +58,8 @@ final class TeamRideVoter extends Voter
                     return true;
                 }
 
-                // ROLE_ADMIN must also be in the same team
-                if (in_array('ROLE_ADMIN', $user->getRoles())) {
+                // ROLE_SUPERADMIN must also be in the same team
+                if (in_array('ROLE_SUPERADMIN', $user->getRoles())) {
                     return $this->isUserTeamMemberForRide($user, $teamRide);
                 }
 

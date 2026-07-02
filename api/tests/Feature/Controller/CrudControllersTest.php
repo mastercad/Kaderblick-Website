@@ -17,9 +17,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * Tests for the small CRUD-style API controllers that all follow the same pattern:
  * GET /api/{resource}         - list (filtered by VIEW permission) - any authenticated user
  * GET /api/{resource}/{id}    - show - any authenticated user
- * POST /api/{resource}        - create - ROLE_ADMIN only
- * PUT /api/{resource}/{id}    - update - ROLE_ADMIN only
- * DELETE /api/{resource}/{id} - delete - ROLE_ADMIN only
+ * POST /api/{resource}        - create - ROLE_SUPERADMIN only
+ * PUT /api/{resource}/{id}    - update - ROLE_SUPERADMIN only
+ * DELETE /api/{resource}/{id} - delete - ROLE_SUPERADMIN only
  *
  * Covered: PositionsController, AgeGroupsController, GameEventTypesController,
  *          NationalitiesController, SurfaceTypesController, CoachLicensesController
@@ -128,7 +128,7 @@ class CrudControllersTest extends WebTestCase
         // isGranted, but PositionVoter::supports() requires instanceof Position,
         // so the voter abstains and Symfony returns 403 even for admins.
         // This test documents the current (buggy) behaviour.
-        $admin = $this->createUser('pos-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('pos-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/positions', [
@@ -157,7 +157,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testPositionUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('pos-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('pos-upd-admin', ['ROLE_SUPERADMIN']);
         $position = $this->createPosition(self::PREFIX . 'OldName', 'OL');
 
         $this->client->loginUser($admin);
@@ -189,7 +189,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testPositionDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('pos-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('pos-del-admin', ['ROLE_SUPERADMIN']);
         $position = $this->createPosition(self::PREFIX . 'ToDelete', 'TD');
         $id = $position->getId();
 
@@ -213,7 +213,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testPositionDelete404ForMissing(): void
     {
-        $admin = $this->createUser('pos-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('pos-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/positions/99999999');
 
@@ -265,7 +265,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testAgeGroupCreateAdminSucceeds(): void
     {
-        $admin = $this->createUser('ag-create-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('ag-create-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/age-groups', [
@@ -283,7 +283,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testAgeGroupUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('ag-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('ag-upd-admin', ['ROLE_SUPERADMIN']);
         $ag = $this->createAgeGroup(self::PREFIX . 'U13', 'U13');
 
         $this->client->loginUser($admin);
@@ -302,7 +302,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testAgeGroupUpdate404ForMissing(): void
     {
-        $admin = $this->createUser('ag-upd-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('ag-upd-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('PUT', '/api/age-groups/99999999', [
@@ -315,7 +315,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testAgeGroupDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('ag-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('ag-del-admin', ['ROLE_SUPERADMIN']);
         $ag = $this->createAgeGroup(self::PREFIX . 'U11-del', 'U11D');
         $id = $ag->getId();
 
@@ -340,7 +340,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testAgeGroupDelete404ForMissing(): void
     {
-        $admin = $this->createUser('ag-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('ag-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/age-groups/99999999');
 
@@ -388,7 +388,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testGameEventTypeCreateAdminSucceeds(): void
     {
-        $admin = $this->createUser('get-create-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('get-create-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/game-event-types', [
@@ -406,7 +406,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testGameEventTypeUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('get-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('get-upd-admin', ['ROLE_SUPERADMIN']);
         $get = $this->createGameEventType(self::PREFIX . 'Abseits', 'TST_OFFSIDE');
 
         $this->client->loginUser($admin);
@@ -425,7 +425,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testGameEventTypeUpdate404ForMissing(): void
     {
-        $admin = $this->createUser('get-upd-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('get-upd-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('PUT', '/api/game-event-types/99999999', [
@@ -437,7 +437,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testGameEventTypeDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('get-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('get-del-admin', ['ROLE_SUPERADMIN']);
         $get = $this->createGameEventType(self::PREFIX . 'ToDelete', 'TST_DEL01');
         $id = $get->getId();
 
@@ -462,7 +462,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testGameEventTypeDelete404ForMissing(): void
     {
-        $admin = $this->createUser('get-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('get-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/game-event-types/99999999');
 
@@ -511,7 +511,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testNationalityCreateAdminSucceeds(): void
     {
-        $admin = $this->createUser('nat-create-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('nat-create-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/nationalities', [
@@ -541,7 +541,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testNationalityUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('nat-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('nat-upd-admin', ['ROLE_SUPERADMIN']);
         $nat = $this->createNationality(self::PREFIX . 'Spanisch', 'ES1');
 
         $this->client->loginUser($admin);
@@ -569,7 +569,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testNationalityDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('nat-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('nat-del-admin', ['ROLE_SUPERADMIN']);
         $nat = $this->createNationality(self::PREFIX . 'ToDelete', 'DEL');
         $id = $nat->getId();
 
@@ -594,7 +594,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testNationalityDelete404ForMissing(): void
     {
-        $admin = $this->createUser('nat-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('nat-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/nationalities/99999999');
 
@@ -638,7 +638,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testSurfaceTypeCreateAdminSucceeds(): void
     {
-        $admin = $this->createUser('st-create-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('st-create-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/surface-types', [
@@ -664,7 +664,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testSurfaceTypeUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('st-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('st-upd-admin', ['ROLE_SUPERADMIN']);
         $st = $this->createSurfaceType(self::PREFIX . 'Halle');
 
         $this->client->loginUser($admin);
@@ -678,7 +678,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testSurfaceTypeDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('st-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('st-del-admin', ['ROLE_SUPERADMIN']);
         $st = $this->createSurfaceType(self::PREFIX . 'Strand');
         $id = $st->getId();
 
@@ -703,7 +703,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testSurfaceTypeDelete404ForMissing(): void
     {
-        $admin = $this->createUser('st-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('st-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/surface-types/99999999');
 
@@ -747,7 +747,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testCoachLicenseCreateAdminSucceeds(): void
     {
-        $admin = $this->createUser('cl-create-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('cl-create-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/coach-licenses', [
@@ -777,7 +777,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testCoachLicenseUpdateAdminSucceeds(): void
     {
-        $admin = $this->createUser('cl-upd-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('cl-upd-admin', ['ROLE_SUPERADMIN']);
         $cl = $this->createCoachLicense(self::PREFIX . 'A-Lizenz');
 
         $this->client->loginUser($admin);
@@ -793,7 +793,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testCoachLicenseDeleteAdminSucceeds(): void
     {
-        $admin = $this->createUser('cl-del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('cl-del-admin', ['ROLE_SUPERADMIN']);
         $cl = $this->createCoachLicense(self::PREFIX . 'DeleteMe');
         $id = $cl->getId();
 
@@ -818,7 +818,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testCoachLicenseDelete404ForMissing(): void
     {
-        $admin = $this->createUser('cl-del-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('cl-del-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
         $this->client->request('DELETE', '/api/coach-licenses/99999999');
 
@@ -843,7 +843,7 @@ class CrudControllersTest extends WebTestCase
 
     public function testCoachLicenseUpdate404ForMissing(): void
     {
-        $admin = $this->createUser('cl-upd-404', ['ROLE_ADMIN']);
+        $admin = $this->createUser('cl-upd-404', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('PUT', '/api/coach-licenses/99999999', [

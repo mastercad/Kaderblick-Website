@@ -331,32 +331,53 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        return [$this->roles[0] ?? 'ROLE_GUEST'];
+        return [] === $this->roles ? ['ROLE_GUEST'] : $this->sortRoles($this->roles);
     }
 
     public function getRole(): string
     {
-        return $this->getRoles()[0];
+        $roles = $this->getRoles();
+
+        return $roles[array_key_last($roles)] ?? 'ROLE_GUEST';
     }
 
     /**
-     * @param list<string> $roles
+     * @param mixed[] $roles
      */
     public function setRoles(array $roles): self
     {
-        $roles = array_values(array_unique($roles));
-        if (1 !== count($roles) || '' === $roles[0]) {
-            throw new InvalidArgumentException('A user must have exactly one role.');
+        $roles = array_values(array_unique(array_filter($roles, static fn ($role) => is_string($role) && '' !== $role)));
+        if ([] === $roles) {
+            throw new InvalidArgumentException('A user must have at least one role.');
         }
 
-        $this->roles = [$roles[0]];
+        $this->roles = $this->sortRoles($roles);
 
         return $this;
     }
 
     public function addRole(string $role): self
     {
-        return $this->setRoles([$role]);
+        if ('' === $role) {
+            throw new InvalidArgumentException('A role must not be empty.');
+        }
+
+        if (!in_array($role, $this->roles, true)) {
+            $this->roles[] = $role;
+            $this->roles = $this->sortRoles($this->roles);
+        }
+
+        return $this;
+    }
+
+    public function removeRole(string $role): self
+    {
+        $roles = array_values(array_filter($this->roles, static fn (string $existingRole) => $existingRole !== $role));
+        if ([] === $roles) {
+            $roles = ['ROLE_USER'];
+        }
+
+        return $this->setRoles($roles);
     }
 
     public function getRoleBeforeScopedAdmin(): ?string
@@ -366,11 +387,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getBaseRole(): string
     {
-        if (in_array($this->getRole(), ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
-            return $this->roleBeforeScopedAdmin ?? 'ROLE_USER';
+        foreach (['ROLE_SUPERADMIN', 'ROLE_GUEST', 'ROLE_USER'] as $role) {
+            if (in_array($role, $this->getRoles(), true)) {
+                return $role;
+            }
         }
 
-        return $this->getRole();
+        return 'ROLE_USER';
     }
 
     public function setRoleBeforeScopedAdmin(?string $role): self
@@ -386,21 +409,48 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setBaseRole(string $role): self
     {
-        if (in_array($role, ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
-            throw new InvalidArgumentException('Scoped admin roles must be assigned through an administration scope.');
+        if (in_array($role, ['ROLE_SUPPORTER', 'ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
+            throw new InvalidArgumentException('Scoped roles must be assigned through their scope assignments.');
         }
 
-        if (in_array($role, ['ROLE_ADMIN', 'ROLE_SUPERADMIN'], true)) {
+        if ('ROLE_SUPERADMIN' === $role) {
             $this->roleBeforeScopedAdmin = null;
 
             return $this->setRoles([$role]);
         }
 
-        if (in_array($this->getRole(), ['ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)) {
-            return $this->setRoleBeforeScopedAdmin($role);
+        $derivedRoles = array_values(array_filter(
+            $this->getRoles(),
+            static fn (string $existingRole) => in_array($existingRole, ['ROLE_SUPPORTER', 'ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], true)
+        ));
+
+        return $this->setRoles(array_merge([$role], $derivedRoles));
+    }
+
+    /**
+     * @param list<string> $roles
+     *
+     * @return list<string>
+     */
+    private function sortRoles(array $roles): array
+    {
+        $roles = array_values(array_unique($roles));
+        if (count($roles) > 1 && in_array('ROLE_GUEST', $roles, true)) {
+            $roles = array_values(array_filter($roles, static fn (string $role) => 'ROLE_GUEST' !== $role));
         }
 
-        return $this->setRoles([$role]);
+        $rank = [
+            'ROLE_GUEST' => 0,
+            'ROLE_USER' => 10,
+            'ROLE_SUPPORTER' => 20,
+            'ROLE_TEAM_ADMIN' => 30,
+            'ROLE_CLUB_ADMIN' => 40,
+            'ROLE_SUPERADMIN' => 50,
+        ];
+
+        usort($roles, static fn (string $a, string $b) => ($rank[$a] ?? 100) <=> ($rank[$b] ?? 100));
+
+        return $roles;
     }
 
     public function getPassword(): string

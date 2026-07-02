@@ -39,8 +39,8 @@ class ReportContextDataTest extends WebTestCase
         $this->assertNotNull($u6, 'Fixture user user6@example.com not found. Ensure fixtures (group=test) are loaded.');
         $this->u6 = $u6;
         /** @var User $u16 */
-        $u16 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        $this->assertNotNull($u16, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $u16 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        $this->assertNotNull($u16, 'Fixture user user21@example.com not found. Ensure fixtures (group=test) are loaded.');
         $this->u16 = $u16;
         /** @var User $u21 */
         $u21 = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);

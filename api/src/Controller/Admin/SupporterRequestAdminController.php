@@ -4,9 +4,12 @@ namespace App\Controller\Admin;
 
 use App\Entity\SupporterRequest;
 use App\Entity\User;
+use App\Entity\UserTeamSupporterAssignment;
 use App\Repository\SupporterRequestRepository;
 use App\Service\SupporterRequestNotificationService;
+use App\Service\SupporterScopeService;
 use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,13 +19,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
 #[Route('/admin/supporter-requests', name: 'admin_supporter_requests_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_SUPERADMIN')]
 class SupporterRequestAdminController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
         private SupporterRequestRepository $supporterRequestRepository,
-        private SupporterRequestNotificationService $notificationService
+        private SupporterRequestNotificationService $notificationService,
+        private SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -86,7 +90,19 @@ class SupporterRequestAdminController extends AbstractController
         /** @var User $admin */
         $admin = $this->getUser();
         $user = $supporterRequest->getUser();
-        $user->setBaseRole('ROLE_SUPPORTER');
+        $team = $supporterRequest->getTeam();
+        if (null === $team) {
+            return $this->json(['error' => 'Diese Anfrage hat keinen Team-Bezug und kann nicht genehmigt werden.'], 400);
+        }
+
+        if (!$this->supporterScopeService->hasAssignedScopeForTeam($user, $team)) {
+            $assignment = (new UserTeamSupporterAssignment())
+                ->setUser($user)
+                ->setTeam($team)
+                ->setStartDate(new DateTimeImmutable('today'));
+            $this->em->persist($assignment);
+        }
+        $this->supporterScopeService->synchronizeRole($user, 1, 0);
 
         $supporterRequest->setStatus(SupporterRequest::STATUS_APPROVED)
             ->setProcessedAt(new DateTime())
@@ -101,7 +117,7 @@ class SupporterRequestAdminController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'message' => 'Supporter-Anfrage wurde genehmigt und die Rolle wurde vergeben.',
+            'message' => 'Supporter-Anfrage wurde genehmigt und die Team-Zuständigkeit wurde vergeben.',
         ]);
     }
 
@@ -159,6 +175,10 @@ class SupporterRequestAdminController extends AbstractController
                 'fullName' => $request->getUser()->getFullName(),
                 'email' => $request->getUser()->getEmail(),
             ],
+            'team' => $request->getTeam() ? [
+                'id' => $request->getTeam()->getId(),
+                'name' => $request->getTeam()->getName(),
+            ] : null,
         ];
     }
 }

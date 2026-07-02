@@ -7,6 +7,7 @@ use App\Entity\KnowledgeBasePost;
 use App\Entity\PlayerTeamAssignment;
 use App\Entity\Team;
 use App\Entity\User;
+use App\Service\SupporterScopeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -25,7 +26,8 @@ final class KnowledgeBaseVoter extends Voter
     public const COMMENT_ADD = 'KB_COMMENT_ADD';
 
     public function __construct(
-        private readonly EntityManagerInterface $em
+        private readonly EntityManagerInterface $em,
+        private readonly SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -88,9 +90,9 @@ final class KnowledgeBaseVoter extends Voter
 
                 $postTeam = $subject->getTeam();
 
-                // ROLE_ADMIN must also belong to the team (only for team posts)
+                // ROLE_SUPERADMIN must also belong to the team (only for team posts)
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles(), true)
+                    in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
                     && $postTeam instanceof Team
                     && $this->isUserInTeam($user, $postTeam)
                 ) {
@@ -98,7 +100,7 @@ final class KnowledgeBaseVoter extends Voter
                 }
 
                 // Creator may edit/delete only if they also have create rights
-                // (ROLE_SUPPORTER/ROLE_ADMIN in team, or coach of team).
+                // (ROLE_SUPPORTER/ROLE_SUPERADMIN in team, or coach of team).
                 // Global posts (no team) are superadmin-only — already handled above.
                 if ($subject->getCreatedBy()->getId() === $user->getId()) {
                     if (!$postTeam instanceof Team) {
@@ -142,15 +144,12 @@ final class KnowledgeBaseVoter extends Voter
     }
 
     /**
-     * Checks whether user has ROLE_ADMIN/ROLE_SUPPORTER AND belongs to the team,
+     * Checks whether user has ROLE_SUPERADMIN/ROLE_SUPPORTER AND belongs to the team,
      * OR is a coach of the team.
      */
     private function canCreate(User $user, Team $team): bool
     {
-        $isPrivilegedRole = in_array('ROLE_ADMIN', $user->getRoles(), true)
-            || in_array('ROLE_SUPPORTER', $user->getRoles(), true);
-
-        if ($isPrivilegedRole && $this->isUserInTeam($user, $team)) {
+        if ($this->supporterScopeService->canSupportTeam($user, $team)) {
             return true;
         }
 

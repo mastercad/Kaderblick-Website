@@ -354,7 +354,7 @@ class DashboardController extends AbstractController
 
         $teamIds = $this->getConnectedTeamIds($user, $today);
 
-        if (empty($teamIds) && !$this->isGranted('ROLE_ADMIN')) {
+        if (empty($teamIds) && !$this->isGranted('ROLE_SUPERADMIN')) {
             return ['type' => 'birthdays', 'birthdays' => []];
         }
 

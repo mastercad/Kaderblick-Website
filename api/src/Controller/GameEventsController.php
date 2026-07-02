@@ -70,7 +70,7 @@ class GameEventsController extends AbstractController
         SubstitutionReasonRepository $substitutionReasonRepo,
         EventDispatcherInterface $dispatcher,
     ): JsonResponse {
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse anlegen
+        // Nur Teammitglieder mit ROLE_SUPERADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse anlegen
         $this->denyAccessUnlessGranted(GameEventVoter::CREATE, $game);
 
         $data = json_decode($request->getContent(), true);
@@ -161,9 +161,23 @@ class GameEventsController extends AbstractController
         $events = $eventRepo->findBy(['game' => $game], ['timestamp' => 'ASC']);
         $result = [];
         foreach ($events as $event) {
+            $code = $event->getGameEventType()?->getCode() ?? '';
+            $isSystemEvent = in_array($code, [
+                'halftime_start',
+                'halftime_end',
+                'injury_break',
+                'drink_break',
+                'var_break',
+                'match_resumed',
+                'extra_time',
+                'penalty_shootout',
+                'match_abandoned',
+            ], true);
+
             $result[] = [
                 'id' => $event->getId(),
                 'type' => $event->getGameEventType()?->getName(),
+                'code' => $code,
                 'typeId' => $event->getGameEventType()?->getId(),
                 'typeIcon' => $event->getGameEventType()?->getIcon(),
                 'typeColor' => $event->getGameEventType()?->getColor(),
@@ -175,8 +189,9 @@ class GameEventsController extends AbstractController
                 'relatedPlayerId' => $event->getRelatedPlayer()?->getId(),
                 'coach' => $event->getCoach()?->getFullName(),
                 'coachId' => $event->getCoach()?->getId(),
-                'teamId' => $event->getTeam()->getId(),
+                'teamId' => $event->getTeam()?->getId(),  // ← Safe null check
                 'description' => $event->getDescription(),
+                'isSystemEvent' => $isSystemEvent,  // ← Flag für Frontend
             ];
         }
 
@@ -222,7 +237,7 @@ class GameEventsController extends AbstractController
             return $this->json(['error' => 'Event not found'], 404);
         }
 
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse bearbeiten
+        // Nur Teammitglieder mit ROLE_SUPERADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse bearbeiten
         $this->denyAccessUnlessGranted(GameEventVoter::EDIT, $event);
 
         $data = json_decode($request->getContent(), true);
@@ -233,9 +248,13 @@ class GameEventsController extends AbstractController
             $eventType = $eventTypeRepo->find($data['eventType']);
             $event->setGameEventType($eventType);
         }
-        if (isset($data['player'])) {
-            $event->setPlayer($playerRepo->find($data['player']));
-            $event->setCoach(null); // player takes precedence
+        if (array_key_exists('player', $data)) {
+            if (null !== $data['player']) {
+                $event->setPlayer($playerRepo->find($data['player']));
+                $event->setCoach(null); // player takes precedence
+            } else {
+                $event->setPlayer(null);
+            }
         }
         if (array_key_exists('coach', $data)) {
             if (null !== $data['coach']) {
@@ -244,6 +263,9 @@ class GameEventsController extends AbstractController
             } else {
                 $event->setCoach(null);
             }
+        }
+        if (array_key_exists('team', $data) && null === $data['team']) {
+            $event->setTeam(null);
         }
         if (isset($data['relatedPlayer'])) {
             $event->setRelatedPlayer($playerRepo->find($data['relatedPlayer']));
@@ -286,7 +308,7 @@ class GameEventsController extends AbstractController
             return $this->json(['error' => 'Event not found'], 404);
         }
 
-        // Nur Teammitglieder mit ROLE_ADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse löschen
+        // Nur Teammitglieder mit ROLE_SUPERADMIN/ROLE_SUPPORTER oder Trainer dürfen Spielereignisse löschen
         $this->denyAccessUnlessGranted(GameEventVoter::DELETE, $event);
 
         $em->remove($event);

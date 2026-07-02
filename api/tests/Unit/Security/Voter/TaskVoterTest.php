@@ -45,7 +45,7 @@ class TaskVoterTest extends TestCase
 
     public function testViewAsAdminReturnsTrue(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $task = $this->createTask(2, 3);
         $token = $this->createToken($admin);
 
@@ -89,7 +89,7 @@ class TaskVoterTest extends TestCase
 
     public function testEditAsAdminReturnsTrue(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $task = $this->createTask(2, 3);
         $token = $this->createToken($admin);
 

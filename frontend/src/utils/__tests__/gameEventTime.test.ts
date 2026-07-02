@@ -16,8 +16,10 @@ import {
   secondsToFootballTime,
   elapsedSecondsToFormTime,
   formatFootballTime,
+  formatSecondsAsClockTime,
   isNearHalfEnd,
   DEFAULT_HALF_DURATION,
+  parseFootballTimeInputToSeconds,
 } from '../gameEventTime';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,6 +58,10 @@ describe('secondsToMinute', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('minuteToSeconds', () => {
+  it('erlaubt Minute 0 für Spielbeginn', () => {
+    expect(minuteToSeconds(0, 0)).toBe(0);
+  });
+
   it('konvertiert normale Minuten korrekt', () => {
     expect(minuteToSeconds(1, 0)).toBe(60);
     expect(minuteToSeconds(45, 0)).toBe(2700);
@@ -74,6 +80,28 @@ describe('minuteToSeconds', () => {
     const minute = 67;
     const sec = minuteToSeconds(minute, 0);
     expect(secondsToMinute(sec)).toBe(minute);
+  });
+});
+
+describe('parseFootballTimeInputToSeconds', () => {
+  it('parst ganze Minuten inklusive 0', () => {
+    expect(parseFootballTimeInputToSeconds('0')).toBe(0);
+    expect(parseFootballTimeInputToSeconds('12')).toBe(720);
+  });
+
+  it('parst mm:ss für sekundengenaue Ereignisse', () => {
+    expect(parseFootballTimeInputToSeconds('0:15')).toBe(15);
+    expect(parseFootballTimeInputToSeconds('12:34')).toBe(754);
+  });
+
+  it('addiert Nachspielzeit nur bei Minuten-Eingabe', () => {
+    expect(parseFootballTimeInputToSeconds('45', 2)).toBe(2820);
+    expect(parseFootballTimeInputToSeconds('45:30', 2)).toBe(2730);
+  });
+
+  it('lehnt ungültige Sekunden ab', () => {
+    expect(parseFootballTimeInputToSeconds('12:99')).toBeNull();
+    expect(parseFootballTimeInputToSeconds('abc')).toBeNull();
   });
 });
 
@@ -175,8 +203,8 @@ describe('elapsedSecondsToFormTime', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('formatFootballTime', () => {
-  it('zeigt Strich wenn keine Minute gesetzt', () => {
-    expect(formatFootballTime(0, 0)).toBe('–');
+  it('zeigt Spielbeginn als 0. Minute', () => {
+    expect(formatFootballTime(0, 0)).toBe("0'");
   });
 
   it('zeigt normale Minute mit Apostroph', () => {
@@ -186,6 +214,14 @@ describe('formatFootballTime', () => {
   it('zeigt Minute + Nachspielzeit', () => {
     expect(formatFootballTime(45, 2)).toBe("45+2'");
     expect(formatFootballTime(90, 3)).toBe("90+3'");
+  });
+});
+
+describe('formatSecondsAsClockTime', () => {
+  it('formatiert absolute Sekunden als m:ss', () => {
+    expect(formatSecondsAsClockTime(0)).toBe('0:00');
+    expect(formatSecondsAsClockTime(15)).toBe('0:15');
+    expect(formatSecondsAsClockTime(754)).toBe('12:34');
   });
 });
 

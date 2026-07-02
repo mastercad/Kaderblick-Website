@@ -48,8 +48,8 @@ class UserControllerShareableSearchTest extends WebTestCase
 
         $this->suffix = bin2hex(random_bytes(4));
 
-        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
 
         $this->selfCoachType = $this->em->getRepository(RelationType::class)->findOneBy(['identifier' => 'self_coach']);
         self::assertNotNull($this->selfCoachType, 'RelationType "self_coach" nicht gefunden. Bitte Fixtures laden.');

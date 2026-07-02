@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Team;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use DateTime;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,7 +17,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class TeamRepository extends ServiceEntityRepository implements OptimizedRepositoryInterface
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private readonly AdminScopeService $adminScopeService)
     {
         parent::__construct($registry, Team::class);
     }
@@ -40,7 +41,7 @@ class TeamRepository extends ServiceEntityRepository implements OptimizedReposit
             ->orderBy('t.name', 'ASC');
 
         /*
-                if ($user && !in_array('ROLE_ADMIN', $user->getRoles())) {
+                if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles())) {
                     if ($user->getClub()) {
                         $qb->andWhere('cl = :club')
                            ->setParameter('club', $user->getClub());
@@ -139,17 +140,18 @@ class TeamRepository extends ServiceEntityRepository implements OptimizedReposit
                ->setParameter('search', '%' . strtolower($search) . '%');
         }
 
-        // ROLE_SUPERADMIN and ROLE_ADMIN see all teams without restriction.
+        // ROLE_SUPERADMIN sees all teams without restriction.
         // When $allTeams is true (e.g. match/tournament context), the user filter is also skipped
         // so that non-admin coaches can select opponents they are not assigned to.
-        $isPrivileged = $allTeams || ($user && (
-            in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
-            || in_array('ROLE_ADMIN', $user->getRoles(), true)
-        ));
+        $isPrivileged = $allTeams || ($user
+            && in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
+        );
         if (!$isPrivileged) {
             $playerIds = [];
             $coachIds = [];
+            $adminTeamIds = [];
             if ($user instanceof User) {
+                $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
                 foreach ($user->getUserRelations() as $relation) {
                     if ($relation->getPlayer()) {
                         $playerIds[] = $relation->getPlayer()->getId();
@@ -164,7 +166,10 @@ class TeamRepository extends ServiceEntityRepository implements OptimizedReposit
             $dateCondition = '(pta.startDate IS NULL OR pta.startDate <= :now) AND (pta.endDate IS NULL OR pta.endDate >= :now)';
             $coachDateCondition = '(cta.startDate IS NULL OR cta.startDate <= :now) AND (cta.endDate IS NULL OR cta.endDate >= :now)';
 
-            if ($playerIds && $coachIds) {
+            if ($adminTeamIds) {
+                $qb->andWhere('t.id IN (:adminTeamIds)')
+                   ->setParameter('adminTeamIds', $adminTeamIds);
+            } elseif ($playerIds && $coachIds) {
                 $qb->andWhere(
                     "(pta.player IN (:playerIds) AND $dateCondition) OR (cta.coach IN (:coachIds) AND $coachDateCondition)"
                 )

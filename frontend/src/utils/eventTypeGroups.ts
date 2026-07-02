@@ -8,6 +8,22 @@ export interface EventTypeGroupInfo {
   groupOrder: number;
 }
 
+export const SYSTEM_EVENT_CODES = new Set([
+  'halftime_start',
+  'halftime_end',
+  'injury_break',
+  'drink_break',
+  'var_break',
+  'match_resumed',
+  'extra_time',
+  'penalty_shootout',
+  'match_abandoned',
+]);
+
+export function isSystemGameEventCode(code?: string | null): boolean {
+  return SYSTEM_EVENT_CODES.has((code ?? '').toLowerCase());
+}
+
 /** Codes die in der Gruppe "★ Häufig genutzt" erscheinen */
 export const FAVORITE_CODES = new Set([
   'goal', 'own_goal', 'penalty_goal', 'freekick_goal', 'header_goal',

@@ -710,7 +710,7 @@ class KnowledgeBaseController extends AbstractController
 
         // Admin of the team may also delete comments
         $isTeamAdmin = !$isSuperAdmin && !$isAuthor
-            && in_array('ROLE_ADMIN', $user->getRoles(), true)
+            && in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
             && $this->isGranted(KnowledgeBaseVoter::POST_CREATE, $comment->getPost()->getTeam());
 
         if (!$isSuperAdmin && !$isAuthor && !$isTeamAdmin) {

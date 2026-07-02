@@ -37,7 +37,7 @@ class InventoryController extends AbstractController
     /** @return int[] */
     private function getAccessibleTeamIds(User $user): array
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return array_map(
                 static fn (Team $t) => $t->getId(),
                 $this->em->getRepository(Team::class)->findAll()
@@ -68,7 +68,7 @@ class InventoryController extends AbstractController
     /** @return int[] */
     private function getAccessibleClubIds(User $user): array
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return array_map(
                 static fn (Club $c) => $c->getId(),
                 $this->em->getRepository(Club::class)->findAll()
@@ -94,7 +94,7 @@ class InventoryController extends AbstractController
 
     private function canAccess(User $user): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 
@@ -103,7 +103,7 @@ class InventoryController extends AbstractController
 
     private function canManageItem(User $user, InventoryItem $item): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 
@@ -200,13 +200,13 @@ class InventoryController extends AbstractController
 
         if (null !== $filterTeamId) {
             $tid = (int) $filterTeamId;
-            if (!in_array($tid, $teamIds, true) && !$this->isGranted('ROLE_ADMIN')) {
+            if (!in_array($tid, $teamIds, true) && !$this->isGranted('ROLE_SUPERADMIN')) {
                 return $this->json(['message' => 'Kein Zugriff auf dieses Team'], Response::HTTP_FORBIDDEN);
             }
             $qb->andWhere('i.team = :team')->setParameter('team', $tid);
         } elseif (null !== $filterClubId) {
             $cid = (int) $filterClubId;
-            if (!in_array($cid, $clubIds, true) && !$this->isGranted('ROLE_ADMIN')) {
+            if (!in_array($cid, $clubIds, true) && !$this->isGranted('ROLE_SUPERADMIN')) {
                 return $this->json(['message' => 'Kein Zugriff auf diesen Verein'], Response::HTTP_FORBIDDEN);
             }
             $qb->andWhere('i.club = :club')->setParameter('club', $cid);
@@ -415,7 +415,7 @@ class InventoryController extends AbstractController
 
         if (!empty($conditions)) {
             $qb->andWhere(implode(' OR ', $conditions));
-        } elseif (!$this->isGranted('ROLE_ADMIN')) {
+        } elseif (!$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['checkouts' => []]);
         }
 

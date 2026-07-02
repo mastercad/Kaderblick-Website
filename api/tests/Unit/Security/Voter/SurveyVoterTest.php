@@ -59,7 +59,7 @@ class SurveyVoterTest extends TestCase
 
     public function testViewAsAdminReturnsGranted(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -83,7 +83,7 @@ class SurveyVoterTest extends TestCase
 
     public function testCreateAsAdminReturnsGranted(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -129,7 +129,7 @@ class SurveyVoterTest extends TestCase
 
     public function testEditAsAdminReturnsGranted(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -164,7 +164,7 @@ class SurveyVoterTest extends TestCase
 
     public function testDeleteAsAdminReturnsGranted(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -199,7 +199,7 @@ class SurveyVoterTest extends TestCase
 
     public function testViewStatsAsAdminReturnsGranted(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -299,7 +299,7 @@ class SurveyVoterTest extends TestCase
 
     public function testUnsupportedAttributeReturnsAbstain(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $survey = new Survey();
         $token = $this->createToken($user);
 
@@ -310,7 +310,7 @@ class SurveyVoterTest extends TestCase
 
     public function testUnsupportedSubjectReturnsAbstain(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1);
         $token = $this->createToken($user);
 
         $result = $this->voter->vote($token, new stdClass(), [SurveyVoter::VIEW]);

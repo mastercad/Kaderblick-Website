@@ -5,6 +5,8 @@ namespace App\Security\Voter;
 use App\Entity\Game;
 use App\Entity\GameEvent;
 use App\Entity\User;
+use App\Repository\UserTeamAdminAssignmentRepository;
+use App\Service\SupporterScopeService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
@@ -18,6 +20,12 @@ final class GameEventVoter extends Voter
     public const EDIT = 'GAME_EVENT_EDIT';
     public const VIEW = 'GAME_EVENT_VIEW';
     public const DELETE = 'GAME_EVENT_DELETE';
+
+    public function __construct(
+        private readonly UserTeamAdminAssignmentRepository $teamAdminAssignments,
+        private readonly SupporterScopeService $supporterScopeService,
+    ) {
+    }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -42,75 +50,48 @@ final class GameEventVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
-                if (
-                    !in_array('ROLE_ADMIN', $user->getRoles())
-                    && !in_array('ROLE_SUPPORTER', $user->getRoles())
-                ) {
-                    return false;
+                /** @var Game $subject */
+                if ($this->administersGameTeam($user, $subject)) {
+                    return true;
                 }
 
-                foreach ($user->getUserRelations() as $userRelation) {
-                    if ($userRelation->getPlayer()) {
-                        foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if ($userRelation->getCoach()) {
-                        foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            if (
-                                $assignment->getTeam() === $subject->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
+                foreach (array_filter([$subject->getHomeTeam(), $subject->getAwayTeam()]) as $team) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $team)) {
+                        return true;
                     }
                 }
 
                 break;
             case self::DELETE:
             case self::EDIT:
-                if (
-                    !in_array('ROLE_ADMIN', $user->getRoles())
-                    && !in_array('ROLE_SUPPORTER', $user->getRoles())
-                ) {
-                    return false;
+                /** @var GameEvent $subject */
+                if ($this->administersGameTeam($user, $subject->getGame())) {
+                    return true;
                 }
 
-                foreach ($user->getUserRelations() as $userRelation) {
-                    if ($userRelation->getPlayer()) {
-                        foreach ($userRelation->getPlayer()->getPlayerTeamAssignments() as $assignment) {
-                            /** @var GameEvent $subject */
-                            if (
-                                $assignment->getTeam() === $subject->getGame()->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getGame()->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if ($userRelation->getCoach()) {
-                        foreach ($userRelation->getCoach()->getCoachTeamAssignments() as $assignment) {
-                            /** @var GameEvent $subject */
-                            if (
-                                $assignment->getTeam() === $subject->getGame()->getHomeTeam()
-                                || $assignment->getTeam() === $subject->getGame()->getAwayTeam()
-                            ) {
-                                return true;
-                            }
-                        }
+                foreach (array_filter([$subject->getGame()->getHomeTeam(), $subject->getGame()->getAwayTeam()]) as $team) {
+                    if ($this->supporterScopeService->canSupportTeam($user, $team)) {
+                        return true;
                     }
                 }
                 break;
             case self::VIEW:
                 return true;
+        }
+
+        return false;
+    }
+
+    private function administersGameTeam(User $user, Game $game): bool
+    {
+        if (!in_array('ROLE_TEAM_ADMIN', $user->getRoles(), true)) {
+            return false;
+        }
+
+        foreach (array_filter([$game->getHomeTeam(), $game->getAwayTeam()]) as $team) {
+            if ($this->teamAdminAssignments->userAdministersTeam($user, $team)) {
+                return true;
+            }
         }
 
         return false;

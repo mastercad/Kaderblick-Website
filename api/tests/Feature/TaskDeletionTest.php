@@ -35,8 +35,8 @@ class TaskDeletionTest extends WebTestCase
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
         $this->em->getConnection()->beginTransaction();
 
-        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     protected function tearDown(): void

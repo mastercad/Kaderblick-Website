@@ -35,11 +35,7 @@ final class CalendarVoter extends Voter
             case self::CREATE:
             case self::EDIT:
             case self::DELETE:
-                if (
-                    in_array('ROLE_SUPPORTER', $user->getRoles())
-                    || in_array('ROLE_ADMIN', $user->getRoles())
-                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
-                ) {
+                if (in_array('ROLE_SUPERADMIN', $user->getRoles())) {
                     return true;
                 }
 

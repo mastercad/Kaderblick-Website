@@ -9,6 +9,7 @@ use App\Entity\Position;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Entity\UserTeamAdminAssignment;
+use App\Entity\UserTeamSupporterAssignment;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Feature-Tests für UserManagementController (GET/POST /admin/users/*).
  *
- * Der Controller ist mit #[IsGranted('ROLE_ADMIN')] gesichert.
+ * Der Controller ist mit #[IsGranted('ROLE_SUPERADMIN')] gesichert.
  * Tests prüfen Auth, Autorisierung und die wichtigsten Endpunkte.
  */
 class UserManagementControllerTest extends WebTestCase
@@ -42,8 +43,8 @@ class UserManagementControllerTest extends WebTestCase
         $this->emailSuffix = bin2hex(random_bytes(6));
 
         /** @var User $adminUser */
-        $adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($adminUser, 'Fixture user user16@example.com not found. Ensure fixtures (group=test) are loaded.');
+        $adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($adminUser, 'Fixture user user21@example.com not found. Ensure fixtures (group=test) are loaded.');
         $this->adminUser = $adminUser;
 
         /** @var User $regularUser */
@@ -140,7 +141,9 @@ class UserManagementControllerTest extends WebTestCase
         self::assertArrayHasKey('available_roles', $data);
         self::assertArrayHasKey('current_role', $data);
         self::assertArrayHasKey('ROLE_USER', $data['available_roles']);
-        self::assertArrayHasKey('ROLE_ADMIN', $data['available_roles']);
+        self::assertArrayHasKey('ROLE_SUPERADMIN', $data['available_roles']);
+        self::assertArrayNotHasKey('ROLE_SUPPORTER', $data['available_roles']);
+        self::assertArrayNotHasKey('ROLE_CLUB', $data['available_roles']);
     }
 
     // ── updateRoles() POST /admin/users/{id}/roles ─────────────────────────────
@@ -167,7 +170,7 @@ class UserManagementControllerTest extends WebTestCase
             'POST',
             '/admin/users/' . $this->targetUser->getId() . '/roles',
             server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['role' => 'ROLE_SUPPORTER'], JSON_THROW_ON_ERROR)
+            content: json_encode(['role' => 'ROLE_SUPERADMIN'], JSON_THROW_ON_ERROR)
         );
 
         self::assertResponseIsSuccessful();
@@ -175,7 +178,7 @@ class UserManagementControllerTest extends WebTestCase
         self::assertTrue($data['success']);
 
         $this->em->refresh($this->targetUser);
-        self::assertSame(['ROLE_SUPPORTER'], $this->targetUser->getRoles());
+        self::assertSame(['ROLE_SUPERADMIN'], $this->targetUser->getRoles());
     }
 
     public function testUpdateRolesRejectsMissingRole(): void
@@ -380,6 +383,8 @@ class UserManagementControllerTest extends WebTestCase
         self::assertArrayHasKey('permissions', $data);
         self::assertArrayHasKey('currentAdminTeamAssignments', $data);
         self::assertArrayHasKey('currentAdminClubAssignments', $data);
+        self::assertArrayHasKey('currentSupporterTeamAssignments', $data);
+        self::assertArrayHasKey('currentSupporterClubAssignments', $data);
         self::assertSame($this->targetUser->getId(), $data['user']['id']);
     }
 
@@ -398,8 +403,7 @@ class UserManagementControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $this->em->refresh($this->targetUser);
-        self::assertSame(['ROLE_TEAM_ADMIN'], $this->targetUser->getRoles());
-        self::assertSame('ROLE_USER', $this->targetUser->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_USER', 'ROLE_TEAM_ADMIN'], $this->targetUser->getRoles());
         self::assertNotNull($this->em->getRepository(UserTeamAdminAssignment::class)->findOneBy([
             'user' => $this->targetUser,
             'team' => $team,
@@ -475,7 +479,29 @@ class UserManagementControllerTest extends WebTestCase
         self::assertNull($this->em->getRepository(UserTeamAdminAssignment::class)->findOneBy(['user' => $this->targetUser]));
     }
 
-    public function testClubScopeTakesPrecedenceAndRemovingAllScopesRestoresBaseRole(): void
+    public function testAssigningTeamSupporterScopeCreatesAssignmentAndRoleMarker(): void
+    {
+        $team = $this->em->getRepository(Team::class)->findOneBy([]);
+        self::assertNotNull($team);
+        $this->authenticate($this->adminUser);
+
+        $this->client->request(
+            'POST',
+            '/admin/users/' . $this->targetUser->getId() . '/assign',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['supporterTeamAssignments' => [['teamId' => $team->getId()]]], JSON_THROW_ON_ERROR),
+        );
+
+        self::assertResponseIsSuccessful();
+        $this->em->refresh($this->targetUser);
+        self::assertSame(['ROLE_USER', 'ROLE_SUPPORTER'], $this->targetUser->getRoles());
+        self::assertNotNull($this->em->getRepository(UserTeamSupporterAssignment::class)->findOneBy([
+            'user' => $this->targetUser,
+            'team' => $team,
+        ]));
+    }
+
+    public function testClubAndTeamAdminScopesCanCoexistAndBeRemoved(): void
     {
         $targetUserId = $this->targetUser->getId();
         self::assertNotNull($targetUserId);
@@ -483,7 +509,7 @@ class UserManagementControllerTest extends WebTestCase
         $club = $this->em->getRepository(Club::class)->findOneBy([]);
         self::assertNotNull($team);
         self::assertNotNull($club);
-        $this->targetUser->setRoles(['ROLE_SUPPORTER']);
+        $this->targetUser->setRoles(['ROLE_USER']);
         $this->em->flush();
         $this->authenticate($this->adminUser);
 
@@ -497,8 +523,7 @@ class UserManagementControllerTest extends WebTestCase
             ], JSON_THROW_ON_ERROR),
         );
         $this->em->refresh($this->targetUser);
-        self::assertSame(['ROLE_CLUB_ADMIN'], $this->targetUser->getRoles());
-        self::assertSame('ROLE_SUPPORTER', $this->targetUser->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_USER', 'ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], $this->targetUser->getRoles());
 
         $this->client->request(
             'POST',
@@ -511,8 +536,7 @@ class UserManagementControllerTest extends WebTestCase
         self::assertInstanceOf(User::class, $targetUser);
         $this->targetUser = $targetUser;
         $this->em->refresh($this->targetUser);
-        self::assertSame(['ROLE_SUPPORTER'], $this->targetUser->getRoles());
-        self::assertNull($this->targetUser->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_USER'], $this->targetUser->getRoles());
     }
 
     public function testScopedAdminRolesCannotBeAssignedThroughRoleEndpoint(): void

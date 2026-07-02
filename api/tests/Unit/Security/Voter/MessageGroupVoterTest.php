@@ -86,7 +86,7 @@ class MessageGroupVoterTest extends TestCase
     public function testEditAsAdminGrantsAccess(): void
     {
         $owner = $this->createUser();
-        $admin = $this->createUser(['ROLE_ADMIN']);
+        $admin = $this->createUser(['ROLE_SUPERADMIN']);
         $group = $this->createGroup($owner, []);
         $token = $this->createToken($admin);
 
@@ -135,7 +135,7 @@ class MessageGroupVoterTest extends TestCase
     public function testDeleteAsAdminGrantsAccess(): void
     {
         $owner = $this->createUser();
-        $admin = $this->createUser(['ROLE_ADMIN']);
+        $admin = $this->createUser(['ROLE_SUPERADMIN']);
         $group = $this->createGroup($owner, []);
         $token = $this->createToken($admin);
 

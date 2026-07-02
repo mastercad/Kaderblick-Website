@@ -98,7 +98,7 @@ class GamesController extends ApiController
     #[Route('/{id}/finish', name: 'finish', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function finish(Game $game): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         if ($game->isFinished()) {
             return $this->json(['error' => 'Spiel ist bereits beendet.'], 400);
@@ -170,7 +170,7 @@ class GamesController extends ApiController
     #[Route('/{id}/timing', name: 'timing', requirements: ['id' => '\d+'], methods: ['PATCH'])]
     public function timing(Game $game, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $data = json_decode($request->getContent(), true) ?? [];
 
@@ -431,8 +431,8 @@ class GamesController extends ApiController
                     'can_edit_videos' => $this->isGranted(VideoVoter::EDIT, $game->getHomeTeam()) || $this->isGranted(VideoVoter::EDIT, $game->getAwayTeam()),
                     'can_delete_videos' => $this->isGranted(VideoVoter::DELETE, $game->getHomeTeam()) || $this->isGranted(VideoVoter::DELETE, $game->getAwayTeam()),
                     'can_create_game_events' => $this->isGranted(GameEventVoter::CREATE, $game),
-                    'can_finish_game' => $this->isGranted('ROLE_ADMIN'),
-                    'can_edit_timing' => $this->isGranted('ROLE_ADMIN'),
+                    'can_finish_game' => $this->isGranted('ROLE_SUPERADMIN'),
+                    'can_edit_timing' => $this->isGranted('ROLE_SUPERADMIN'),
                     'can_manage_match_plan' => $canManageMatchPlan,
                     'can_publish_match_plan' => $this->isGranted(MatchPlanVoter::PUBLISH, $game),
                     'can_view_match_plan' => $canViewMatchPlan,
@@ -450,6 +450,19 @@ class GamesController extends ApiController
             $relatedUser = null;
             $relatedUserTitleData = [];
             $titleData = [];
+            $type = $event->getGameEventType();
+            $code = $type?->getCode() ?? '';
+            $isSystemEvent = ($type?->isSystem() ?? false) || in_array($code, [
+                'halftime_start',
+                'halftime_end',
+                'injury_break',
+                'drink_break',
+                'var_break',
+                'match_resumed',
+                'extra_time',
+                'penalty_shootout',
+                'match_abandoned',
+            ], true);
 
             if ($event->getRelatedPlayer() instanceof Player) {
                 $relatedUser = $this->retrieveUserForPlayer($event->getRelatedPlayer());
@@ -462,12 +475,18 @@ class GamesController extends ApiController
 
             return [
                 'id' => $event->getId(),
-                'gameEventType' => $event->getGameEventType() ? [
-                    'id' => $event->getGameEventType()->getId(),
-                    'name' => $event->getGameEventType()->getName(),
-                    'code' => $event->getGameEventType()->getCode(),
-                    'icon' => $event->getGameEventType()->getIcon(),
-                    'color' => $event->getGameEventType()->getColor()
+                'type' => $type?->getName(),
+                'code' => $code,
+                'typeId' => $type?->getId(),
+                'typeIcon' => $type?->getIcon(),
+                'typeColor' => $type?->getColor(),
+                'gameEventType' => $type ? [
+                    'id' => $type->getId(),
+                    'name' => $type->getName(),
+                    'code' => $code,
+                    'icon' => $type->getIcon(),
+                    'color' => $type->getColor(),
+                    'isSystem' => $type->isSystem(),
                 ] : null,
                 'player' => $event->getPlayer() ? [
                     'id' => $event->getPlayer()->getId(),
@@ -489,10 +508,13 @@ class GamesController extends ApiController
                     'id' => $event->getTeam()->getId(),
                     'name' => $event->getTeam()->getName(),
                 ] : null,
+                'teamId' => $event->getTeam()?->getId(),
                 'timestamp' => $event->getTimestamp()?->format('c'),
+                'minute' => $this->calculateDateDiffInSeconds($event->getGame()->getCalendarEvent()->getStartDate(), $event->getTimestamp()),
                 'description' => $event->getDescription(),
                 'coach' => $event->getCoach()?->getFullName(),
                 'coachId' => $event->getCoach()?->getId(),
+                'isSystemEvent' => $isSystemEvent,
             ];
         };
         $gameEventsArr = array_map($serializeEvent, $gameEvents);
@@ -843,6 +865,9 @@ class GamesController extends ApiController
             foreach ($this->userTeamAccessService->getCoachLinkedTeams($currentUser) as $team) {
                 $userTeamIds[$team->getId()] = $team->getId();
             }
+            foreach ($this->userTeamAccessService->getTeamAdminTeams($currentUser) as $team) {
+                $userTeamIds[$team->getId()] = $team->getId();
+            }
         }
 
         // ---- All teams for dropdown (independent of game filter) ----
@@ -900,17 +925,22 @@ class GamesController extends ApiController
             return $this->json(['squad' => [], 'allPlayers' => [], 'hasParticipationData' => false]);
         }
 
-        // ── All active team players ────────────────────────────────────────────
+        $referenceDate = $calendarEvent->getStartDate() instanceof DateTimeInterface
+            ? DateTime::createFromInterface($calendarEvent->getStartDate())
+            : new DateTime('today');
+
+        // ── All players assigned to the game teams at game time ────────────────
         $allPlayersRows = $this->entityManager->createQuery(
             'SELECT p.id, p.firstName, p.lastName, pta.shirtNumber, IDENTITY(pta.team) as teamId
             FROM App\Entity\Player p
             INNER JOIN p.playerTeamAssignments pta
             WHERE IDENTITY(pta.team) IN (:teamIds)
-              AND (pta.endDate IS NULL OR pta.endDate >= :today)
+              AND (pta.startDate IS NULL OR pta.startDate <= :referenceDate)
+              AND (pta.endDate IS NULL OR pta.endDate >= :referenceDate)
             ORDER BY pta.shirtNumber ASC'
         )
             ->setParameter('teamIds', $teamIds)
-            ->setParameter('today', new DateTime('today'))
+            ->setParameter('referenceDate', $referenceDate)
             ->getArrayResult();
 
         $seenAll = [];
@@ -971,13 +1001,14 @@ class GamesController extends ApiController
                 WHERE IDENTITY(ur.user) IN (:userIds)
                   AND rt.identifier = :relationType
                   AND IDENTITY(pta.team) IN (:teamIds)
-                  AND (pta.endDate IS NULL OR pta.endDate >= :today)
+                  AND (pta.startDate IS NULL OR pta.startDate <= :referenceDate)
+                  AND (pta.endDate IS NULL OR pta.endDate >= :referenceDate)
                 ORDER BY pta.shirtNumber ASC'
             )
                 ->setParameter('userIds', $confirmedUserIds)
                 ->setParameter('relationType', 'self_player')
                 ->setParameter('teamIds', $teamIds)
-                ->setParameter('today', new DateTime('today'))
+                ->setParameter('referenceDate', $referenceDate)
                 ->getArrayResult();
 
             $seen = [];
@@ -1002,8 +1033,84 @@ class GamesController extends ApiController
             'squad' => $squad,
             'allPlayers' => $allPlayers,
             'hasParticipationData' => $hasParticipationData,
-            'coaches' => $this->getCoachesForTeams($teamIds, new DateTime('today')),
+            'coaches' => $this->getCoachesForTeams($teamIds, $referenceDate),
         ]);
+    }
+
+    #[Route('/{id}/match-state', name: 'match_state', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function matchState(Game $game, GameEventRepository $eventRepo): JsonResponse
+    {
+        if (!$this->isGranted(GameVoter::VIEW, $game)) {
+            return $this->json(['error' => 'Zugriff verweigert'], 403);
+        }
+
+        $events = $eventRepo->findBy(['game' => $game], ['timestamp' => 'ASC']);
+
+        return $this->json($this->deriveMatchState($events));
+    }
+
+    /**
+     * @param GameEvent[] $events
+     *
+     * @return array{matchState: string, interruptionContext: ?string}
+     */
+    private function deriveMatchState(array $events): array
+    {
+        $matchState = 'idle';
+        $interruptionContext = null;
+        $halfStarts = 0;
+        $halfEnds = 0;
+
+        foreach ($events as $event) {
+            $code = $event->getGameEventType()?->getCode() ?? '';
+
+            if ('halftime_start' === $code) {
+                ++$halfStarts;
+                $matchState = $halfStarts >= 2 || $halfEnds >= 1
+                    ? 'second-half'
+                    : 'first-half';
+                $interruptionContext = null;
+                continue;
+            }
+
+            if ('halftime_end' === $code) {
+                ++$halfEnds;
+                $matchState = $halfStarts <= 1 ? 'first-half-pause' : 'idle';
+                $interruptionContext = null;
+                continue;
+            }
+
+            if (in_array($code, ['injury_break', 'drink_break', 'var_break', 'match_abandoned'], true)) {
+                $interruptionContext = in_array($matchState, ['first-half', 'second-half'], true)
+                    ? $matchState
+                    : $this->inferRunningMatchState($halfStarts, $halfEnds);
+                $matchState = 'interruption';
+                continue;
+            }
+
+            if ('match_resumed' === $code) {
+                $matchState = $interruptionContext ?: $this->inferRunningMatchState($halfStarts, $halfEnds);
+                $interruptionContext = null;
+            }
+        }
+
+        return [
+            'matchState' => $matchState,
+            'interruptionContext' => $interruptionContext,
+        ];
+    }
+
+    private function inferRunningMatchState(int $halfStarts, int $halfEnds): string
+    {
+        if ($halfStarts > $halfEnds) {
+            return $halfStarts >= 2 ? 'second-half' : 'first-half';
+        }
+
+        if (1 === $halfStarts && $halfEnds >= 1) {
+            return 'first-half-pause';
+        }
+
+        return 'idle';
     }
 
     /**
@@ -1011,18 +1118,19 @@ class GamesController extends ApiController
      *
      * @return array<int, array{id: int, fullName: string, teamId: int}>
      */
-    private function getCoachesForTeams(array $teamIds, DateTime $today): array
+    private function getCoachesForTeams(array $teamIds, DateTime $referenceDate): array
     {
         $rows = $this->entityManager->createQuery(
             'SELECT c.id, c.firstName, c.lastName, IDENTITY(cta.team) as teamId
             FROM App\Entity\Coach c
             INNER JOIN c.coachTeamAssignments cta
             WHERE IDENTITY(cta.team) IN (:teamIds)
-              AND (cta.endDate IS NULL OR cta.endDate >= :today)
+              AND (cta.startDate IS NULL OR cta.startDate <= :referenceDate)
+              AND (cta.endDate IS NULL OR cta.endDate >= :referenceDate)
             ORDER BY c.lastName ASC, c.firstName ASC'
         )
             ->setParameter('teamIds', $teamIds)
-            ->setParameter('today', $today)
+            ->setParameter('referenceDate', $referenceDate)
             ->getArrayResult();
 
         $seen = [];
@@ -1101,6 +1209,21 @@ class GamesController extends ApiController
             $matched[$team->getId()] = $team->getId();
         }
 
+        foreach ($this->userTeamAccessService->getTeamAdminTeams($user) as $team) {
+            $matched[$team->getId()] = $team->getId();
+        }
+
         return array_values($matched);
+    }
+
+    private function calculateDateDiffInSeconds(DateTimeInterface $dateStart, ?DateTimeInterface $dateCurrent): ?int
+    {
+        if (null === $dateCurrent) {
+            return null;
+        }
+
+        $diff = $dateCurrent->diff($dateStart);
+
+        return ($diff->days * 24 * 60 * 60) + ($diff->h * 60 * 60) + ($diff->i * 60) + $diff->s;
     }
 }

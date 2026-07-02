@@ -40,6 +40,29 @@ describe('DEFAULT_QUICK_EVENT_CONFIG', () => {
     expect((card?.radialItems ?? []).length).toBeGreaterThan(0);
   });
 
+  it('uses dedicated match-state and interruption buttons', () => {
+    const halftimeToggle = DEFAULT_QUICK_EVENT_CONFIG.buttons.find(
+      (button) => button.eventTypeCode === 'match_state_toggle',
+    );
+    const interruptionToggle = DEFAULT_QUICK_EVENT_CONFIG.buttons.find(
+      (button) => button.eventTypeCode === 'match_interruption_toggle',
+    );
+    const matchAbandoned = DEFAULT_QUICK_EVENT_CONFIG.buttons.find(
+      (button) => button.eventTypeCode === 'match_abandoned',
+    );
+
+    expect(halftimeToggle).toBeDefined();
+    expect(halftimeToggle?.label).toBe('1. Halbzeit starten');
+    expect(halftimeToggle?.group).toBe('match-state');
+    expect(interruptionToggle).toBeDefined();
+    expect(interruptionToggle?.label).toBe('Spielunterbrechung');
+    expect(interruptionToggle?.group).toBe('match-state');
+    expect(matchAbandoned).toBeDefined();
+    expect(matchAbandoned?.label).toBe('Spielabbruch');
+    expect(matchAbandoned?.group).toBe('match-state');
+    expect(DEFAULT_QUICK_EVENT_CONFIG.buttons.filter((button) => button.group === 'match-state')).toHaveLength(3);
+  });
+
   it('all radialItems have eventTypeCode and label', () => {
     for (const btn of DEFAULT_QUICK_EVENT_CONFIG.buttons) {
       for (const item of btn.radialItems ?? []) {
