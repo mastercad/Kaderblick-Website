@@ -410,7 +410,7 @@ class CalendarEventServiceTest extends TestCase
     public function testValidateMatchTeamOwnershipAdminAlwaysReturnsNull(): void
     {
         $service = $this->buildServiceWithEventTypes(5, 6);
-        $admin = $this->buildUser(['ROLE_ADMIN']);
+        $admin = $this->buildUser(['ROLE_SUPERADMIN']);
 
         $result = $service->validateMatchTeamOwnership(['eventTypeId' => 5, 'game' => ['homeTeamId' => 99, 'awayTeamId' => 100]], $admin);
 

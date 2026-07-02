@@ -36,7 +36,7 @@ class CardRuleAdminController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $type = $request->query->get('competitionType');
         $rules = $this->repository->findAllForAdmin(
@@ -51,7 +51,7 @@ class CardRuleAdminController extends AbstractController
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $body = $this->parseBody($request);
         if (null === $body) {
@@ -88,7 +88,7 @@ class CardRuleAdminController extends AbstractController
     #[Route('/{id}', name: 'update', methods: ['PATCH'])]
     public function update(CompetitionCardRule $rule, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $body = $this->parseBody($request);
         if (null === $body) {
@@ -147,7 +147,7 @@ class CardRuleAdminController extends AbstractController
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     public function delete(CompetitionCardRule $rule): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $this->em->remove($rule);
         $this->em->flush();

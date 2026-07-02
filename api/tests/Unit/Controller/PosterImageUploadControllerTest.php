@@ -19,7 +19,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * Unit-Tests für den DELETE-Endpunkt von PosterImageUploadController.
  *
  * Kein HTTP-Stack, kein Datenbank-Zugriff.
- * AuthorizationChecker wird gemockt und erlaubt immer ROLE_ADMIN.
+ * AuthorizationChecker wird gemockt und erlaubt immer ROLE_SUPERADMIN.
  */
 #[AllowMockObjectsWithoutExpectations]
 class PosterImageUploadControllerTest extends TestCase

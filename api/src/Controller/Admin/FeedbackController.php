@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
 #[Route('/admin/feedback')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_SUPERADMIN')]
 class FeedbackController extends AbstractController
 {
     /** @return array<string, mixed> */

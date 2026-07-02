@@ -27,47 +27,44 @@ class AdminScopeServiceTest extends TestCase
     }
 
     #[AllowMockObjectsWithoutExpectations]
-    public function testTeamAssignmentPromotesUserAndRemembersBaseRole(): void
+    public function testTeamAssignmentAddsTeamAdminMarker(): void
     {
         $user = (new User())->setRoles(['ROLE_SUPPORTER']);
 
         $this->service->synchronizeRole($user, 1, 0);
 
-        self::assertSame('ROLE_TEAM_ADMIN', $user->getRole());
-        self::assertSame('ROLE_SUPPORTER', $user->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_SUPPORTER', 'ROLE_TEAM_ADMIN'], $user->getRoles());
     }
 
     #[AllowMockObjectsWithoutExpectations]
-    public function testClubAssignmentHasPrecedenceOverTeamAssignment(): void
+    public function testClubAndTeamAssignmentsCanCoexist(): void
     {
         $user = (new User())->setRoles(['ROLE_USER']);
 
         $this->service->synchronizeRole($user, 2, 1);
 
-        self::assertSame('ROLE_CLUB_ADMIN', $user->getRole());
+        self::assertSame(['ROLE_USER', 'ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN'], $user->getRoles());
     }
 
     #[AllowMockObjectsWithoutExpectations]
-    public function testRemovingLastScopeRestoresPreviousRole(): void
+    public function testRemovingScopesRemovesAdminMarkersOnly(): void
     {
         $user = (new User())
-            ->setRoles(['ROLE_TEAM_ADMIN'])
-            ->setRoleBeforeScopedAdmin('ROLE_SUPPORTER');
+            ->setRoles(['ROLE_USER', 'ROLE_SUPPORTER', 'ROLE_TEAM_ADMIN', 'ROLE_CLUB_ADMIN']);
 
         $this->service->synchronizeRole($user, 0, 0);
 
-        self::assertSame('ROLE_SUPPORTER', $user->getRole());
-        self::assertNull($user->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_USER', 'ROLE_SUPPORTER'], $user->getRoles());
     }
 
     #[AllowMockObjectsWithoutExpectations]
     public function testPlatformAdminRoleIsNeverChangedByScopes(): void
     {
-        $user = (new User())->setRoles(['ROLE_ADMIN']);
+        $user = (new User())->setRoles(['ROLE_SUPERADMIN']);
 
         $this->service->synchronizeRole($user, 1, 1);
 
-        self::assertSame('ROLE_ADMIN', $user->getRole());
+        self::assertSame(['ROLE_SUPERADMIN'], $user->getRoles());
         self::assertNull($user->getRoleBeforeScopedAdmin());
     }
 
@@ -75,13 +72,12 @@ class AdminScopeServiceTest extends TestCase
     public function testChangingBaseRoleDoesNotRemoveActiveScopedAdminRole(): void
     {
         $user = (new User())
-            ->setRoles(['ROLE_TEAM_ADMIN'])
+            ->setRoles(['ROLE_USER', 'ROLE_TEAM_ADMIN'])
             ->setRoleBeforeScopedAdmin('ROLE_USER');
 
-        $user->setBaseRole('ROLE_SUPPORTER');
+        $user->setBaseRole('ROLE_USER');
 
-        self::assertSame('ROLE_TEAM_ADMIN', $user->getRole());
-        self::assertSame('ROLE_SUPPORTER', $user->getRoleBeforeScopedAdmin());
+        self::assertSame(['ROLE_USER', 'ROLE_TEAM_ADMIN'], $user->getRoles());
     }
 
     public function testSynchronizationUsesOnlyAssignmentsActiveOnRequestedDate(): void
@@ -93,6 +89,6 @@ class AdminScopeServiceTest extends TestCase
 
         $this->service->synchronizeRoleFromAssignments($user, $date);
 
-        self::assertSame('ROLE_CLUB_ADMIN', $user->getRole());
+        self::assertSame(['ROLE_USER', 'ROLE_CLUB_ADMIN'], $user->getRoles());
     }
 }

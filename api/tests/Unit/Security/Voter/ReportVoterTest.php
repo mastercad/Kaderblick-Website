@@ -60,7 +60,7 @@ class ReportVoterTest extends TestCase
     public function testViewOtherUsersReportGrantedForAdmin(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $report = $this->createReport($owner, false);
         $token = $this->createToken($admin);
 
@@ -109,7 +109,7 @@ class ReportVoterTest extends TestCase
     public function testEditOtherUsersReportGrantedForAdmin(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $report = $this->createReport($owner, false);
         $token = $this->createToken($admin);
 
@@ -146,7 +146,7 @@ class ReportVoterTest extends TestCase
     public function testDeleteOtherUsersReportGrantedForAdmin(): void
     {
         $owner = $this->createUser(1);
-        $admin = $this->createUser(2, ['ROLE_ADMIN']);
+        $admin = $this->createUser(2, ['ROLE_SUPERADMIN']);
         $report = $this->createReport($owner, false);
         $token = $this->createToken($admin);
 

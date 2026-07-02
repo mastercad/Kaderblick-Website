@@ -25,9 +25,9 @@ class VideoSegmentControllerTest extends ApiWebTestCase
             $this->fail('Keine Games in der Datenbank gefunden. Bitte Fixtures laden.');
         }
 
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
         if (!$user) {
-            $this->fail('User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+            $this->fail('User user21@example.com nicht gefunden. Bitte Fixtures laden.');
         }
 
         $videoType = $em->getRepository(VideoType::class)->findOneBy([]);
@@ -62,7 +62,7 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanCreateVideoSegment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
 
@@ -94,11 +94,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanListVideoSegmentsByGame(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         // Erstelle zwei Segmente
         $segment1 = new VideoSegment();
@@ -138,11 +138,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanListVideoSegmentsByVideo(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         $segment = new VideoSegment();
         $segment->setVideo($video);
@@ -169,11 +169,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanGetSingleVideoSegment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         $segment = new VideoSegment();
         $segment->setVideo($video);
@@ -204,11 +204,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanUpdateVideoSegment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         $segment = new VideoSegment();
         $segment->setVideo($video);
@@ -244,11 +244,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanDeleteVideoSegment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         $segment = new VideoSegment();
         $segment->setVideo($video);
@@ -278,10 +278,10 @@ class VideoSegmentControllerTest extends ApiWebTestCase
         $client = static::createClient();
 
         // Create segment as user16
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user16 = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user16 = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         $segment = new VideoSegment();
         $segment->setVideo($video);
@@ -312,11 +312,11 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testUserCanExportVideoSegmentsAsCSV(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
         $em = static::getContainer()->get('doctrine')->getManager();
-        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
+        $user = $em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
 
         // Create multiple segments
         $segment1 = new VideoSegment();
@@ -381,7 +381,7 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testCreateSegmentValidatesRequiredFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $video = $this->createTestVideo();
 
@@ -420,7 +420,7 @@ class VideoSegmentControllerTest extends ApiWebTestCase
     public function testListSegmentsRequiresGameIdOrVideoId(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/video-segments');
         $this->assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);

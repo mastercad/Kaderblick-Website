@@ -22,7 +22,8 @@ class PlayerSerializerService
     public function __construct(
         private Security $security,
         private CoachTeamPlayerService $coachTeamPlayerService,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private AdminScopeService $adminScopeService,
     ) {
     }
 
@@ -36,8 +37,9 @@ class PlayerSerializerService
     {
         /** @var \App\Entity\User $viewer */
         $viewer = $this->security->getUser();
-        $isAdmin = $this->security->isGranted('ROLE_ADMIN') || $this->security->isGranted('ROLE_SUPERADMIN');
+        $isSuperAdmin = $this->security->isGranted('ROLE_SUPERADMIN');
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($viewer));
+        $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($viewer));
 
         // Full scope = admin, OR every *active* PTA belongs to one of the coach's teams.
         $now = new DateTime('today');
@@ -46,7 +48,7 @@ class PlayerSerializerService
             fn ($pta) => null === $pta->getEndDate() || $pta->getEndDate() >= $now
         );
         $playerTeamIds = array_map(fn ($pta) => $pta->getTeam()->getId(), $activeAssignments);
-        $isFullScope = $isAdmin || 0 === count(array_diff($playerTeamIds, $coachTeamIds));
+        $isFullScope = $isSuperAdmin || 0 === count(array_diff($playerTeamIds, array_unique(array_merge($coachTeamIds, $adminTeamIds))));
 
         return [
             'id' => $player->getId(),
@@ -103,7 +105,9 @@ class PlayerSerializerService
                     'id' => $a->getPlayerTeamAssignmentType()?->getId(),
                     'name' => $a->getPlayerTeamAssignmentType()?->getName(),
                 ],
-                'canEdit' => $isAdmin || in_array($a->getTeam()->getId(), $coachTeamIds),
+                'canEdit' => $isSuperAdmin
+                    || in_array($a->getTeam()->getId(), $adminTeamIds, true)
+                    || in_array($a->getTeam()->getId(), $coachTeamIds, true),
             ], $player->getPlayerTeamAssignments()->toArray()),
             'fussballDeUrl' => $player->getFussballDeUrl(),
             'fussballDeId' => $player->getFussballDeId(),

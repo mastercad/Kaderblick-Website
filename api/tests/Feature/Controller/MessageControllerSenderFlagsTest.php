@@ -124,7 +124,7 @@ class MessageControllerSenderFlagsTest extends WebTestCase
     public function testCreateBlocksUnlinkedUserSendingToRegularUser(): void
     {
         // Unverknüpfter User (keine UserRelation mit Spieler/Trainer)
-        // user16 (ROLE_ADMIN) has no UserRelation entries in the fixtures and is therefore truly unlinked.
+        // user16 has no UserRelation entries in the fixtures and is therefore truly unlinked.
         $unlinked = $this->loadUser('user16@example.com');
         $normalUser = $this->loadUser('user10@example.com');
 

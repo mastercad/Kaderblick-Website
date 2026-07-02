@@ -255,7 +255,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testDeleteCategoryReturns404WhenNotFound(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']);
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
         $this->categoryRepo->method('find')->willReturn(null);
 
         $response = $this->controller->deleteCategory(999);
@@ -334,7 +334,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testCreatePostReturns400WhenTitleIsEmpty(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']);
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
 
         $team = $this->makeTeam();
         $this->teamRepo->method('find')->willReturn($team);
@@ -641,7 +641,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testCreateCategoryReturns403WhenNotGranted(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']); // not superadmin
+        $this->loginAs(1, ['ROLE_USER']);
         $this->teamRepo->method('find')->willReturn($this->makeTeam());
         // authChecker defaults to false → 403
 
@@ -653,7 +653,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testDeleteCategoryReturns403ForGlobalCategoryWhenNotSuperadmin(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']); // not superadmin
+        $this->loginAs(1, ['ROLE_USER']);
         $this->categoryRepo->method('find')->willReturn($this->makeCategory(1, null)); // global (team=null)
 
         $response = $this->controller->deleteCategory(1);
@@ -663,7 +663,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testDeleteCategoryReturns403ForTeamCategoryWhenNotGranted(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']); // not superadmin
+        $this->loginAs(1, ['ROLE_USER']);
         $this->categoryRepo->method('find')->willReturn($this->makeCategory(1, $this->makeTeam()));
         // authChecker defaults to false → 403
 
@@ -707,7 +707,7 @@ class KnowledgeBaseControllerTest extends TestCase
 
     public function testCreatePostReturns404WhenCategoryNotFound(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']);
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
         $this->teamRepo->method('find')->willReturn($this->makeTeam());
         $this->authChecker->method('isGranted')->willReturn(true);
         // categoryRepo->find returns null (default)
@@ -1067,7 +1067,7 @@ class KnowledgeBaseControllerTest extends TestCase
      */
     public function testCreatePostWithTagsCreatesNewTag(): void
     {
-        $this->loginAs(1, ['ROLE_ADMIN']);
+        $this->loginAs(1, ['ROLE_SUPERADMIN']);
         $team = $this->makeTeam(10);
         $this->teamRepo->method('find')->willReturn($team);
         $this->authChecker->method('isGranted')->willReturn(true);

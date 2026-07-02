@@ -163,7 +163,7 @@ class CalendarEventService
         // Admins and superadmins may always create events for any team
         if (
             in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
-            || in_array('ROLE_ADMIN', $user->getRoles(), true)
+            || in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
         ) {
             return null;
         }

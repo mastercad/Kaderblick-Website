@@ -22,7 +22,6 @@ use Symfony\Component\HttpFoundation\Response;
  * - Zugriffssteuerung (403 für User ohne Coach-Relation)
  * - SUPERADMIN sieht alle unbekannten Ereignisse
  * - SUPERADMIN sieht Ereignisse mit Coach/Spieler NICHT in der Unbekannt-Liste
- * - ADMIN ohne Team-Zuordnung sieht keine Ereignisse (leere Liste)
  * - Trainer sieht unbekannte Ereignisse aus Spielen seiner Teams
  * - Spieler-Liste für ein Ereignis
  * - Spieler-Zuweisungs-Workflow (inkl. Fehlerfall 400/404/422/200)
@@ -38,7 +37,6 @@ class UnknownGameEventsControllerTest extends WebTestCase
     private EntityManagerInterface $em;
 
     private User $superAdmin;   // user21 – ROLE_SUPERADMIN
-    private User $adminUser;    // user16 – ROLE_ADMIN, keine UserRelations → leere Teamliste
     private User $coachUser;    // user11 – ROLE_CLUB, coach_1 → Team 1 (aktiv)
     private User $regularUser;  // user6  – ROLE_USER, nur Eltern-Relation, kein Coach
     private User $noRelUser;    // user10 – ROLE_USER, keinerlei UserRelations
@@ -62,7 +60,6 @@ class UnknownGameEventsControllerTest extends WebTestCase
 
         // Fixture-User laden
         $this->superAdmin = $this->loadUser('user21@example.com');
-        $this->adminUser = $this->loadUser('user16@example.com');
         $this->coachUser = $this->loadUser('user11@example.com');
         $this->regularUser = $this->loadUser('user6@example.com');
         $this->noRelUser = $this->loadUser('user10@example.com');
@@ -145,19 +142,6 @@ class UnknownGameEventsControllerTest extends WebTestCase
         $ids = array_column($this->decodeResponseJson(), 'id');
 
         $this->assertNotContains($this->eventWithPlayer->getId(), $ids, 'Ereignis mit Spieler darf nicht als unbekannt erscheinen');
-    }
-
-    public function testAdminWithNoTeamRelationsSeesEmptyList(): void
-    {
-        // user16 ist ROLE_ADMIN, hat aber keine UserRelations und damit keine Team-IDs.
-        // findUnknownPlayerEvents() gibt für leere teamIds sofort [] zurück.
-        $this->authenticate($this->adminUser);
-        $this->client->request('GET', '/api/admin/unknown-game-events');
-
-        $this->assertResponseIsSuccessful();
-        $data = $this->decodeResponseJson();
-
-        $this->assertSame([], $data, 'ADMIN ohne Team-Zuordnung muss eine leere Ereignisliste erhalten');
     }
 
     public function testCoachSeesUnknownEventsFromOwnTeamGames(): void

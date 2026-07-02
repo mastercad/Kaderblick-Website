@@ -259,11 +259,11 @@ class UserRelationFixtures extends Fixture implements DependentFixtureInterface,
         // Benötigt für MatchdayControllerSquadReadinessTest.
         // Jede Relation bildet exakt das Szenario ab, das im Test geprüft wird:
         //   user_9  (ROLE_USER)  → self_player → player_5_1  → Team 1  (start 2023-01-01, kein Ende)
-        //   user_11 (ROLE_CLUB)  → self_coach  → coach_1     → Team 1  (start 2023-01-01, kein Ende)
-        //   user_12 (ROLE_CLUB)  → self_player → player_6_1  → Team 1  (start 2023-01-01, kein Ende)
+        //   user_11 (ROLE_USER)  → self_coach  → coach_1     → Team 1  (start 2023-01-01, kein Ende)
+        //   user_12 (ROLE_USER)  → self_player → player_6_1  → Team 1  (start 2023-01-01, kein Ende)
         //                        → self_coach  → coach_5     → Team 2  (start 2016-01-01, kein Ende)
-        //   user_13 (ROLE_CLUB)  → self_coach  → coach_8     → Team 1  (start 2015-01-01, ENDE 2020-12-31 = abgelaufen)
-        //   user_14 (ROLE_CLUB)  → self_player → player_5_2  → Team 2  (start 2023-01-01, kein Ende)
+        //   user_13 (ROLE_USER)  → self_coach  → coach_8     → Team 1  (start 2015-01-01, ENDE 2020-12-31 = abgelaufen)
+        //   user_14 (ROLE_USER)  → self_player → player_5_2  → Team 2  (start 2023-01-01, kein Ende)
         //
         // Absichtlich NICHT verändert:
         //   user_10 → wird in UserRelationTest als "User ohne Relation" genutzt

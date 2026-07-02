@@ -83,7 +83,7 @@ class ProfileController extends AbstractController
             ->count(['user' => $user]) > 0;
         $featureEnabled = $this->systemSettingService->isRegistrationContextEnabled();
         $userRoles = $user->getRoles();
-        $isAdminOrAbove = in_array('ROLE_ADMIN', $userRoles, true) || in_array('ROLE_SUPERADMIN', $userRoles, true);
+        $isAdminOrAbove = in_array('ROLE_SUPERADMIN', $userRoles, true);
         $needsRegistrationContext = $featureEnabled && !$isAdminOrAbove && !$hasUserRelations && !$hasRegistrationRequests;
 
         $titleData = $userTitleService->retrieveTitleDataForUser($user);

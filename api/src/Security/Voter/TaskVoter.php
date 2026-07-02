@@ -50,7 +50,7 @@ final class TaskVoter extends Voter
                     }
                 }
 
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::EDIT:
                 // Ersteller, zugewiesene User oder Admins können bearbeiten
@@ -63,20 +63,20 @@ final class TaskVoter extends Voter
                     }
                 }
 
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::DELETE:
                 if ($task->getCreatedBy()->getId() === $user->getId()) {
                     return true;
                 }
 
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 if (
                     in_array('ROLE_USER', $user->getRoles())
                     || in_array('ROLE_SUPPORTER', $user->getRoles())
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 ) {
                     return true;

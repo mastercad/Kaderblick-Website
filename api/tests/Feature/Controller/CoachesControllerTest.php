@@ -12,7 +12,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListReturnsPaginatedStructure(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/api/coaches');
 
@@ -32,7 +32,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListDefaultsToPage1Limit25(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -45,7 +45,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListRespectsCustomPageAndLimit(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?page=1&limit=5');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -58,7 +58,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListLimitIsCappedAt100(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?limit=500');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -70,7 +70,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListPageMinimumIs1(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?page=-1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -81,7 +81,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListPaginationReturnsConsistentTotal(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Fetch first page with small limit
         $client->request('GET', '/api/coaches?page=1&limit=3');
@@ -104,7 +104,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListBeyondLastPageReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?page=99999&limit=25');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -119,7 +119,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListFiltersBySearchTerm(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Get a coach name to search for
         $client->request('GET', '/api/coaches?limit=1');
@@ -145,7 +145,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListSearchWithNoMatchReturnsEmpty(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?search=zzzzxxxxxnonexistent99999');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -160,7 +160,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListFiltersByTeamId(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Get a team ID
         $client->request('GET', '/api/teams/list');
@@ -189,7 +189,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListCoachHasExpectedFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -215,7 +215,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListAdminHasFullPermissions(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/api/coaches?limit=1');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -231,23 +231,17 @@ class CoachesControllerTest extends ApiWebTestCase
         $this->assertTrue($permissions['canDelete']);
     }
 
-    public function testListRegularUserHasViewOnlyPermissions(): void
+    public function testListRegularUserSeesNoCoaches(): void
     {
         $client = static::createClient();
         $this->authenticateUser($client, 'user6@example.com'); // ROLE_USER
 
         $client->request('GET', '/api/coaches?limit=1');
+        $this->assertResponseIsSuccessful();
         $data = json_decode($client->getResponse()->getContent(), true);
 
-        if (empty($data['coaches'])) {
-            $this->markTestSkipped('No coaches in fixture data');
-        }
-
-        $permissions = $data['coaches'][0]['permissions'];
-        $this->assertTrue($permissions['canView']);
-        $this->assertFalse($permissions['canEdit']);
-        $this->assertFalse($permissions['canCreate']);
-        $this->assertFalse($permissions['canDelete']);
+        $this->assertSame([], $data['coaches']);
+        $this->assertSame(0, $data['total']);
     }
 
     public function testListRequiresAuthentication(): void
@@ -264,7 +258,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListCombinesSearchAndTeamFilter(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/teams/list');
         $teamsData = json_decode($client->getResponse()->getContent(), true);
@@ -286,7 +280,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListCombinesSearchAndPagination(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?search=a&page=1&limit=3');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -318,7 +312,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testListCoachDatesAreStringNotSerializedObject(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches?limit=25');
         $data = json_decode($client->getResponse()->getContent(), true);
@@ -352,7 +346,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testShowCoachDatesAreStringNotSerializedObject(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Coach-ID aus der Liste holen
         $client->request('GET', '/api/coaches?limit=1');
@@ -394,7 +388,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testShowReturnsCoachById(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches/1');
         $this->assertResponseIsSuccessful();
@@ -409,7 +403,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testShowReturnsCoachRelations(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches/1');
         $this->assertResponseIsSuccessful();
@@ -431,7 +425,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testShowReturns404ForUnknownCoach(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/coaches/99999999');
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
@@ -449,7 +443,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testShowReturnsPermissionsKey(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/coaches/1');
         $this->assertResponseIsSuccessful();
@@ -498,7 +492,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testCreateAsAdminReturnsCreated(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         $client->request(
@@ -529,7 +523,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testCreateWithNationalityAssignment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         $client->request(
@@ -568,7 +562,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testCreateWithClubAssignment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         $client->request(
@@ -621,7 +615,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testUpdateReturns404ForUnknownCoach(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request(
             'PUT',
             '/api/coaches/99999999',
@@ -663,7 +657,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testUpdateAsAdminSucceeds(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         // Create a temporary coach so fixture data is not modified
@@ -717,7 +711,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testUpdateWithNationalityAssignment(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         // Create a temporary coach so fixture data is not modified
@@ -788,7 +782,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testDeleteReturns404ForUnknownCoach(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('DELETE', '/api/coaches/99999999');
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
@@ -804,7 +798,7 @@ class CoachesControllerTest extends ApiWebTestCase
     public function testDeleteAsAdminSucceeds(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $suffix = bin2hex(random_bytes(4));
 
         // Create a coach to delete

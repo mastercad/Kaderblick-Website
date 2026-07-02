@@ -92,6 +92,6 @@ class PlayerDocumentAccessService
 
     private function isPlatformAdmin(User $user): bool
     {
-        return (bool) array_intersect(['ROLE_ADMIN', 'ROLE_SUPERADMIN'], $user->getRoles());
+        return in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
     }
 }

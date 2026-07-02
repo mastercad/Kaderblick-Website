@@ -91,8 +91,8 @@ class GamesControllerCompetitionTest extends WebTestCase
 
         $this->em->flush();
 
-        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user16@example.com']);
-        self::assertNotNull($this->adminUser, 'Fixture-User user16@example.com nicht gefunden. Bitte Fixtures laden.');
+        $this->adminUser = $this->em->getRepository(User::class)->findOneBy(['email' => 'user21@example.com']);
+        self::assertNotNull($this->adminUser, 'Fixture-User user21@example.com nicht gefunden. Bitte Fixtures laden.');
     }
 
     // ── details(): league ────────────────────────────────────────────────────

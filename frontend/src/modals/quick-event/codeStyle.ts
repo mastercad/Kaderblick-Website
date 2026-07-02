@@ -5,6 +5,10 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import StyleIcon from '@mui/icons-material/Style';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import BackHandIcon from '@mui/icons-material/BackHand';
+import BlockIcon from '@mui/icons-material/Block';
+import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
+import PlayCircleFilledWhiteIcon from '@mui/icons-material/PlayCircleFilledWhite';
+import StopCircleIcon from '@mui/icons-material/StopCircle';
 import type { SvgIconComponent } from '@mui/icons-material';
 
 export interface CodeStyleEntry {
@@ -36,6 +40,13 @@ export const CODE_STYLE: Record<string, CodeStyleEntry> = {
   substitution_injury: { color: '#f87171', Icon: SwapHorizIcon },
   foul:                { color: '#fb923c', Icon: BackHandIcon },
   penalty_foul:        { color: '#f87171', Icon: BackHandIcon },
+  match_state_toggle:  { color: '#22c55e', Icon: PlayCircleFilledWhiteIcon },
+  match_interruption_toggle: { color: '#f59e0b', Icon: PauseCircleFilledIcon },
+  match_abandoned:     { color: '#ef4444', Icon: BlockIcon },
+  injury_break:        { color: '#f59e0b', Icon: PauseCircleFilledIcon },
+  match_resumed:       { color: '#22c55e', Icon: PlayCircleFilledWhiteIcon },
+  halftime_start:      { color: '#22c55e', Icon: PlayCircleFilledWhiteIcon },
+  halftime_end:        { color: '#94a3b8', Icon: StopCircleIcon },
 };
 
 export const DEFAULT_CODE_STYLE: CodeStyleEntry = {

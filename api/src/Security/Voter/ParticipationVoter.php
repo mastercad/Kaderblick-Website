@@ -43,13 +43,13 @@ final class ParticipationVoter extends Voter
                 }
 
                 // Admins und Trainer können alle Teilnahmen sehen
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::EDIT:
             case self::DELETE:
                 // Nur eigene Teilnahme oder Admins
                 return $participation->getUser() === $user
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 return true; // Alle authentifizierten User können Teilnahmen erstellen

@@ -18,6 +18,7 @@ class TeamVoterTest extends TestCase
 {
     /** @var MockObject&CoachTeamPlayerService */
     private CoachTeamPlayerService $coachTeamPlayerService;
+    /** @var MockObject&AdminScopeService */
     private AdminScopeService $adminScopeService;
     private TeamVoter $voter;
 
@@ -47,15 +48,15 @@ class TeamVoterTest extends TestCase
     // CREATE
     // -------------------------------------------------------------------------
 
-    public function testCreateGrantedForAdmin(): void
+    public function testCreateDeniedForAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $team = $this->createTeam(10);
         $token = $this->createToken($user);
 
         $result = $this->voter->vote($token, $team, [TeamVoter::CREATE]);
 
-        $this->assertEquals(VoterInterface::ACCESS_GRANTED, $result);
+        $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
     public function testCreateGrantedForSuperAdmin(): void
@@ -96,11 +97,13 @@ class TeamVoterTest extends TestCase
     // EDIT
     // -------------------------------------------------------------------------
 
-    public function testEditGrantedForAdmin(): void
+    public function testEditGrantedForScopedAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $team = $this->createTeam(10);
         $token = $this->createToken($user);
+
+        $this->adminScopeService->method('canAdministerTeam')->with($user, $team)->willReturn(true);
 
         $result = $this->voter->vote($token, $team, [TeamVoter::EDIT]);
 
@@ -185,11 +188,13 @@ class TeamVoterTest extends TestCase
     // DELETE
     // -------------------------------------------------------------------------
 
-    public function testDeleteGrantedForAdmin(): void
+    public function testDeleteGrantedForScopedAdmin(): void
     {
-        $user = $this->createUser(1, ['ROLE_ADMIN']);
+        $user = $this->createUser(1, ['ROLE_TEAM_ADMIN']);
         $team = $this->createTeam(10);
         $token = $this->createToken($user);
+
+        $this->adminScopeService->method('canAdministerTeam')->with($user, $team)->willReturn(true);
 
         $result = $this->voter->vote($token, $team, [TeamVoter::DELETE]);
 

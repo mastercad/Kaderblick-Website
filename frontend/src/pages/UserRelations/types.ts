@@ -14,6 +14,8 @@ export interface UserRow {
   functionaryClubAssignments: Array<{ club?: { name: string }; type?: { name: string } | null }>;
   adminTeamAssignments: Array<{ team?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
   adminClubAssignments: Array<{ club?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
+  supporterTeamAssignments: Array<{ team?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
+  supporterClubAssignments: Array<{ club?: { id: number; name: string }; startDate?: string | null; endDate?: string | null }>;
 }
 
 export interface RegistrationRequestRow {
@@ -36,6 +38,7 @@ export interface SupporterRequestRow {
   processedAt?: string;
   note?: string;
   user: { id: number; fullName: string; email: string };
+  team?: { id: number; name: string } | null;
   processedBy?: { id: number; name: string };
 }
 

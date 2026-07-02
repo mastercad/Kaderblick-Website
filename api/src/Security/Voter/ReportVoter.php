@@ -43,13 +43,13 @@ final class ReportVoter extends Voter
                 }
 
                 return $report->getUser() === $user
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::EDIT:
             case self::DELETE:
                 // Nur Owner oder Admins
                 return $report->getUser() === $user
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 return true; // Alle authentifizierten User können Reports erstellen

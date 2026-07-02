@@ -17,6 +17,7 @@ use App\Entity\TournamentTeam;
 use App\Entity\User;
 use App\Entity\UserRelation;
 use App\Repository\CalendarEventRepository;
+use App\Service\SupporterScopeService;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -83,7 +84,7 @@ class MyTeamControllerEventFilterTest extends TestCase
         $container->set('security.token_storage', $tokenStorage);
         $container->set('security.authorization_checker', $this->createMock(AuthorizationCheckerInterface::class));
 
-        $this->controller = new MyTeamController($this->em);
+        $this->controller = new MyTeamController($this->em, $this->createMock(SupporterScopeService::class));
         $this->controller->setContainer($container);
     }
 

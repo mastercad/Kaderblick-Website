@@ -55,9 +55,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
-    public function testListForbiddenForAdmin(): void
+    public function testListForbiddenForRegularUserWithoutRelations(): void
     {
-        $this->authenticateUser($this->client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($this->client, 'user16@example.com');
 
         $this->client->request('GET', '/api/superadmin/system-settings');
 
@@ -78,9 +78,9 @@ class SystemSettingControllerTest extends ApiWebTestCase
         $this->assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
-    public function testUpdateForbiddenForAdmin(): void
+    public function testUpdateForbiddenForRegularUserWithoutRelations(): void
     {
-        $this->authenticateUser($this->client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($this->client, 'user16@example.com');
 
         $this->client->request(
             'PATCH',

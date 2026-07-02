@@ -29,14 +29,16 @@ import { Game, GameEvent, GameEventType, SubstitutionReason } from '../types/gam
 import BaseModal from './BaseModal';
 import { EventTypeAutocomplete } from '../components/EventTypeAutocomplete';
 import {
-  secondsToMinute,
   minuteToSeconds,
   secondsToFootballTime,
   elapsedSecondsToFormTime,
   formatFootballTime,
+  formatSecondsAsClockTime,
   isNearHalfEnd,
   DEFAULT_HALF_DURATION,
+  parseFootballTimeInputToSeconds,
 } from '../utils/gameEventTime';
+import { isSystemGameEventCode } from '../utils/eventTypeGroups';
 
 // ── Event-Typ Gruppen & Schnellzugriff ───────────────────────────────────────
 
@@ -62,6 +64,19 @@ function loadLastEvent(gid: number): LastEventCtx | null {
 }
 function saveLastEvent(gid: number, ev: LastEventCtx) {
   try { sessionStorage.setItem(LAST_EVT_KEY(gid), JSON.stringify(ev)); } catch { /* noop */ }
+}
+
+function secondsToFormInput(seconds: number, halfDuration: number): { minute: string; stoppage: string } {
+  if (seconds <= 0) {
+    return { minute: '0', stoppage: '0' };
+  }
+
+  if (seconds % 60 !== 0) {
+    return { minute: formatSecondsAsClockTime(seconds), stoppage: '0' };
+  }
+
+  const { minute, stoppage } = secondsToFootballTime(seconds, halfDuration);
+  return { minute: String(minute), stoppage: String(stoppage) };
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -90,7 +105,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
 }) => {
   const halfDuration: number = game.halfDuration ?? game.gameType?.halfDuration ?? DEFAULT_HALF_DURATION;
 
-  const parseExistingSeconds = (): { minute: number; stoppage: number } => {
+  const parseExistingSeconds = (): { minute: string; stoppage: string } => {
     let sec = 0;
     if (existingEvent?.timestamp && game.calendarEvent?.startDate) {
       sec = Math.floor(
@@ -100,7 +115,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
     } else if (existingEvent?.minute && !isNaN(Number(existingEvent.minute))) {
       sec = Number(existingEvent.minute);
     }
-    return secondsToFootballTime(sec, halfDuration);
+    return secondsToFormInput(sec, halfDuration);
   };
 
   const getInitialFormData = () => {
@@ -112,8 +127,8 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         player: existingEvent.player?.id?.toString() || existingEvent.playerId?.toString() || '',
         relatedPlayer: existingEvent.relatedPlayer?.id?.toString() || existingEvent.relatedPlayerId?.toString() || '',
         coach: existingEvent.coachId?.toString() || '',
-        minute: String(minute),
-        stoppage: String(stoppage),
+        minute,
+        stoppage,
         description: existingEvent.description || '',
         reason: (existingEvent as any).reason?.id || 0,
         playerId: existingEvent.playerId || 0,
@@ -121,13 +136,16 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
       };
     }
     const ctx = loadCtx(gameId);
+    const gameTeamIds = [game.homeTeam?.id, game.awayTeam?.id].filter((id): id is number => typeof id === 'number');
+    const userGameTeamIds = (game.userTeamIds ?? []).filter((id) => gameTeamIds.includes(id));
+    const defaultTeam = ctx.team ?? (userGameTeamIds.length === 1 ? String(userGameTeamIds[0]) : '');
     return {
-      team: ctx.team ?? '',
+      team: defaultTeam,
       eventType: ctx.eventType ?? '',
       player: '',
       relatedPlayer: '',
       coach: '',
-      minute: initialMinute !== undefined ? String(secondsToMinute(initialMinute)) : '',
+      minute: initialMinute !== undefined ? secondsToFormInput(initialMinute, halfDuration).minute : '',
       stoppage: '0',
       description: '',
       reason: 0,
@@ -176,6 +194,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   // ── Modal-Open ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (open && !prevOpen.current) {
+      setSubmitError(null);
       setFormData(getInitialFormData());
       setPersonType(existingEvent?.coachId ? 'coach' : 'player');
       setLastEvent(existingEvent ? null : loadLastEvent(gameId));
@@ -188,8 +207,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
     if (open && !existingEvent && typeof initialMinute === 'number') {
       setFormData(prev => ({
         ...prev,
-        minute: String(secondsToMinute(initialMinute)),
-        stoppage: '0',
+        ...secondsToFormInput(initialMinute, halfDuration),
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -326,19 +344,26 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     try {
+      setSubmitError(null);
       setLoading(true);
+      const minuteInput = String(formData.minute);
+      const stoppageInput = String(formData.stoppage);
       const sec = minuteToSeconds(
-        parseInt(formData.minute, 10) || 0,
-        parseInt(formData.stoppage, 10) || 0,
+        parseInt(minuteInput, 10) || 0,
+        parseInt(stoppageInput, 10) || 0,
       );
+      const parsedSeconds = parseFootballTimeInputToSeconds(minuteInput, parseInt(stoppageInput, 10) || 0);
+      const selectedType = eventTypes.find(et => et.id === Number(formData.eventType));
+      const isSystemType = isSystemGameEventCode(selectedType?.code);
       const submitData = {
         eventType: Number(formData.eventType),
-        minute: String(sec),
+        team: isSystemType ? null : undefined,
+        minute: String(parsedSeconds ?? sec),
         description: formData.description,
         reason: formData.reason ? Number(formData.reason) : undefined,
-        player: personType === 'player' && formData.player ? Number(formData.player) : undefined,
-        relatedPlayer: personType === 'player' && formData.relatedPlayer ? Number(formData.relatedPlayer) : undefined,
-        coach: personType === 'coach' && formData.coach ? Number(formData.coach) : undefined,
+        player: isSystemType ? null : (personType === 'player' && formData.player ? Number(formData.player) : undefined),
+        relatedPlayer: isSystemType ? null : (personType === 'player' && formData.relatedPlayer ? Number(formData.relatedPlayer) : undefined),
+        coach: isSystemType ? null : (personType === 'coach' && formData.coach ? Number(formData.coach) : undefined),
       };
       if (existingEvent) {
         await updateGameEvent(gameId, existingEvent.id, submitData);
@@ -349,15 +374,16 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         const tId = Number(formData.team);
         const allForTeam = [...(squadByTeam[tId] ?? []), ...(allPlayersByTeam[tId] ?? [])];
         const playerObj = allForTeam.find(p => p.id === Number(formData.player));
-        saveCtx(gameId, { team: formData.team, eventType: formData.eventType });
+        saveCtx(gameId, { team: String(formData.team), eventType: String(formData.eventType) });
         saveLastEvent(gameId, {
-          team: formData.team,
-          eventType: formData.eventType,
-          player: formData.player,
-          relatedPlayer: formData.relatedPlayer,
+          team: String(formData.team),
+          eventType: String(formData.eventType),
+          player: String(formData.player),
+          relatedPlayer: String(formData.relatedPlayer),
           label: [savedEt?.name, playerObj?.fullName].filter(Boolean).join(' – '),
         });
       }
+      setSubmitError(null);
       onSuccess();
     } catch (error) {
       console.error('Error saving game event:', error);
@@ -378,11 +404,21 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
   };
 
   // ── Anzeige-Berechnungen ───────────────────────────────────────────────────
-  const min = parseInt(formData.minute, 10) || 0;
-  const stopp = parseInt(formData.stoppage, 10) || 0;
-  const timeDisplay = formatFootballTime(min, stopp);
-  const isTimeValid = min > 0;
+  const minuteInput = String(formData.minute);
+  const stoppageInput = String(formData.stoppage);
+  const min = parseInt(minuteInput, 10) || 0;
+  const stopp = parseInt(stoppageInput, 10) || 0;
+  const parsedTimeSeconds = parseFootballTimeInputToSeconds(minuteInput, stopp);
+  const isClockTimeInput = minuteInput.includes(':');
+  const timeDisplay = parsedTimeSeconds !== null && isClockTimeInput
+    ? formatSecondsAsClockTime(parsedTimeSeconds)
+    : formatFootballTime(min, stopp);
+  const isTimeValid = parsedTimeSeconds !== null;
   const showStoppageChips = isNearHalfEnd(min, halfDuration);
+
+  // Check ob ausgewählter Event-Type ein System-Event ist
+  const selectedEventType = eventTypes.find(et => et.id === Number(formData.eventType));
+  const isSystemEventType = isSystemGameEventCode(selectedEventType?.code);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -401,7 +437,13 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
             onClick={handleSubmit}
             variant="contained"
             color="primary"
-            disabled={loading || !formData.eventType || !formData.team || (personType === 'player' ? !formData.player : !formData.coach) || !isTimeValid}
+            disabled={
+              loading ||
+              !formData.eventType ||
+              !isTimeValid ||
+              // Für System-Events: keine Team/Player-Auswahl nötig
+              (!isSystemEventType && (!formData.team || (personType === 'player' ? !formData.player : !formData.coach)))
+            }
             sx={{ minHeight: 48, flex: 1 }}
           >
             {loading ? 'Speichere…' : 'Speichern'}
@@ -469,7 +511,7 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
               size="small"
               variant="outlined"
               onClick={() => {
-                const v = Math.max(1, min - 1);
+                const v = Math.max(0, min - 1);
                 setFormData(prev => ({ ...prev, minute: String(v), stoppage: '0' }));
               }}
               sx={{ minWidth: 36, px: 0, fontWeight: 'bold', fontSize: '1.1rem' }}
@@ -477,19 +519,17 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
               −
             </Button>
             <TextField
-              type="number"
+              type="text"
               value={formData.minute}
               onChange={e => {
-                const v = e.target.value.replace(/\D/g, '');
+                const v = e.target.value.replace(/[^\d:]/g, '');
                 setFormData(prev => ({ ...prev, minute: v, stoppage: '0' }));
               }}
-              placeholder="–"
+              placeholder="0 oder 00:15"
               required
-              sx={{ width: 68 }}
+              sx={{ width: 92 }}
               slotProps={{
                 htmlInput: {
-                  min: 1,
-                  max: 200,
                   inputMode: 'numeric',
                   style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem', padding: '6px 4px' },
                 }
@@ -571,20 +611,6 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           </Button>
         )}
 
-        {/* ── Event-Details ─────────────────────────────────────────────────── */}
-        <FormControl fullWidth required sx={{ mb: 2 }}>
-          <InputLabel>Team</InputLabel>
-          <Select
-            value={formData.team}
-            onChange={e => handleInputChange('team', e.target.value)}
-            label="Team"
-          >
-            <MenuItem value="">Team wählen…</MenuItem>
-            <MenuItem value={game.homeTeam.id}>{game.homeTeam.name}</MenuItem>
-            <MenuItem value={game.awayTeam.id}>{game.awayTeam.name}</MenuItem>
-          </Select>
-        </FormControl>
-
         {/* Event-Typ mit Suche und Gruppierung */}
         <EventTypeAutocomplete
           options={eventTypes}
@@ -595,8 +621,30 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
           sx={{ mb: 2 }}
         />
 
+        {isSystemEventType ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Dieses Ereignis wird als Spielverlauf-Event ohne Team- oder Spielerzuordnung gespeichert.
+          </Alert>
+        ) : (
+          <>
+            {/* ── Event-Details ─────────────────────────────────────────────────── */}
+            <FormControl fullWidth required sx={{ mb: 2 }}>
+              <InputLabel>Team</InputLabel>
+              <Select
+                value={formData.team}
+                onChange={e => handleInputChange('team', e.target.value)}
+                label="Team"
+              >
+                <MenuItem value="">Team wählen…</MenuItem>
+                <MenuItem value={game.homeTeam.id}>{game.homeTeam.name}</MenuItem>
+                <MenuItem value={game.awayTeam.id}>{game.awayTeam.name}</MenuItem>
+              </Select>
+            </FormControl>
+          </>
+        )}
+
         {/* ── Kader-Indikator: Chip wenn Participation-Daten vorhanden ── */}
-        {formData.team && hasParticipationData && (() => {
+        {!isSystemEventType && formData.team && hasParticipationData && (() => {
           const teamId = Number(formData.team);
           const squadCount = squadByTeam[teamId]?.length ?? 0;
           return (
@@ -613,74 +661,79 @@ export const GameEventModal: React.FC<GameEventModalProps> = ({
         })()}
 
         {/* ── Person-Typ-Umschalter ────────────────────────────────────────── */}
-        <ToggleButtonGroup
-          value={personType}
-          exclusive
-          onChange={(_e, val) => { if (val) { setPersonType(val); setFormData(prev => ({ ...prev, player: '', coach: '' })); } }}
-          size="small"
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          <ToggleButton value="player">Spieler</ToggleButton>
-          <ToggleButton value="coach">Trainer</ToggleButton>
-        </ToggleButtonGroup>
+        {!isSystemEventType && (
+          <>
+            {/* ── Person-Typ-Umschalter ────────────────────────────────────────── */}
+            <ToggleButtonGroup
+              value={personType}
+              exclusive
+              onChange={(_e, val) => { if (val) { setPersonType(val); setFormData(prev => ({ ...prev, player: '', coach: '' })); } }}
+              size="small"
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              <ToggleButton value="player">Spieler</ToggleButton>
+              <ToggleButton value="coach">Trainer</ToggleButton>
+            </ToggleButtonGroup>
 
-        {personType === 'player' ? (
-          <FormControl fullWidth required sx={{ mb: 2 }}>
-            <InputLabel>Spieler</InputLabel>
-            <Select
-              value={formData.player}
-              onChange={e => handleInputChange('player', e.target.value)}
-              label="Spieler"
-            >
-              {renderPlayerOptions(formData.team)}
-            </Select>
-          </FormControl>
-        ) : (
-          <FormControl fullWidth required sx={{ mb: 2 }}>
-            <InputLabel>Trainer</InputLabel>
-            <Select
-              value={formData.coach}
-              onChange={e => handleInputChange('coach', e.target.value)}
-              label="Trainer"
-            >
-              <MenuItem value="">Trainer wählen…</MenuItem>
-              {(coachesByTeam[Number(formData.team)] ?? []).map(c => (
-                <MenuItem key={c.id} value={c.id}>{c.fullName}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
+            {personType === 'player' ? (
+              <FormControl fullWidth required sx={{ mb: 2 }}>
+                <InputLabel>Spieler</InputLabel>
+                <Select
+                  value={formData.player}
+                  onChange={e => handleInputChange('player', e.target.value)}
+                  label="Spieler"
+                >
+                  {renderPlayerOptions(formData.team)}
+                </Select>
+              </FormControl>
+            ) : (
+              <FormControl fullWidth required sx={{ mb: 2 }}>
+                <InputLabel>Trainer</InputLabel>
+                <Select
+                  value={formData.coach}
+                  onChange={e => handleInputChange('coach', e.target.value)}
+                  label="Trainer"
+                >
+                  <MenuItem value="">Trainer wählen…</MenuItem>
+                  {(coachesByTeam[Number(formData.team)] ?? []).map(c => (
+                    <MenuItem key={c.id} value={c.id}>{c.fullName}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
 
-        {personType === 'player' && isSubstitution() && (
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Eingewechselter Spieler</InputLabel>
-            <Select
-              value={formData.relatedPlayer}
-              onChange={e => handleInputChange('relatedPlayer', e.target.value)}
-              label="Eingewechselter Spieler"
-            >
-              {renderPlayerOptions(formData.team)}
-            </Select>
-          </FormControl>
-        )}
+            {personType === 'player' && isSubstitution() && (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Eingewechselter Spieler</InputLabel>
+                <Select
+                  value={formData.relatedPlayer}
+                  onChange={e => handleInputChange('relatedPlayer', e.target.value)}
+                  label="Eingewechselter Spieler"
+                >
+                  {renderPlayerOptions(formData.team)}
+                </Select>
+              </FormControl>
+            )}
 
-        {personType === 'player' && isSubstitution() && (
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Grund für Wechsel</InputLabel>
-            <Select
-              value={formData.reason}
-              onChange={e => handleInputChange('reason', e.target.value)}
-              label="Grund für Wechsel"
-            >
-              <MenuItem value="">Grund wählen…</MenuItem>
-              {substitutionReasons.map(reason => (
-                <MenuItem key={reason.id} value={reason.id}>
-                  {reason.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            {personType === 'player' && isSubstitution() && (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Grund für Wechsel</InputLabel>
+                <Select
+                  value={formData.reason}
+                  onChange={e => handleInputChange('reason', e.target.value)}
+                  label="Grund für Wechsel"
+                >
+                  <MenuItem value="">Grund wählen…</MenuItem>
+                  {substitutionReasons.map(reason => (
+                    <MenuItem key={reason.id} value={reason.id}>
+                      {reason.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </>
         )}
 
         <TextField

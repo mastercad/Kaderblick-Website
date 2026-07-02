@@ -111,7 +111,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testIndexReturnsListStructure(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com'); // ROLE_ADMIN
+        $this->authenticateUser($client, 'user21@example.com'); // ROLE_SUPERADMIN
 
         $client->request('GET', '/admin/registration-requests');
 
@@ -129,7 +129,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testIndexDefaultFilterIsPending(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Create a pending request
         $this->createPendingRequest();
@@ -147,7 +147,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testIndexWithAllFilterReturnsAllStatuses(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/admin/registration-requests?status=all');
 
@@ -166,7 +166,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testIndexCountsAreIntegers(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/admin/registration-requests?status=all');
 
@@ -180,7 +180,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testIndexRequestItemHasExpectedFields(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $this->createPendingRequest();
 
@@ -216,7 +216,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testApproveCreatesUserRelation(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest('player');
         $reqId = $req->getId();
@@ -247,7 +247,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testApproveAlreadyProcessedReturns409(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest();
 
@@ -266,7 +266,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testApproveCoachRequest(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest('coach');
 
@@ -300,7 +300,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testRejectMarksRequestAsRejected(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest();
         $reqId = $req->getId();
@@ -322,7 +322,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testRejectWithReasonAppendsToNote(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest();
         $reqId = $req->getId();
@@ -342,7 +342,7 @@ class RegistrationRequestAdminControllerTest extends ApiWebTestCase
     public function testRejectAlreadyProcessedReturns409(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $req = $this->createPendingRequest();
 

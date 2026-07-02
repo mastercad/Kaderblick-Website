@@ -189,7 +189,7 @@ class FormationControllerTest extends WebTestCase
     public function testAdminCanAccessOtherUsersFormation(): void
     {
         $regularUser = $this->loadUser('user6@example.com');
-        $admin = $this->loadUser('user16@example.com');
+        $admin = $this->loadUser('user21@example.com');
         $type = $this->getFormationType();
         $userFormation = $this->createFormation($regularUser, $type, 'voter-test-User Formation');
 

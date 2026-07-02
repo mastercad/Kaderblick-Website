@@ -84,12 +84,12 @@ class UserFixtures extends Fixture implements FixtureGroupInterface
                 $user->addRole('ROLE_USER');
                 $user->setIsVerified(true);
             } elseif ($i < 550) {
-                // Users 500-549: Klub-Admins
-                $user->addRole('ROLE_CLUB');
+                // Users 500-549: regular users; scopes are assigned via dedicated scope entities.
+                $user->addRole('ROLE_USER');
                 $user->setIsVerified(true);
             } else {
-                // Users 550-599: Vereins-Admins
-                $user->addRole('ROLE_ADMIN');
+                // Users 550-599: regular users; admin scope is assigned via dedicated scope entities.
+                $user->addRole('ROLE_USER');
                 $user->setIsVerified(true);
             }
 

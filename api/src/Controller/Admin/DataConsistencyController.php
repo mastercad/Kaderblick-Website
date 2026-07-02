@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/consistency', name: 'admin_consistency_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_SUPERADMIN')]
 class DataConsistencyController extends AbstractController
 {
     public function __construct(

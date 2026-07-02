@@ -43,11 +43,11 @@ final class NotificationVoter extends Voter
             case self::DELETE:
                 // Eigene Benachrichtigungen oder Admin
                 return $notification->getUser()->getId() === $user->getId()
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 // Admins können Benachrichtigungen erstellen
-                return in_array('ROLE_ADMIN', $user->getRoles())
+                return in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
         }
 

@@ -16,6 +16,7 @@ use App\Repository\PlayerClubAssignmentRepository;
 use App\Repository\PlayerNationalityAssignmentRepository;
 use App\Repository\PlayerTeamAssignmentRepository;
 use App\Security\Voter\PlayerVoter;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use App\Service\NotificationService;
 use App\Service\PlayerSerializerService;
@@ -38,7 +39,8 @@ class PlayersController extends AbstractController
         private EntityManagerInterface $entityManager,
         private CoachTeamPlayerService $coachTeamPlayerService,
         private NotificationService $notificationService,
-        private PlayerSerializerService $playerSerializer
+        private PlayerSerializerService $playerSerializer,
+        private AdminScopeService $adminScopeService,
     ) {
     }
 
@@ -73,8 +75,10 @@ class PlayersController extends AbstractController
 
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
-        $isAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
+        $isSuperAdmin = $this->isGranted('ROLE_SUPERADMIN');
         $coachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($user));
+        $adminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
+        $scopeTeamIds = array_values(array_unique(array_merge($coachTeamIds, $adminTeamIds)));
         $isCoach = count($coachTeamIds) > 0;
 
         if ($searchAll) {
@@ -82,6 +86,14 @@ class PlayersController extends AbstractController
             // Leihgaben, Testspieler). Kein Team-Filter – die Schreibrechte werden in update() geprüft.
             // leftJoin damit auch Spieler ohne jede Zuordnung gefunden werden.
             $qb->leftJoin('p.playerTeamAssignments', 'pta');
+            if (!$isSuperAdmin) {
+                if ($scopeTeamIds) {
+                    $qb->andWhere('pta.team IN (:scopeTeamIds)')
+                       ->setParameter('scopeTeamIds', $scopeTeamIds);
+                } else {
+                    $qb->andWhere('1 = 0');
+                }
+            }
         } else {
             // Normaler Modus: innerJoin + Saison-Filter
             $qb->innerJoin('p.playerTeamAssignments', 'pta')
@@ -92,12 +104,19 @@ class PlayersController extends AbstractController
 
             // Additionally filter by team or coach scope
             if ($teamId) {
-                $qb->andWhere('pta.team = :teamId')
-                   ->setParameter('teamId', (int) $teamId);
-            } elseif (!$isAdmin && $isCoach) {
-                // Coach sieht nur Spieler aus seinen aktiv zugeordneten Teams
-                $qb->andWhere('pta.team IN (:coachTeamIds)')
-                   ->setParameter('coachTeamIds', $coachTeamIds);
+                if (!$isSuperAdmin && !in_array((int) $teamId, $scopeTeamIds, true)) {
+                    $qb->andWhere('1 = 0');
+                } else {
+                    $qb->andWhere('pta.team = :teamId')
+                       ->setParameter('teamId', (int) $teamId);
+                }
+            } elseif (!$isSuperAdmin) {
+                if ($scopeTeamIds) {
+                    $qb->andWhere('pta.team IN (:scopeTeamIds)')
+                       ->setParameter('scopeTeamIds', $scopeTeamIds);
+                } else {
+                    $qb->andWhere('1 = 0');
+                }
             }
         }
 
@@ -182,18 +201,19 @@ class PlayersController extends AbstractController
                 ], $player->getPlayerTeamAssignments()->toArray()),
                 'fussballDeUrl' => $player->getFussballDeUrl(),
                 'fussballDeId' => $player->getFussballDeId(),
-                'permissions' => (static function () use ($player, $isAdmin, $isCoach, $coachTeamIds): array {
+                'permissions' => (static function () use ($player, $isSuperAdmin, $isCoach, $coachTeamIds, $adminTeamIds): array {
                     $playerTeamIds = array_map(
                         fn ($pta) => $pta->getTeam()->getId(),
                         $player->getPlayerTeamAssignments()->toArray()
                     );
                     $coachCanManage = $isCoach && count(array_intersect($playerTeamIds, $coachTeamIds)) > 0;
+                    $adminCanManage = count(array_intersect($playerTeamIds, $adminTeamIds)) > 0;
 
                     return [
                         'canView' => true,
-                        'canEdit' => $isAdmin || $coachCanManage,
-                        'canCreate' => $isAdmin || $isCoach,
-                        'canDelete' => $isAdmin || $coachCanManage,
+                        'canEdit' => $isSuperAdmin || $adminCanManage || $coachCanManage,
+                        'canCreate' => $isSuperAdmin || [] !== $adminTeamIds || $isCoach,
+                        'canDelete' => $isSuperAdmin || $adminCanManage || $coachCanManage,
                     ];
                 })()
             ], $players),
@@ -322,11 +342,13 @@ class PlayersController extends AbstractController
 
         /** @var \App\Entity\User $updateUser */
         $updateUser = $this->getUser();
-        $updateIsAdmin = $this->isGranted('ROLE_ADMIN') || $this->isGranted('ROLE_SUPERADMIN');
+        $updateIsSuperAdmin = $this->isGranted('ROLE_SUPERADMIN');
         $updateCoachTeamIds = array_keys($this->coachTeamPlayerService->collectCoachTeams($updateUser));
+        $updateAdminTeamIds = array_keys($this->adminScopeService->getAdministeredTeams($updateUser));
+        $updateWritableTeamIds = array_unique(array_merge($updateCoachTeamIds, $updateAdminTeamIds));
 
         // Compute full scope BEFORE any assignments are modified.
-        // Full scope = admin OR all of the player's *active* PTAs are in the coach's teams.
+        // Full scope = superadmin OR all of the player's *active* PTAs are in the viewer's scoped teams.
         // Active = endDate IS NULL or endDate >= today. Historical PTAs from previous clubs
         // are deliberately excluded so that a fully transferred player (all old PTAs ended)
         // can be claimed by the new club's coach without admin involvement.
@@ -340,8 +362,8 @@ class PlayersController extends AbstractController
             fn ($pta) => $pta->getTeam()->getId(),
             $updateActiveAssignments
         );
-        $updateIsFullScope = $updateIsAdmin
-            || 0 === count(array_diff($updatePlayerTeamIds, $updateCoachTeamIds));
+        $updateIsFullScope = $updateIsSuperAdmin
+            || 0 === count(array_diff($updatePlayerTeamIds, $updateWritableTeamIds));
 
         // Stammdaten dürfen nur bei voller Scope-Berechtigung geändert werden
         if ($updateIsFullScope) {
@@ -466,7 +488,7 @@ class PlayersController extends AbstractController
             }
 
             // Coach darf nur Assignments für seine eigenen Teams schreiben
-            if (!$updateIsAdmin && !in_array($team->getId(), $updateCoachTeamIds)) {
+            if (!$updateIsSuperAdmin && !in_array($team->getId(), $updateWritableTeamIds, true)) {
                 continue;
             }
 
@@ -492,11 +514,11 @@ class PlayersController extends AbstractController
         // PTAs fremder Teams bleiben immer erhalten.
         /** @var PlayerTeamAssignmentRepository $playerTeamAssignmentRepository */
         $playerTeamAssignmentRepository = $this->entityManager->getRepository(PlayerTeamAssignment::class);
-        if (!$updateIsAdmin) {
-            $existingPlayerTeams = array_values(array_filter($existingPlayerTeams, function (int $ptaId) use ($updateCoachTeamIds): bool {
+        if (!$updateIsSuperAdmin) {
+            $existingPlayerTeams = array_values(array_filter($existingPlayerTeams, function (int $ptaId) use ($updateWritableTeamIds): bool {
                 $pta = $this->entityManager->getRepository(PlayerTeamAssignment::class)->find($ptaId);
 
-                return null !== $pta && in_array($pta->getTeam()->getId(), $updateCoachTeamIds);
+                return null !== $pta && in_array($pta->getTeam()->getId(), $updateWritableTeamIds, true);
             }));
         }
         $playerTeamAssignmentRepository->deleteByIds($existingPlayerTeams);

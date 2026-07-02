@@ -51,7 +51,7 @@ class TournamentVoter extends Voter
         }
 
         if (self::CREATE === $attribute) {
-            return $user->isVerified() && in_array('ROLE_ADMIN', $user->getRoles(), true);
+            return $user->isVerified() && in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
         }
 
         switch ($attribute) {
@@ -59,7 +59,7 @@ class TournamentVoter extends Voter
                 return $this->isOwner($subject, $user);
             case self::EDIT:
             case self::DELETE:
-                return in_array('ROLE_ADMIN', $user->getRoles(), true)
+                return in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
                     || $this->isOwner($subject, $user);
         }
 

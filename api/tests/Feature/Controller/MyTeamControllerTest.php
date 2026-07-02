@@ -11,7 +11,7 @@ use Tests\Feature\ApiWebTestCase;
  * Feature-Tests für den MyTeamController (/api/my-team).
  *
  * Fixtures: user6 = ROLE_USER mit Spieler-Verknüpfung (Team 1)
- *           user16 = ROLE_ADMIN
+ *           user21 = ROLE_SUPERADMIN
  */
 final class MyTeamControllerTest extends ApiWebTestCase
 {
@@ -108,7 +108,7 @@ final class MyTeamControllerTest extends ApiWebTestCase
     public function testOverviewAdminReturnsValidResponse(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('GET', '/api/my-team');
 

@@ -11,7 +11,7 @@ use Tests\Feature\ApiWebTestCase;
  * Feature-Tests für den SurveyController (/api/surveys).
  *
  * Fixtures werden über bootstrap.php geladen (--group=master --group=test).
- * Rollen: user6 = ROLE_USER, user16 = ROLE_ADMIN, user21 = ROLE_SUPERADMIN
+ * Rollen: user6 = ROLE_USER, user21 = ROLE_SUPERADMIN
  */
 final class SurveyControllerTest extends ApiWebTestCase
 {
@@ -35,7 +35,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testCreateSurveyAsAdminSucceeds(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Test-Umfrage',
@@ -58,7 +58,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testCreateSurveyWithChoiceQuestionsAndOptions(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Hole verfügbare System-Optionen
         $client->request('GET', '/api/survey-options');
@@ -96,7 +96,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testCreateSurveyWithInlineNewOption(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Umfrage mit neuer Option',
@@ -142,7 +142,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testCreateSurveyWithInvalidPayloadFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'description' => 'Kein Titel, keine Fragen',
@@ -154,7 +154,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testCreateSurveyWithUnknownTypeFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Umfrage mit unbekanntem Typ',
@@ -172,7 +172,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testShowCreatedSurvey(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle eine Umfrage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -201,7 +201,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testUpdateSurveyAsAdmin(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle Umfrage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -235,7 +235,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testUpdateSurveyAsRegularUserFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle als Admin
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -260,7 +260,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testSubmitSurveyResponse(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle Umfrage mit Text-Frage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -291,7 +291,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testSubmitSurveyResponseTwiceFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Doppelt-Test',
@@ -324,7 +324,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testResultsAsAdmin(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Umfrage erstellen
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -348,7 +348,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testDeleteSurveyAsAdmin(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Lösch-Test',
@@ -367,7 +367,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testDeleteSurveyAsRegularUserFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Nicht löschbar',
@@ -386,7 +386,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsAsAdminReturnsFullPayload(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle Umfrage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -431,7 +431,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsAsSuperAdminReturnsOk(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Stats-SuperAdmin-Test',
@@ -448,7 +448,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsAsRegularUserReturnsForbidden(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Stats-Forbidden-Test',
@@ -465,7 +465,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsIncludesParticipantsAfterSubmit(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle Umfrage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -488,7 +488,7 @@ final class SurveyControllerTest extends ApiWebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
 
         // Stats prüfen
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('GET', '/api/surveys/' . $surveyData['id'] . '/stats');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
 
@@ -507,7 +507,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsQuestionStatsStructure(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle Umfrage mit verschiedenen Fragentypen
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -549,7 +549,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsParticipationRateCalculation(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Stats-Rate-Test',
@@ -576,7 +576,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testListSurveysIncludesCanViewStats(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // Erstelle eine Umfrage
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
@@ -602,7 +602,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testListSurveysCanViewStatsIsTrueForAdmin(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Admin-Stats-Sichtbar',
@@ -622,7 +622,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testListSurveysCanViewStatsIsFalseForRegularUser(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'User-Stats-Unsichtbar',
@@ -643,7 +643,7 @@ final class SurveyControllerTest extends ApiWebTestCase
     public function testStatsTargetGroupForPlatformSurvey(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/api/surveys', [], [], [], json_encode([
             'title' => 'Plattform-Zielgruppe-Test',

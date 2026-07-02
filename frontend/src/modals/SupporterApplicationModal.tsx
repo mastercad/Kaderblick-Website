@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, MenuItem, TextField, Typography } from '@mui/material';
 import BaseModal from './BaseModal';
 import { apiJson, getApiErrorMessage } from '../utils/api';
 
@@ -10,8 +10,10 @@ interface SupporterRequestResponse {
     note?: string | null;
     createdAt: string;
     processedAt?: string | null;
+    team?: { id: number; name: string } | null;
   } | null;
   hasSupporterRole?: boolean;
+  eligibleTeams?: Array<{ id: number; name: string; hasSupporterScope?: boolean }>;
 }
 
 interface SupporterApplicationModalProps {
@@ -26,6 +28,8 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
   const [error, setError] = useState<string | null>(null);
   const [request, setRequest] = useState<SupporterRequestResponse['request']>(null);
   const [hasSupporterRole, setHasSupporterRole] = useState(false);
+  const [eligibleTeams, setEligibleTeams] = useState<SupporterRequestResponse['eligibleTeams']>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -41,6 +45,9 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
       .then((data) => {
         setRequest(data.request ?? null);
         setHasSupporterRole(Boolean(data.hasSupporterRole));
+        const teams = data.eligibleTeams ?? [];
+        setEligibleTeams(teams);
+        setSelectedTeamId(teams.length === 1 ? teams[0].id : '');
       })
       .catch((err) => {
         setError(getApiErrorMessage(err));
@@ -48,7 +55,7 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
       .finally(() => setLoading(false));
   }, [open]);
 
-  const handleSubmit = async () => {
+  const submitRequest = async (teamId: number, requestNote: string | null) => {
     setSubmitting(true);
     setError(null);
 
@@ -56,7 +63,8 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
       const response = await apiJson<SupporterRequestResponse>('/api/supporter-request', {
         method: 'POST',
         body: {
-          note: note.trim() || null,
+          teamId,
+          note: requestNote,
         },
       });
 
@@ -70,12 +78,30 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
     }
   };
 
+  useEffect(() => {
+    if (!open || loading || submitting || submitted || request) {
+      return;
+    }
+    const actionableTeams = (eligibleTeams ?? []).filter(team => !team.hasSupporterScope);
+    if (actionableTeams.length === 1) {
+      void submitRequest(actionableTeams[0].id, null);
+    }
+  }, [eligibleTeams, loading, open, request, submitted, submitting]);
+
+  const handleSubmit = async () => {
+    if (!selectedTeamId) {
+      setError('Bitte wähle ein Team aus.');
+      return;
+    }
+    await submitRequest(Number(selectedTeamId), note.trim() || null);
+  };
+
   const actions = (
     <>
       <Button onClick={onClose} variant="outlined" color="secondary">
         Schließen
       </Button>
-      {!request && !hasSupporterRole && (
+      {!request && eligibleTeams.length !== 1 && (
         <Button onClick={handleSubmit} variant="contained" disabled={submitting || loading}>
           {submitting ? 'Wird gesendet...' : 'Als Supporter bewerben'}
         </Button>
@@ -111,7 +137,7 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
 
           {!hasSupporterRole && request && (
             <Alert severity="warning">
-              Du hast bereits eine offene Supporter-Anfrage vom {request.createdAt}. Sobald sie bearbeitet wurde, erhältst du eine Benachrichtigung.
+              Du hast bereits eine offene Supporter-Anfrage{request.team ? ` für ${request.team.name}` : ''} vom {request.createdAt}. Sobald sie bearbeitet wurde, erhältst du eine Benachrichtigung.
             </Alert>
           )}
 
@@ -121,8 +147,31 @@ export const SupporterApplicationModal: React.FC<SupporterApplicationModalProps>
             </Alert>
           )}
 
-          {!hasSupporterRole && !request && (
+          {!request && eligibleTeams.length === 0 && (
+            <Alert severity="warning">
+              Es gibt aktuell kein Team, für das du Supporter-Rechte anfragen kannst.
+            </Alert>
+          )}
+
+          {!request && eligibleTeams.length === 1 && !submitted && submitting && (
+            <Alert severity="info">
+              Deine Supporter-Anfrage für {eligibleTeams[0].name} wird gesendet.
+            </Alert>
+          )}
+
+          {!request && eligibleTeams.length > 1 && (
             <>
+              <TextField
+                select
+                label="Team"
+                value={selectedTeamId}
+                onChange={(event) => setSelectedTeamId(Number(event.target.value))}
+                fullWidth
+              >
+                {eligibleTeams.filter(team => !team.hasSupporterScope).map(team => (
+                  <MenuItem key={team.id} value={team.id}>{team.name}</MenuItem>
+                ))}
+              </TextField>
               <Typography variant="body2" sx={{
                 color: "text.secondary"
               }}>

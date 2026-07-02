@@ -18,12 +18,15 @@ use App\Entity\StaffTeamAssignmentType;
 use App\Entity\Team;
 use App\Entity\User;
 use App\Entity\UserClubAdminAssignment;
+use App\Entity\UserClubSupporterAssignment;
 use App\Entity\UserRelation;
 use App\Entity\UserTeamAdminAssignment;
+use App\Entity\UserTeamSupporterAssignment;
 use App\Service\AdminScopeService;
 use App\Service\DefaultDashboardService;
 use App\Service\NotificationService;
 use App\Service\RoleManager;
+use App\Service\SupporterScopeService;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
@@ -39,15 +42,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Throwable;
 
 #[Route('/admin/users', name: 'admin_users_')]
-#[IsGranted('ROLE_ADMIN')]
+#[IsGranted('ROLE_SUPERADMIN')]
 class UserManagementController extends AbstractController
 {
     private const AVAILABLE_ROLES = [
         'ROLE_GUEST' => 'Gast',
         'ROLE_USER' => 'Benutzer',
-        'ROLE_SUPPORTER' => 'Supporter',
-        'ROLE_CLUB' => 'Verein',
-        'ROLE_ADMIN' => 'Administrator',
         'ROLE_SUPERADMIN' => 'Super-Administrator',
     ];
 
@@ -57,6 +57,7 @@ class UserManagementController extends AbstractController
         private DefaultDashboardService $defaultDashboardService,
         private AdminScopeService $adminScopeService,
         private RoleManager $roleManager,
+        private SupporterScopeService $supporterScopeService,
     ) {
     }
 
@@ -144,6 +145,18 @@ class UserManagementController extends AbstractController
                             'startDate' => $a->getStartDate()?->format('Y-m-d'),
                             'endDate' => $a->getEndDate()?->format('Y-m-d'),
                         ], $this->em->getRepository(UserClubAdminAssignment::class)->findBy(['user' => $user])),
+                        'supporterTeamAssignments' => array_map(fn (UserTeamSupporterAssignment $a) => [
+                            'id' => $a->getId(),
+                            'team' => ['id' => $a->getTeam()?->getId(), 'name' => $a->getTeam()?->getName()],
+                            'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                        ], $this->em->getRepository(UserTeamSupporterAssignment::class)->findBy(['user' => $user])),
+                        'supporterClubAssignments' => array_map(fn (UserClubSupporterAssignment $a) => [
+                            'id' => $a->getId(),
+                            'club' => ['id' => $a->getClub()?->getId(), 'name' => $a->getClub()?->getName()],
+                            'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                            'endDate' => $a->getEndDate()?->format('Y-m-d'),
+                        ], $this->em->getRepository(UserClubSupporterAssignment::class)->findBy(['user' => $user])),
                         'baseRole' => $user->getBaseRole(),
                     ],
                     $users
@@ -153,7 +166,7 @@ class UserManagementController extends AbstractController
     }
 
     #[Route('/{id}/roles', name: 'edit_roles', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_SUPERADMIN')]
     public function editRoles(User $user): JsonResponse
     {
         return $this->json([
@@ -170,7 +183,7 @@ class UserManagementController extends AbstractController
     }
 
     #[Route('/{id}/roles', name: 'update_roles', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_SUPERADMIN')]
     public function updateRoles(Request $request, User $user): JsonResponse
     {
         $jsonContent = json_decode($request->getContent(), true);
@@ -261,6 +274,8 @@ class UserManagementController extends AbstractController
         $functionaryClubAssignments = $this->em->getRepository(FunctionaryClubAssignment::class)->findBy(['user' => $user]);
         $adminTeamAssignments = $this->em->getRepository(UserTeamAdminAssignment::class)->findBy(['user' => $user]);
         $adminClubAssignments = $this->em->getRepository(UserClubAdminAssignment::class)->findBy(['user' => $user]);
+        $supporterTeamAssignments = $this->em->getRepository(UserTeamSupporterAssignment::class)->findBy(['user' => $user]);
+        $supporterClubAssignments = $this->em->getRepository(UserClubSupporterAssignment::class)->findBy(['user' => $user]);
 
         return $this->json([
             'user' => [
@@ -352,6 +367,18 @@ class UserManagementController extends AbstractController
                 'startDate' => $a->getStartDate()?->format('Y-m-d'),
                 'endDate' => $a->getEndDate()?->format('Y-m-d'),
             ], $adminClubAssignments),
+            'currentSupporterTeamAssignments' => array_map(fn (UserTeamSupporterAssignment $a) => [
+                'teamId' => $a->getTeam()?->getId(),
+                'teamName' => $a->getTeam()?->getName(),
+                'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                'endDate' => $a->getEndDate()?->format('Y-m-d'),
+            ], $supporterTeamAssignments),
+            'currentSupporterClubAssignments' => array_map(fn (UserClubSupporterAssignment $a) => [
+                'clubId' => $a->getClub()?->getId(),
+                'clubName' => $a->getClub()?->getName(),
+                'startDate' => $a->getStartDate()?->format('Y-m-d'),
+                'endDate' => $a->getEndDate()?->format('Y-m-d'),
+            ], $supporterClubAssignments),
             'relationTypes' => $groupedRelationTypes,
             'permissions' => array_map(static fn (Permission $permission) => [
                 'identifier' => $permission->getIdentifier(),
@@ -510,6 +537,78 @@ class UserManagementController extends AbstractController
                 $this->em->persist($a);
             }
 
+            // ── Supporter Team-Zuständigkeiten ─────────────────────────────
+            foreach ($this->em->getRepository(UserTeamSupporterAssignment::class)->findBy(['user' => $user]) as $assignment) {
+                $this->em->remove($assignment);
+            }
+            $activeSupporterTeamCount = 0;
+            $supporterTeamSignatures = [];
+            foreach ($data['supporterTeamAssignments'] ?? [] as $item) {
+                $teamId = (int) ($item['teamId'] ?? 0);
+                if ($teamId <= 0) {
+                    continue;
+                }
+                $team = $this->em->getRepository(Team::class)->find($teamId);
+                if (!$team instanceof Team) {
+                    throw new InvalidArgumentException("Team mit ID {$teamId} nicht gefunden");
+                }
+                $startDate = $this->parseOptionalDate($item['startDate'] ?? null, 'Beginn');
+                $endDate = $this->parseOptionalDate($item['endDate'] ?? null, 'Ende');
+                if (null !== $startDate && null !== $endDate && $startDate > $endDate) {
+                    throw new InvalidArgumentException('Das Ende einer Team-Supporter-Zuständigkeit darf nicht vor ihrem Beginn liegen.');
+                }
+                $signature = $teamId . '|' . ($startDate?->format('Y-m-d') ?? '') . '|' . ($endDate?->format('Y-m-d') ?? '');
+                if (isset($supporterTeamSignatures[$signature])) {
+                    continue;
+                }
+                $supporterTeamSignatures[$signature] = true;
+                $assignment = (new UserTeamSupporterAssignment())
+                    ->setUser($user)
+                    ->setTeam($team)
+                    ->setStartDate($startDate)
+                    ->setEndDate($endDate);
+                $this->em->persist($assignment);
+                if ($assignment->isActiveOn(new DateTimeImmutable('today'))) {
+                    ++$activeSupporterTeamCount;
+                }
+            }
+
+            // ── Supporter Vereins-Zuständigkeiten ──────────────────────────
+            foreach ($this->em->getRepository(UserClubSupporterAssignment::class)->findBy(['user' => $user]) as $assignment) {
+                $this->em->remove($assignment);
+            }
+            $activeSupporterClubCount = 0;
+            $supporterClubSignatures = [];
+            foreach ($data['supporterClubAssignments'] ?? [] as $item) {
+                $clubId = (int) ($item['clubId'] ?? 0);
+                if ($clubId <= 0) {
+                    continue;
+                }
+                $club = $this->em->getRepository(Club::class)->find($clubId);
+                if (!$club instanceof Club) {
+                    throw new InvalidArgumentException("Verein mit ID {$clubId} nicht gefunden");
+                }
+                $startDate = $this->parseOptionalDate($item['startDate'] ?? null, 'Beginn');
+                $endDate = $this->parseOptionalDate($item['endDate'] ?? null, 'Ende');
+                if (null !== $startDate && null !== $endDate && $startDate > $endDate) {
+                    throw new InvalidArgumentException('Das Ende einer Vereins-Supporter-Zuständigkeit darf nicht vor ihrem Beginn liegen.');
+                }
+                $signature = $clubId . '|' . ($startDate?->format('Y-m-d') ?? '') . '|' . ($endDate?->format('Y-m-d') ?? '');
+                if (isset($supporterClubSignatures[$signature])) {
+                    continue;
+                }
+                $supporterClubSignatures[$signature] = true;
+                $assignment = (new UserClubSupporterAssignment())
+                    ->setUser($user)
+                    ->setClub($club)
+                    ->setStartDate($startDate)
+                    ->setEndDate($endDate);
+                $this->em->persist($assignment);
+                if ($assignment->isActiveOn(new DateTimeImmutable('today'))) {
+                    ++$activeSupporterClubCount;
+                }
+            }
+
             // ── Administrative Team-Zuständigkeiten ─────────────────────────
             foreach ($this->em->getRepository(UserTeamAdminAssignment::class)->findBy(['user' => $user]) as $assignment) {
                 $this->em->remove($assignment);
@@ -583,6 +682,7 @@ class UserManagementController extends AbstractController
             }
 
             $this->adminScopeService->synchronizeRole($user, $activeAdminTeamCount, $activeAdminClubCount);
+            $this->supporterScopeService->synchronizeRole($user, $activeSupporterTeamCount, $activeSupporterClubCount);
 
             $this->em->flush();
             $this->em->commit();

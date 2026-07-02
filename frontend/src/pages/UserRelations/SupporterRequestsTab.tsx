@@ -199,6 +199,15 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
       ),
     },
     {
+      header: 'Team',
+      width: '18%',
+      render: (request) => (
+        <Typography variant="body2" sx={{ color: request.team ? 'text.primary' : 'error.main' }}>
+          {request.team?.name || 'Kein Team'}
+        </Typography>
+      ),
+    },
+    {
       header: 'Status',
       width: 140,
       align: 'center',
@@ -280,6 +289,10 @@ const SupporterRequestsTab: React.FC<Props> = ({ onCountsChange }) => {
             color: "text.secondary"
           }}>{request.createdAt}</Typography>
         </Stack>
+
+        <Typography variant="caption" sx={{ display: 'block', mt: 0.75, color: request.team ? 'text.secondary' : 'error.main' }}>
+          Team: {request.team?.name || 'Kein Team'}
+        </Typography>
 
         {request.note && (
           <>

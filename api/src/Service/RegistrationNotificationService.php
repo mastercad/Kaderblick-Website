@@ -145,8 +145,7 @@ class RegistrationNotificationService
     {
         return array_filter(
             $this->em->getRepository(User::class)->findAll(),
-            fn (User $u) => in_array('ROLE_ADMIN', $u->getRoles(), true)
-                || in_array('ROLE_SUPERADMIN', $u->getRoles(), true)
+            fn (User $u) => in_array('ROLE_SUPERADMIN', $u->getRoles(), true)
         );
     }
 }

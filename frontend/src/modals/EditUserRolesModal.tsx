@@ -5,9 +5,6 @@ import BaseModal from './BaseModal';
 const ALL_ROLES = [
   { value: 'ROLE_GUEST', label: 'Gast' },
   { value: 'ROLE_USER', label: 'Benutzer' },
-  { value: 'ROLE_SUPPORTER', label: 'Supporter' },
-  { value: 'ROLE_CLUB', label: 'Verein' },
-  { value: 'ROLE_ADMIN', label: 'Administrator' },
   { value: 'ROLE_SUPERADMIN', label: 'Super-Administrator' },
 ];
 
@@ -39,7 +36,7 @@ const EditUserRolesModal: React.FC<EditUserRolesModalProps> = ({ open, onClose, 
       }
     >
       <Alert severity="info" sx={{ mb: 2 }}>
-        Team- und Vereinsadministratoren werden über ihre Zuständigkeiten im Zuordnungen-Modal festgelegt.
+        Supporter sowie Team- und Vereinsadministratoren werden über ihre Zuständigkeiten im Zuordnungen-Modal festgelegt.
       </Alert>
       <TextField
         select

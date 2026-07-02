@@ -67,7 +67,7 @@ class MatchdayController extends AbstractController
         $eventData = $this->serializer->serialize($calendarEvent, $user, $tournamentEventType);
 
         // --- Role determination ---
-        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles());
+        $isAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles());
         $isCoach = $isAdmin || $this->isCoachOfAnyEventTeam($user, $calendarEvent);
         $role = $isAdmin ? 'admin' : ($isCoach ? 'coach' : 'player');
 
@@ -272,7 +272,7 @@ class MatchdayController extends AbstractController
         //                        NUR wenn der Matchplan für genau dieses Team published ist
         //   sonst              → kein Zugang (z. B. reine Freund-Relation)
         $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles());
-        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles());
+        $isAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles());
 
         if ($isSuperAdmin || $isAdmin) {
             $relevantTeams = $allEventTeams;

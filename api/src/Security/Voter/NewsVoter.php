@@ -36,7 +36,7 @@ final class NewsVoter extends Voter
             case self::CREATE:
                 // Admin/SuperAdmin can always create news
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 ) {
                     return true;
@@ -61,7 +61,7 @@ final class NewsVoter extends Voter
             case self::DELETE:
                 // Admin/SuperAdmin can edit/delete any news
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 ) {
                     return true;
@@ -78,7 +78,7 @@ final class NewsVoter extends Voter
 
                 // Admin/SuperAdmin can view all news
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 ) {
                     return true;

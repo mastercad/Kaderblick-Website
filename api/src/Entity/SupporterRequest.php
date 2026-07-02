@@ -42,6 +42,10 @@ class SupporterRequest
     #[ORM\JoinColumn(name: 'processed_by_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
     private ?User $processedBy = null;
 
+    #[ORM\ManyToOne(targetEntity: Team::class)]
+    #[ORM\JoinColumn(name: 'team_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    private ?Team $team = null;
+
     public function __construct()
     {
         $this->createdAt = new DateTime();
@@ -113,6 +117,18 @@ class SupporterRequest
     public function setProcessedBy(?User $processedBy): self
     {
         $this->processedBy = $processedBy;
+
+        return $this;
+    }
+
+    public function getTeam(): ?Team
+    {
+        return $this->team;
+    }
+
+    public function setTeam(?Team $team): self
+    {
+        $this->team = $team;
 
         return $this;
     }

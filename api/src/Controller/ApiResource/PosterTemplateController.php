@@ -18,9 +18,9 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * GET    /api/poster-templates                Alle Vorlagen (gefiltert nach ?type=)
  * GET    /api/poster-templates/{id}           Einzelne Vorlage
- * POST   /api/admin/poster-templates          Neue Vorlage anlegen  (ROLE_ADMIN)
- * PUT    /api/admin/poster-templates/{id}     Vorlage aktualisieren (ROLE_ADMIN)
- * DELETE /api/admin/poster-templates/{id}     Vorlage löschen       (ROLE_ADMIN)
+ * POST   /api/admin/poster-templates          Neue Vorlage anlegen  (ROLE_SUPERADMIN)
+ * PUT    /api/admin/poster-templates/{id}     Vorlage aktualisieren (ROLE_SUPERADMIN)
+ * DELETE /api/admin/poster-templates/{id}     Vorlage löschen       (ROLE_SUPERADMIN)
  */
 class PosterTemplateController extends AbstractController
 {
@@ -77,7 +77,7 @@ class PosterTemplateController extends AbstractController
     #[Route('/api/admin/poster-templates', name: 'api_admin_poster_templates_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $body = $this->parseBody($request);
         if (null === $body) {
@@ -103,7 +103,7 @@ class PosterTemplateController extends AbstractController
     #[Route('/api/admin/poster-templates/{id}', name: 'api_admin_poster_templates_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
     public function update(int $id, Request $request): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $template = $this->repository->find($id);
         if (null === $template) {
@@ -131,7 +131,7 @@ class PosterTemplateController extends AbstractController
     #[Route('/api/admin/poster-templates/{id}', name: 'api_admin_poster_templates_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function delete(int $id): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $this->denyAccessUnlessGranted('ROLE_SUPERADMIN');
 
         $template = $this->repository->find($id);
         if (null === $template) {

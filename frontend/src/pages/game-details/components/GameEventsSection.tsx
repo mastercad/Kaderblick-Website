@@ -30,6 +30,7 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import { GameEvent, Game } from '../../../types/games';
 import { getGameEventIconByCode } from '../../../constants/gameEventIcons';
 import { formatEventTime } from '../../../utils/formatter';
+import { isSystemGameEventCode } from '../../../utils/eventTypeGroups';
 import DetailSectionHeader from './DetailSectionHeader';
 
 interface GameEventsSectionProps {
@@ -47,13 +48,62 @@ interface GameEventsSectionProps {
 }
 
 const SUBSTITUTION_CODES = ['substitution', 'substitution_out', 'substitution_injury', 'substitution_in'];
+const PHASE_MARKER_CODES = ['halftime_start', 'halftime_end'];
+
+type DisplayGameEvent = GameEvent & {
+  isDefaultPhaseMarker?: boolean;
+  phaseMarkerOccurrence?: number;
+};
+
+function addSeconds(isoDate: string, seconds: number): string {
+  return new Date(new Date(isoDate).getTime() + seconds * 1000).toISOString();
+}
+
+function formatClockTime(timestamp?: string | null): string {
+  if (!timestamp) return '–';
+  return new Date(timestamp).toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getPhaseMarkerTimeLabel(e: any, gameStartDate: string | null): string {
+  if (e.timestamp) {
+    return formatClockTime(e.timestamp);
+  }
+
+  if (typeof e.minute === 'number' && gameStartDate) {
+    return formatClockTime(addSeconds(gameStartDate, e.minute));
+  }
+
+  return '–';
+}
+
+function getEventCode(e: any): string {
+  return (e.code ?? e.gameEventType?.code ?? '').toLowerCase();
+}
+
+function getEventSortSeconds(e: any, gameStartDate: string | null): number {
+  if (typeof e.minute === 'number' && Number.isFinite(e.minute)) {
+    return e.minute;
+  }
+
+  if (e.timestamp && gameStartDate) {
+    return Math.max(
+      0,
+      Math.round((new Date(e.timestamp).getTime() - new Date(gameStartDate).getTime()) / 1000),
+    );
+  }
+
+  return 0;
+}
 
 function getEventMeta(e: any, gameStartDate: string | null) {
   let playerDisplay = '';
   let minute = '–';
-  const code: string = e.code ?? e.gameEventType?.code ?? '';
-  const icon: string = e.icon ?? e.gameEventType?.icon ?? '';
-  const color: string = e.color ?? e.gameEventType?.color ?? '#999';
+  const code: string = getEventCode(e);
+  const icon: string = e.icon ?? e.typeIcon ?? e.gameEventType?.icon ?? '';
+  const color: string = e.color ?? e.typeColor ?? e.gameEventType?.color ?? '#999';
 
   if (typeof e.player === 'string') {
     playerDisplay = e.player;
@@ -73,6 +123,111 @@ function getEventMeta(e: any, gameStartDate: string | null) {
   }
 
   return { playerDisplay, minute, code, icon, color };
+}
+
+function getEventLabel(e: any): string {
+  const code = getEventCode(e);
+  if (code === 'injury_break') return 'Spielunterbrechung';
+  if (code === 'match_abandoned') return 'Spielabbruch';
+  if (code === 'match_resumed') return 'Wiederaufnahme nach Unterbrechung';
+
+  return e.type ?? e?.gameEventType?.name ?? 'Unbekannt';
+}
+
+function getTimelineSystemEventLabel(e: any, previousEvents: GameEvent[]): string {
+  const code = getEventCode(e);
+
+  if (code === 'halftime_start') {
+    const occurrence = e.phaseMarkerOccurrence ?? previousEvents.filter(prev => getEventCode(prev) === 'halftime_start').length + 1;
+
+    return occurrence === 1 ? '1. Halbzeit' : '2. Halbzeit';
+  }
+
+  if (code === 'halftime_end') {
+    const occurrence = e.phaseMarkerOccurrence ?? previousEvents.filter(prev => getEventCode(prev) === 'halftime_end').length + 1;
+
+    return occurrence === 1 ? 'Halbzeitpause' : 'Ende';
+  }
+
+  return getEventLabel(e);
+}
+
+function isSystemEvent(e: any, code: string): boolean {
+  return isSystemGameEventCode(code);
+}
+
+function buildDefaultPhaseMarkers(game: Game, gameEvents: GameEvent[]): DisplayGameEvent[] {
+  const startDate = game.calendarEvent?.startDate;
+  if (!startDate) return [];
+
+  const halfDuration = game.halfDuration ?? game.gameType?.halfDuration ?? 45;
+  const halftimeBreakDuration = game.halftimeBreakDuration ?? 15;
+  const firstHalfExtraTime = game.firstHalfExtraTime ?? 0;
+  const secondHalfExtraTime = game.secondHalfExtraTime ?? 0;
+
+  const hasExplicitPhaseMarkers = gameEvents.some(event => PHASE_MARKER_CODES.includes(getEventCode(event)));
+  if (hasExplicitPhaseMarkers) return [];
+
+  const phaseMarkers = [
+    {
+      code: 'halftime_start',
+      occurrence: 1,
+      label: '1. Halbzeit',
+      seconds: 0,
+      icon: 'fas fa-play',
+    },
+    {
+      code: 'halftime_end',
+      occurrence: 1,
+      label: 'Halbzeitpause',
+      seconds: (halfDuration + firstHalfExtraTime) * 60,
+      icon: 'fas fa-stop',
+    },
+    {
+      code: 'halftime_start',
+      occurrence: 2,
+      label: '2. Halbzeit',
+      seconds: (halfDuration + firstHalfExtraTime + halftimeBreakDuration) * 60,
+      icon: 'fas fa-play',
+    },
+    {
+      code: 'halftime_end',
+      occurrence: 2,
+      label: 'Ende',
+      seconds: (halfDuration * 2 + firstHalfExtraTime + halftimeBreakDuration + secondHalfExtraTime) * 60,
+      icon: 'fas fa-stop',
+    },
+  ];
+
+  return phaseMarkers
+    .map((marker, index) => ({
+      id: -1000 - index,
+      game,
+      gameEventType: {
+        id: -1000 - index,
+        name: marker.label,
+        code: marker.code,
+        color: '#6c757d',
+        icon: marker.icon,
+      },
+      timestamp: addSeconds(startDate, marker.seconds),
+      minute: marker.seconds,
+      type: marker.label,
+      code: marker.code,
+      isSystemEvent: true,
+      isDefaultPhaseMarker: true,
+      phaseMarkerOccurrence: marker.occurrence,
+    } as DisplayGameEvent));
+}
+
+function buildTimelineEvents(game: Game, gameEvents: GameEvent[], gameStartDate: string | null): DisplayGameEvent[] {
+  return [...gameEvents, ...buildDefaultPhaseMarkers(game, gameEvents)]
+    .map((event, originalIndex) => ({ event: event as DisplayGameEvent, originalIndex }))
+    .sort((a, b) => {
+      const secondsDiff = getEventSortSeconds(a.event, gameStartDate) - getEventSortSeconds(b.event, gameStartDate);
+      return secondsDiff !== 0 ? secondsDiff : a.originalIndex - b.originalIndex;
+    })
+    .map(item => item.event);
 }
 
 // ── EventSideContent ──────────────────────────────────────────────────────────
@@ -132,9 +287,12 @@ function EventSideContent({
           width: 20,
           height: 20,
           borderRadius: '50%',
-          bgcolor: alpha(color, 0.15),
+          bgcolor: 'background.paper',
+          backgroundImage: `linear-gradient(${alpha(color, 0.15)}, ${alpha(color, 0.15)})`,
           flexShrink: 0,
           mt: '1px',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
         <Box sx={{ color, display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
@@ -155,7 +313,7 @@ function EventSideContent({
             textOverflow: 'ellipsis',
           }}
         >
-          {e.type ?? e?.gameEventType?.name ?? 'Unbekannt'}
+          {getEventLabel(e)}
         </Typography>
 
         {isSubstitution ? (
@@ -237,6 +395,7 @@ const GameEventsSection = ({
   const userTeamIds = game.userTeamIds ?? [];
   const [menuState, setMenuState] = useState<{ anchorEl: HTMLElement; event: GameEvent } | null>(null);
   const [expandedVideoEventIds, setExpandedVideoEventIds] = useState<Set<number>>(new Set());
+  const timelineEvents = buildTimelineEvents(game, gameEvents, gameStartDate);
 
   const toggleVideoExpand = (id: number) => {
     setExpandedVideoEventIds(prev => {
@@ -282,7 +441,7 @@ const GameEventsSection = ({
               '&:last-child': { pb: { xs: 1, sm: 1.5 } },
             }}
           >
-            {gameEvents.length === 0 ? (
+            {timelineEvents.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <SoccerIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
                 <Typography variant="body2" sx={{
@@ -344,35 +503,22 @@ const GameEventsSection = ({
                   the vertical spine.
                 */}
                 <Box sx={{ position: 'relative' }}>
-                  {/* Vertical spine */}
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      left: '50%',
-                      top: 4,
-                      bottom: 4,
-                      width: 2,
-                      bgcolor: alpha(theme.palette.divider, 0.6),
-                      transform: 'translateX(-1px)',
-                      zIndex: 0,
-                      borderRadius: 1,
-                      pointerEvents: 'none',
-                    }}
-                  />
-
-                  {gameEvents.map((event, idx) => {
+                  {timelineEvents.map((event, idx) => {
                     const e = event as any;
                     const meta = getEventMeta(e, gameStartDate);
+                    const isSystem = isSystemEvent(e, meta.code);
+                    const systemEventLabel = isSystem ? getTimelineSystemEventLabel(e, timelineEvents.slice(0, idx)) : '';
+                    const displayTime = isSystem ? getPhaseMarkerTimeLabel(e, gameStartDate) : meta.minute;
 
                     const eventTeamId: number | undefined = e.team?.id ?? e.teamId;
                     const isHome     = eventTeamId === homeTeamId;
                     const isAway     = eventTeamId === awayTeamId;
                     const isUserTeam = eventTeamId !== undefined && userTeamIds.includes(eventTeamId);
-                    const isLast     = idx === gameEvents.length - 1;
+                    const isLast     = idx === timelineEvents.length - 1;
                     const videosForRow = youtubeLinks[e.id] ?? {};
                     const videosExpanded = expandedVideoEventIds.has(e.id);
-                    // Home side = isHome, or fallback (no team assigned)
-                    const isHomeSide = isHome || (!isHome && !isAway);
+                    // Home side = isHome, or fallback (no team assigned) — aber nicht für System-Events
+                    const isHomeSide = !isSystem && (isHome || (!isHome && !isAway));
 
                     const sharedProps = {
                       e,
@@ -387,44 +533,53 @@ const GameEventsSection = ({
                         sx={{
                           position: 'relative',
                           zIndex: 1,
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            left: '50%',
+                            top: 0,
+                            bottom: 'calc(50% + 10px)',
+                            width: 2,
+                            bgcolor: alpha(theme.palette.divider, 0.6),
+                            transform: 'translateX(-1px)',
+                            zIndex: 0,
+                            borderRadius: 1,
+                            pointerEvents: 'none',
+                            display: idx === 0 ? 'none' : 'block',
+                          },
+                          '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            left: '50%',
+                            top: 'calc(50% + 10px)',
+                            bottom: 0,
+                            width: 2,
+                            bgcolor: alpha(theme.palette.divider, 0.6),
+                            transform: 'translateX(-1px)',
+                            zIndex: 0,
+                            borderRadius: 1,
+                            pointerEvents: 'none',
+                            display: isLast ? 'none' : 'block',
+                          },
                         }}
                       >
-                      <Box
-                        data-testid={`event-row-${e.id}`}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          py: { xs: 0.5, sm: 0.75, md: 1 },
-                        }}
-                      >
-                        {/* Left spacer — balances the options button on the right so the minute chip is truly centred on the spine */}
-                        {canCreateEvents && <Box sx={{ width: 32, flexShrink: 0 }} />}
-
-                        {/* Home side (or fallback for unknown team) */}
-                        <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', justifyContent: 'flex-end', pr: { xs: 0.5, sm: 0.75 } }}>
-                          {isHomeSide && (
-                            <EventSideContent
-                              {...sharedProps}
-                              align="right"
-                            />
-                          )}
-                        </Box>
-
-                        {/* Minute chip + camera toggle — both centred on the spine */}
+                      {/* System-Events (Halftime, Interruption) werden center-aligned gerendert */}
+                      {isSystem ? (
                         <Box
+                          data-testid={`event-row-${e.id}`}
                           sx={{
-                            width: minuteColWidth,
-                            flexShrink: 0,
                             display: 'flex',
-                            flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            zIndex: 2,
-                            gap: '3px',
+                            py: { xs: 0.5, sm: 0.75, md: 1 },
+                            gap: 1,
+                            position: 'relative',
+                            zIndex: 1,
                           }}
                         >
+                          {/* Minute chip */}
                           <Chip
-                            label={meta.minute}
+                            label={displayTime}
                             size="small"
                             sx={{
                               bgcolor: 'background.paper',
@@ -434,68 +589,176 @@ const GameEventsSection = ({
                               height: 20,
                               minWidth: { xs: 42, sm: 50 },
                               fontVariantNumeric: 'tabular-nums',
+                              position: 'relative',
+                              zIndex: 2,
                             }}
                           />
-                          {Object.keys(videosForRow).length > 0 && (
-                            <Box
-                              component="button"
-                              aria-label="Videos anzeigen"
-                              aria-expanded={videosExpanded}
-                              onClick={(ev: React.MouseEvent) => { ev.stopPropagation(); toggleVideoExpand(e.id); }}
+
+                          {/* Event badge - center */}
+                          <Box
+                            sx={{
+                              position: 'relative',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              px: 1,
+                              py: 0.4,
+                              bgcolor: 'background.paper',
+                              backgroundImage: `linear-gradient(${alpha(meta.color, 0.12)}, ${alpha(meta.color, 0.12)})`,
+                              border: `1px solid ${alpha(meta.color, 0.4)}`,
+                              borderRadius: 1,
+                              zIndex: 2,
+                            }}
+                          >
+                            <Box sx={{ color: meta.color, display: 'flex', alignItems: 'center', fontSize: '0.8rem' }}>
+                              {getGameEventIconByCode(meta.icon)}
+                            </Box>
+                            <Typography
                               sx={{
-                                bgcolor: 'background.paper',
-                                border: `1px solid ${theme.palette.divider}`,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '1px',
-                                p: '2px 3px',
-                                borderRadius: '4px',
-                                height: 20,
-                                minHeight: 'unset',
-                                minWidth: 0,
-                                width: 'fit-content',
-                                boxSizing: 'border-box',
-                                lineHeight: 1,
-                                color: videosExpanded ? 'error.main' : 'text.disabled',
-                                '&:hover': { color: 'error.main' },
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                color: meta.color,
+                                whiteSpace: 'nowrap',
                               }}
                             >
-                              <VideocamIcon sx={{ fontSize: 11 }} />
-                              <Typography component="span" sx={{ fontSize: '0.6rem', lineHeight: 1 }}>
-                                {Object.keys(videosForRow).length}
-                              </Typography>
+                              {systemEventLabel}
+                            </Typography>
+                          </Box>
+
+                          {/* Options button */}
+                          {canCreateEvents && !e.isDefaultPhaseMarker && (
+                            <Box sx={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                              <IconButton
+                                size="small"
+                                aria-label="Ereignis-Optionen"
+                                onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
+                                  ev.stopPropagation();
+                                  setMenuState({ anchorEl: ev.currentTarget, event: e });
+                                }}
+                                sx={{ p: '4px', opacity: 0.35, '&:hover': { opacity: 1 } }}
+                              >
+                                <MoreVertIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
                             </Box>
                           )}
                         </Box>
+                      ) : (
+                        /* Standard left/right layout für Spieler-Events */
+                        <Box
+                          data-testid={`event-row-${e.id}`}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            py: { xs: 0.5, sm: 0.75, md: 1 },
+                            position: 'relative',
+                            zIndex: 1,
+                          }}
+                        >
+                          {/* Left spacer — balances the options button on the right so the minute chip is truly centred on the spine */}
+                          {canCreateEvents && <Box sx={{ width: 32, flexShrink: 0 }} />}
 
-                        {/* Away side */}
-                        <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', justifyContent: 'flex-start', pl: { xs: 0.5, sm: 0.75 } }}>
-                          {isAway && (
-                            <EventSideContent
-                              {...sharedProps}
-                              align="left"
+                          {/* Home side (or fallback for unknown team) */}
+                          <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', justifyContent: 'flex-end', pr: { xs: 0.5, sm: 0.75 } }}>
+                            {isHomeSide && (
+                              <EventSideContent
+                                {...sharedProps}
+                                align="right"
+                              />
+                            )}
+                          </Box>
+
+                          {/* Minute chip + camera toggle — both centred on the spine */}
+                          <Box
+                            sx={{
+                              width: minuteColWidth,
+                              flexShrink: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              zIndex: 2,
+                              gap: '3px',
+                            }}
+                          >
+                            <Chip
+                              label={displayTime}
+                              size="small"
+                              sx={{
+                                bgcolor: 'background.paper',
+                                border: `1.5px solid ${theme.palette.divider}`,
+                                fontWeight: 700,
+                                fontSize: { xs: '0.65rem', sm: '0.72rem' },
+                                height: 20,
+                                minWidth: { xs: 42, sm: 50 },
+                                fontVariantNumeric: 'tabular-nums',
+                                position: 'relative',
+                                zIndex: 2,
+                              }}
                             />
+                            {Object.keys(videosForRow).length > 0 && (
+                              <Box
+                                component="button"
+                                aria-label="Videos anzeigen"
+                                aria-expanded={videosExpanded}
+                                onClick={(ev: React.MouseEvent) => { ev.stopPropagation(); toggleVideoExpand(e.id); }}
+                                sx={{
+                                  bgcolor: 'background.paper',
+                                  border: `1px solid ${theme.palette.divider}`,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  position: 'relative',
+                                  zIndex: 2,
+                                  alignItems: 'center',
+                                  gap: '1px',
+                                  p: '2px 3px',
+                                  borderRadius: '4px',
+                                  height: 20,
+                                  minHeight: 'unset',
+                                  minWidth: 0,
+                                  width: 'fit-content',
+                                  boxSizing: 'border-box',
+                                  lineHeight: 1,
+                                  color: videosExpanded ? 'error.main' : 'text.disabled',
+                                  '&:hover': { color: 'error.main' },
+                                }}
+                              >
+                                <VideocamIcon sx={{ fontSize: 11 }} />
+                                <Typography component="span" sx={{ fontSize: '0.6rem', lineHeight: 1 }}>
+                                  {Object.keys(videosForRow).length}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+
+                          {/* Away side */}
+                          <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', justifyContent: 'flex-start', pl: { xs: 0.5, sm: 0.75 } }}>
+                            {isAway && (
+                              <EventSideContent
+                                {...sharedProps}
+                                align="left"
+                              />
+                            )}
+                          </Box>
+
+                          {/* Options button */}
+                          {canCreateEvents && (
+                            <Box sx={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                              <IconButton
+                                size="small"
+                                aria-label="Ereignis-Optionen"
+                                onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
+                                  ev.stopPropagation();
+                                  setMenuState({ anchorEl: ev.currentTarget, event: e });
+                                }}
+                                sx={{ p: '4px', opacity: 0.35, '&:hover': { opacity: 1 } }}
+                              >
+                                <MoreVertIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            </Box>
                           )}
                         </Box>
-
-                        {/* Options button */}
-                        {canCreateEvents && (
-                          <Box sx={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                            <IconButton
-                              size="small"
-                              aria-label="Ereignis-Optionen"
-                              onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
-                                ev.stopPropagation();
-                                setMenuState({ anchorEl: ev.currentTarget, event: e });
-                              }}
-                              sx={{ p: '4px', opacity: 0.35, '&:hover': { opacity: 1 } }}
-                            >
-                              <MoreVertIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Box>
-                        )}
-                      </Box>
+                      )}
 
                       {/* Collapsible video list */}
                       <Collapse in={videosExpanded} timeout="auto" unmountOnExit>

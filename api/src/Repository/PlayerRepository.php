@@ -5,9 +5,9 @@ namespace App\Repository;
 use App\Entity\Player;
 use App\Entity\Team;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
@@ -17,12 +17,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class PlayerRepository extends ServiceEntityRepository implements OptimizedRepositoryInterface
 {
-    private RoleHierarchyInterface $roleHierarchy;
-
-    public function __construct(ManagerRegistry $registry, RoleHierarchyInterface $roleHierarchy)
+    public function __construct(ManagerRegistry $registry, private readonly AdminScopeService $adminScopeService)
     {
         parent::__construct($registry, Player::class);
-        $this->roleHierarchy = $roleHierarchy;
     }
 
     /**
@@ -57,22 +54,15 @@ class PlayerRepository extends ServiceEntityRepository implements OptimizedRepos
     {
         $qb = $this->createQueryBuilder('p');
 
-        $reachableRoles = $this->roleHierarchy->getReachableRoleNames($user->getRoles());
-        if ($user && !in_array('ROLE_ADMIN', $reachableRoles)) {
-            // Über UserRelations die zugänglichen Player ermitteln (unabhängig vom RelationType)
-            $playerIds = [];
-            foreach ($user->getUserRelations() as $relation) {
-                if ($relation->getPlayer()) {
-                    $playerIds[] = $relation->getPlayer()->getId();
-                }
-            }
+        if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+            $teamIds = $this->collectVisibleTeamIds($user);
 
-            if (!empty($playerIds)) {
-                $qb->andWhere('p.id IN (:playerIds)')
-                   ->setParameter('playerIds', $playerIds);
+            if ($teamIds) {
+                $qb->join('p.playerTeamAssignments', 'pta_filter')
+                   ->andWhere('pta_filter.team IN (:teamIds)')
+                   ->setParameter('teamIds', $teamIds);
             } else {
-                // Keine Berechtigung für Player
-                $qb->andWhere('1 = 0'); // Keine Ergebnisse
+                $qb->andWhere('1 = 0');
             }
         }
 
@@ -91,27 +81,8 @@ class PlayerRepository extends ServiceEntityRepository implements OptimizedRepos
             ->orderBy('p.lastName', 'ASC')
             ->addOrderBy('p.firstName', 'ASC');
 
-        if ($user && !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
-            $teamIds = [];
-            if ($user instanceof User) {
-                foreach ($user->getUserRelations() as $relation) {
-                    if ($relation->getPlayer()) {
-                        // Alle Teams, in denen dieser Player spielt
-                        foreach ($relation->getPlayer()->getPlayerTeamAssignments() as $pta) {
-                            $team = $pta->getTeam();
-                            $teamIds[] = $team->getId();
-                        }
-                    }
-                    if ($relation->getCoach()) {
-                        // Alle Teams, die dieser Coach trainiert
-                        foreach ($relation->getCoach()->getCoachTeamAssignments() as $cta) {
-                            $team = $cta->getTeam();
-                            $teamIds[] = $team->getId();
-                        }
-                    }
-                }
-            }
-            $teamIds = array_unique($teamIds);
+        if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+            $teamIds = $this->collectVisibleTeamIds($user);
             if ($teamIds) {
                 $qb->join('p.playerTeamAssignments', 'pta_filter')
                    ->andWhere('pta_filter.team IN (:teamIds)')
@@ -164,21 +135,15 @@ class PlayerRepository extends ServiceEntityRepository implements OptimizedRepos
     {
         $qb = $this->createQueryBuilder('p');
 
-        if ($user && !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
-            // Über UserRelations die zugänglichen Player ermitteln
-            $playerIds = [];
-            foreach ($user->getUserRelations() as $relation) {
-                if ($relation->getPlayer()) {
-                    $playerIds[] = $relation->getPlayer()->getId();
-                }
-            }
+        if ($user && !in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+            $teamIds = $this->collectVisibleTeamIds($user);
 
-            if (!empty($playerIds)) {
-                $qb->andWhere('p.id IN (:playerIds)')
-                   ->setParameter('playerIds', $playerIds);
+            if ($teamIds) {
+                $qb->join('p.playerTeamAssignments', 'pta_filter')
+                   ->andWhere('pta_filter.team IN (:teamIds)')
+                   ->setParameter('teamIds', $teamIds);
             } else {
-                // Keine Berechtigung für Player
-                $qb->andWhere('1 = 0'); // Keine Ergebnisse
+                $qb->andWhere('1 = 0');
             }
         }
 
@@ -210,5 +175,30 @@ class PlayerRepository extends ServiceEntityRepository implements OptimizedRepos
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function collectVisibleTeamIds(UserInterface $user): array
+    {
+        $teamIds = [];
+        if ($user instanceof User) {
+            $teamIds = array_keys($this->adminScopeService->getAdministeredTeams($user));
+            foreach ($user->getUserRelations() as $relation) {
+                if ($relation->getPlayer()) {
+                    foreach ($relation->getPlayer()->getPlayerTeamAssignments() as $pta) {
+                        $teamIds[] = $pta->getTeam()->getId();
+                    }
+                }
+                if ($relation->getCoach()) {
+                    foreach ($relation->getCoach()->getCoachTeamAssignments() as $cta) {
+                        $teamIds[] = $cta->getTeam()->getId();
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($teamIds));
     }
 }

@@ -41,6 +41,22 @@ const makeGame = (overrides: Partial<Game> = {}): Game => ({
   ...overrides,
 });
 
+const makeGameWithCalendar = (overrides: Partial<Game> = {}): Game => makeGame({
+  calendarEvent: {
+    id: 1,
+    startDate: '2025-07-16T12:00:00',
+    endDate: '2025-07-16T14:00:00',
+    calendarEventType: { id: 1, name: 'Spiel' },
+    isCancelled: false,
+    isExternal: false,
+  },
+  halfDuration: 45,
+  halftimeBreakDuration: 15,
+  firstHalfExtraTime: 0,
+  secondHalfExtraTime: 0,
+  ...overrides,
+});
+
 const makeEvent = (overrides: Partial<any> = {}): GameEvent => ({
   id: 1,
   game: makeGame(),
@@ -116,6 +132,128 @@ describe('GameEventsSection', () => {
   it('renders the event type name', () => {
     render(<GameEventsSection {...defaultProps} gameEvents={[makeEvent()]} />);
     expect(screen.getByText('Tor')).toBeInTheDocument();
+  });
+
+  it('renders system events without player or team assignment', () => {
+    const event = makeEvent({
+      id: 9,
+      type: 'Halbzeitbeginn',
+      code: 'halftime_start',
+      gameEventType: { id: 9, name: 'Halbzeitbeginn', code: 'halftime_start', color: '#666666', icon: 'play' },
+      player: undefined,
+      team: undefined,
+      teamId: undefined,
+      isSystemEvent: true,
+    });
+    render(<GameEventsSection {...defaultProps} gameEvents={[event]} canCreateEvents={true} />);
+    expect(screen.getByText('1. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ereignis-optionen/i })).toBeInTheDocument();
+  });
+
+  it('renders football labels for halftime system events', () => {
+    const events = [
+      makeEvent({
+        id: 91,
+        type: 'Halbzeitbeginn',
+        code: 'halftime_start',
+        gameEventType: { id: 9, name: 'Halbzeitbeginn', code: 'halftime_start', color: '#666666', icon: 'play' },
+        player: undefined,
+        team: undefined,
+        teamId: undefined,
+        isSystemEvent: true,
+      }),
+      makeEvent({
+        id: 92,
+        type: 'Halbzeitende',
+        code: 'halftime_end',
+        gameEventType: { id: 10, name: 'Halbzeitende', code: 'halftime_end', color: '#666666', icon: 'stop' },
+        player: undefined,
+        team: undefined,
+        teamId: undefined,
+        isSystemEvent: true,
+      }),
+      makeEvent({
+        id: 93,
+        type: 'Halbzeitbeginn',
+        code: 'halftime_start',
+        gameEventType: { id: 9, name: 'Halbzeitbeginn', code: 'halftime_start', color: '#666666', icon: 'play' },
+        player: undefined,
+        team: undefined,
+        teamId: undefined,
+        isSystemEvent: true,
+      }),
+      makeEvent({
+        id: 94,
+        type: 'Halbzeitende',
+        code: 'halftime_end',
+        gameEventType: { id: 10, name: 'Halbzeitende', code: 'halftime_end', color: '#666666', icon: 'stop' },
+        player: undefined,
+        team: undefined,
+        teamId: undefined,
+        isSystemEvent: true,
+      }),
+    ];
+
+    render(<GameEventsSection {...defaultProps} gameEvents={events} canCreateEvents={true} />);
+
+    expect(screen.getByText('1. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByText('Halbzeitpause')).toBeInTheDocument();
+    expect(screen.getByText('2. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByText('Ende')).toBeInTheDocument();
+    expect(screen.queryByText('Halbzeitbeginn')).not.toBeInTheDocument();
+    expect(screen.queryByText('Halbzeitende')).not.toBeInTheDocument();
+  });
+
+  it('renders default phase markers from game timing when no explicit phase events exist', () => {
+    render(
+      <GameEventsSection
+        {...defaultProps}
+        game={makeGameWithCalendar()}
+        gameEvents={[]}
+        gameStartDate="2025-07-16T12:00:00"
+      />
+    );
+
+    expect(screen.getByText('1. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByText('Halbzeitpause')).toBeInTheDocument();
+    expect(screen.getByText('2. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByText('Ende')).toBeInTheDocument();
+    expect(screen.getByText('12:00')).toBeInTheDocument();
+    expect(screen.getByText('12:45')).toBeInTheDocument();
+    expect(screen.getByText('13:00')).toBeInTheDocument();
+    expect(screen.getByText('13:45')).toBeInTheDocument();
+    expect(screen.queryByText(/keine ereignisse/i)).not.toBeInTheDocument();
+  });
+
+  it('shows clock time for explicit phase markers instead of match minutes', () => {
+    const event = makeEvent({
+      id: 95,
+      type: 'Halbzeitbeginn',
+      code: 'halftime_start',
+      gameEventType: { id: 9, name: 'Halbzeitbeginn', code: 'halftime_start', color: '#666666', icon: 'play' },
+      player: undefined,
+      team: undefined,
+      teamId: undefined,
+      timestamp: undefined,
+      minute: 600,
+      isSystemEvent: true,
+    });
+
+    render(
+      <GameEventsSection
+        {...defaultProps}
+        game={makeGameWithCalendar()}
+        gameEvents={[event]}
+        gameStartDate="2025-07-16T12:00:00"
+      />
+    );
+
+    expect(screen.getByText('1. Halbzeit')).toBeInTheDocument();
+    expect(screen.getByText('12:10')).toBeInTheDocument();
+    expect(screen.queryByText('10:00')).not.toBeInTheDocument();
+    expect(screen.queryByText('Halbzeitpause')).not.toBeInTheDocument();
+    expect(screen.queryByText('2. Halbzeit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ende')).not.toBeInTheDocument();
   });
 
   it('renders the formatted minute', () => {

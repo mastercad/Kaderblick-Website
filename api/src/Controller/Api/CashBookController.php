@@ -92,7 +92,7 @@ class CashBookController extends AbstractController
         }
 
         // Admins see all books (including ones created by other Kassenwarte)
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return $this->em->getRepository(CashBook::class)->findAll();
         }
 
@@ -101,7 +101,7 @@ class CashBookController extends AbstractController
 
     private function canAccessCashBook(User $user, CashBook $cashBook): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 

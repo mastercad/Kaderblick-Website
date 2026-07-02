@@ -43,6 +43,7 @@ final class PublicLiveTickerController extends AbstractController
         $payloadEvents = [];
         foreach (array_reverse($gameEvents) as $event) {
             $eventType = $event->getGameEventType();
+            $team = $event->getTeam();
             $minute = $start ? max(0, (int) floor(($event->getTimestamp()->getTimestamp() - $start->getTimestamp()) / 60)) : null;
             $payloadEvents[] = [
                 'id' => $event->getId(),
@@ -54,10 +55,10 @@ final class PublicLiveTickerController extends AbstractController
                     'icon' => $eventType?->getIcon(),
                     'color' => $eventType?->getColor(),
                 ],
-                'team' => [
-                    'side' => $event->getTeam() === $game->getHomeTeam() ? 'home' : 'away',
-                    'name' => $event->getTeam()->getName(),
-                ],
+                'team' => $team ? [
+                    'side' => $team === $game->getHomeTeam() ? 'home' : 'away',
+                    'name' => $team->getName(),
+                ] : null,
                 // Deliberately no player, coach, user, video or permission fields.
                 'description' => $event->getDescription(),
             ];

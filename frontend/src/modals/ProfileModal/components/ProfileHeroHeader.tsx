@@ -21,7 +21,6 @@ const ROLE_LABELS: Record<string, { label: string; color: 'default' | 'primary' 
   ROLE_GUEST:      { label: 'Gast',       color: 'default' },
   ROLE_USER:       { label: 'Mitglied',   color: 'default' },
   ROLE_SUPPORTER:  { label: 'Supporter',  color: 'secondary' },
-  ROLE_CLUB:       { label: 'Verein',     color: 'info' },
   ROLE_ADMIN:      { label: 'Admin',      color: 'warning' },
   ROLE_SUPERADMIN: { label: 'Superadmin', color: 'error' },
 };

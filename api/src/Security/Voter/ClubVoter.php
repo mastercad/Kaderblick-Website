@@ -39,21 +39,12 @@ final class ClubVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
+                return in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+
             case self::EDIT:
             case self::DELETE:
-                /** @var Club $subject */
-                if (self::CREATE !== $attribute && $this->adminScopeService->canAdministerClub($user, $subject)) {
-                    return true;
-                }
-
-                if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
-                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
-                ) {
-                    return true;
-                }
-
-                break;
+                /* @var Club $subject */
+                return $this->adminScopeService->canAdministerClub($user, $subject);
             case self::VIEW:
                 return true;
         }

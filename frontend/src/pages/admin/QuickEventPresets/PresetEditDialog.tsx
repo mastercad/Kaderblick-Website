@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
 import { DEFAULT_QUICK_EVENT_CONFIG } from '../../../modals/quick-event/defaultConfig';
 import type { QuickEventButton } from '../../../modals/quick-event/types';
 import { WysiwygPanel } from './WysiwygPanel';
@@ -29,6 +30,7 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
   const [buttons, setButtons] = useState<QuickEventButton[]>([]);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -40,11 +42,13 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
       setButtons(DEFAULT_QUICK_EVENT_CONFIG.buttons);
     }
     setError('');
+    setErrorDialogOpen(false);
   }, [open, preset]);
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError('Name darf nicht leer sein.');
+      setErrorDialogOpen(true);
       return;
     }
     setSaving(true);
@@ -53,12 +57,14 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
       onClose();
     } catch {
       setError('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+      setErrorDialogOpen(true);
     } finally {
       setSaving(false);
     }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {preset ? 'Konfiguration bearbeiten' : 'Neue Konfiguration'}
@@ -81,12 +87,6 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
         />
 
         <WysiwygPanel buttons={buttons} onChange={setButtons} />
-
-        {error && (
-          <Typography color="error" variant="caption">
-            {error}
-          </Typography>
-        )}
       </DialogContent>
       <DialogActions>
         <Box sx={{ flex: 1, pl: 1 }}>
@@ -109,5 +109,31 @@ export function PresetEditDialog({ open, preset, onSave, onClose }: PresetEditDi
         </Button>
       </DialogActions>
     </Dialog>
+    <Dialog
+      open={errorDialogOpen}
+      onClose={() => setErrorDialogOpen(false)}
+      maxWidth="xs"
+      fullWidth
+      aria-labelledby="quick-event-preset-error-title"
+    >
+      <DialogTitle
+        id="quick-event-preset-error-title"
+        sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}
+      >
+        <ErrorOutlineIcon color="error" />
+        Konfiguration kann nicht gespeichert werden
+      </DialogTitle>
+      <DialogContent>
+        <Typography sx={{ color: 'text.primary' }}>
+          {error}
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button variant="contained" onClick={() => setErrorDialogOpen(false)} autoFocus>
+          OK
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

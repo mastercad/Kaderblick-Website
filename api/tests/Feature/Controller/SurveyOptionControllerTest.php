@@ -10,7 +10,7 @@ use Tests\Feature\ApiWebTestCase;
 /**
  * Feature-Tests für den SurveyOptionController (/api/survey-options).
  *
- * Fixtures: user6 = ROLE_USER, user7 = ROLE_USER, user16 = ROLE_ADMIN
+ * Fixtures: user6 = ROLE_USER, user7 = ROLE_USER, user21 = ROLE_SUPERADMIN
  */
 final class SurveyOptionControllerTest extends ApiWebTestCase
 {
@@ -139,7 +139,7 @@ final class SurveyOptionControllerTest extends ApiWebTestCase
     public function testDeleteSystemOptionFails(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         // System-Optionen abrufen
         $client->request('GET', '/api/survey-options');
@@ -188,7 +188,7 @@ final class SurveyOptionControllerTest extends ApiWebTestCase
         $created = json_decode($client->getResponse()->getContent(), true);
 
         // Admin löscht
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
         $client->request('DELETE', '/api/survey-options/' . $created['id']);
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }

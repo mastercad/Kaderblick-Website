@@ -418,7 +418,7 @@ class ReportController extends AbstractController
         $report->setConfig($data['config']);
         if (
             !empty($data['isTemplate'])
-            && (in_array('ROLE_ADMIN', $user->getRoles()) || in_array('ROLE_SUPERADMIN', $user->getRoles()))
+            && in_array('ROLE_SUPERADMIN', $user->getRoles())
         ) {
             $report->setIsTemplate(true);
             $report->setUser(null);
@@ -479,7 +479,7 @@ class ReportController extends AbstractController
 
         if (true === $report->isTemplate()) {
             if (
-                !in_array('ROLE_ADMIN', $user->getRoles())
+                !in_array('ROLE_SUPERADMIN', $user->getRoles())
                 && !in_array('ROLE_SUPERADMIN', $user->getRoles())
             ) {
                 $newReport = new ReportDefinition();
@@ -510,7 +510,7 @@ class ReportController extends AbstractController
             if (
                 isset($data['isTemplate'])
                 && (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 )
             ) {
@@ -570,7 +570,7 @@ class ReportController extends AbstractController
         $user = $this->getUser();
 
         $isSuperAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
-        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles(), true);
+        $isAdmin = in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
 
         if ($isSuperAdmin || $isAdmin) {
             // Admins: only teams that have actual game events

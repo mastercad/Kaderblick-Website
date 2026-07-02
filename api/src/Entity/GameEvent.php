@@ -40,10 +40,10 @@ class GameEvent
     private ?Player $player = null;
 
     #[ORM\ManyToOne(targetEntity: Team::class, inversedBy: 'gameEvents')]
-    #[ORM\JoinColumn(name: 'team_id', referencedColumnName: 'id', nullable: false)]
+    #[ORM\JoinColumn(name: 'team_id', referencedColumnName: 'id', nullable: true)]
     #[Groups(['game_event:read', 'game_event:write'])]
     #[MaxDepth(1)]
-    private Team $team;
+    private ?Team $team = null;
 
     #[ORM\Column(type: 'datetime')]
     #[Groups(['game_event:read', 'game_event:write'])]
@@ -113,7 +113,7 @@ class GameEvent
         return $this;
     }
 
-    public function getTeam(): Team
+    public function getTeam(): ?Team
     {
         return $this->team;
     }

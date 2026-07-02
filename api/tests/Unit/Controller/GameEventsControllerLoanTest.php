@@ -28,7 +28,6 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use TypeError;
 
 /**
  * Regressionstests für die Team-Auflösung bei Leihgabe-Zuordnungen.
@@ -210,8 +209,6 @@ class GameEventsControllerLoanTest extends TestCase
 
     /**
      * Eine abgelaufene Zuordnung (Enddatum gestern) darf nicht als aktiv gewertet werden.
-     * Da kein Fallback-Team im Request vorhanden ist, wird setTeam(null) auf dem
-     * nicht-nullable Feld aufgerufen → TypeError ist das erwartete Verhalten.
      */
     public function testPlayerLoanEndingYesterdayIsNotActive(): void
     {
@@ -225,8 +222,12 @@ class GameEventsControllerLoanTest extends TestCase
         $player = $this->createMock(Player::class);
         $player->method('getPlayerTeamAssignments')->willReturn(new ArrayCollection([$pta]));
 
-        $this->expectException(TypeError::class);
-        $this->callAddEventWithPlayer($player, 10);
+        $response = $this->callAddEventWithPlayer($player, 10);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($data['success']);
+        $this->assertNull($data['teamId'] ?? null);
     }
 
     /**
@@ -312,8 +313,12 @@ class GameEventsControllerLoanTest extends TestCase
         $coach = $this->createMock(Coach::class);
         $coach->method('getCoachTeamAssignments')->willReturn(new ArrayCollection([$cta]));
 
-        $this->expectException(TypeError::class);
-        $this->callAddEventWithCoach($coach, 20);
+        $response = $this->callAddEventWithCoach($coach, 20);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($data['success']);
+        $this->assertNull($data['teamId'] ?? null);
     }
 
     /**

@@ -63,7 +63,7 @@ class NewsController extends AbstractController
         // Clubs & Teams für Auswahl
         $clubs = [];
         $teams = [];
-        if (in_array('ROLE_ADMIN', $user->getRoles(), true) || in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
+        if (in_array('ROLE_SUPERADMIN', $user->getRoles(), true)) {
             $allClubs = $this->em->getRepository(Club::class)->findAll();
             foreach ($allClubs as $club) {
                 $clubs[] = [

@@ -1,5 +1,5 @@
 import { apiJson, apiBlob } from '../utils/api';
-import { Game, GameEvent, GameEventType, MatchPlan, Player, SubstitutionReason, GameWithScore, TournamentOverview, TournamentDetail } from '../types/games';
+import { Game, GameEvent, GameEventType, GameMatchState, MatchPlan, Player, SubstitutionReason, GameWithScore, TournamentOverview, TournamentDetail } from '../types/games';
 
 export interface GamesOverviewData {
   running_games: Game[];
@@ -41,7 +41,27 @@ export async function fetchGameEvents(gameId: number): Promise<GameEvent[]> {
 
 // Event Types laden
 export async function fetchGameEventTypes(): Promise<any> {
-  return apiJson<any>('/api/game-event-types');
+  const data = await apiJson<any>('/api/game-event-types');
+  const normalizeType = (type: any) => {
+    if (!type || typeof type !== 'object') return type;
+    if (type.code === 'injury_break') return { ...type, name: 'Spielunterbrechung', icon: 'fas fa-pause' };
+    if (type.code === 'match_abandoned') return { ...type, name: 'Spielabbruch', icon: 'fas fa-ban' };
+    if (type.code === 'match_resumed') return { ...type, name: 'Wiederaufnahme nach Unterbrechung' };
+    return type;
+  };
+
+  if (Array.isArray(data)) {
+    return data.map(normalizeType);
+  }
+
+  if (data && Array.isArray(data.gameEventTypes)) {
+    return {
+      ...data,
+      gameEventTypes: data.gameEventTypes.map(normalizeType),
+    };
+  }
+
+  return data;
 }
 
 // Spieler für Teams laden
@@ -83,6 +103,10 @@ export async function fetchGameSquad(gameId: number): Promise<GameSquadData> {
   return apiJson<GameSquadData>(`/api/games/${gameId}/squad`);
 }
 
+export async function fetchGameMatchState(gameId: number): Promise<GameMatchState> {
+  return apiJson<GameMatchState>(`/api/games/${gameId}/match-state`);
+}
+
 // Turnier-Details laden
 export async function fetchTournamentDetails(tournamentId: number): Promise<TournamentDetail> {
   return apiJson<TournamentDetail>(`/api/tournaments/${tournamentId}`);
@@ -91,9 +115,9 @@ export async function fetchTournamentDetails(tournamentId: number): Promise<Tour
 // Neues Game Event erstellen
 export async function createGameEvent(gameId: number, eventData: {
   eventType: number;
-  player?: number;
-  relatedPlayer?: number;
-  coach?: number;
+  player?: number | null;
+  relatedPlayer?: number | null;
+  coach?: number | null;
   minute: string;
   description?: string;
   reason?: number;
@@ -107,9 +131,10 @@ export async function createGameEvent(gameId: number, eventData: {
 // Game Event aktualisieren
 export async function updateGameEvent(gameId: number, eventId: number, eventData: {
   eventType?: number;
-  player?: number;
-  relatedPlayer?: number;
-  coach?: number;
+  team?: number | null;
+  player?: number | null;
+  relatedPlayer?: number | null;
+  coach?: number | null;
   minute?: string;
   description?: string;
   reason?: number;

@@ -5,6 +5,7 @@ import {
   fetchGameDetails,
   fetchGameEvents,
   fetchGameEventTypes,
+  fetchGameMatchState,
   fetchPlayersForTeams,
   fetchSubstitutionReasons,
   fetchTournamentDetails,
@@ -107,6 +108,18 @@ describe('fetchGameSquad', () => {
     expect(first.fullName).toBe('Hans Müller');
     expect(first.shirtNumber).toBe(10);
     expect(first.teamId).toBe(2);
+  });
+});
+
+describe('fetchGameMatchState', () => {
+  it('calls the match-state endpoint for the game', async () => {
+    const fixture = { matchState: 'first-half', interruptionContext: null };
+    mockApiJson.mockResolvedValue(fixture);
+
+    const result = await fetchGameMatchState(42);
+
+    expect(mockApiJson).toHaveBeenCalledWith('/api/games/42/match-state');
+    expect(result).toEqual(fixture);
   });
 });
 
@@ -250,6 +263,22 @@ describe('fetchGameEventTypes', () => {
     mockApiJson.mockResolvedValue(types);
     const result = await fetchGameEventTypes();
     expect(result).toEqual(types);
+  });
+
+  it('normalizes interruption event labels from legacy backend names', async () => {
+    mockApiJson.mockResolvedValue([
+      { id: 1, name: 'Unterbrechung wegen Verletzung', code: 'injury_break', icon: 'fas fa-ambulance' },
+      { id: 2, name: 'Spielabbruch', code: 'match_abandoned', icon: 'fas fa-ban' },
+      { id: 3, name: 'Wiederaufnahme nach Abbruch', code: 'match_resumed', icon: 'fas fa-play' },
+    ]);
+
+    const result = await fetchGameEventTypes();
+
+    expect(result).toEqual([
+      { id: 1, name: 'Spielunterbrechung', code: 'injury_break', icon: 'fas fa-pause' },
+      { id: 2, name: 'Spielabbruch', code: 'match_abandoned', icon: 'fas fa-ban' },
+      { id: 3, name: 'Wiederaufnahme nach Unterbrechung', code: 'match_resumed', icon: 'fas fa-play' },
+    ]);
   });
 });
 

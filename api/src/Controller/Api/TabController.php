@@ -45,7 +45,7 @@ class TabController extends AbstractController
 
     private function isKassenwart(User $user): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 
@@ -71,7 +71,7 @@ class TabController extends AbstractController
     /** @return int[] */
     private function getKassenwartTeamIds(User $user): array
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return array_map(
                 static fn (Team $t) => $t->getId(),
                 $this->em->getRepository(Team::class)->findAll()
@@ -93,7 +93,7 @@ class TabController extends AbstractController
     /** @return int[] */
     private function getKassenwartClubIds(User $user): array
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return array_map(
                 static fn (Club $c) => $c->getId(),
                 $this->em->getRepository(Club::class)->findAll()
@@ -219,7 +219,7 @@ class TabController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             $items = $this->em->getRepository(TabCatalogItem::class)->findBy(['active' => true]);
         } else {
             $teamIds = $this->getUserTeamIds($user);
@@ -274,7 +274,7 @@ class TabController extends AbstractController
         $teamIds = $this->getKassenwartTeamIds($user);
         $clubIds = $this->getKassenwartClubIds($user);
 
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             $items = $this->em->getRepository(TabCatalogItem::class)->findBy([], ['name' => 'ASC']);
         } else {
             $qb = $this->em->getRepository(TabCatalogItem::class)->createQueryBuilder('i')->orderBy('i.name', 'ASC');
@@ -296,7 +296,7 @@ class TabController extends AbstractController
         $teams = array_map(
             fn (Team $t) => ['id' => $t->getId(), 'name' => $t->getName()],
             $this->em->getRepository(Team::class)->findBy(
-                $this->isGranted('ROLE_ADMIN') ? [] : ['id' => $teamIds],
+                $this->isGranted('ROLE_SUPERADMIN') ? [] : ['id' => $teamIds],
                 ['name' => 'ASC']
             )
         );
@@ -304,7 +304,7 @@ class TabController extends AbstractController
         $clubs = array_map(
             fn (Club $c) => ['id' => $c->getId(), 'name' => $c->getName()],
             $this->em->getRepository(Club::class)->findBy(
-                $this->isGranted('ROLE_ADMIN') ? [] : ['id' => $clubIds],
+                $this->isGranted('ROLE_SUPERADMIN') ? [] : ['id' => $clubIds],
                 ['name' => 'ASC']
             )
         );
@@ -510,11 +510,11 @@ class TabController extends AbstractController
             ->leftJoin('e.catalogItem', 'i')
             ->addSelect('i');
 
-        if (!$this->isGranted('ROLE_ADMIN') && 0 === count($teamIds) && 0 === count($clubIds)) {
+        if (!$this->isGranted('ROLE_SUPERADMIN') && 0 === count($teamIds) && 0 === count($clubIds)) {
             return $this->json([]);
         }
 
-        if (!$this->isGranted('ROLE_ADMIN')) {
+        if (!$this->isGranted('ROLE_SUPERADMIN')) {
             $conditions = [];
             if (count($teamIds) > 0) {
                 $conditions[] = 'e.team IN (:teamIds)';
@@ -535,7 +535,7 @@ class TabController extends AbstractController
         // Fetch all tab payments for accessible teams/clubs
         $paymentsQb = $this->em->getRepository(TabPayment::class)->createQueryBuilder('p');
 
-        if (!$this->isGranted('ROLE_ADMIN')) {
+        if (!$this->isGranted('ROLE_SUPERADMIN')) {
             $conditions = [];
             if (count($teamIds) > 0) {
                 $conditions[] = 'p.team IN (:teamIds)';
@@ -689,7 +689,7 @@ class TabController extends AbstractController
         }
 
         // Verify target user belongs to one of the Kassenwart's teams/clubs
-        if (!$this->isGranted('ROLE_ADMIN')) {
+        if (!$this->isGranted('ROLE_SUPERADMIN')) {
             $targetTeamIds = $this->getUserTeamIds($targetUser);
             $targetClubIds = $this->getUserClubIds($targetUser);
             $kassenwartTeamIds = $this->getKassenwartTeamIds($user);
@@ -1007,7 +1007,7 @@ class TabController extends AbstractController
             return $this->json(['error' => 'Eintrag nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($entry->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) {
+        if ($entry->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['error' => 'Zugriff verweigert.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -1057,18 +1057,18 @@ class TabController extends AbstractController
             return $this->json(['error' => 'Eintrag nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($entry->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) {
+        if ($entry->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['error' => 'Zugriff verweigert.'], Response::HTTP_FORBIDDEN);
         }
 
-        if ($entry->isPenalty() && !$this->isGranted('ROLE_ADMIN') && !$this->isKassenwart($user)) {
+        if ($entry->isPenalty() && !$this->isGranted('ROLE_SUPERADMIN') && !$this->isKassenwart($user)) {
             if ($entry->getCreatedByUser()?->getId() !== $user->getId()) {
                 return $this->json(['error' => 'Strafen können nur vom Kassenwart oder dem zuweisenden Trainer gelöscht werden.'], Response::HTTP_FORBIDDEN);
             }
         }
 
         // Block deletion if a payment exists for this user in the same context after the entry date
-        if (!$this->isGranted('ROLE_ADMIN') && !$this->isKassenwart($user)) {
+        if (!$this->isGranted('ROLE_SUPERADMIN') && !$this->isKassenwart($user)) {
             $qb = $this->em->getRepository(TabPayment::class)->createQueryBuilder('p')
                 ->where('p.user = :userId')
                 ->andWhere('p.paymentDate >= :entryDate')

@@ -4,11 +4,13 @@ import { QuickEventButton, RadialItem } from '../types';
 import { getGameEventIconByCode } from '../../../constants/gameEventIcons';
 import { GameEventType } from '../../../types/games';
 import { QuickEventRadialMenu } from './QuickEventRadialMenu';
+import { getCodeStyle } from '../codeStyle';
 
 interface QuickEventEventStepProps {
   buttons: QuickEventButton[];
   gameEventTypes: GameEventType[];
   onSelect: (eventTypeCode: string) => void;
+  buttonLabelOverrides?: Record<string, string>;
 }
 
 const LONG_PRESS_MS = 500;
@@ -17,6 +19,7 @@ export const QuickEventEventStep: React.FC<QuickEventEventStepProps> = ({
   buttons,
   gameEventTypes,
   onSelect,
+  buttonLabelOverrides,
 }) => {
   const [radialOpen, setRadialOpen] = useState(false);
   const [radialItems, setRadialItems] = useState<RadialItem[]>([]);
@@ -30,6 +33,9 @@ export const QuickEventEventStep: React.FC<QuickEventEventStepProps> = ({
     [gameEventTypes],
   );
 
+  const matchStateButtons = buttons.filter((btn) => btn.group === 'match-state');
+  const playerButtons = buttons.filter((btn) => btn.group !== 'match-state');
+
   const clearTimer = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -39,7 +45,7 @@ export const QuickEventEventStep: React.FC<QuickEventEventStepProps> = ({
 
   const handlePointerDown = (e: React.PointerEvent, btn: QuickEventButton) => {
     setPressedCode(btn.eventTypeCode);
-    didLongPressRef.current = false; // IMMER zurücksetzen, auch für Buttons ohne radialItems
+    didLongPressRef.current = false;
     if (!btn.radialItems?.length) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     timerRef.current = setTimeout(() => {
@@ -69,112 +75,137 @@ export const QuickEventEventStep: React.FC<QuickEventEventStepProps> = ({
     onSelect(item.eventTypeCode);
   };
 
-  return (
-    <>
+  const renderButton = (btn: QuickEventButton) => {
+    const dbType = typeMap.get(btn.eventTypeCode);
+    const fallbackStyle = getCodeStyle(btn.eventTypeCode);
+    const FallbackIcon = fallbackStyle.Icon;
+    const color = dbType?.color ?? fallbackStyle.color;
+    const iconNode = dbType?.icon
+      ? getGameEventIconByCode(dbType.icon)
+      : <FallbackIcon fontSize="inherit" />;
+    const isPressed = pressedCode === btn.eventTypeCode;
+    const label = buttonLabelOverrides?.[btn.eventTypeCode] ?? btn.label;
+
+    return (
       <Box
+        key={`${btn.eventTypeCode}-${label}`}
+        onPointerDown={(e) => handlePointerDown(e, btn)}
+        onPointerUp={() => handlePointerUp(btn)}
+        onPointerLeave={handlePointerLeave}
+        onContextMenu={(e) => e.preventDefault()}
         sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 1.25,
+          pt: 2,
+          pb: 1.75,
+          px: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.9,
+          minHeight: 92,
+          cursor: 'pointer',
+          userSelect: 'none',
+          borderRadius: '12px',
+          position: 'relative',
+          overflow: 'hidden',
+          bgcolor: isPressed ? `${color}22` : 'rgba(255,255,255,0.04)',
+          border: isPressed ? `1px solid ${color}77` : '1px solid rgba(255,255,255,0.07)',
+          transform: isPressed ? 'scale(0.94)' : 'scale(1)',
+          transition: 'all 0.12s ease',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            bgcolor: color,
+            borderRadius: '12px 12px 0 0',
+            opacity: 0.85,
+          },
+          '&:hover': {
+            bgcolor: `${color}14`,
+            border: `1px solid ${color}44`,
+          },
         }}
       >
-        {buttons.map((btn) => {
-          const dbType   = typeMap.get(btn.eventTypeCode);
-          const color    = dbType?.color ?? '#888888';
-          const iconNode = getGameEventIconByCode(dbType?.icon ?? '');
-          const isPressed = pressedCode === btn.eventTypeCode;
-          return (
-            <Box
-              key={btn.eventTypeCode}
-              onPointerDown={(e) => handlePointerDown(e, btn)}
-              onPointerUp={() => handlePointerUp(btn)}
-              onPointerLeave={handlePointerLeave}
-              onContextMenu={(e) => e.preventDefault()}
-              sx={{
-                pt: 2,
-                pb: 1.75,
-                px: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.9,
-                minHeight: 92,
-                cursor: 'pointer',
-                userSelect: 'none',
-                borderRadius: '12px',
-                position: 'relative',
-                overflow: 'hidden',
-                bgcolor: isPressed
-                  ? `${color}22`
-                  : 'rgba(255,255,255,0.04)',
-                border: isPressed
-                  ? `1px solid ${color}77`
-                  : '1px solid rgba(255,255,255,0.07)',
-                transform: isPressed ? 'scale(0.94)' : 'scale(1)',
-                transition: 'all 0.12s ease',
-                // Farbiger Top-Streifen als Akzent
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '3px',
-                  bgcolor: color,
-                  borderRadius: '12px 12px 0 0',
-                  opacity: 0.85,
-                },
-                '&:hover': {
-                  bgcolor: `${color}14`,
-                  border: `1px solid ${color}44`,
-                },
-              }}
-            >
-              <Box
-                sx={{
-                  color,
-                  fontSize: 30,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  filter: 'drop-shadow(0 0 6px currentColor)',
-                  opacity: 0.9,
-                  lineHeight: 1,
-                }}
-              >
-                {iconNode}
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  lineHeight: 1.2,
-                  letterSpacing: '0.07em',
-                  color: 'rgba(255,255,255,0.82)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {btn.label}
-              </Typography>
-              {!!btn.radialItems?.length && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 5,
-                    right: 7,
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    bgcolor: color,
-                    opacity: 0.45,
-                  }}
-                />
-              )}
-            </Box>
-          );
-        })}
+        <Box
+          sx={{
+            color,
+            fontSize: 30,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            filter: 'drop-shadow(0 0 6px currentColor)',
+            opacity: 0.9,
+            lineHeight: 1,
+          }}
+        >
+          {iconNode}
+        </Box>
+        <Typography
+          sx={{
+            fontSize: '0.68rem',
+            fontWeight: 700,
+            textAlign: 'center',
+            lineHeight: 1.2,
+            letterSpacing: '0.07em',
+            color: 'rgba(255,255,255,0.82)',
+            textTransform: 'uppercase',
+          }}
+        >
+          {label}
+        </Typography>
+        {!!btn.radialItems?.length && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 5,
+              right: 7,
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              bgcolor: color,
+              opacity: 0.45,
+            }}
+          />
+        )}
+      </Box>
+    );
+  };
+
+  return (
+    <>
+      {matchStateButtons.length > 0 && (
+        <Box sx={{ mb: 2.5 }}>
+          <Typography sx={{ mb: 1, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.55)' }}>
+            MATCH-STATUS
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 1.25,
+            }}
+          >
+            {matchStateButtons.map(renderButton)}
+          </Box>
+        </Box>
+      )}
+
+      <Box sx={{ mb: 0.5 }}>
+        <Typography sx={{ mb: 1, fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.55)' }}>
+          SPIELEREVENTS
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1.25,
+          }}
+        >
+          {playerButtons.map(renderButton)}
+        </Box>
       </Box>
 
       <QuickEventRadialMenu

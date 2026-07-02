@@ -4,6 +4,7 @@ namespace App\Security\Voter;
 
 use App\Entity\Player;
 use App\Entity\User;
+use App\Service\AdminScopeService;
 use App\Service\CoachTeamPlayerService;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
@@ -18,8 +19,10 @@ final class PlayerVoter extends Voter
     public const VIEW = 'POST_VIEW';
     public const DELETE = 'POST_DELETE';
 
-    public function __construct(private readonly CoachTeamPlayerService $coachTeamPlayerService)
-    {
+    public function __construct(
+        private readonly CoachTeamPlayerService $coachTeamPlayerService,
+        private readonly AdminScopeService $adminScopeService,
+    ) {
     }
 
     protected function supports(string $attribute, mixed $subject): bool
@@ -39,13 +42,18 @@ final class PlayerVoter extends Voter
 
         switch ($attribute) {
             case self::CREATE:
+                if (
+                    in_array('ROLE_SUPERADMIN', $user->getRoles(), true)
+                    || [] !== $this->adminScopeService->getAdministeredTeams($user)
+                ) {
+                    return true;
+                }
+
+                return 0 < count($this->coachTeamPlayerService->collectCoachTeams($user));
+
             case self::EDIT:
             case self::DELETE:
-                // SUPERADMIN und ADMIN dürfen immer
-                if (
-                    in_array('ROLE_SUPERADMIN', $user->getRoles())
-                    || in_array('ROLE_ADMIN', $user->getRoles())
-                ) {
+                if ($this->adminScopeService->canAdministerPlayer($user, $subject)) {
                     return true;
                 }
 
@@ -56,11 +64,10 @@ final class PlayerVoter extends Voter
                     break;
                 }
 
-                if (self::CREATE === $attribute || self::EDIT === $attribute) {
-                    // Neuer Spieler hat noch kein Team – jeder aktive Coach darf anlegen.
-                    // Beim Bearbeiten gilt dasselbe: Was der Coach tatsächlich ändern darf,
-                    // wird im Controller per isFullScope geprüft. So können Coaches auch
-                    // Testspieler/Leihgaben aus anderen Vereinen ihrem Team zuordnen.
+                if (self::EDIT === $attribute) {
+                    // Was der Coach tatsächlich ändern darf, wird im Controller per
+                    // isFullScope geprüft. So können Coaches auch Testspieler/Leihgaben
+                    // aus anderen Vereinen ihrem Team zuordnen.
                     return true;
                 }
 

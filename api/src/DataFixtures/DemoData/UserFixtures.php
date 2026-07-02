@@ -13,13 +13,13 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * Demo-Fixtures: repräsentative Benutzer pro Verein + Admin-/Staff-/Funktionärs-Accounts.
  *
  * Pro Verein:
- *   localIdx 0 → Admin-Account (ROLE_ADMIN), E-Mail: admin.{slug}@demo-kaderblick.de
+ *   localIdx 0 → Regular account (ROLE_USER), E-Mail: admin.{slug}@demo-kaderblick.de
  *   localIdx 1 → Cheftrainer-Account (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 2 → Co-Trainer-Account  (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 3-8 → Spieler-Accounts  (ROLE_USER, linked über UserRelationFixtures)
  *   localIdx 9 → Elternteil-Account  (ROLE_USER, linked über UserRelationFixtures)
  *   admin      → Superadmin          (ROLE_SUPERADMIN), E-Mail: superadmin.{slug}@demo-kaderblick.de
- *   supporter  → Supporter           (ROLE_SUPPORTER), E-Mail: supporter.{slug}@demo-kaderblick.de
+ *   supporter  → Supporter account   (ROLE_USER; scopes are assigned separately), E-Mail: supporter.{slug}@demo-kaderblick.de
  *   staff/functionary → ROLE_USER, E-Mail z.B. kassenwart-team.{slug}@demo-kaderblick.de
  *
  * Referenzschlüssel: demo_user_{clubIdx}_{localIdx}, demo_admin_{clubIdx}, demo_supporter_{clubIdx},
@@ -321,8 +321,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
                 $user->setIsEnabled(true);
                 $user->setIsVerified(true);
 
-                $role = (0 === $localIdx) ? 'ROLE_ADMIN' : 'ROLE_USER';
-                $user->setRoles([$role]);
+                $user->setRoles(['ROLE_USER']);
 
                 if (null === $user->getId()) {
                     $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));
@@ -363,7 +362,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             }
         }
 
-        // --- Supporter users (one per club, ROLE_SUPPORTER) ---
+        // --- Supporter users (one per club; scoped rights are assigned separately) ---
         foreach (self::CLUB_SLUGS as $clubIdx => $slug) {
             $email = 'supporter.' . $slug . '@demo-kaderblick.de';
 
@@ -375,7 +374,7 @@ class UserFixtures extends Fixture implements FixtureGroupInterface, DependentFi
             $user->setLastName($lastName);
             $user->setIsEnabled(true);
             $user->setIsVerified(true);
-            $user->setRoles(['ROLE_SUPPORTER']);
+            $user->setRoles(['ROLE_USER']);
 
             if (null === $user->getId()) {
                 $user->setPassword($this->passwordHasher->hashPassword($user, self::DEMO_PASSWORD));

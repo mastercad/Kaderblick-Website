@@ -152,7 +152,7 @@ class CupRoundsControllerTest extends WebTestCase
 
     public function testCreateSucceedsForAdmin(): void
     {
-        $admin = $this->createUser('post-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('post-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $name = self::PREFIX . 'Gruppenphase-' . bin2hex(random_bytes(3));
@@ -173,7 +173,7 @@ class CupRoundsControllerTest extends WebTestCase
 
     public function testCreateReturns422ForEmptyName(): void
     {
-        $admin = $this->createUser('post-empty', ['ROLE_ADMIN']);
+        $admin = $this->createUser('post-empty', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('POST', '/api/cup-rounds', ['name' => '   ']);
@@ -199,7 +199,7 @@ class CupRoundsControllerTest extends WebTestCase
     public function testUpdateRenamesRound(): void
     {
         $round = $this->createRound(self::PREFIX . 'Put-old');
-        $admin = $this->createUser('put-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('put-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $newName = self::PREFIX . 'Put-new-' . bin2hex(random_bytes(3));
@@ -217,7 +217,7 @@ class CupRoundsControllerTest extends WebTestCase
     {
         $name = self::PREFIX . 'Put-same-' . bin2hex(random_bytes(3));
         $round = $this->createRound($name);
-        $admin = $this->createUser('put-same-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('put-same-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('PUT', '/api/cup-rounds/' . $round->getId(), ['name' => $name]);
@@ -232,7 +232,7 @@ class CupRoundsControllerTest extends WebTestCase
     public function testUpdateReturns422ForEmptyName(): void
     {
         $round = $this->createRound(self::PREFIX . 'Put-empty');
-        $admin = $this->createUser('put-empty-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('put-empty-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->jsonRequest('PUT', '/api/cup-rounds/' . $round->getId(), ['name' => '']);
@@ -259,7 +259,7 @@ class CupRoundsControllerTest extends WebTestCase
     {
         $round = $this->createRound(self::PREFIX . 'Del-unused-' . bin2hex(random_bytes(3)));
         $roundId = $round->getId();
-        $admin = $this->createUser('del-admin', ['ROLE_ADMIN']);
+        $admin = $this->createUser('del-admin', ['ROLE_SUPERADMIN']);
         $this->client->loginUser($admin);
 
         $this->client->request('DELETE', '/api/cup-rounds/' . $roundId);
@@ -275,7 +275,7 @@ class CupRoundsControllerTest extends WebTestCase
     {
         $roundName = self::PREFIX . 'Del-inuse-' . bin2hex(random_bytes(3));
         $round = $this->createRound($roundName);
-        $admin = $this->createUser('del-inuse-admin-' . bin2hex(random_bytes(3)), ['ROLE_ADMIN']);
+        $admin = $this->createUser('del-inuse-admin-' . bin2hex(random_bytes(3)), ['ROLE_SUPERADMIN']);
 
         // create a game that references this round name
         $gameType = $this->em->getRepository(GameType::class)->findOneBy([]);

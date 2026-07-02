@@ -33,7 +33,7 @@ class PenaltyController extends AbstractController
 
     private function isKassenwart(User $user): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 
@@ -58,7 +58,7 @@ class PenaltyController extends AbstractController
 
     private function isCoach(User $user): bool
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             return true;
         }
 
@@ -68,7 +68,7 @@ class PenaltyController extends AbstractController
     /** @return array<int, Team> */
     private function getCoachTeams(User $user): array
     {
-        if ($this->isGranted('ROLE_ADMIN')) {
+        if ($this->isGranted('ROLE_SUPERADMIN')) {
             $all = $this->em->getRepository(Team::class)->findAll();
             $result = [];
             foreach ($all as $t) {
@@ -123,7 +123,7 @@ class PenaltyController extends AbstractController
 
         $filtered = [];
         foreach ($all as $pt) {
-            if ($this->isGranted('ROLE_ADMIN')) {
+            if ($this->isGranted('ROLE_SUPERADMIN')) {
                 $filtered[] = $this->serializePenaltyType($pt);
                 continue;
             }
@@ -212,7 +212,7 @@ class PenaltyController extends AbstractController
             return $this->json(['error' => 'Strafentyp nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($pt->isGlobal() && !$this->isGranted('ROLE_ADMIN')) {
+        if ($pt->isGlobal() && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['error' => 'Globale Strafentypen können nur vom Admin bearbeitet werden.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -260,7 +260,7 @@ class PenaltyController extends AbstractController
             return $this->json(['error' => 'Strafentyp nicht gefunden.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($pt->isGlobal() && !$this->isGranted('ROLE_ADMIN')) {
+        if ($pt->isGlobal() && !$this->isGranted('ROLE_SUPERADMIN')) {
             return $this->json(['error' => 'Globale Strafentypen können nur vom Admin gelöscht werden.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -403,7 +403,7 @@ class PenaltyController extends AbstractController
             ->addOrderBy('e.id', 'DESC')
             ->setMaxResults(100);
 
-        if (!$this->isGranted('ROLE_ADMIN')) {
+        if (!$this->isGranted('ROLE_SUPERADMIN')) {
             if (!empty($teamIds)) {
                 $qb->andWhere('e.team IN (:teamIds)')->setParameter('teamIds', $teamIds);
             } else {

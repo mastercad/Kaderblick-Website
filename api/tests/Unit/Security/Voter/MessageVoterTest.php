@@ -89,7 +89,7 @@ class MessageVoterTest extends TestCase
 
     public function testDeleteAsAdminReturnsTrue(): void
     {
-        $admin = $this->createUser(1, ['ROLE_ADMIN']);
+        $admin = $this->createUser(1, ['ROLE_SUPERADMIN']);
         $message = $this->createMessage(2, []);
         $token = $this->createToken($admin);
 

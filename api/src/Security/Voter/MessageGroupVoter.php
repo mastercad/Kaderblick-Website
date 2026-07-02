@@ -54,7 +54,7 @@ final class MessageGroupVoter extends Voter
             case self::DELETE:
                 // Nur Ersteller oder Admins
                 return $messageGroup->getOwner() === $user
-                    || in_array('ROLE_ADMIN', $user->getRoles())
+                    || in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles());
             case self::CREATE:
                 return true; // Alle authentifizierten User können Gruppen erstellen

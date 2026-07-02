@@ -30,7 +30,7 @@ class NewsEndToEndTest extends ApiWebTestCase
     public function testAdminCanCreateClubNews(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $em = static::getContainer()->get('doctrine')->getManager();
         $club = $em->getRepository(\App\Entity\Club::class)->findOneBy([]);
@@ -57,7 +57,7 @@ class NewsEndToEndTest extends ApiWebTestCase
     public function testAdminCanCreateTeamNews(): void
     {
         $client = static::createClient();
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $em = static::getContainer()->get('doctrine')->getManager();
         $team = $em->getRepository(\App\Entity\Team::class)->findOneBy(['name' => 'Team 1']);
@@ -135,7 +135,7 @@ class NewsEndToEndTest extends ApiWebTestCase
         self::assertNotNull($team2, 'Fixture-Team "Team 2" nicht gefunden.');
 
         // Admin legt eine Team-News für Team 1 an
-        $this->authenticateUser($client, 'user16@example.com');
+        $this->authenticateUser($client, 'user21@example.com');
 
         $client->request('POST', '/news/create', [], [], [], json_encode([
             'title' => 'Team 1 News',

@@ -37,7 +37,7 @@ final class AgeGroupVoter extends Voter
             case self::EDIT:
             case self::DELETE:
                 if (
-                    in_array('ROLE_ADMIN', $user->getRoles())
+                    in_array('ROLE_SUPERADMIN', $user->getRoles())
                     || in_array('ROLE_SUPERADMIN', $user->getRoles())
                 ) {
                     return true;

@@ -67,11 +67,9 @@ security:
         ROLE_GUEST:       []
         ROLE_USER:        [ROLE_GUEST]
         ROLE_SUPPORTER:   [ROLE_USER]
-        ROLE_CLUB:        [ROLE_SUPPORTER]
-        ROLE_TEAM_ADMIN:  [ROLE_CLUB]
-        ROLE_CLUB_ADMIN:  [ROLE_CLUB]
-        ROLE_ADMIN:       [ROLE_CLUB]
-        ROLE_SUPERADMIN:  [ROLE_ADMIN]
+        ROLE_TEAM_ADMIN:  [ROLE_USER]
+        ROLE_CLUB_ADMIN:  [ROLE_USER]
+        ROLE_SUPERADMIN:  [ROLE_TEAM_ADMIN, ROLE_CLUB_ADMIN]
 
     access_control:
     - { path: ^/poster-share/, roles: PUBLIC_ACCESS }
@@ -81,7 +79,7 @@ security:
     - { path: ^/internal/demo-webhook, roles: PUBLIC_ACCESS }
     - { path: ^/aktuelles, roles: PUBLIC_ACCESS }
     - { path: ^/news-sitemap\.xml$, roles: PUBLIC_ACCESS }
-    - { path: ^/admin,        roles: ROLE_ADMIN }
+    - { path: ^/admin,        roles: ROLE_SUPERADMIN }
     - { path: ^/news,         roles: ROLE_USER }
     - { path: ^/api/public/platform-news, roles: PUBLIC_ACCESS }
     - { path: ^/api/public/live-ticker/, roles: PUBLIC_ACCESS }

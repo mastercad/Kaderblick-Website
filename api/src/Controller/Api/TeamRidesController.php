@@ -247,7 +247,7 @@ class TeamRidesController extends AbstractController
         // Only the driver or an admin can remove passengers
         if (
             $ride->getDriver()->getId() !== $currentUser->getId()
-            && !in_array('ROLE_ADMIN', $currentUser->getRoles())
+            && !in_array('ROLE_SUPERADMIN', $currentUser->getRoles())
             && !in_array('ROLE_SUPERADMIN', $currentUser->getRoles())
         ) {
             return $this->json(['error' => 'Not authorized'], Response::HTTP_FORBIDDEN);
